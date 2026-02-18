@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@eslint/js": "^9.39.2",
-    "@google-cloud/storage": "^7.18.0",
+    "@google-cloud/storage": "^7.19.0",
     "@google/genai": "^1.35.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
@@ -60,7 +60,7 @@
     "@uppy/react": "^5.1.1",
     "@vitest/coverage-v8": "^4.0.17",
     "appwrite": "^21.5.0",
-    "axios": "^1.13.2",
+    "axios": "^1.13.5",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
