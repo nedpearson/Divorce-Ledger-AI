@@ -5606,9 +5606,9 @@ export async function registerRoutes(
   // GET /api/mobile/financial-summary - Get summary of all financial metrics
   app.get("/api/mobile/financial-summary", async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.id || (req.headers["x-user-id"] as string);
       const environment = (req.headers["x-environment"] as string) || "demo";
-      
+
       if (!userId) {
         return res.status(401).json({ success: false, error: "Authentication required" });
       }
@@ -5625,9 +5625,9 @@ export async function registerRoutes(
   // GET /api/mobile/assets - Get all assets for drill-down
   app.get("/api/mobile/assets", async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.id || (req.headers["x-user-id"] as string);
       const environment = (req.headers["x-environment"] as string) || "demo";
-      
+
       if (!userId) {
         return res.status(401).json({ success: false, error: "Authentication required" });
       }
@@ -5644,9 +5644,9 @@ export async function registerRoutes(
   // GET /api/mobile/debts - Get all debts for drill-down
   app.get("/api/mobile/debts", async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.id || (req.headers["x-user-id"] as string);
       const environment = (req.headers["x-environment"] as string) || "demo";
-      
+
       if (!userId) {
         return res.status(401).json({ success: false, error: "Authentication required" });
       }
@@ -5663,9 +5663,9 @@ export async function registerRoutes(
   // GET /api/mobile/incomes - Get all incomes for drill-down
   app.get("/api/mobile/incomes", async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.id || (req.headers["x-user-id"] as string);
       const environment = (req.headers["x-environment"] as string) || "demo";
-      
+
       if (!userId) {
         return res.status(401).json({ success: false, error: "Authentication required" });
       }
@@ -5682,9 +5682,9 @@ export async function registerRoutes(
   // GET /api/mobile/expenses - Get all expenses for drill-down
   app.get("/api/mobile/expenses", async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.id || (req.headers["x-user-id"] as string);
       const environment = (req.headers["x-environment"] as string) || "demo";
-      
+
       if (!userId) {
         return res.status(401).json({ success: false, error: "Authentication required" });
       }
@@ -5701,9 +5701,9 @@ export async function registerRoutes(
   // GET /api/mobile/child-support - Get all child support payments for drill-down
   app.get("/api/mobile/child-support", async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.id || (req.headers["x-user-id"] as string);
       const environment = (req.headers["x-environment"] as string) || "demo";
-      
+
       if (!userId) {
         return res.status(401).json({ success: false, error: "Authentication required" });
       }

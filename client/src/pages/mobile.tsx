@@ -69,6 +69,23 @@ import {
 } from "lucide-react";
 import type { Document, MobileViolationReport, Reimbursement, W2Record, Asset, Debt, Income, Expense, ChildSupportPayment, DashboardStats } from "@shared/schema";
 
+// Build auth headers (X-User-Id + X-Environment) for inline fetch() calls on the mobile page.
+// Mirrors getAuthHeaders() in queryClient.ts so that API routes requiring X-User-Id work
+// when accessed from a phone (which has its own session cookie but stores userId in localStorage).
+function getMobileHeaders(environment: string): Record<string, string> {
+  const headers: Record<string, string> = { "X-Environment": environment };
+  try {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      if (user?.id) headers["X-User-Id"] = user.id;
+    }
+  } catch {
+    // ignore
+  }
+  return headers;
+}
+
 interface MobileViewProps {
   isDemoMode?: boolean;
 }
@@ -163,7 +180,7 @@ function FinancialDrillDown({
     queryKey: ["/api/mobile/assets", environment],
     queryFn: async () => {
       const res = await fetch("/api/mobile/assets", {
-        headers: { "X-Environment": environment },
+        headers: getMobileHeaders(environment),
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch assets");
@@ -176,7 +193,7 @@ function FinancialDrillDown({
     queryKey: ["/api/mobile/debts", environment],
     queryFn: async () => {
       const res = await fetch("/api/mobile/debts", {
-        headers: { "X-Environment": environment },
+        headers: getMobileHeaders(environment),
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch debts");
@@ -189,7 +206,7 @@ function FinancialDrillDown({
     queryKey: ["/api/mobile/incomes", environment],
     queryFn: async () => {
       const res = await fetch("/api/mobile/incomes", {
-        headers: { "X-Environment": environment },
+        headers: getMobileHeaders(environment),
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch incomes");
@@ -202,7 +219,7 @@ function FinancialDrillDown({
     queryKey: ["/api/mobile/expenses", environment],
     queryFn: async () => {
       const res = await fetch("/api/mobile/expenses", {
-        headers: { "X-Environment": environment },
+        headers: getMobileHeaders(environment),
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch expenses");
@@ -215,7 +232,7 @@ function FinancialDrillDown({
     queryKey: ["/api/mobile/child-support", environment],
     queryFn: async () => {
       const res = await fetch("/api/mobile/child-support", {
-        headers: { "X-Environment": environment },
+        headers: getMobileHeaders(environment),
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch child support");
@@ -605,7 +622,7 @@ function FinancialSummaryBar({ isDemoMode, environment }: { isDemoMode: boolean;
     queryKey: ["/api/mobile/financial-summary", environment],
     queryFn: async () => {
       const res = await fetch("/api/mobile/financial-summary", {
-        headers: { "X-Environment": environment },
+        headers: getMobileHeaders(environment),
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch financial summary");
