@@ -1,0 +1,143 @@
+You are an expert full-stack engineer debugging and improving the project currently loaded in this Replit. Read the ENTIRE codebase first before making changes so you understand the data model, API layer, and UI.
+
+GOAL
+Fix my document handling pipeline once and for all, including:
+1. Delete behavior that currently does nothing.
+2. Auto-analysis + categorization on upload (specifically to "Expenses").
+3. A proper progress bar / status feedback for the user.
+
+CURRENT PROBLEMS (MUST REPRO + FIX)
+1. When I click the Delete button for uploaded documents, they do NOT actually delete.
+   - The UI may show something, but the records and/or files still exist.
+   - I want deletion behavior to be correct, consistent, and observable in all layers:
+     - UI state
+     - API/route handlers
+     - Database / persistence
+     - File storage (if applicable, e.g., bucket / filesystem)
+
+2. Before I attempted deletion, the last 2 uploaded documents were NEVER analyzed or categorized.
+   - They did not go through whatever “analysis / classification” pipeline we have.
+   - They did NOT get categorized as Expenses (which they should have).
+   - This suggests either:
+     - a job/queue/worker is not being triggered,
+     - or the classification logic is broken,
+     - or the front-end / back-end contract for "analysis finished + category = Expenses" is wrong.
+
+3. I want a visible PROGRESS BAR / STATUS for document analysis.
+   - When the user uploads documents, the UI should clearly show progress:
+     - e.g., “Uploading → Analyzing → Categorizing → Done”
+   - The progress indicator must be wired to actual backend state (or at least realistic polling / optimistic updates), not just a fake timer.
+
+REQUIREMENTS – DELETE FLOW
+1. **Identify the full delete pipeline:**
+   - Find all React components / UI handlers that call “delete” for documents.
+   - Find the API route / controller / tRPC procedure / serverless function that handles deletion.
+   - Find the DB model / ORM code that persists documents.
+   - Find any file storage integration (S3, local FS, etc.) for the underlying blobs.
+
+2. **Fix the bug so that clicking Delete actually deletes:**
+   - Ensure the delete handler on the client calls the correct API endpoint with the correct ID(s).
+   - Ensure the API endpoint:
+     - Validates input.
+     - Locates the correct document record(s).
+     - Deletes the DB record(s).
+     - Deletes the underlying file(s) from storage (if applicable).
+   - If the project uses soft deletes (e.g., `deleted_at` / `is_deleted` flag), then:
+     - Ensure all document queries in the app filter out deleted items unless explicitly asking for them.
+     - Ensure the UI never shows deleted items in normal lists.
+
+3. **Error handling + telemetry:**
+   - If delete fails, the user should get a clear error notification.
+   - Log errors in the backend in a consistent way with the existing logging framework.
+   - Add at least one integration/endpoint test that:
+     - Creates a document,
+     - Calls delete,
+     - Asserts it no longer appears in the standard document listing,
+     - And that the underlying storage/file is removed or marked deleted.
+
+4. **Consistency:**
+   - Search for ANY other delete-related functions, endpoints, or components and ensure they all use a single, canonical deletion path where possible.
+   - If there are multiple document types, make sure the delete logic is not silently no-oping for some of them.
+
+REQUIREMENTS – ANALYSIS + CATEGORIZATION ("EXPENSES")
+1. **Locate the analysis / classification pipeline:**
+   - Find where newly uploaded documents are submitted to AI/ETL/analysis.
+   - Identify whether this is:
+     - synchronous in the request/response cycle,
+     - or asynchronous via a queue/job/worker.
+
+2. **Fix why the last 2 documents were NOT analyzed / categorized:**
+   - Reproduce the flow locally by uploading test documents.
+   - Find the exact point where those last 2 documents “got stuck”:
+     - Were they created in DB but never queued?
+     - Was the job executed but failed?
+     - Did the classification result not persist?
+   - Fix the bug so that:
+     - For every successfully uploaded document, the analysis pipeline is reliably triggered, and
+     - The resulting category is saved to the DB.
+
+3. **Default category for the type in question = "Expenses":**
+   - For the document type(s) in question (receipts / expense documents), ensure that:
+     - If the analysis pipeline is designed to determine category, it must map these to "Expenses".
+     - If for any reason analysis fails but the document is known to be an expense (e.g., based on upload context/folder), set a fallback default category of "Expenses".
+
+4. **Backfill / recovery (if supported by project scope):**
+   - If there are existing documents in the DB that never went through analysis, add a simple “Reanalyze / Backfill” function or script:
+     - It should scan for un-analyzed documents and enqueue/trigger analysis for them.
+   - At minimum, structure the code so adding such a backfill job is trivial.
+
+5. **Tests:**
+   - Add unit / integration tests that:
+     - Upload a document via the normal entry point.
+     - Confirm a document record is created.
+     - Confirm the analysis pipeline is triggered.
+     - Confirm the resulting category is either "Expenses" (or properly mapped).
+     - Confirm that for the specific kind of documents I’m referring to, the final category is indeed "Expenses".
+
+REQUIREMENTS – PROGRESS BAR / STATUS UI
+1. **Identify the current upload/analyze UI:**
+   - Find the React components (or other front-end framework) responsible for document upload and listing.
+   - Identify whatever state/hooks/stores manage upload and analysis state.
+
+2. **Implement a real progress UX for the user:**
+   - On upload → show visual feedback that the upload is in progress.
+   - After upload → show that the document is being analyzed / categorized.
+   - When analysis completes → show final state (e.g., categorized as “Expenses”).
+
+3. **Implementation options (choose the one consistent with this codebase):**
+   - If backend exposes status:
+     - Use polling or subscriptions to update the progress bar or status text based on actual server state.
+   - If analysis is synchronous:
+     - Use a progress bar that reflects UI steps (uploading → processing → done).
+   - Ensure the component is resilient to:
+     - Page refreshes (optional but ideal: re-deriving status from server),
+     - Errors (show error state with retry).
+
+4. **UX details:**
+   - The progress bar or status indicator must be clearly visible next to each document being processed.
+   - When there are multiple documents uploading/analyzing, each should have its own progress/status row or inline indicator.
+   - Add toast/notification messages on success/failure consistent with the rest of the application.
+
+CLEANUP & QUALITY
+1. Apply consistent error handling and logging patterns already used in this project.
+2. Refactor any obviously duplicated or fragile logic uncovered while doing this.
+3. Ensure TypeScript/typing (if used) is correct and strict around:
+   - Document IDs
+   - Category enums / strings (e.g., “Expenses”)
+   - API request/response shapes
+4. Run the project’s test suite and ensure all tests pass.
+5. If the project has linting/formatting (ESLint/Prettier, etc.), run and fix all issues in the files you touch.
+
+DELIVERABLES
+1. All necessary code changes implemented in this Replit so that:
+   - Clicking Delete actually deletes documents end-to-end.
+   - Newly uploaded documents are always analyzed and correctly categorized as “Expenses” (or at least for the cases that should be).
+   - The user can see a clear progress/status indicator for uploads and analysis.
+2. New or updated tests covering:
+   - Delete flow.
+   - Upload → analyze → categorize as “Expenses” flow.
+3. A brief inline code comment or two in the key places explaining:
+   - Why the old behavior failed.
+   - How the new logic guarantees correct behavior going forward.
+
+Now inspect the repo and implement these changes.

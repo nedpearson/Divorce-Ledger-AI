@@ -1,0 +1,100 @@
+// src/routes/quickbooks.ts
+
+import { Router, Request, Response } from 'express';
+import { Pool } from 'pg';
+import { QuickBooksService } from '../services/quickbooks/quickbooks.service';
+
+const router = Router();
+
+export function setupQuickBooksRoutes(pool: Pool, qbService: QuickBooksService) {
+  /**
+   * GET /api/quickbooks/status
+   * Check QB connection and sync status
+   */
+  router.get('/api/quickbooks/status', async (req: Request, res: Response) => {
+    try {
+      const result = await pool.query(`
+        SELECT 
+          realm_id,
+          updated_at,
+          CASE 
+            WHEN token_expires_at < NOW() THEN 'expired'
+            WHEN token_expires_at < NOW() + INTERVAL '24 hours' THEN 'expiring_soon'
+            ELSE 'valid'
+          END as token_status
+        FROM quickbooks_credentials
+        ORDER BY updated_at DESC
+        LIMIT 1
+      `);
+
+      const credentials = result.rows[0];
+
+      if (!credentials) {
+        return res.json({ status: 'not_connected' });
+      }
+
+      res.json({
+        status: 'connected',
+        realm_id: credentials.realm_id,
+        token_status: credentials.token_status,
+        last_updated: credentials.updated_at,
+      });
+    } catch (error) {
+      console.error('QB status check failed:', error);
+      res.status(500).json({ error: 'Status check failed' });
+    }
+  });
+
+  /**
+   * GET /api/quickbooks/sync-history
+   * View recent QB sync activity
+   */
+  router.get('/api/quickbooks/sync-history', async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      const result = await pool.query(
+        `SELECT 
+          id,
+          entity_type,
+          entity_id,
+          qb_id,
+          qb_status,
+          sync_timestamp,
+          metadata
+        FROM quickbooks_sync_log
+        ORDER BY sync_timestamp DESC
+        LIMIT $1`,
+        [limit]
+      );
+
+      res.json({
+        records: result.rows,
+        count: result.rows.length,
+      });
+    } catch (error) {
+      console.error('Sync history query failed:', error);
+      res.status(500).json({ error: 'Failed to fetch sync history' });
+    }
+  });
+
+  /**
+   * POST /api/quickbooks/sync-now
+   * Trigger immediate sync
+   */
+  router.post('/api/quickbooks/sync-now', async (req: Request, res: Response) => {
+    try {
+      await qbService.batchSyncBillingRecords(100);
+
+      res.json({
+        success: true,
+        message: 'Sync triggered successfully',
+      });
+    } catch (error) {
+      console.error('Manual sync failed:', error);
+      res.status(500).json({ error: 'Sync failed' });
+    }
+  });
+
+  return router;
+}

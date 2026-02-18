@@ -1,0 +1,582 @@
+You are my Principal Engineer and Chief Reliability Officer with FULL access to this entire Replit project.
+
+This project powers a divorce/legal evidence and forensic financial system with:
+
+Evidence & document ingestion (PDFs, Word docs, bank/credit card statements, receipts, screenshots, photos, etc.).
+
+Financial forensic analysis (expenses, income, assets, liabilities, transfers).
+
+Custody/incident/violation logging.
+
+Attorney-ready dashboards, reports, and exports.
+
+I want you to perform a ONE-PASS, END-TO-END, GLOBAL HEALTH FIX that fixes all visible errors and proactively finds and fixes hidden/latent errors so that normal usage flows run cleanly and reliably.
+
+0. ARCHITECTURE RULES (DO NOT VIOLATE)
+
+Do NOT remove Express or any /api routes.
+
+Express is the main API and orchestration layer and must remain. It is responsible for:
+
+Auth/session (/api/auth/session, /api/admin/security/users/:userId/revoke-sessions)
+
+Subscription tiers & quotas (/api/subscription)
+
+Divorce dashboards & data (/api/violations, /api/debug/finances, /api/appwrite/files, etc.)
+
+Version & feature flags (/api/version)
+
+Environment separation (e.g., demo vs live)
+
+Appwrite must be the single global engine for ALL document and picture analysis & categorization.
+
+All docs (PDF, DOC/DOCX, etc.) and all images/photos/screenshots must be analyzed and categorized by Appwrite only.
+
+The front-end must always call Express (/api/...), and Express must delegate analysis and categorization to Appwrite.
+
+This must work identically for desktop and mobile (including installed/PWA usage).
+
+Express remains the only API surface for the front-end.
+
+Express handles validation, orchestration, environment separation, business rules, and security.
+
+Appwrite is used for storage, functions, queues, and AI analysis.
+
+1. GLOBAL DISCOVERY & HEALTH BASELINE
+
+Treat this as a full diagnostic and repair session, not a one-line patch.
+
+Inspect the project:
+
+Identify front-end stack (React/Vite/etc.) and entry points (main.tsx, App.tsx, routing).
+
+Identify back-end stack (Node + Express) and startup file.
+
+Locate modules/pages for:
+
+Documents/Evidence
+
+Finance/Transactions
+
+Violations/Incidents
+
+Case dashboards
+
+Settings/Subscription/Admin
+
+Inspect package.json:
+
+List scripts: dev, start, build, lint, typecheck, test, etc.
+
+Note tooling: TypeScript, ESLint, Prettier, Jest/Vitest, etc.
+
+Run and fix the core health commands:
+
+npm run build → must succeed with no errors.
+
+npm run typecheck or equivalent (tsc --noEmit) → must succeed; fix type errors that reflect real runtime risks.
+
+npm run lint → fix all bug-indicating lint errors (no global eslint-disable or @ts-ignore except for tightly scoped, documented exceptions).
+
+npm test (if present) → tests must at least run without crashing.
+
+Do NOT delete scripts or disable tooling to “make things green”. Fix the underlying code.
+
+2. RUNTIME DIAGNOSTICS – VISIBLE ERROR HUNT
+
+Start the dev server and thoroughly exercise the app as a real user. Watch:
+
+Browser console for red errors and serious warnings.
+
+Replit shell/server logs for stack traces or unhandled rejections.
+
+Network logs for /api/... failures.
+
+Exercise at least:
+
+Landing/dashboard page load.
+
+Auth/session flows:
+
+Pre-login: /api/auth/session may return 401 "No session" → acceptable.
+
+Post-login: /api/auth/session must return a valid user payload with correct environment.
+
+Document & image upload:
+
+PDFs, Word docs, and image files from both desktop and mobile viewports.
+
+Analysis & categorization:
+
+Status transitions: uploaded → processing → complete (or failed).
+
+Categories visible in UI.
+
+Listing & filtering:
+
+Document/file list view (driven by /api/... endpoints like /api/appwrite/files or equivalents).
+
+Delete behavior:
+
+Delete from UI → must remove from UI and backend with no ghost items.
+
+Violations/Incidents:
+
+/api/violations listing and CRUD must work.
+
+Finance dashboards:
+
+Finance views must load without errors and show categorized data.
+
+Version/subscription:
+
+/api/version and /api/subscription must respond cleanly.
+
+For each unique error or serious warning:
+
+Capture its message and stack trace.
+
+Track it as a distinct issue.
+
+Fix the root cause; do NOT suppress or hide errors without resolving them.
+
+3. APPWRITE-ONLY ANALYSIS & CATEGORIZATION (DOCS + IMAGES)
+
+Goal: ALL document and image analysis/categorization is done by Appwrite.
+Express only orchestrates, validates, and exposes results.
+
+Find all codepaths that:
+
+Upload documents/images (front-end and Express).
+
+Perform OCR/AI analysis.
+
+Apply categorization (finance, evidence, etc.).
+
+Trigger or run analysis queues (e.g., [Appwrite Analysis] logs).
+
+Contain legacy or duplicate “analysis” logic.
+
+Refactor the pipeline to a single source of truth:
+
+Upload (via Express):
+
+Validate:
+
+File type & size.
+
+Case & user ownership.
+
+Environment (demo vs live).
+
+Upload binary to Appwrite Storage with stable naming including:
+
+environment
+
+caseId
+
+userId
+
+docType (document/image/etc.)
+
+Create/Upsert a metadata record (Appwrite DB or app DB) containing at least:
+
+id
+
+ownerUserId
+
+caseId
+
+environment
+
+source (upload-web, upload-mobile, etc.)
+
+status (uploaded | processing | complete | failed)
+
+fileRef (bucket + file ID)
+
+originalFilename, mimeType, size
+
+analysisJobId (if used)
+
+ledgerBucket
+
+financeCategory, financeSubcategory
+
+evidenceCategory
+
+analysisSummary, analysisDetails, errorMessage
+
+Timestamps
+
+Trigger Appwrite Function/Event/Queue to start analysis and set status = "processing".
+
+Analysis (Appwrite-side):
+
+Fetch file from Storage.
+
+Perform OCR/AI and classification:
+
+Extract text (if present).
+
+Detect vendor/payee, amount, date, and other financial fields.
+
+Assign finance bucket/category (see section 5).
+
+Assign evidence category (financial evidence, communication, custody, etc.).
+
+Compute confidence scores.
+
+Include a short human-readable explanation.
+
+Write results back to metadata:
+
+status = "complete" or "failed"
+
+ledgerBucket, financeCategory, financeSubcategory
+
+evidenceCategory
+
+analysisSummary, analysisDetails, errorMessage (on failure)
+
+Express endpoints for the UI:
+
+GET /api/documents – paginated list with status + categories.
+
+GET /api/documents/:id – full details.
+
+POST /api/documents/:id/reanalyze – triggers Appwrite re-analysis.
+
+DELETE /api/documents/:id – full delete pipeline (below).
+
+Remove or redirect all competing local analysis logic:
+
+Any Node/Express code that attempts its own analysis must be:
+
+Removed, or
+
+Converted into a thin wrapper around Appwrite calls.
+
+Ensure behavior is global (desktop + mobile):
+
+All upload/analysis/delete flows for desktop, mobile, and PWA must go through the same Express → Appwrite pipeline.
+
+4. DELETE PIPELINE – END-TO-END AND SAFE
+
+When a user deletes a document or image:
+
+Back-end DELETE /api/documents/:id must:
+
+Validate environment, user, case, and permissions.
+
+Execute, in a robust order (with error handling):
+
+Mark the metadata record as deleted or remove it.
+
+Delete or mark the file as deleted in Appwrite Storage.
+
+Remove or mark any linked analysis data as deleted.
+
+If any step fails, log a structured error and return a clear JSON error; do not silently fail while telling the UI “success.”
+
+Front-end must:
+
+Ask for confirmation.
+
+Optimistically update the UI but reconcile with the API response.
+
+On failure, restore the deleted item or inform the user clearly.
+
+Ensure no cross-environment issues (demo vs live), and no “orphan” records remain.
+
+5. FINANCE CATEGORIZATION MODEL (QUICKBOOKS-STYLE)
+
+Implement a centralized, QuickBooks-like categorization model for finance.
+
+5.1 Ledger buckets (top-level)
+
+Every financial item must map to exactly one of:
+
+INCOME
+
+EXPENSE
+
+COGS
+
+ASSET
+
+LIABILITY
+
+TAX
+
+OWNER_EQUITY
+
+TRANSFER
+
+UNKNOWN
+
+5.2 Example income categories
+
+INCOME / Sales of Product Income
+
+INCOME / Service/Fee Income
+
+INCOME / Sales – Online
+
+INCOME / Sales – In-Store
+
+INCOME / Rental Income
+
+INCOME / Refunds & Reimbursements
+
+INCOME / Other Primary Income
+
+INCOME / Other Miscellaneous Income
+
+5.3 COGS categories
+
+COGS / Cost of Goods Sold – Materials
+
+COGS / Cost of Goods Sold – Labor
+
+COGS / Cost of Goods Sold – Shipping/Freight
+
+COGS / Cost of Goods Sold – Other
+
+5.4 Expense categories
+
+EXPENSE / Advertising & Marketing
+
+EXPENSE / Automobile & Vehicle
+
+EXPENSE / Bank Charges & Fees
+
+EXPENSE / Commissions & Fees
+
+EXPENSE / Contractors & Subcontractors
+
+EXPENSE / Dues & Subscriptions
+
+EXPENSE / Insurance – General
+
+EXPENSE / Insurance – Health
+
+EXPENSE / Interest Paid
+
+EXPENSE / Legal & Professional Services
+
+EXPENSE / Meals
+
+EXPENSE / Travel
+
+EXPENSE / Entertainment
+
+EXPENSE / Office Expenses
+
+EXPENSE / Office Supplies
+
+EXPENSE / Postage & Delivery
+
+EXPENSE / Rent or Lease – Office
+
+EXPENSE / Rent or Lease – Vehicles/Equipment
+
+EXPENSE / Repairs & Maintenance
+
+EXPENSE / Payroll Expenses
+
+EXPENSE / Payroll Taxes
+
+EXPENSE / Taxes & Licenses
+
+EXPENSE / Telephone & Internet
+
+EXPENSE / Utilities
+
+EXPENSE / Shipping & Delivery
+
+EXPENSE / Merchant Processing Fees
+
+EXPENSE / Software & SaaS
+
+EXPENSE / Training & Education
+
+EXPENSE / Miscellaneous Expense
+
+5.5 Assets, Liabilities, Tax, Equity, Transfer
+
+ASSET / Bank Account
+
+ASSET / Accounts Receivable
+
+ASSET / Fixed Asset – Property
+
+ASSET / Fixed Asset – Vehicles
+
+ASSET / Other Current Asset
+
+LIABILITY / Credit Card
+
+LIABILITY / Loan – Mortgage
+
+LIABILITY / Loan – Vehicle
+
+LIABILITY / Other Current Liability
+
+LIABILITY / Long-Term Liability
+
+TAX / Income Tax
+
+TAX / Sales Tax Payable
+
+TAX / Property Tax
+
+OWNER_EQUITY / Owner’s Equity
+
+OWNER_EQUITY / Owner’s Draw
+
+OWNER_EQUITY / Owner’s Contributions
+
+TRANSFER / Transfer Between Accounts
+
+5.6 How analysis must use this model
+
+Appwrite analysis must:
+
+Predict ledgerBucket, financeCategory, financeSubcategory when possible.
+
+If a document is clearly financial (receipts, statements, invoices) but uncertain:
+
+Default to ledgerBucket = EXPENSE and financeCategory = Miscellaneous Expense (or a designated “Needs Review”).
+
+Record a short explanation of the decision (for audit).
+
+Centralize these definitions in a single config/module and reuse them throughout the codebase.
+
+6. EXPRESS BACKEND HARDENING & ENVIRONMENT ISOLATION
+
+Keep existing routes working and robust:
+
+/api/version
+
+/api/auth/session
+
+/api/subscription
+
+/api/violations
+
+/api/appwrite/files
+
+Admin/security routes
+
+Document/analysis routes
+
+Add:
+
+Schema-based input validation for every route.
+
+Central error-handling middleware with structured logging:
+
+{ route, method, userId, environment, traceId, error }.
+
+Async handler wrapper to avoid unhandled promise rejections.
+
+Enforce environment isolation:
+
+Every DB/Appwrite query must use environment in filters.
+
+Absolutely no cross-contamination between demo and live data.
+
+7. FRONTEND: KILL INFINITE LOOPS & HIDDEN UI BUGS
+
+Scan the React code for:
+
+useEffect without dependency arrays that trigger state changes or fetches repeatedly.
+
+useEffect with dependencies that it constantly modifies (feedback loops).
+
+State updates inside render.
+
+Routing/guard logic that results in redirect loops.
+
+Assumptions that cause crashes when data is null/undefined.
+
+Fix these so that:
+
+Documents/Evidence view
+
+Violations/Incidents view
+
+Finance dashboards
+
+Settings/Subscription/Admin
+
+all render without red errors or infinite renders, for both desktop and mobile.
+
+8. POSTCSS TOOLING WARNING – FIX THE ROOT CAUSE
+
+The logs contain:
+
+“A PostCSS plugin did not pass the from option to postcss.parse…”
+
+Locate the PostCSS pipeline and identify the plugin causing this.
+
+Fix configuration or update plugin versions so from is passed correctly.
+
+Do NOT remove or globally disable PostCSS or the plugin just to hide the message, unless the plugin is truly unused and safe to remove.
+
+9. FINAL VERIFICATION – “NO VISIBLE OR HIDDEN ERRORS” BASELINE
+
+After all fixes:
+
+Re-run all core commands:
+
+npm run build
+
+npm run typecheck / tsc --noEmit
+
+npm run lint
+
+npm test (if present)
+
+None of these should error or crash.
+
+Start the dev server and do a full smoke test again (desktop + mobile):
+
+Auth/session flows
+
+Document/image upload
+
+Analysis & categorization display
+
+Delete behavior
+
+Violations & finance dashboards
+
+Version & subscription
+
+Confirm:
+
+No uncaught red errors in browser console.
+
+No unhandled promise rejections or stack traces in server logs during normal usage.
+
+No infinite loops or runaway renders.
+
+No broken or missing pages in primary flows.
+
+10. DOCUMENT CHANGES
+
+When done, create or update a short CHANGELOG.md (or equivalent) summarizing:
+
+Files changed.
+
+Root causes found.
+
+Key fixes applied (especially around Appwrite analysis, delete pipeline, finance categories, and infinite loops).
+
+Remaining TODOs that require business/legal decisions, not generic bug fixing.
+
+Any new environment variables and how they are used.
+
+Implement all of the above now, to aggressively fix all visible errors and proactively catch and repair hidden/latent issues, leaving this project in a clean, stable, and maintainable state.

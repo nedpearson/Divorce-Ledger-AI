@@ -1,0 +1,114 @@
+You are an elite software engineer and forensic data architect working on a production SaaS system called “Divorce Ledger AI”.
+
+Your single goal in this session:
+DESIGN AND IMPLEMENT a highly accurate, auditable pipeline that turns uploaded financial/legal documents and photos into structured data for expenses, income, assets, and debts.
+
+Non-negotiable constraints:
+
+- Stack: TypeScript, Node/Express (or Next.js API routes), Drizzle ORM (or Prisma) with Postgres, deployed from Replit.
+- API: Call a modern multimodal LLM (vision+text) through a clean wrapper (e.g., OpenAI, Anthropic, or OpenRouter) – design the code so the provider is swappable via an interface.
+- Input docs: PDFs, JPG/PNG photos, and phone-camera images of bills, bank/credit card statements, pay stubs, mortgage/loan statements, receipts, and generic “financial records”.
+- Output: STRICT JSON mapped into database tables for:
+  - `documents` (metadata + classification + analysis status)
+  - `expenses` (normalized monthly expenses)
+  - `incomes`
+  - `assets`
+  - `debts`
+  - `document_line_items` (fine-grain audit trail rows)
+
+Core requirements:
+
+1. **Separation of responsibilities**
+   - Implement a clear pipeline:
+     - upload → storage → OCR (if needed) → classification → LLM parsing → validation → DB writes → aggregates.
+   - Each stage must be its own module/service with unit-testable functions.
+
+2. **Canonical document types**
+   - Design a SMALL, FIXED set of canonical document types, e.g.:
+     - `UTILITY_BILL`, `BANK_STATEMENT`, `CREDIT_CARD_STATEMENT`, `MORTGAGE_STATEMENT`,
+       `LOAN_STATEMENT`, `PAY_STUB`, `GENERIC_FINANCIAL_EXPENSE`, `GENERIC_FINANCIAL_INCOME`,
+       `PROPERTY_TAX`, `INSURANCE_POLICY`, `NON_FINANCIAL`.
+   - Implement a classifier that:
+     - Uses file name + visible text + layout hints.
+     - Returns one of the canonical types and a confidence score.
+   - Persist `doc_type` and `classification_confidence` on `documents`.
+
+3. **LLM parsing prompts & schemas**
+   - For each canonical doc type that affects finances, define an explicit TypeScript schema
+     (e.g. `ExpenseDocument`, `BankStatement`, `MortgageStatement`) and use that to drive the JSON the model must output.
+   - All LLM calls MUST:
+     - Request **JSON ONLY**.
+     - Include explicit field descriptions, types, units, and date formats (`YYYY-MM-DD`).
+     - Provide 1–2 concrete examples in the prompt.
+   - Always include the full extracted text and relevant layout hints as context.
+
+4. **Conservative, forensic behavior**
+   - The system must NEVER hallucinate numbers.
+   - If the model cannot confidently extract a field, it should set it to `null` and mark `parse_status`:
+     - `'success' | 'no_data' | 'layout_not_supported' | 'low_confidence'`.
+   - Implement validation:
+     - numeric ranges (e.g., negative totals rejected unless refunds),
+     - date validation,
+     - currency detection (`USD`, etc.).
+   - When validation fails, DO NOT write partial junk to the DB – store the raw JSON response and mark an error status.
+
+5. **Auditability and traceability**
+   - Every expense/income/asset/debt row must store:
+     - `document_id`
+     - `source_page`
+     - `source_snippet` (short text around the number)
+     - `line_item_index`
+   - Implement an API or query helper that lets the UI show:
+     - “Clicked expense → show originating document page and highlighted text snippet”.
+
+6. **Multi-language and currency-aware**
+   - Add language detection (`en`, `es`, etc.) from the extracted text.
+   - Make the prompts bilingual-aware: tell the model to respect the document’s language but always output JSON in English field names.
+   - Parse amounts correctly even for Spanish / European formatting, but store normalized numeric values in the DB and the original text in `raw_amount_text`.
+
+7. **Error handling and observability**
+   - Centralize LLM API calls in a `llmClient` module with:
+     - retry with backoff,
+     - timeout,
+     - structured error objects.
+   - Log:
+     - document id,
+     - doc type,
+     - request token count,
+     - response token count,
+     - latency,
+     - parse_status.
+   - Implement a simple admin/debug endpoint that returns the last N analysis errors for troubleshooting.
+
+8. **Tests and quality checks**
+   - Create unit tests for:
+     - classification mapping,
+     - JSON validation for each schema,
+     - currency/amount/date normalization helpers.
+   - Create fixture folders (e.g. `fixtures/utility_bill_1.txt`) and snapshot tests to assert that
+     given a known text input, the parser produces the expected JSON.
+
+9. **Integration to Finances tab**
+   - Implement a service that, after a successful parse:
+     - creates or updates `expenses` / `incomes` / `assets` / `debts` rows,
+     - recalculates per-month aggregates for the UI.
+   - Make this idempotent: re-running analysis should not double-count line items.
+
+10. **Deliverables for this session**
+    - All new code files and modules wired into the existing app.
+    - DB migrations for any new tables/columns.
+    - At least 1–2 end-to-end flows:
+      - upload → classification → parse → DB write → monthly total visible in Finances tab.
+    - Documentation (README section) describing:
+      - pipeline stages,
+      - schemas,
+      - how to add a new document type,
+      - how to debug when a document shows “Unable to analyze – please review manually”.
+
+When generating or editing code:
+- Prefer small, focused modules over giant files.
+- Show me migrations, TypeScript types, function signatures, and example API handlers.
+- Before finishing, run through the entire pipeline mentally and check that:
+  - a brand-new document of each main type will be parsed,
+  - invalid layouts fail safely,
+  - the Finances aggregates change when parsed data is written.

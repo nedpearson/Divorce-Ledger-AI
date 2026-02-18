@@ -1,0 +1,87 @@
+LIGHTHOUSE & CORE WEB VITALS HARDENING — LCP, CLS, FID, TTFB
+
+You are my Principal Web Performance Engineer.
+
+The Divorce Ledger app is functionally stable and reasonably optimized.
+Your mission is to explicitly optimize for **Core Web Vitals** and Lighthouse scores
+for both desktop and mobile, focusing on:
+
+- LCP (Largest Contentful Paint)
+- CLS (Cumulative Layout Shift)
+- FID / INP (First Input Delay / Interaction to Next Paint)
+- TTFB / overall performance score
+
+Constraints:
+- Do NOT remove critical UI functionality.
+- Prioritize meaningful performance improvements over micro-optimizations.
+
+Tasks:
+
+1) Identify main “entry” pages:
+   - Primary home/dashboard route.
+   - Login page.
+   - Documents/evidence list page.
+   - (If applicable) marketing/landing route.
+
+2) Optimize LCP:
+   - Identify the LCP element on each main route (usually hero, main card, first large content).
+   - Ensure:
+     - It does not depend on slow, blocking scripts.
+     - Above-the-fold content loads quickly:
+       - Minimize render-blocking CSS/JS.
+       - Code-split non-essential bundles (lazy-load heavy routes/components).
+     - Images used for LCP:
+       - Have width/height (or aspect-ratio) set to prevent relayout.
+       - Use appropriate formats and sizes (no oversized images).
+
+3) Reduce CLS:
+   - Ensure layout is stable:
+     - ALWAYS set width/height or aspect-ratio on images.
+     - Reserve space for:
+       - dynamic content,
+       - banners,
+       - toasts/snackbars,
+       - async-loaded components.
+   - Avoid shifting content on load:
+     - use skeletons/placeholders that have consistent size.
+     - avoid inserting content above existing content after paint.
+
+4) Improve FID / INP:
+   - Avoid heavy synchronous work on initial input handlers.
+   - For expensive operations triggered by user input:
+     - Debounce or throttle where appropriate (search/filter).
+     - Offload heavy computation to web workers if any such code exists.
+   - Ensure no massive re-renders happen on simple user interactions.
+
+5) JavaScript & CSS bundling:
+   - Confirm:
+     - Vendors and app code are bundled sensibly.
+     - Lazy-load large feature modules (e.g., advanced dashboards or admin views).
+   - Remove unused polyfills, libraries, or legacy code if obviously dead.
+   - Ensure CSS is:
+     - not excessively duplicated,
+     - not blocking when it can be inlined for critical path.
+
+6) TTFB & network:
+   - Make sure initial API calls on page load are:
+     - minimized,
+     - batched when possible,
+     - cached or pre-fetched if appropriate.
+   - Ensure the app does not wait unnecessarily for non-critical data before showing the main UI.
+
+7) Image & asset strategy:
+   - Use appropriate formats (WebP/AVIF where supported, or optimized PNG/JPEG).
+   - Ensure icons and logos are optimized.
+   - Use responsive image attributes (srcset/sizes) if large images are reused at multiple sizes.
+
+8) Verification:
+   - Conceptually run through Lighthouse for:
+     - Mobile
+     - Desktop
+   - Optimize until:
+     - CLS issues are addressed,
+     - LCP is not delayed by non-essential scripts,
+     - Initial input feels responsive,
+     - Overall performance score is strong.
+
+Stop when the app is structured for strong Core Web Vitals: no layout jumps, fast perceived load, and responsive interactions.

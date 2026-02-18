@@ -1,0 +1,257 @@
+DIVORCE LEDGER – FINAL GLOBAL RELIABILITY & CONSISTENCY LOCKDOWN
+
+You are my Principal Engineer and Chief Reliability Officer with FULL access to this Replit project.
+
+Assume MANY previous hardening prompts have already run. The codebase is mostly correct, but there are still
+some lingering errors, warnings, and inconsistencies (e.g. SQL 42601 errors, occasional bad logs, or leftover
+old naming/URLs).
+
+Your mission is to perform ONE FINAL, TARGETED, GLOBAL PASS that:
+
+- Fixes ALL remaining visible and hidden errors in a focused, non-destructive way.
+- Reasserts and enforces the architecture and conventions already established.
+- Leaves Divorce Ledger in a clean, production-ready state.
+
+DO NOT redesign the app. DO NOT change core business logic or pricing. DO NOT rip out Express or Appwrite.
+ONLY fix defects, regressions, inconsistencies, and leaks.
+
+========================================
+0. CANONICAL FACTS (DO NOT CHANGE)
+========================================
+
+1) Product & URLs
+   - Product name (user-facing): "Divorce Ledger"
+   - Dev URL:    https://divorceledger.replit.app
+   - Prod URL:   https://divorceledger.live
+
+2) Backend architecture
+   - Express is the ONLY API surface for the frontend (`/api/...`).
+   - Appwrite is the UNIVERSAL file analyzer and filer for ALL documents and images:
+     - Storage: Appwrite Storage buckets.
+     - OCR/AI analysis and categorization: Appwrite Functions/Queues.
+     - Express ONLY orchestrates, validates, and returns structured results; it does NOT do heavy file parsing.
+
+3) Database & SQL
+   - Postgres is the DB.
+   - ALL queries MUST be:
+     - syntactically valid,
+     - parameterized (no user input concatenated into SQL),
+     - aligned with the real schema (tables/columns exist),
+     - free of 42601 "syntax error at or near" and similar issues.
+   - Critical queries should use the existing "safe query" abstraction (or equivalent) for logging and error handling.
+
+4) Finance & integrations
+   - Internal finance model is simple and integration-agnostic:
+     - fields like `ledgerBucket`, `financeCategory`, `financeSubcategory`.
+   - QuickBooks / Firefly / other systems are supported via a MAPPING LAYER ONLY.
+   - Appwrite populates internal finance fields. Mapping into external categories happens only when exporting/syncing.
+
+5) Frontend / React
+   - No infinite loops (no "maximum update depth exceeded" errors).
+   - No unhandled React errors in normal flows.
+   - Stable routing (no redirect loops).
+   - Error boundaries around major route areas.
+   - Good UX on desktop and mobile; PWA install is supported.
+
+6) Environments & isolation
+   - Demo vs Live environments must remain fully isolated:
+     - No cross-contamination of data.
+     - Environment flags are consistently respected in DB, Appwrite, and routes.
+
+7) Logs & errors
+   - No unhandled promise rejections (backend or frontend).
+   - No raw SQL errors or stack traces leaked to clients.
+   - Logs are structured and not noisy during normal usage.
+
+You MUST preserve all of the above. Do not weaken or bypass any of these invariants.
+
+========================================
+1. LOG-DRIVEN DIAGNOSTICS (BACKEND + SQL)
+========================================
+
+1) Run the app (dev server) and reproduce normal flows:
+   - Login (demo + live if applicable).
+   - Dashboard.
+   - Documents: list, upload, delete.
+   - Violations: list, create, update, delete.
+   - Finance views.
+   - Settings/subscription.
+
+2) Watch the Replit logs and browser console. For EVERY red error or warning you see:
+   - Capture:
+     - message,
+     - stack trace,
+     - route / function / query name,
+     - SQL error code (if any).
+   - Treat each unique error as a separate bug and fix the ROOT CAUSE, not just the symptom.
+
+3) SQL and DB errors:
+   - If you see "syntax error at or near" (e.g. 42601), or any other Postgres errors:
+     - Find the exact query string and parameters causing it.
+     - Fix the query:
+       - Proper SQL syntax,
+       - Parameterized,
+       - Correct table/column names,
+       - No dangling AND/OR or missing WHERE.
+   - Ensure all new/fixed queries go through the safe query wrapper if one exists.
+
+4) Check for:
+   - "relation does not exist"
+   - "column does not exist"
+   - type mismatch errors
+   and fix queries and/or schema mappings accordingly.
+
+5) Confirm that after these fixes, there are NO remaining SQL runtime errors in the logs during normal flows.
+
+========================================
+2. APPWRITE PIPELINE & FILE FLOW SANITY
+========================================
+
+Re-validate and fix any issues in the file upload → analysis → categorization → deletion flow.
+
+1) Trace the document/image pipeline end-to-end:
+   - Upload from frontend → Express `/api/...` → Appwrite Storage → Appwrite Function/Queue for analysis → metadata update → frontend display.
+   - Ensure that:
+     - Every binary file is stored ONLY in Appwrite Storage.
+     - ALL analysis (OCR, classification, categorization) is performed in Appwrite.
+     - Express does not attempt to locally parse PDFs/images.
+
+2) For any broken or inconsistent behavior:
+   - Uploading but not analyzing,
+   - Analyzing but not categorizing,
+   - Deleting in UI but not removing from storage/metadata,
+   fix the correct layer (Express or Appwrite integration) without changing the invariant architecture.
+
+3) Verify deletion:
+   - When a doc/picture is deleted:
+     - Metadata is removed/marked deleted,
+     - Appwrite Storage file is removed/marked deleted,
+     - UI no longer shows the item,
+     - No "ghost" records remain.
+
+4) Re-run uploads (PDF + image) and verify:
+   - Successful upload,
+   - Status progression `uploaded → processing → complete/failed`,
+   - Categories show correctly,
+   - No errors in logs.
+
+========================================
+3. EXPRESS / API ROUTES & NAMING CONSISTENCY
+========================================
+
+1) Enumerate main Express routes:
+   - version, auth, subscription, documents, violations, finance, admin, debug, etc.
+
+2) For each route:
+   - Confirm it is used by the frontend.
+   - Ensure request validation (types, required fields) is correct.
+   - Ensure consistent JSON response shape:
+     - success: true/false
+     - data or error: { message, code? }
+   - Ensure no reference remains to old names like:
+     - "DivorceAES"
+     - "Divorce Forensic"
+     - "Divorce Forensic File"
+     All user-facing labels must say "Divorce Ledger".
+
+3) CORS & environment:
+   - Confirm allowed origins are:
+     - https://divorceledger.replit.app
+     - https://divorceledger.live
+     - localhost (only where explicitly intended for dev).
+   - Confirm any integration callbacks / links are using the correct URL for the environment.
+
+4) Remove or clearly mark any dead or unused debug routes that are no longer needed.
+
+========================================
+4. FRONTEND STABILITY & UX FIXES
+========================================
+
+1) React infinite loop / crash detection:
+   - Search for useEffect hooks that:
+     - lack dependency arrays and call setState or fetch repeatedly, or
+     - have dependencies that they themselves change, causing a loop.
+   - Fix by:
+     - adding proper dependency arrays,
+     - moving logic out of render paths,
+     - using cleanup functions for intervals/timeouts.
+
+2) Error boundaries:
+   - Ensure core route areas (home/dashboard, documents, violations, finance) are under an ErrorBoundary.
+   - ErrorBoundary should:
+     - show a friendly fallback,
+     - log error details (in dev or via a logging endpoint).
+
+3) Data fetching:
+   - For newly added/changed components:
+     - Ensure they handle loading and error states.
+     - No blank screens on error.
+     - No unhandled promise rejections.
+
+4) Mobile responsiveness:
+   - Quickly verify key views at phone-width:
+     - No horizontal scrolling,
+     - Important content readable,
+     - Navigation/sidebar discoverable (menu icon obvious).
+
+========================================
+5. LOGGING, WARNINGS & TOOLING CLEANUP
+========================================
+
+1) Backend logs:
+   - Remove or downgrade noisy debug logs in hot paths.
+   - Ensure error logs are structured and meaningful.
+   - Confirm there are NO unhandled promise rejections logged.
+
+2) Frontend console:
+   - Eliminate avoidable warnings and errors in normal usage.
+   - Only leave warnings that are truly non-critical or framework-related (and rare).
+
+3) Build/tooling:
+   - Run:
+     - npm run build
+     - npm run typecheck (or tsc --noEmit if present)
+     - npm run lint
+     - npm test (if present)
+   - Fix any errors or high-signal warnings that remain, especially those indicating real bugs.
+
+4) PostCSS or bundler warnings:
+   - If the PostCSS "from" warning or similar still exists:
+     - Fix the underlying configuration or plugin usage,
+     - Do NOT simply ignore it if it indicates misconfigured tooling.
+
+========================================
+6. FINAL SMOKE TEST & EXIT CRITERIA
+========================================
+
+When all fixes above are applied:
+
+1) Run the dev server and perform a full smoke test:
+   - Login (demo/live),
+   - Dashboard,
+   - Documents (upload, analyze, categorize, delete),
+   - Violations (CRUD),
+   - Finance views,
+   - Settings/subscription.
+
+2) Watch logs:
+   - There MUST be:
+     - No SQL syntax errors (no 42601),
+     - No "relation/column does not exist",
+     - No unhandled promise rejections,
+     - No React render-depth errors,
+     - No Appwrite integration failures in normal flows.
+
+3) Confirm user-facing behavior:
+   - App branding always says "Divorce Ledger".
+   - Dev URLs and Prod URLs are consistent and correct.
+   - PWA install/open still works if it existed before.
+
+Only stop when:
+
+- Normal usage of Divorce Ledger (on desktop and mobile) runs CLEAN:
+  - no red errors in console or logs,
+  - no ghost documents,
+  - no broken flows,
+  - no leftover old naming/URLs, and
+  - the architecture invariants at the top of this prompt are fully respected.

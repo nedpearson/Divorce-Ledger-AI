@@ -1,0 +1,177 @@
+**BEGIN PROMPT**
+
+You are the Senior Platform Architect responsible for **environment sanity, configuration separation, and startup guardrails** for this repository.
+
+Your job is to ensure that `demo`, `dev`, `test`, and `live/production` environments are:
+
+- Strictly separated at the configuration level.
+- Using correct, non-overlapping DBs, buckets, and secrets.
+- Validated at startup with clear, fail-fast guardrails.
+
+Operate in multiple stages as described below.
+
+------------------------------------------------------
+1. GLOBAL ANALYSIS OF ENVIRONMENT CONFIG USE
+------------------------------------------------------
+
+Scan the entire codebase for:
+
+- Environment-related variables and patterns:
+  - `APP_MODE`, `MODE`, `NODE_ENV`, `ENV`, `IS_DEMO`, `IS_LIVE`, `IS_PROD`, `IS_DEV`, etc.
+  - `DATABASE_URL`, `DB_URL`, or equivalent DB config variables.
+  - Storage configuration:
+    - S3 / GCS / local storage paths
+    - bucket names or prefixes
+  - Auth/security-related envs:
+    - `JWT_SECRET`, `SESSION_SECRET`, `AUTH_SECRET`
+    - OAuth client IDs/secrets if present
+  - Billing / Stripe / payment envs:
+    - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, etc.
+- Any hard-coded URLs, keys, or credentials in source files.
+- Any environment-dependent code paths where behavior changes by APP_MODE/NODE_ENV/etc.
+
+Internally classify each environment the system appears to support:
+- `demo`
+- `development` (local)
+- `test` or `ci`
+- `live` / `production` (or whatever naming is used)
+
+Build an internal mapping of:
+- Which env variables are used where.
+- Which ones are ambiguous or overloaded across environments.
+- Where environment confusion or cross-contamination might occur.
+
+------------------------------------------------------
+2. DEFINE A CANONICAL ENVIRONMENT MODEL
+------------------------------------------------------
+
+Define a **canonical environment model** for this app, using existing patterns where possible:
+
+- Canonical variables (or refine existing ones):
+  - `APP_MODE` ∈ { `demo`, `dev`, `test`, `live` }
+  - `NODE_ENV` ∈ { `development`, `test`, `production` }
+
+You must define:
+- How `APP_MODE` and `NODE_ENV` interact.
+- Which combinations are valid vs invalid, e.g.:
+  - Valid examples:
+    - `APP_MODE=demo`, `NODE_ENV=production` (public demo)
+    - `APP_MODE=live`, `NODE_ENV=production` (real customers)
+    - `APP_MODE=dev`, `NODE_ENV=development` (local dev)
+    - `APP_MODE=test`, `NODE_ENV=test` (automated tests)
+  - Invalid and should be rejected:
+    - `APP_MODE=live`, `NODE_ENV=development` (danger of using prod DB from dev)
+    - `APP_MODE=demo`, `NODE_ENV=test` if that is not a supported mode.
+
+Document (for yourself) this canonical mapping and then enforce it in code.
+
+------------------------------------------------------
+3. SEPARATION OF DB / STORAGE / KEYS PER ENVIRONMENT
+------------------------------------------------------
+
+Refactor configuration so that each environment has **its own**:
+
+- Database URL(s) or connection config.
+- Storage bucket(s) or prefix(es).
+- JWT / auth secrets.
+- Stripe / billing keys (if applicable).
+
+Concretely:
+
+1. Define a centralized config module, e.g. `config/env.ts` (or equivalent for this codebase) that:
+   - Reads all relevant env vars exactly once.
+   - Maps them into a typed, documented config object.
+   - Applies defaults where safe, but **never** for production-critical values (prod config must require explicit env vars).
+   - Distinguishes config by APP_MODE and NODE_ENV.
+
+2. Ensure each APP_MODE has:
+   - Unique DB URL variable name, OR
+   - A single DB URL that includes mode-specific schema / database name.
+   - Distinct storage prefixes, e.g.:
+     - `demo/…`
+     - `dev/…`
+     - `test/…`
+     - `live/…`
+   - Distinct secrets / Stripe keys per environment where the real deployment expects separation.
+
+3. Remove any accidental reuse of demo database URL in live, or vice versa.
+
+4. Ensure that test/CI uses its own DB config (or ephemeral DB) and cannot accidentally point at live/demo DB.
+
+------------------------------------------------------
+4. STARTUP SANITY CHECKS & FAIL-FAST GUARDRAILS
+------------------------------------------------------
+
+Implement a **startup guard** module, e.g. `config/sanityCheck.ts`, that runs early in the application lifecycle.
+
+This guard must:
+
+1. Validate environment consistency:
+   - Confirm that `APP_MODE` is one of the allowed values.
+   - Confirm `NODE_ENV` is one of the allowed values.
+   - Validate that the combination `(APP_MODE, NODE_ENV)` is allowed per the canonical mapping.
+   - If invalid:
+     - Log a clear error.
+     - Throw / exit process with non-zero code.
+
+2. Validate configuration presence:
+   - For each mode, verify required env vars are present:
+     - DB URLs.
+     - Storage config.
+     - Auth secrets.
+     - Stripe keys if live.
+   - For live mode:
+     - Be more strict: missing or placeholder values must cause startup failure.
+   - For demo/dev/test:
+     - You may allow safe defaults for local operation if appropriate, but do not allow them to look like prod.
+
+3. Detect dangerous overlaps:
+   - Example checks:
+     - If `APP_MODE=demo` and DB URL contains “prod” or a known-prod host, fail.
+     - If `APP_MODE=live` and DB URL contains “demo” or “test”, fail.
+     - If Stripe keys or storage buckets clearly belong to another environment, flag or fail.
+
+4. Integrate the guard:
+   - Ensure it runs **before** servers, schedulers, or workers start.
+   - If it fails, the system should not start partially.
+
+------------------------------------------------------
+5. ALIGN EXISTING MODE GUARDS WITH ENV MODEL
+------------------------------------------------------
+
+Search for all existing checks like:
+
+- `if (process.env.APP_MODE === 'demo')`, `if (!isDemo)`, etc.
+- `if (process.env.NODE_ENV !== 'production')`, etc.
+
+Refactor them to use the canonical model:
+
+- Introduce lightweight helper functions/constants, e.g.:
+  - `isDemoMode()`
+  - `isLiveMode()`
+  - `isDevMode()`
+  - `isTestMode()`
+
+These should be defined in one place (e.g. config module) and used everywhere else, so behavior is consistent.
+
+Then:
+
+- Replace scattered string comparisons with these helpers.
+- Update all mode-specific behavior (demo reset, live billing, etc.) to rely on these helpers and their semantics.
+
+------------------------------------------------------
+6. TEST-ENV & CI CONSIDERATIONS
+------------------------------------------------------
+
+Ensure there is a **first-class test/CI mode**, typically with:
+
+- `APP_MODE=test`
+- `NODE_ENV=test`
+
+In this mode:
+
+1. DB:
+   - Use an isolated test DB (in-memory, docker, or separate schema).
+   - Never use the live or demo DB.
+2. Storage:
+   - Use a test bucket or local filesystem path.

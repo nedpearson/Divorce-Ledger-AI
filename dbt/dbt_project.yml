@@ -1,0 +1,39 @@
+name: 'divorceai_analytics'
+version: '1.0.0'
+config-version: 2
+
+profile: 'divorceai'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+vars:
+  start_date: '2020-01-01'
+  end_date: '2027-12-31'
+
+models:
+  divorceai_analytics:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: ephemeral
+    marts:
+      core:
+        +materialized: table
+        +schema: analytics
+      finance:
+        +materialized: table
+        +schema: analytics
+      reporting:
+        +materialized: view
+        +schema: reporting

@@ -1,0 +1,153 @@
+You are the Senior System Architect assigned to clean, repair, and fully harden the entire Demo Mode Reset System in this codebase.
+
+Perform a complete audit and fix every part of the demo-reset architecture. This includes:
+
+1. Identify all locations in the code where the following exist:
+
+demo environment detection
+
+cron-based demo resets
+
+monthly quota resets
+
+billing reset tasks
+
+EXPRESS routes that depend on demo mode
+
+auth/session reset logic
+
+seed files
+
+migrations
+
+reset scripts
+
+any feature toggles or environment guards involving DEMO, APP_MODE, MODE, or NODE_ENV
+
+Document what is broken, what is fragile, and why.
+
+2. Replace the entire previous cron system with “Lazy Reset + External Trigger” architecture
+
+Rewrite the reset system so that:
+
+2A. LAZY RESET (Required)
+
+Implement a new subsystem demoResetGuard that:
+
+Tracks last_reset timestamp in DB
+
+On server boot: checks if the demo is stale
+
+On first request: checks again and resets if needed
+
+Is isolated by strict APP_MODE === "demo" checks
+
+Is concurrency-safe (mutex or inProgress flag)
+
+2B. RESET ENDPOINT
+
+Build route:
+
+POST /internal/admin/demo/reset
+Header: x-demo-reset-key: <env-key>
+
+
+The endpoint must:
+
+only run in demo mode
+
+authenticate via secret header
+
+call the shared resetDemoEnvironment() function
+
+log success/failure
+
+return JSON { ok: true }
+
+2C. OPTIONAL CRON (Only for deployment)
+
+Move all cron logic into a separate optional module that loads ONLY when:
+
+APP_MODE === "demo"
+
+and CRON_ENABLED === "true"
+
+Make sure it is fully isolated so local/dev use is unaffected.
+
+3. Rewrite resetDemoEnvironment() from atomic first principles
+
+The function must:
+
+truncate or delete all demo tables
+
+reseed essential demo data
+
+rebuild sample cases, violations, uploads, etc.
+
+reset usage quotas
+
+clear files stored in demo mode buckets
+
+reset Stripe/subscription mock data
+
+fully recreate demo user(s)
+
+log every step deterministically
+
+The function must be idempotent.
+
+4. Implement new demo_meta table + migration
+
+Migration must create:
+
+demo_meta:
+  id                int PK
+  last_reset_at     timestamp not null
+
+
+Insert seed row if none exists.
+
+5. Add middleware: demoResetMiddleware
+
+First request after boot:
+
+if stale → reset
+
+async, non-blocking
+
+logs detailed telemetry
+
+6. Enforce APP_MODE isolation across the entire codebase
+
+Search globally for all violations where:
+
+demo logic leaks into prod
+
+prod logic references demo data
+
+routes fail to guard by APP_MODE
+
+cron loads in prod accidentally
+
+demo reset touches non-demo tables
+
+Fix all of them automatically.
+
+7. Output a patchset
+
+After full repair, produce a structured output:
+
+Section A — Summary of all issues found
+Section B — Full list of files modified
+Section C — All new files created
+Section D — All migrations created
+Section E — Diff patch for every file
+Section F — End-to-end test instructions
+Section G — Validation transcript showing passing tests
+
+All diffs must be copy-paste ready.
+
+8. Do not stop early
+
+Continue generating all patches until the entire system is fully rebuilt.
+If your generation limit hits, continue where you left off.

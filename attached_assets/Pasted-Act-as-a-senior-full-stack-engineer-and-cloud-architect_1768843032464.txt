@@ -1,0 +1,213 @@
+Act as a senior full-stack engineer and cloud architect specializing in Replit + Appwrite integrations, financial document processing, OCR pipelines, and QuickBooks-style accounting systems.
+
+I am building an application in Replit where Appwrite is the complete backend (auth, storage, database, functions, workflows).
+
+Appwrite must process 100% of uploaded or camera-captured documents (PDFs, images, scans, photos) and handle:
+
+OCR
+
+Data extraction
+
+Financial analysis
+
+Auto-categorization
+
+Approval before final posting
+
+System Requirements (Non-Negotiable)
+
+Every document must go through Appwrite
+
+No document is finalized without user approval
+
+Categorization must be editable before posting
+
+Financial data must map cleanly to QuickBooks-style reporting
+
+Uploads must show real progress (not fake spinners)
+
+1. Appwrite-First Architecture
+
+Provide a complete architecture using:
+
+Appwrite Auth
+
+Appwrite Storage (raw files + processed files)
+
+Appwrite Databases (financial schema)
+
+Appwrite Functions (OCR, analysis, categorization)
+
+Appwrite Realtime (progress + approval states)
+
+Include a text-based diagram showing how Replit communicates with Appwrite.
+
+2. Exact Upload → Approval → Posting Flow
+
+Describe every step for:
+
+File upload from desktop
+
+Camera capture from mobile
+
+Required flow:
+
+Upload starts
+
+Progress bar updates in real time
+
+File stored in Appwrite Storage
+
+OCR function triggered
+
+Data extracted
+
+Auto-categorization performed
+
+Confidence score generated
+
+Approval UI shown to user
+
+User can:
+
+Accept category
+
+Change category
+
+Edit extracted fields
+
+Final approval posts data into financial tables
+
+3. Progress Bar (REAL, Not Simulated)
+
+Explain exactly how to implement:
+
+Upload progress (bytes uploaded)
+
+Processing progress (function execution states)
+
+Realtime updates using Appwrite Realtime or polling
+
+Include:
+
+Frontend event handling
+
+Backend status fields
+
+Failure and retry handling
+
+4. Financial Auto-Categorization Logic
+
+Define how Appwrite Functions should:
+
+Detect vendors
+
+Determine expense vs income
+
+Assign categories (rent, utilities, meals, payroll, tax, etc.)
+
+Generate confidence scores
+
+Flag low-confidence items for mandatory approval
+
+Explain how re-categorization updates historical reports.
+
+5. Approval-First Data Model (Critical)
+
+Define Appwrite Database schemas for:
+
+Raw documents
+
+OCR results
+
+Extracted financial fields
+
+Categorization suggestions
+
+Approval status
+
+Finalized transactions
+
+Ensure nothing touches financial totals until approved.
+
+6. “How I Know It’s Working” (Verification)
+
+Provide:
+
+Logs to monitor in Appwrite Functions
+
+Database state transitions
+
+Example test documents
+
+Expected outputs at each stage
+
+Health checks for stuck or failed jobs
+
+7. Replit-Specific Setup
+
+Explain:
+
+Folder structure in Replit
+
+Appwrite SDK setup
+
+Environment variables & secrets
+
+Local vs hosted Appwrite differences
+
+Scaling limits and workarounds
+
+8. Failure Points & Hard-Won Lessons
+
+Based on real-world experience:
+
+Where Appwrite + Replit integrations fail
+
+Why uploads stall
+
+Why OCR functions silently fail
+
+How to prevent partial financial corruption
+
+9. Minimal Working MVP
+
+Provide a minimal implementation that proves:
+
+Upload
+
+OCR
+
+Categorization
+
+Approval
+
+Financial posting
+
+Include pseudocode for:
+
+Upload handler
+
+Appwrite Function
+
+Approval logic
+
+Constraints
+
+No vague explanations
+
+No “you could” language
+
+Use deterministic, auditable logic
+
+Assume I’ve already struggled with Replit support
+
+Output Style
+
+Structured
+
+Implementation-ready
+
+Appwrite-native
+
+Production-focused

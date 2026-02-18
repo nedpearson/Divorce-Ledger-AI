@@ -1,0 +1,137 @@
+You are an expert full-stack engineer working in this Replit project. Read the ENTIRE codebase first so you fully understand how documents, Appwrite, and the UI currently work.
+
+GOAL
+Fix the document pipeline end-to-end so that:
+1. Clicking Delete actually deletes the document (including in Appwrite).
+2. Uploaded documents are always analyzed and categorized.
+3. All analysis and categorization logic is now handled by Appwrite (Appwrite is the single source of truth for document state and category).
+
+CONTEXT / CURRENT PROBLEMS
+1. When I click Delete on a document, it does NOT actually delete.
+   - It may disappear in some UI cases, but it is not truly removed from Appwrite DB/storage and/or it still shows up in lists.
+2. Before deletion, documents were NOT analyzed or categorized at all.
+   - They never got a category such as "Expenses".
+3. I want Appwrite to handle ALL current and future document analysis and categorization.
+   - The app should treat Appwrite as the canonical backend for:
+     - document metadata,
+     - analysis state,
+     - final category (e.g., "Expenses").
+
+=== HARD REQUIREMENTS – APPWRITE AS THE CANONICAL BACKEND ===
+1. Locate and review all Appwrite integration points:
+   - Find where the Appwrite client is initialized (e.g., `appwrite.ts` or similar).
+   - Find where documents are created, read, updated, and deleted against Appwrite:
+     - Appwrite Databases (collections, documents)
+     - Appwrite Storage (buckets/files)
+     - Appwrite Functions / serverless logic (if any)
+
+2. Make Appwrite the SINGLE source of truth for document state:
+   - Document records (title, fileId, status, category, etc.) must live in Appwrite Database documents.
+   - The actual file binary should live in Appwrite Storage (or whatever the project already uses).
+   - The front-end should NOT maintain separate shadow state that diverges from Appwrite.
+   - Any local cache / React state / client-side store should be derived from Appwrite and kept in sync.
+
+3. Design a clear document lifecycle in Appwrite:
+   - `status` field should be something like:
+     - `uploaded` → `analyzing` → `analyzed`/`categorized` → (optionally `error`).
+   - `category` field (string or enum) must be set and persisted by Appwrite (“Expenses”, etc.).
+
+4. Clean up any old non-Appwrite pipelines:
+   - If there is old analysis code running locally or in another service, either:
+     - remove it, or
+     - clearly delegate to Appwrite so there is exactly one analysis implementation in use.
+
+=== HARD REQUIREMENTS – DELETE FLOW (MUST WORK END-TO-END) ===
+1. Trace the full delete path:
+   - On the client:
+     - Locate the component(s) that render the Delete button(s) for documents.
+     - Find the handler that is called on click.
+   - On the backend:
+     - Find the API route / RPC / Appwrite call that is supposed to delete the document.
+
+2. Implement correct deletion against Appwrite:
+   - When the user clicks Delete:
+     - The client must call a single, canonical delete function that:
+       - Deletes the document from Appwrite Database (by its document ID).
+       - Deletes the associated file from Appwrite Storage (by its file ID).
+   - If the project uses “soft delete”:
+     - Standard queries in the app must exclude soft-deleted documents.
+     - Ensure nothing in the UI shows soft-deleted documents.
+
+3. Refresh client state after delete:
+   - After a successful delete operation, the UI must:
+     - Remove the document from local state, OR
+     - Re-fetch the document list from Appwrite so the deleted document is gone.
+
+4. Error handling:
+   - If Appwrite delete fails (network / permission / not found):
+     - Show a clear error message to the user.
+     - Log the error in a consistent way with the rest of the project.
+
+5. Tests:
+   - Add at least one test (unit/integration) that:
+     - Creates a document in Appwrite (or mocks the Appwrite SDK).
+     - Calls the delete function.
+     - Asserts that:
+       - The document no longer appears in the standard document list.
+       - The storage file is deleted or correctly handled.
+
+=== HARD REQUIREMENTS – ANALYSIS & CATEGORIZATION IN APPWRITE ===
+1. Move / confirm analysis is implemented as an Appwrite responsibility:
+   - Use Appwrite Functions (or whatever is already set up) to:
+     - Receive a document reference (DB document ID, file ID).
+     - Perform analysis (or mock it, if real AI is not yet wired in).
+     - Write the results back into Appwrite DB:
+       - `status = "analyzed"`/`"categorized"`
+       - `category = "<final category>"` (e.g., "Expenses").
+
+2. Trigger Appwrite analysis on upload:
+   - When a document is uploaded:
+     - Create the Appwrite Storage file.
+     - Create the Appwrite Database document with status `uploaded` (and any metadata).
+     - Immediately trigger the Appwrite Function / analysis pipeline:
+       - Either via direct function call from the backend,
+       - Or via webhook/queue/cron if that is the pattern being used.
+
+3. Ensure documents actually get categorized:
+   - Fix the bug that caused documents to remain un-analyzed / uncategorized:
+     - Reproduce by uploading documents.
+     - Confirm that:
+       - An Appwrite Function is triggered for each uploaded document.
+       - That function updates its DB document with a final `category`.
+   - The front-end should read the `status` and `category` from Appwrite and display them.
+
+4. Default category behavior:
+   - For now, ensure that documents that should logically be “Expenses” are set to `"Expenses"` by the Appwrite pipeline.
+   - If analysis fails but the context is clearly “expense” (e.g., the upload screen is specifically for expense documents), set a fallback default `category = "Expenses"`.
+
+5. Backfill / reanalysis:
+   - Add a small helper/utility (or function) that can re-trigger Appwrite analysis for any documents that are:
+     - `status != "analyzed"` or `category` is null.
+   - This can be a script or a code path that is easy to run manually.
+
+6. Tests:
+   - Add tests that:
+     - Simulate upload → trigger Appwrite analysis → verify that status and category are written correctly.
+     - Ensure the UI reads and displays the category from Appwrite.
+
+=== OPTIONAL BUT PREFERRED – PROGRESS / STATUS UI ===
+1. If practical with the existing code, wire the front-end to Appwrite document status:
+   - Show per-document status (`uploaded`, `analyzing`, `analyzed`).
+   - Optionally show a progress indicator that reflects these stages.
+   - Use polling or subscriptions if the project already integrates with Appwrite realtime.
+
+=== CLEANUP & QUALITY ===
+1. Ensure all Appwrite calls are centralized and well-typed:
+   - Strong typing for document IDs, collection IDs, bucket IDs, and category values.
+   - Avoid sprinkling raw strings and IDs everywhere; consolidate into config/constants.
+2. Refactor any obviously duplicated logic around documents, analysis, and deletion.
+3. Run the test suite and ensure everything passes.
+4. Run the linter/formatter (ESLint/Prettier, etc.) on any modified files.
+
+DELIVERABLE
+Implement all necessary changes in this Replit so that:
+- Documents are reliably created, analyzed, categorized, and deleted via Appwrite.
+- Clicking Delete removes documents end-to-end from both Appwrite Database and Storage and they no longer appear in any UI list.
+- Every uploaded document goes through the Appwrite analysis pipeline and ends up with a category stored in Appwrite (e.g., "Expenses").
+Now inspect the repo and implement these changes.

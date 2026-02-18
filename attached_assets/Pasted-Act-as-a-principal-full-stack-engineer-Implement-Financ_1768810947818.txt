@@ -1,0 +1,115 @@
+Act as a principal full-stack engineer. Implement “Financial Extraction Engine + Test Route” per our blueprint. Make minimal, surgical changes; do not refactor unrelated code.
+
+GOAL
+Implement a robust intake pipeline for documents/images that extracts financial fields (dates, amounts, vendor, line items), verifies them with a second pass, validates with sanity checks, stores immutable AnalysisRuns in Appwrite, and exposes a dev-only test route to exercise the pipeline on fixtures.
+
+HARD RULES
+1) Strict JSON only from AI calls. No markdown. Enforce schema validation server-side.
+2) Never write finalized_* fields automatically. Only set suggested fields + needs_user_review until user approval.
+3) Every run is immutable: create a new analysis_runs record for each run.
+4) Add idempotency so the same file+prompt_version+model_version doesn’t create duplicate runs.
+5) Use server-side Appwrite SDK with API key from Replit Secrets only (never expose to client).
+6) Multi-page PDFs supported. OCR only when needed (scanned PDF detection).
+7) Currency normalized as ISO + numeric. Dates normalized as YYYY-MM-DD.
+8) If confidence < 0.85 OR validation fails OR image quality poor -> needs_user_review=true.
+
+IMPLEMENTATION TASKS
+
+A) Appwrite collections (create if missing)
+- files: owner_id, storage_file_id, filename, mime, size, checksum, status, suggested_category, category_candidates, suggested_fields (json), needs_user_review (bool), finalized_category (nullable), finalized_fields (nullable json), finalized_by, finalized_at, finalized_from_analysis_run_id, created_at, updated_at
+- analysis_runs: run_id, file_id, owner_id, storage_file_id, prompt_version, model, model_version, started_at, finished_at, duration_ms, ocr_used, page_count, quality (json), extracted_json (json), verifier_json (json), raw_model_output (json/string), warnings (array), confidence (float), validation (json), needs_user_review (bool)
+- overrides: override_id, file_id, owner_id, analysis_run_id, overrides_json (json), created_at
+- categories: name, slug, active
+
+Add indexes on: files.owner_id, files.storage_file_id, analysis_runs.file_id, analysis_runs.owner_id, analysis_runs.storage_file_id, analysis_runs.prompt_version+model_version, overrides.file_id
+
+B) Server modules (TypeScript preferred)
+Create these modules with clean interfaces:
+1) src/server/engine/schema.ts
+   - Zod schema (or equivalent) for Extractor output:
+     {
+       doc_type, suggested_category, category_candidates[3], confidence,
+       summary, keywords[],
+       extracted: { vendor_name, document_date, transaction_date, statement_period_start, statement_period_end,
+                    total_amount{value,currency}, tax_amount, tip_amount, shipping_amount, balance_due,
+                    account_last4, invoice_number, order_number, line_items[] },
+       evidence: { source_file_id, page_count, ocr_used, image_quality{blur,glare,crop_issue} },
+       warnings[], needs_user_review
+     }
+   - Also define Verifier schema:
+     { verified: {field:{ok,reason}}, overall_ok, confidence_adjustment, must_review }
+
+2) src/server/engine/quality.ts
+   - Lightweight image quality scoring for images (blur/glare/crop heuristics if available; otherwise basic proxy and allow manual override).
+   - Return {blur, glare, crop_issue, score} and a boolean poor_quality threshold.
+
+3) src/server/engine/extract.ts
+   - Detect file type (pdf vs image).
+   - Extract text:
+     - Digital PDF: text extraction.
+     - Scanned PDF / image: OCR.
+   - Call AI “Extractor” prompt to fill strict JSON schema.
+   - Validate JSON with schema; if invalid -> mark run as needs_user_review with warnings.
+
+4) src/server/engine/verify.ts
+   - Second AI call “Verifier” receives: extracted JSON + raw text/OCR + minimal context.
+   - Validate verifier JSON.
+   - Adjust confidence and compute must_review.
+
+5) src/server/engine/validate.ts
+   - Sanity checks:
+     - statement_period_start <= statement_period_end
+     - tax/tip/shipping <= total
+     - if line_items exist, sum(line_total) ~ total/subtotal within tolerance
+     - date relationships for statements
+   - Return validation object: {ok, failed_checks[], tolerance_used, computed_totals...}
+
+6) src/server/engine/runAnalysis.ts
+   - Orchestrate: quality -> extract -> verify -> validate -> decide needs_user_review
+   - Persist analysis_runs (immutable).
+   - Update files row with suggested_category, candidates, suggested_fields, needs_user_review, status="suggested"/"awaiting_user" etc.
+   - Enforce idempotency: if an analysis_run exists with same (storage_file_id, prompt_version, model_version) and finished ok, return existing run.
+
+C) Triggering
+If an automatic trigger already exists, integrate with it.
+Otherwise, implement an explicit server endpoint:
+POST /api/analyze/:fileId
+- Server fetches file metadata + storage_file_id from Appwrite
+- Runs runAnalysis(fileId, ownerId)
+- Returns {analysis_run_id, needs_user_review, confidence, suggested_category}
+
+D) Dev-only test route
+Implement:
+GET /api/dev/selftest-financial
+- Only enabled when NODE_ENV != "production" OR a DEV_SELFTEST_TOKEN matches a Replit Secret.
+- The route runs the engine on 5 fixtures stored in /fixtures:
+  1) invoice.pdf (digital)
+  2) receipt_glare.jpg
+  3) bank_statement.pdf
+  4) blurry_receipt.jpg (should force needs_user_review=true)
+  5) multipage.pdf
+- For each, upload to Appwrite Storage (or use existing fixture storage ids), create a files row, run analysis.
+- Output JSON array with:
+  {fixture, file_id, analysis_run_id, confidence, needs_user_review, suggested_category,
+   extracted.document_date, extracted.transaction_date, extracted.total_amount,
+   validation.ok, validation.failed_checks, warnings}
+- Also print a summary: pass/fail criteria:
+   - MUST NOT finalize anything
+   - MUST set needs_user_review=true for blurry fixture
+   - MUST produce total_amount for at least 3/5 fixtures (if fixture content supports it)
+
+E) Prompts (must be versioned)
+Create prompt constants with explicit versions:
+- PROMPT_VERSION="fin_extract_v1"
+- Extractor system/user messages: extraction only, strict JSON, no extra keys.
+- Verifier prompt: verify fields with citations in reasons (but still JSON), set must_review if uncertain.
+
+F) Tests
+Add minimal unit tests for validate.ts (money/date sanity checks) and schema validation.
+
+DELIVERABLES
+1) Code implementing engine + routes + fixtures wiring.
+2) A short README section: how to run selftest, required Replit Secrets (APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY, APPWRITE_DATABASE_ID, APPWRITE_BUCKET_UPLOADS, DEV_SELFTEST_TOKEN, AI_PROVIDER keys).
+3) Example selftest output.
+
+Proceed to implement now. If any prior plan assumptions are missing (e.g., no server framework), choose the simplest path consistent with the existing repo (Express/Vite/Next) and state what you chose at the top of your response.

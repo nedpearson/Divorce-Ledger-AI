@@ -1,0 +1,62 @@
+name: Security & Quality Gate
+
+on: [push, pull_request]
+
+jobs:
+  security-and-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install Dependencies
+        run: npm ci
+      
+      - name: NPM Audit (Vulnerability Scan)
+        run: npm audit --audit-level=high
+      
+      - name: TypeScript Type Check
+        run: npx tsc --noEmit
+      
+      - name: ESLint Security Rules
+        run: npx eslint . --config eslint-security.config.js
+      
+      - name: ESLint Code Quality
+        run: npx eslint . --config eslint.config.js
+      
+      - name: Check for Secrets in Code
+        run: |
+          echo "Scanning for hardcoded secrets..."
+          PATTERNS='(password|secret|api[_-]?key|token|private[_-]?key|access[_-]?key)\s*[:=]\s*["\x27`][^"\x27`]{8,}["\x27`]'
+          if grep -rEi "$PATTERNS" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json" --exclude-dir=node_modules --exclude-dir=dist --exclude="package*.json" . 2>/dev/null | grep -v "process.env" | grep -v "import.meta.env" | grep -v "\.d\.ts" | grep -v "placeholder" | grep -v "example"; then
+            echo "WARNING: Potential hardcoded secrets found. Please review above matches."
+            exit 1
+          fi
+          echo "No hardcoded secrets detected."
+      
+      - name: Build Check
+        run: npx tsx script/build.ts
+      
+      - name: Check Bundle Size
+        run: |
+          echo "Build output size:"
+          if [ -d "dist" ]; then
+            du -sh dist/
+            find dist -type f -name "*.js" -exec du -h {} \; | sort -rh | head -10
+          fi
+
+  dependency-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high

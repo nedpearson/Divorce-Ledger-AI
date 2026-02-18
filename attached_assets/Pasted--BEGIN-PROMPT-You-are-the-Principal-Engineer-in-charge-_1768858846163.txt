@@ -1,0 +1,225 @@
+**BEGIN PROMPT**
+
+You are the Principal Engineer in charge of **CI / QA hardening** for this repository.
+
+Your objective is to:
+
+- Establish robust automated quality gates.
+- Ensure reliable linting, type-checking, testing, and coverage.
+- Integrate these checks into CI (e.g., GitHub Actions, Replit tasks, or equivalent).
+
+Follow the steps below.
+
+------------------------------------------------------
+1. GLOBAL QA CAPABILITY ANALYSIS
+------------------------------------------------------
+
+Scan the repository and determine:
+
+- Which tooling is already present:
+  - TypeScript or plain JS?
+  - ESLint, Prettier, Biome, or other linters/formatters?
+  - Jest, Vitest, Mocha, or other test frameworks?
+  - Playwright/Cypress or other E2E tools?
+- Which scripts exist in `package.json` or equivalent:
+  - `test`, `lint`, `typecheck`, `build`, `dev`, etc.
+- Whether there is an existing CI pipeline:
+  - GitHub Actions, GitLab CI, CircleCI, etc.
+  - Replit-specific “Nix/Run/Deploy” config.
+
+Identify gaps:
+- Missing type checking.
+- Missing linting.
+- Few or no tests.
+- CI pipeline too shallow or non-existent.
+
+------------------------------------------------------
+2. DEFINE TARGET QA STACK
+------------------------------------------------------
+
+Based on what is already installed, define a pragmatic, minimal, but solid QA stack. For example (adjust to repo):
+
+- TypeScript: `tsc --noEmit` for type checking (if TS is used).
+- ESLint: for linting.
+- Prettier or equivalent: for formatting (can be enforced via pre-commit).
+- Jest / Vitest: for unit tests.
+- Optional: Playwright/Cypress for E2E (if appropriate and already present).
+
+Document (internally) which tools you will standardize on. Do **not** introduce redundant tools; reuse what exists where sane.
+
+------------------------------------------------------
+3. STANDARDIZE NPM/YARN/PNPM SCRIPTS
+------------------------------------------------------
+
+In `package.json` (or equivalent), ensure the presence of:
+
+- `"lint"`        → runs ESLint (or chosen linter).
+- `"format"`      → runs Prettier (or chosen formatter).
+- `"typecheck"`   → runs TypeScript compiler type-checking (if relevant).
+- `"test"`        → runs unit tests.
+- `"test:watch"`  → optional, for local dev.
+- `"test:ci"`     → deterministic, non-watch mode tests for CI.
+- `"check"`       → a composite script that runs:
+  - lint
+  - typecheck
+  - test:ci
+  in a suitable order.
+
+Ensure these scripts work with the repository’s existing structure and entry points.
+
+------------------------------------------------------
+4. IMPLEMENT OR FIX LINT / FORMAT CONFIG
+------------------------------------------------------
+
+- If ESLint is present:
+  - Update `.eslintrc.*` to match the stack (Node + possibly React).
+  - Ensure `lint` script actually references the correct paths (src, tests, etc.).
+- If no linter is present:
+  - Introduce ESLint with a standard Node/TypeScript configuration.
+- For Prettier (or equivalent):
+  - Ensure `.prettierrc` or equivalent exists.
+  - Ensure it does not conflict with ESLint.
+
+Optional but ideal:
+- Integrate ESLint + Prettier via recommended configs, or keep them cleanly separate.
+
+------------------------------------------------------
+5. TYPECHECKING HARDENING
+------------------------------------------------------
+
+If the project uses TypeScript:
+
+1. Ensure `tsconfig.json`:
+   - Includes all relevant source directories.
+   - Has sensible strictness settings (prefer stricter).
+2. Define a `typecheck` script that runs:
+   - `tsc --noEmit` (or equivalent).
+3. Make sure typecheck passes on current code, fixing obvious errors or adjusting config to match actual structure.
+
+If the project is JS-only:
+- Decide whether to:
+  - Introduce TypeScript incrementally, OR
+  - Use JSDoc-based type checking via `tsc` or similar.
+- If adding TS is non-trivial, document the future path and skip actual TS introduction for now.
+
+------------------------------------------------------
+6. TEST SUITE BASELINE
+------------------------------------------------------
+
+Analyze existing tests:
+
+- Does a `tests` or `__tests__` directory exist?
+- How many tests, and what do they cover?
+- Are there any integration/E2E tests?
+
+Actions:
+
+1. Ensure unit tests can run deterministically in CI:
+   - No reliance on interactive input.
+   - No unmocked external services (Stripe, S3, etc.) in unit tests.
+2. Introduce at least a minimal baseline suite if almost empty:
+   - Core modules: config, env sanity, key business logic (e.g., demo reset, billing scheduler).
+3. Introduce a `test:ci` script that:
+   - Runs tests in non-watch mode.
+   - Uses appropriate reporters for CI.
+
+------------------------------------------------------
+7. COVERAGE (OPTIONAL BUT RECOMMENDED)
+------------------------------------------------------
+
+If the test runner supports coverage (Jest/Vitest):
+
+- Add a `test:coverage` script.
+- Configure a coverage threshold in CI (for now, a modest one, e.g. 50–70%, or just report coverage without enforcing).
+- Ensure coverage output path is configured and not checked into VCS unless explicitly desired.
+
+------------------------------------------------------
+8. CI PIPELINE INTEGRATION
+------------------------------------------------------
+
+If a CI pipeline already exists (e.g. `.github/workflows/*.yml`):
+
+- Modify or create a workflow that:
+  - Runs on PRs and pushes to main/develop.
+  - Uses stable Node version.
+  - Installs dependencies with cache.
+  - Runs:
+    - `npm run check` (or `lint`, `typecheck`, `test:ci` separately).
+  - Fails on any error.
+- If none exists:
+  - Create a GitHub Actions workflow (or equivalent for the platform in use) named `ci.yml` that does the above.
+
+Ensure CI respects environment modes:
+- For tests, set:
+  - `APP_MODE=test`
+  - `NODE_ENV=test`
+- Use test-specific DB/storage env vars (integrating with the Environment Sanity work).
+
+------------------------------------------------------
+9. OPTIONAL: PRE-COMMIT / DEV EXPERIENCE
+------------------------------------------------------
+
+Optionally add:
+
+- A pre-commit hook configuration (e.g. `husky`, `lefthook`, or simple `lint-staged`).
+- Hooks that run:
+  - `lint`
+  - `format`
+  - optionally `test` on staged files or small subset
+
+This step is optional; if it is too invasive for the existing workflow, just document it and skip.
+
+------------------------------------------------------
+10. OUTPUT FORMAT — STRUCTURED RESULTS
+------------------------------------------------------
+
+After all changes, output results in this structure:
+
+SECTION A — QA / CI Issues Found
+- Bullet list of:
+  - Missing scripts.
+  - Broken lint/test/typecheck.
+  - Weak or absent CI.
+
+SECTION B — Final QA Stack
+- Enumerate:
+  - Linter and config.
+  - Formatter and config.
+  - Test framework and layout.
+  - Typecheck strategy.
+
+SECTION C — Files Modified
+- Path + short reason.
+
+SECTION D — New Files Added
+- Path + purpose (e.g., CI workflow file, test configuration, baseline tests).
+
+SECTION E — Full Patchset
+- Copy-paste-ready diffs for all relevant files.
+
+SECTION F — CI / QA Run Instructions
+- How to run locally:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `npm run test`
+  - `npm run check`
+- How CI runs them:
+  - Trigger rules.
+  - Commands used.
+
+SECTION G — Future Enhancements (Optional)
+- Short list of suggested follow-ups:
+  - E2E tests.
+  - Higher coverage.
+  - Performance tests.
+
+------------------------------------------------------
+11. EXECUTION RULES
+------------------------------------------------------
+
+- Do not restate this prompt.
+- Start at the global QA analysis, then continue in order.
+- If you hit token limit, stop cleanly; resume on “continue”.
+- Do not skip Sections; mark any not applicable explicitly.
+
+**END PROMPT**

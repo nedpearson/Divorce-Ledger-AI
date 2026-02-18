@@ -1,0 +1,57 @@
+Add these NON-NEGOTIABLES to the plan:
+
+EXTRACTION TARGETS (must be attempted for every file)
+- dates: document_date, transaction_date, statement_period_start, statement_period_end
+- money: total_amount, subtotal, tax, tip, shipping, discount, balance_due, previous_balance, new_balance
+- entities: vendor_name, payee, payer, account_last4, invoice_number, order_number, check_number
+- line items (when present): [{description, quantity, unit_price, line_total}]
+- payment method hint: cash/credit/debit/ACH/check/transfer/unknown
+- location: merchant_city, merchant_state (if present)
+- currency: ISO code (default USD), plus original currency if detected
+
+OUTPUT MUST BE STRICT JSON, NO MARKDOWN. Use this schema:
+
+{
+  "doc_type": "receipt|invoice|bank_statement|credit_card_statement|paystub|court_filing|photo_evidence|other",
+  "suggested_category": "string",
+  "confidence": 0.0,
+  "summary": "string",
+  "keywords": ["string"],
+  "extracted": {
+    "vendor_name": "string|null",
+    "document_date": "YYYY-MM-DD|null",
+    "transaction_date": "YYYY-MM-DD|null",
+    "statement_period_start": "YYYY-MM-DD|null",
+    "statement_period_end": "YYYY-MM-DD|null",
+    "total_amount": {"value": 0.0, "currency": "USD"}|null,
+    "tax_amount": {"value": 0.0, "currency": "USD"}|null,
+    "tip_amount": {"value": 0.0, "currency": "USD"}|null,
+    "shipping_amount": {"value": 0.0, "currency": "USD"}|null,
+    "balance_due": {"value": 0.0, "currency": "USD"}|null,
+    "account_last4": "string|null",
+    "invoice_number": "string|null",
+    "order_number": "string|null",
+    "line_items": [{"description":"string","quantity":0.0,"unit_price":{"value":0.0,"currency":"USD"},"line_total":{"value":0.0,"currency":"USD"}}]
+  },
+  "evidence": {
+    "source_file_id": "string",
+    "page_count": 0,
+    "ocr_used": true,
+    "image_quality": {"blur": 0.0, "glare": 0.0, "crop_issue": 0.0}
+  },
+  "warnings": ["string"],
+  "needs_user_review": true
+}
+
+VALIDATION GATE (must run before writing “finalized” fields)
+- If confidence < 0.85 OR any required field missing for the detected doc_type → set needs_user_review=true and do NOT finalize.
+- Money sanity checks:
+  - If line_items exist, sum(line_total) must be within tolerance of subtotal/total when available.
+  - Taxes/tips/shipping must not exceed total.
+- Date sanity checks:
+  - statement_period_start <= statement_period_end
+  - transaction_date must fall within statement period for statements when both exist.
+- Currency normalization:
+  - Store ISO currency + numeric value (float/decimal). Never store “$1,234.56” as a string.
+
+If validation fails, store results as an AnalysisRun only, with warnings, and route to manual review UI.

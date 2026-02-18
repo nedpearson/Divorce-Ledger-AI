@@ -1,0 +1,143 @@
+// Save as: scripts/test-tier-upgrade-flow.ts
+
+import axios from 'axios';
+
+const BASE_URL = 'http://localhost:3000/api';
+
+async function testTierUpgradeFlow() {
+  console.log('📊 TIER UPGRADE FLOW TEST\n');
+  console.log('='.repeat(70) + '\n');
+
+  try {
+    const userId = 1;
+    const lawyerId = 1;
+
+    // 1. Check initial tier stats
+    console.log('1️⃣ Checking initial tier stats...');
+    const initialStatsRes = await axios.get(\`\${BASE_URL}/users/\${userId}/tier-stats\`);
+    const initialStats = initialStatsRes.data.data;
+
+    console.log(\`✅ Initial Stats:\`);
+    console.log(\`   Current Tier: \${initialStats.current_tier}\`);
+    console.log(\`   Violations This Month: \${initialStats.violations_this_month}\`);
+    console.log(\`   Recommended Tier: \${initialStats.recommended_tier}\`);
+    console.log(\`   Storage Used: \${initialStats.usage.storage_used_mb}MB\n\`);
+
+    // 2. Create 3 test cases
+    console.log('2️⃣ Creating test cases...');
+    const caseIds = [];
+    for (let i = 0; i < 3; i++) {
+      const caseRes = await axios.post(\`\${BASE_URL}/cases\`, {
+        case_number: \`TIER-TEST-\${Date.now()}-\${i}\`,
+        lawyer_id: lawyerId,
+        client_id: 2,
+        case_type: 'spousal_abuse',
+        jurisdiction: 'California',
+      });
+      caseIds.push(caseRes.data.data.id);
+    }
+    console.log(\`✅ Created \${caseIds.length} test cases\n\`);
+
+    // 3. Create violations with media (simulate hitting tier limits)
+    console.log('3️⃣ Creating violations with media...');
+    let totalViolationsCreated = 0;
+
+    for (let caseIdx = 0; caseIdx < caseIds.length; caseIdx++) {
+      const caseId = caseIds[caseIdx];
+      const violationsPerCase = 8; // Create 8 violations per case = 24 total
+
+      for (let v = 0; v < violationsPerCase; v++) {
+        // Create violation
+        const violationRes = await axios.post(\`\${BASE_URL}/cases/\${caseId}/violations\`, {
+          case_id: caseId,
+          violation_type: 'verbal_abuse',
+          severity_score: 0,
+          violation_datetime: new Date(),
+          description: \`Recorded conversation \${v + 1}\`,
+        });
+
+        const violationId = violationRes.data.data.id;
+
+        // Upload media
+        await axios.post(\`\${BASE_URL}/violations/\${violationId}/media\`, {
+          caseId,
+          fileName: \`recording_\${caseIdx}_\${v}.mp3\`,
+          fileType: 'audio',
+          fileSizeBytes: 2500000, // 2.5MB each
+          mimeType: 'audio/mpeg',
+          storageUrl: \`s3://divorce-case-ai/media/recording_\${caseIdx}_\${v}.mp3\`,
+          durationSeconds: 180,
+        });
+
+        totalViolationsCreated++;
+        if ((v + 1) % 3 === 0) {
+          process.stdout.write('.');
+        }
+      }
+    }
+    console.log(\`\n✅ Created \${totalViolationsCreated} violations with media\n\`);
+
+    // 4. Get violation counts
+    console.log('4️⃣ Checking violation counts...');
+    const violCountRes = await axios.get(\`\${BASE_URL}/users/\${userId}/violations-count\`);
+    const violCounts = violCountRes.data.data;
+
+    console.log(\`✅ Violation Counts:\`);
+    console.log(\`   Total This Month: \${violCounts.total_violations_this_month}\`);
+    for (const [caseId, count] of Object.entries(violCounts.cases)) {
+      console.log(\`   Case \${caseId}: \${count} violations\`);
+    }
+    console.log();
+
+    // 5. Update user tier
+    console.log('5️⃣ Updating user tier...');
+    const updateTierRes = await axios.post(\`\${BASE_URL}/users/\${userId}/update-tier\`, {
+      autoUpgrade: true,
+    });
+
+    const tierUpdate = updateTierRes.data.data;
+    console.log(\`✅ Tier Update Results:\`);
+    console.log(\`   Previous Tier: \${tierUpdate.previous_tier}\`);
+    console.log(\`   Current Tier: \${tierUpdate.current_tier}\`);
+    console.log(\`   Recommended Tier: \${tierUpdate.recommended_tier}\`);
+    console.log(\`   Violations This Month: \${tierUpdate.violations_this_month}\`);
+    console.log(\`   Upgraded: \${tierUpdate.tier_upgraded ? '✅ YES' : '❌ NO'}\`);
+    if (tierUpdate.upgrade_recommendation) {
+      console.log(\`   Recommendation: \${tierUpdate.upgrade_recommendation}\`);
+    }
+    console.log();
+
+    // 6. Get updated tier stats
+    console.log('6️⃣ Getting updated tier stats...');
+    const finalStatsRes = await axios.get(\`\${BASE_URL}/users/\${userId}/tier-stats\`);
+    const finalStats = finalStatsRes.data.data;
+
+    console.log(\`✅ Final Tier Stats:\`);
+    console.log(\`   Current Tier: \${finalStats.current_tier}\`);
+    console.log(\`   Recommended Tier: \${finalStats.recommended_tier}\`);
+    console.log(\`   Usage:\`);
+    console.log(\`     - Violations: \${finalStats.usage.violations_remaining} remaining (\${finalStats.usage.violations_percentage}% used)\`);
+    console.log(\`     - Storage: \${finalStats.usage.storage_used_mb}MB / \${finalStats.usage.storage_remaining_mb}MB (\${finalStats.usage.storage_percentage}% used)\`);
+    console.log(\`     - Media Uploads: \${finalStats.usage.media_uploads}\`);
+    console.log(\`   Account Age: \${finalStats.account.days_active} days\n\`);
+
+    console.log('='.repeat(70));
+    console.log('✨ TIER UPGRADE FLOW TEST PASSED!\n');
+
+    console.log('📈 Test Summary:');
+    console.log(\`   Violations Created: \${totalViolationsCreated}\`);
+    console.log(\`   Cases Created: \${caseIds.length}\`);
+    console.log(\`   Tier Upgraded: \${tierUpdate.tier_upgraded ? \`\${tierUpdate.previous_tier} → \${tierUpdate.current_tier}\` : 'No upgrade needed'}\`);
+    console.log(\`   Current Tier Limits:\`);
+    console.log(\`     - Max Violations: \${finalStats.tier_limits.max_violations_per_month || 'Unlimited'}\`);
+    console.log(\`     - Max File Size: \${finalStats.tier_limits.max_file_size_mb}MB\`);
+    console.log(\`     - Monthly Storage: \${finalStats.tier_limits.storage_per_month_mb || 'Unlimited'}MB\`);
+
+  } catch (error: any) {
+    console.error('❌ TEST FAILED:');
+    console.error(error.response?.data || error.message);
+    process.exit(1);
+  }
+}
+
+testTierUpgradeFlow();

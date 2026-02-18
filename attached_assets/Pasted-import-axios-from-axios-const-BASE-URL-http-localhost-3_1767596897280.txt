@@ -1,0 +1,108 @@
+import axios from 'axios';
+
+const BASE_URL = 'http://localhost:3000/api';
+
+async function testMediaFlow() {
+  console.log('🎙️ Testing Voice/Media Processing Flow...\n');
+
+  try {
+    // 1. Create test case
+    console.log('1️⃣ Creating test case...');
+    const caseRes = await axios.post(`${BASE_URL}/cases`, {
+      case_number: 'VOICE-TEST-' + Date.now(),
+      lawyer_id: 1,
+      client_id: 2,
+      case_type: 'spousal_abuse',
+      jurisdiction: 'California',
+    });
+
+    const caseId = caseRes.data.data.id;
+    console.log(`✅ Case created: ${caseId}\n`);
+
+    // 2. Create test violation
+    console.log('2️⃣ Creating test violation...');
+    const violationRes = await axios.post(`${BASE_URL}/cases/${caseId}/violations`, {
+      case_id: caseId,
+      violation_type: 'verbal_abuse',
+      severity_score: 50,
+      violation_datetime: new Date(),
+      description: 'Recorded phone conversation',
+    });
+
+    const violationId = violationRes.data.data.id;
+    console.log(`✅ Violation created: ${violationId}\n`);
+
+    // 3. Upload audio media
+    console.log('3️⃣ Uploading audio media...');
+    const mediaRes = await axios.post(
+      `${BASE_URL}/violations/${violationId}/media`,
+      {
+        caseId,
+        fileName: 'phone_call_2024-01-05.mp3',
+        fileType: 'audio',
+        fileSizeBytes: 2500000,
+        mimeType: 'audio/mpeg',
+        storageUrl: 's3://divorce-ase-ai/media/phone_call.mp3',
+        durationSeconds: 285,
+      }
+    );
+
+    console.log(`✅ Media uploaded`);
+    console.log(`   File: ${mediaRes.data.data.file_name}`);
+    console.log(`   Duration: ${mediaRes.data.data.duration_seconds}s\n`);
+
+    // 4. Transcribe audio
+    console.log('4️⃣ Transcribing audio...');
+    const transcriptRes = await axios.post(
+      `${BASE_URL}/violations/${violationId}/transcribe`,
+      {
+        mediaFileId: mediaRes.data.data.id,
+      }
+    );
+
+    const transcript = transcriptRes.data.data.transcript;
+    console.log(`✅ Transcription complete`);
+    console.log(`   Preview: ${transcript.substring(0, 100)}...\n`);
+
+    // 5. Classify violation
+    console.log('5️⃣ AI classifying violation...');
+    const classifyRes = await axios.post(
+      `${BASE_URL}/violations/${violationId}/classify`,
+      {}
+    );
+
+    const classification = classifyRes.data.data;
+    console.log(`✅ Classification complete`);
+    console.log(`   Type: ${classification.type}`);
+    console.log(`   Confidence: ${(classification.confidence * 100).toFixed(0)}%`);
+    console.log(`   Severity: ${classification.severity}/100`);
+    console.log(`   Recommendation: ${classification.recommendation}\n`);
+
+    // 6. Get complete media data
+    console.log('6️⃣ Retrieving complete media data...');
+    const mediaDataRes = await axios.get(`${BASE_URL}/violations/${violationId}/media`);
+
+    const mediaData = mediaDataRes.data.data;
+    console.log(`✅ Media data retrieved`);
+    console.log(`   Media files: ${mediaData.media_files.length}`);
+    console.log(`   Has transcript: ${!!mediaData.audio_transcript}`);
+    console.log(`   AI Classification: ${mediaData.ai_classification}\n`);
+
+    // 7. Update user tier
+    console.log('7️⃣ Updating user tier metrics...');
+    await axios.post(`${BASE_URL}/users/1/update-tier`, {});
+    console.log(`✅ User tier metrics updated\n`);
+
+    console.log('🎉 Voice/Media Flow Test Complete!');
+    console.log('\n📊 Test Summary:');
+    console.log(`   Case ID: ${caseId}`);
+    console.log(`   Violation ID: ${violationId}`);
+    console.log(`   Classification: ${classification.type} (${classification.confidence})`);
+    console.log(`   Severity: ${classification.severity}/100`);
+  } catch (error: any) {
+    console.error('❌ Test failed:', error.response?.data || error.message);
+    process.exit(1);
+  }
+}
+
+testMediaFlow();

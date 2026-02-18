@@ -1,0 +1,357 @@
+BEGIN PROMPT
+
+You are the Senior System Architect assigned to audit, repair, and fully harden the LIVE/PRODUCTION mode of this system.
+
+The goal:
+
+Live mode must be authoritative, non-resettable, and safely scheduled.
+
+Demo and live must be strictly isolated by environment guards.
+
+All background jobs for live (billing, quotas, tier migrations, alerts, etc.) must be correct, idempotent, and observable.
+
+Perform a complete audit and fix every part of the live-mode architecture.
+
+1. Global analysis: locate all LIVE / PROD logic and risks
+
+Search the entire codebase for:
+
+APP_MODE, MODE, NODE_ENV, ENV, IS_DEMO, IS_LIVE, isDemo, isProd, similar flags.
+
+Any code paths that:
+
+touch billing, quotas, subscriptions, Stripe, payments, proration
+
+manage user accounts, evidence, uploads, audit logs
+
+run cron/scheduled jobs or workers
+
+reset or truncate data
+
+Any direct references to:
+
+“demo reset” functions or scripts
+
+“seed”, “truncate”, “wipe”, “reset”, “bootstrap” that might accidentally run on live
+
+jobs like:
+
+“Reset Monthly Quotas”
+
+“Process Monthly Billings”
+
+“Apply Pending Tier Migrations”
+
+or equivalents by name
+
+Produce an internal map (for yourself) of:
+
+How APP_MODE is currently used.
+
+Where live and demo share code paths.
+
+Where there is any risk that live data could be reset, truncated, or corrupted.
+
+Then proceed to repair.
+
+2. Enforce strict APP_MODE isolation between demo and live
+
+Refactor code so that:
+
+Demo-only behavior
+
+All demo reset logic, demo seeds, demo fixtures, and sample data operations are never callable when APP_MODE === "live" (or equivalent live flag).
+
+Any demo-related endpoints are guarded with explicit checks:
+
+If in live mode, respond with 403 and a clear log message.
+
+Any shared helpers used by both demo and live must be split or parameterized so that:
+
+Live never calls destructive code intended for demo.
+
+Live-only behavior
+
+Billing, quotas, tier migrations, paid subscription enforcement, and any compliance-related logic should run only when APP_MODE === "live" (or the correct prod flag).
+
+If there is a NODE_ENV / APP_MODE inconsistency (e.g., NODE_ENV=production but APP_MODE=demo), you must:
+
+Decide and codify a single canonical source of truth for mode, and
+
+Fail fast or log loudly when the configuration is inconsistent.
+
+No live resets
+
+Any existing “reset all users”, “reset all data”, “truncate”, or “wipe everything” code must:
+
+Be explicitly marked as demo-only or dev-only.
+
+Not be reachable from live mode via API calls, CLI scripts, or cron.
+
+3. Replace fragile cron with a robust, centralized scheduler for live mode
+
+Create or refactor a single scheduler module for live mode, for example liveScheduler:
+
+Loads only when:
+
+APP_MODE === "live"
+
+CRON_ENABLED === "true" (or equivalent)
+
+Registers all live background jobs in one place:
+
+“Reset Monthly Quotas”
+
+“Process Monthly Billings”
+
+“Apply Pending Tier Migrations”
+
+Any KPI rollups, analytics aggregates, or archival tasks
+
+Requirements for the scheduler:
+
+Idempotency
+
+Every job must be safe to run multiple times for the same logical period (e.g., month) without double-billing or double-charging.
+
+Use markers in the DB (e.g., job-run records keyed by period) to prevent duplicate side effects.
+
+Safety
+
+Any job that touches money, billing, or Stripe must:
+
+Reconcile against Stripe/subscription state when applicable.
+
+Avoid blindly charging without consistent checks.
+
+If a job previously used demo-like destructive patterns (truncate, etc.), refactor it into update-based, targeted operations.
+
+Observability
+
+Each job run must:
+
+Log start, completion, and duration.
+
+Log errors with stack traces.
+
+Optionally write a job history record (e.g., scheduled_jobs table) with:
+
+job name
+
+started_at
+
+completed_at
+
+status (success/failure)
+
+error message (if any)
+
+Deployment-aware
+
+Ensure the scheduler can be enabled/disabled via env flags so that:
+
+Local dev or Replit can run without accidental double-scheduling.
+
+Production hosting (Fly/Render/etc.) can run a dedicated “worker” or “scheduler” process with CRON_ENABLED=true.
+
+4. Harden billing, subscription, and quota logic for live mode
+
+Audit and fix the following:
+
+Subscription state
+
+Ensure subscription tiers (free, individual, pro, team, enterprise, etc.) are:
+
+Stored consistently in DB.
+
+Derived from Stripe (or source of truth) where applicable.
+
+Remove any leftover hard-coded “demo tier” or test stubs that could apply to live users.
+
+Monthly quotas and counters
+
+Ensure monthly counters for:
+
+cases
+
+violations
+
+storage
+
+media uploads
+
+voice transcriptions
+
+other usage metrics
+are:
+
+reset only via safe, deterministic logic (e.g., scheduler task keyed by month).
+
+never “reset blindly” in a way that could lose important audit contexts in live.
+
+Stripe/Webhooks (if present)
+
+Ensure Stripe webhooks or payment callbacks:
+
+Are registered and verified correctly.
+
+Do not run in demo mode.
+
+Correctly update subscription status, tier, and cancellations.
+
+Any mock or stub billing logic is demo-only and properly guarded.
+
+Error paths
+
+If billing jobs fail (e.g., Stripe outage), ensure:
+
+The failure is logged.
+
+The system does not partially charge or leave corrupt subscription states.
+
+Jobs can be safely retried.
+
+5. Remove or heavily restrict live-reset endpoints and scripts
+
+Search for any endpoints, CLI commands, or scripts that:
+
+Truncate tables.
+
+Delete all users or all data.
+
+Clear audit logs.
+
+Wipe storage buckets.
+
+Re-seed everything from scratch.
+
+For live mode:
+
+These must either:
+
+Be disallowed entirely, or
+
+Require extremely strong admin-only checks and never be callable automatically (no cron, no public routes).
+
+Enforce:
+
+APP_MODE === "live" → all destructive “reset” functionality throws an error or exits with a clear log message.
+
+6. Evidence, audit logging, and “chain of custody” hardening
+
+Wherever the app handles:
+
+PDFs, images, and uploaded evidence.
+
+Parsed financial data, transaction streams, or inferred categories.
+
+Legal case notes, voice transcripts, or messages.
+
+Make sure that in live mode:
+
+No scheduled job or background process ever silently deletes or rewrites evidence.
+
+Any cleanup or archival processes:
+
+Move or mark data, rather than destroying it.
+
+Preserve chain-of-custody metadata (timestamps, original filenames, checksums if present).
+
+Demo-only sampling, truncation, or anonymization logic is explicitly disabled in live mode.
+
+7. Configuration sanity checks at startup
+
+Implement a startup guard that:
+
+Logs and/or throws if:
+
+APP_MODE is missing or invalid.
+
+The DB URL, storage bucket, or Stripe keys indicate a non-prod service while APP_MODE === "live" (or vice versa), and this is considered dangerous.
+
+Ensures the app fails fast in obviously misconfigured states, rather than running with partial configuration.
+
+8. Output a full patchset
+
+After fully hardening the live system, output the changes in a strongly structured format:
+
+Section A — Summary of all live-mode issues found
+
+High-level bullets describing:
+
+Misused APP_MODE flags
+
+Risky reset logic reachable from live
+
+Fragile/duplicate cron jobs
+
+Billing/quotas problems
+
+Section B — Full list of files modified
+
+For each file:
+
+Path
+
+Short description of what changed
+
+Section C — All new files created
+
+For scheduler, job history, migrations, or helpers:
+
+Path
+
+Purpose
+
+Section D — All migrations created
+
+Schema changes for:
+
+job history tables
+
+any additional metadata needed for live-mode safety and idempotency
+
+Section E — Diff patch for every file
+
+Provide full, copy-paste-ready diffs in a consistent format.
+
+Section F — End-to-end test instructions
+
+How to run:
+
+Unit tests (if present)
+
+Integration tests (if present)
+
+Manual validation steps for:
+
+live scheduler
+
+monthly quotas
+
+billing cycle
+
+tier migrations
+
+Include explicit checks:
+
+“Verify no destructive reset path is callable in APP_MODE=live.”
+
+Section G — Validation transcript
+
+Show that:
+
+Tests pass.
+
+Scheduler registers the expected jobs in live mode.
+
+Demo reset functions cannot run in live mode.
+
+Billing/quotas run safely and idempotently.
+
+9. Do not stop early
+
+Continue generating all patches and explanations until the entire live-mode system is fully hardened, or until your output limit is reached.
+If you hit a generation limit, continue exactly where you left off.
+
+END PROMPT

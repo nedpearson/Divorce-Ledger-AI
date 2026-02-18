@@ -1,0 +1,91 @@
+You are a principal-level full-stack engineer and release captain. This Replit project is a Node/Express backend with a React/Vite (or similar) dashboard, CRON scheduler, subscription tiers, and evidence/case management for a divorce-forensic SaaS.
+
+The goal of this task: make the repo demo-ready in this Replit environment – minimal warnings, clear health checks, and all core flows working end-to-end. You may edit code and config, but you must not change core business rules or product semantics.
+
+Work in clearly defined steps and keep changes tight and justifiable:
+
+Tooling / Build Health
+
+Inspect package.json, bundler config (vite.config.* or similar), and any postcss.config.*.
+
+Eliminate the PostCSS warning: “A PostCSS plugin did not pass the from option to postcss.parse.” Fix the root cause (plugin config or direct postcss.parse calls) by passing a meaningful from value or updating the plugin.
+
+After changes, run the dev command and confirm the PostCSS warning is gone while the app still builds and runs.
+
+Auth + Session Flow
+
+Locate all /api/auth/* routes and the frontend code that calls /api/auth/session.
+
+Confirm that a 401 {"error":"No session"} on first load is treated as “not logged in yet,” not as a fatal error. Ensure the UI routes cleanly to login/onboarding.
+
+Verify that after a successful login, /api/auth/session returns 200 with a stable, documented response shape, and the frontend handles it correctly.
+
+Health & Diagnostics
+
+Add a small health endpoint, e.g. GET /api/health, that returns { ok: true, time: <iso-string> } if the server is up and dependencies (DB, config) are reachable.
+
+Make sure this endpoint is cheap and safe to call frequently.
+
+Add concise console logging at startup summarizing: environment (dev), port, and whether CRON is enabled.
+
+CRON / Scheduler Sanity
+
+Review the CRON/scheduler code that runs “Reset Monthly Quotas”, “Process Monthly Billings”, and “Apply Pending Tier Migrations”.
+
+Ensure each job is idempotent, wrapped in proper error handling, and logs success/failure with timestamps.
+
+Optionally (dev-only), expose a guarded manual trigger route such as /api/admin/cron/reset-quotas that checks a simple shared secret env var so we can run jobs manually in this Replit instance.
+
+Subscription & Usage API Contract
+
+Inspect /api/subscription and the tiers/usage model.
+
+Verify that the response shape exactly matches what the frontend expects; if there are mismatches, align backend and frontend types/interfaces.
+
+Ensure over-limit conditions produce clear, structured 4xx errors, not 500s, and that the UI handles them with user-friendly messages.
+
+Config / Environment Validation
+
+Identify all required environment variables (secrets, DB URLs, keys, etc.).
+
+Create a small config module or startup check (e.g. src/config/validateConfig.ts) that validates required env vars at boot, failing fast with a clear error message in the log if anything critical is missing.
+
+Wire this into the server entrypoint so misconfiguration is caught immediately in Replit.
+
+Minimal Tests & Smoke Checklist
+
+If a test framework already exists, extend it; otherwise add the lightest viable setup (Jest or Vitest + supertest).
+
+Implement at least these tests:
+
+GET /api/health → 200 and { ok: true }
+
+/api/auth/session before login → 401, after a mocked login flow → 200
+
+GET /api/subscription for a basic user → 200 with expected keys (tier, tierInfo, usage, allTiers).
+
+Add npm test (and npm run lint if linting is already in use) to package.json. Ensure tests pass in this Replit environment.
+
+Create or update a QA_SMOKE_CHECKLIST.md that lists the manual steps to verify the app: start server, hit /api/health, login, view subscription, create a case/violation, and upload at least one document/evidence item.
+
+Error Handling & UX Robustness
+
+Centralize API fetching on the frontend (e.g., a fetchJson helper) that handles 401, 403, 429, and 5xx with consistent behavior (redirect to login on 401, display friendly message on other errors).
+
+Add a top-level React error boundary with a simple fallback screen so unexpected React errors do not blank the UI.
+
+Constraints
+
+Do not introduce new product features or change pricing/tiers/limits semantics.
+
+Prefer small, targeted edits over large refactors.
+
+Keep everything working in this Replit environment without requiring external infrastructure changes.
+
+After you finish:
+
+List every file you modified.
+
+Summarize the main fixes (PostCSS, auth/session, CRON, subscription contract, config validation, tests, and UI error handling).
+
+Confirm that the app starts cleanly, the prior PostCSS warning is gone, and the core flows are working with no unhandled errors in the Replit console.

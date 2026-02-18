@@ -1,0 +1,382 @@
+// Save as: src/routes/media.routes.ts
+
+import { Router, Request, Response } from 'express';
+import { mediaService } from '../services/media.service';
+import { logger } from '../utils/logger';
+
+const router = Router();
+
+/**
+ * POST /violations/:violationId/media
+ * Upload voice/media file to violation
+ */
+router.post('/violations/:violationId/media', async (req: Request, res: Response) => {
+  try {
+    const {
+      caseId,
+      fileName,
+      fileType,
+      fileSizeBytes,
+      mimeType,
+      storageUrl,
+      durationSeconds,
+    } = req.body;
+
+    // Validate inputs
+    if (!['audio', 'video', 'image'].includes(fileType)) {
+      return res.status(400).json({ error: 'Invalid file type. Must be: audio, video, or image' });
+    }
+
+    if (!fileName || !storageUrl) {
+      return res.status(400).json({ error: 'fileName and storageUrl are required' });
+    }
+
+    const media = await mediaService.uploadMedia(
+      parseInt(req.params.violationId),
+      caseId,
+      fileName,
+      fileType,
+      fileSizeBytes,
+      mimeType,
+      storageUrl,
+      durationSeconds
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Media uploaded successfully',
+      data: media,
+    });
+  } catch (error) {
+    logger.error('Media upload failed', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * POST /violations/:violationId/transcribe
+ * Transcribe audio for violation
+ */
+router.post('/violations/:violationId/transcribe', async (req: Request, res: Response) => {
+  try {
+    const { mediaFileId } = req.body;
+
+    if (!mediaFileId) {
+      return res.status(400).json({ error: 'mediaFileId is required' });
+    }
+
+    const transcript = await mediaService.transcribeAudio(
+      parseInt(req.params.violationId),
+      mediaFileId
+    );
+
+    res.json({
+      success: true,
+      message: 'Audio transcribed successfully',
+      data: { transcript },
+    });
+  } catch (error) {
+    logger.error('Transcription failed', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * POST /violations/:violationId/classify
+ * AI classify violation from transcript
+ */
+router.post('/violations/:violationId/classify', async (req: Request, res: Response) => {
+  try {
+    const classification = await mediaService.classifyViolationFromMedia(
+      parseInt(req.params.violationId)
+    );
+
+    res.json({
+      success: true,
+      message: 'Violation classified successfully',
+      data: classification,
+    });
+  } catch (error) {
+    logger.error('Classification failed', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * GET /violations/:violationId/media
+ * Get all media/transcripts for violation
+ */
+router.get('/violations/:violationId/media', async (req: Request, res: Response) => {
+  try {
+    const mediaData = await mediaService.getMediaForViolation(parseInt(req.params.violationId));
+
+    res.json({
+      success: true,
+      data: mediaData,
+    });
+  } catch (error) {
+    logger.error('Failed to get media', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * GET /users/:userId/violations-count
+ * Get violations count for user this month
+ */
+router.get('/users/:userId/violations-count', async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId);
+
+    // Get all cases for user
+    const casesResult = await (require('../services/database.service')).databaseService.query(
+      `SELECT id FROM cases WHERE lawyer_id = $1`,
+      [userId]
+    );
+
+    let totalViolations = 0;
+    const caseViolations: Record<number, number> = {};
+
+    for (const caseRow of casesResult.rows) {
+      const count = await mediaService.getViolationsThisMonth(caseRow.id);
+      caseViolations[caseRow.id] = count;
+      totalViolations += count;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        user_id: userId,
+        total_violations_this_month: totalViolations,
+        cases: caseViolations,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to get violations count', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * GET /cases/:caseId/violations-count
+ * Get violations count for specific case this month
+ */
+router.get('/cases/:caseId/violations-count', async (req: Request, res: Response) => {
+  try {
+    const caseId = parseInt(req.params.caseId);
+    const count = await mediaService.getViolationsThisMonth(caseId);
+
+    res.json({
+      success: true,
+      data: {
+        case_id: caseId,
+        violations_this_month: count,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to get case violations count', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * POST /users/:userId/update-tier
+ * Update user tier based on violation count
+ * Returns tier recommendation and updates user record if applicable
+ */
+router.post('/users/:userId/update-tier', async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const { autoUpgrade = true } = req.body; // Optional: auto-upgrade if recommended tier differs
+
+    // Get current user info
+    const userResult = await (require('../services/database.service')).databaseService.query(
+      `SELECT id, tier, violations_count_this_month FROM users WHERE id = $1`,
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    const currentUser = userResult.rows[0];
+
+    // Update tier metrics
+    await mediaService.updateUserTierMetrics(userId);
+
+    // Get updated user info
+    const updatedUserResult = await (require('../services/database.service')).databaseService.query(
+      `SELECT id, tier, violations_count_this_month FROM users WHERE id = $1`,
+      [userId]
+    );
+
+    const updatedUser = updatedUserResult.rows[0];
+
+    // Determine recommended tier
+    const recommendedTier = this.getRecommendedTier(updatedUser.violations_count_this_month);
+
+    res.json({
+      success: true,
+      message: 'User tier metrics updated',
+      data: {
+        user_id: userId,
+        previous_tier: currentUser.tier,
+        current_tier: updatedUser.tier,
+        recommended_tier: recommendedTier,
+        violations_this_month: updatedUser.violations_count_this_month,
+        tier_upgraded: updatedUser.tier !== currentUser.tier,
+        upgrade_recommendation:
+          recommendedTier !== updatedUser.tier
+            ? \`Consider upgrading from \${updatedUser.tier} to \${recommendedTier}\`
+            : null,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to update tier', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * GET /users/:userId/tier-stats
+ * Get detailed tier and usage statistics for user
+ */
+router.get('/users/:userId/tier-stats', async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId);
+
+    const userResult = await (require('../services/database.service')).databaseService.query(
+      `SELECT id, tier, violations_count_this_month, created_at FROM users WHERE id = $1`,
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    // Get tier limits
+    const tierLimits = {
+      free: {
+        max_file_size_mb: 10,
+        max_violations_per_month: 10,
+        storage_per_month_mb: 100,
+      },
+      individual: {
+        max_file_size_mb: 50,
+        max_violations_per_month: 20,
+        storage_per_month_mb: 500,
+      },
+      pro: {
+        max_file_size_mb: 100,
+        max_violations_per_month: 50,
+        storage_per_month_mb: 2000,
+      },
+      enterprise: {
+        max_file_size_mb: 500,
+        max_violations_per_month: null, // Unlimited
+        storage_per_month_mb: null, // Unlimited
+      },
+    };
+
+    const currentTierConfig = tierLimits[user.tier as keyof typeof tierLimits] || tierLimits.free;
+    const recommendedTier = this.getRecommendedTier(user.violations_count_this_month);
+
+    // Get total media storage used this month
+    const storageResult = await (require('../services/database.service')).databaseService.query(
+      \`SELECT 
+        SUM(e.file_size_bytes) / (1024*1024) as total_size_mb,
+        COUNT(DISTINCT e.id) as media_count
+       FROM evidence e
+       JOIN violations v ON e.violation_id = v.id
+       WHERE v.case_id IN (SELECT id FROM cases WHERE lawyer_id = $1)
+       AND DATE_TRUNC('month', e.created_at) = DATE_TRUNC('month', NOW())\`,
+      [userId]
+    );
+
+    const storage = storageResult.rows[0];
+
+    res.json({
+      success: true,
+      data: {
+        user_id: userId,
+        current_tier: user.tier,
+        recommended_tier: recommendedTier,
+        violations_this_month: user.violations_count_this_month,
+        tier_limits: currentTierConfig,
+        usage: {
+          violations_remaining: currentTierConfig.max_violations_per_month
+            ? currentTierConfig.max_violations_per_month - user.violations_count_this_month
+            : 'Unlimited',
+          violations_percentage: currentTierConfig.max_violations_per_month
+            ? Math.round((user.violations_count_this_month / currentTierConfig.max_violations_per_month) * 100)
+            : 0,
+          storage_used_mb: storage.total_size_mb || 0,
+          media_uploads: storage.media_count || 0,
+          storage_remaining_mb: currentTierConfig.storage_per_month_mb
+            ? currentTierConfig.storage_per_month_mb - (storage.total_size_mb || 0)
+            : 'Unlimited',
+          storage_percentage: currentTierConfig.storage_per_month_mb
+            ? Math.round(((storage.total_size_mb || 0) / currentTierConfig.storage_per_month_mb) * 100)
+            : 0,
+        },
+        account: {
+          created_at: user.created_at,
+          days_active: Math.floor(
+            (Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24)
+          ),
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to get tier stats', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * Helper: Get recommended tier based on violation count
+ */
+function getRecommendedTier(violationCount: number): string {
+  if (violationCount >= 50) {
+    return 'enterprise';
+  } else if (violationCount > 20) {
+    return 'pro';
+  } else if (violationCount > 10) {
+    return 'individual';
+  }
+  return 'free';
+}
+
+export default router;

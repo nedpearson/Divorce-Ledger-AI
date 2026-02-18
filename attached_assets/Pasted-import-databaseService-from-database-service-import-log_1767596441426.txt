@@ -1,0 +1,409 @@
+import { databaseService } from './database.service';
+import { logger } from '../utils/logger';
+import * as fs from 'fs';
+import * as path from 'path';
+
+export interface MediaFile {
+  id: string;
+  violation_id: number;
+  case_id: number;
+  file_type: 'audio' | 'video' | 'image';
+  file_name: string;
+  file_size_bytes: number;
+  mime_type: string;
+  storage_url: string;
+  storage_path: string;
+  duration_seconds?: number;
+  transcript?: string;
+  transcript_confidence?: number;
+  processing_status: 'pending' | 'processing' | 'completed' | 'failed';
+  created_at: Date;
+}
+
+export interface ViolationMediaData {
+  audio_transcript?: string;
+  media_files: MediaFile[];
+  ai_classification?: string;
+  processing_metadata: {
+    total_duration?: number;
+    media_count: number;
+    transcription_confidence?: number;
+    key_phrases?: string[];
+  };
+}
+
+export class MediaService {
+  /**
+   * Handles voice/media uploads, transcription, and AI classification
+   */
+
+  async uploadMedia(
+    violationId: number,
+    caseId: number,
+    fileName: string,
+    fileType: 'audio' | 'video' | 'image',
+    fileSizeBytes: number,
+    mimeType: string,
+    storageUrl: string,
+    durationSeconds?: number
+  ): Promise<MediaFile> {
+    try {
+      // Validate file size based on user tier
+      const violation = await databaseService.query(
+        `SELECT v.*, c.lawyer_id FROM violations v
+         JOIN cases c ON v.case_id = c.id
+         WHERE v.id = $1`,
+        [violationId]
+      );
+
+      const user = await databaseService.query('SELECT tier FROM users WHERE id = $1', [
+        violation.rows[0]?.lawyer_id || 1,
+      ]);
+
+      const maxFileSize = this.getMaxFileSizeForTier(user.rows[0]?.tier || 'free');
+
+      if (fileSizeBytes > maxFileSize) {
+        throw new Error(
+          `File exceeds maximum size of ${maxFileSize / 1024 / 1024}MB for ${user.rows[0]?.tier || 'free'} tier`
+        );
+      }
+
+      // Insert media file record
+      const result = await databaseService.query(
+        `INSERT INTO evidence (
+          violation_id, case_id, file_type, file_name, file_size_bytes, 
+          mime_type, storage_url, storage_path, evidence_source, evidence_metadata
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'media_upload', $9)
+         RETURNING *`,
+        [
+          violationId,
+          caseId,
+          fileType,
+          fileName,
+          fileSizeBytes,
+          mimeType,
+          storageUrl,
+          `media/${caseId}/${violationId}/${fileName}`,
+          JSON.stringify({
+            file_type: fileType,
+            duration_seconds: durationSeconds,
+            upload_timestamp: new Date().toISOString(),
+          }),
+        ]
+      );
+
+      const mediaFile = result.rows[0];
+
+      // Queue for transcription if audio
+      if (fileType === 'audio' || fileType === 'video') {
+        await this.queueForTranscription(violationId, mediaFile.id, fileType);
+      }
+
+      logger.info(`✅ Media uploaded: ${fileName} (${fileType})`);
+      return mediaFile;
+    } catch (error) {
+      logger.error('Media upload failed', error);
+      throw error;
+    }
+  }
+
+  private getMaxFileSizeForTier(tier: string): number {
+    const sizes = {
+      free: 10 * 1024 * 1024, // 10MB
+      pro: 100 * 1024 * 1024, // 100MB
+      enterprise: 500 * 1024 * 1024, // 500MB
+    };
+    return sizes[tier as keyof typeof sizes] || sizes.free;
+  }
+
+  private async queueForTranscription(
+    violationId: number,
+    mediaFileId: string,
+    mediaType: string
+  ): Promise<void> {
+    try {
+      await databaseService.query(
+        `INSERT INTO processing_queue (
+          raw_document_id, job_type, status, priority
+        ) VALUES ($1, $2, 'pending', 3)`,
+        [violationId, `transcribe_${mediaType}`]
+      );
+
+      logger.info(`✅ Queued transcription for media ${mediaFileId}`);
+    } catch (error) {
+      logger.error('Failed to queue transcription', error);
+    }
+  }
+
+  async transcribeAudio(violationId: number, mediaFileId: string): Promise<string> {
+    try {
+      // Get media file details
+      const mediaResult = await databaseService.query(
+        `SELECT * FROM evidence WHERE id = $1 AND violation_id = $2`,
+        [mediaFileId, violationId]
+      );
+
+      if (mediaResult.rows.length === 0) {
+        throw new Error('Media file not found');
+      }
+
+      const media = mediaResult.rows[0];
+
+      // Simulate transcription (in production: integrate Deepgram, AssemblyAI, AWS Transcribe)
+      const transcript = await this.simulateTranscription(media.storage_url);
+
+      // Update violation with transcript
+      await databaseService.query(
+        `UPDATE violations 
+         SET audio_transcript = $1,
+             updated_at = NOW()
+         WHERE id = $2`,
+        [transcript, violationId]
+      );
+
+      // Update media file processing status
+      await databaseService.query(
+        `UPDATE evidence 
+         SET evidence_metadata = jsonb_set(
+           COALESCE(evidence_metadata, '{}'::jsonb),
+           '{transcript}',
+           $1::jsonb
+         ),
+         updated_at = NOW()
+         WHERE id = $2`,
+        [JSON.stringify(transcript), mediaFileId]
+      );
+
+      logger.info(`✅ Audio transcribed for violation ${violationId}`);
+      return transcript;
+    } catch (error) {
+      logger.error('Transcription failed', error);
+      throw error;
+    }
+  }
+
+  private async simulateTranscription(audioUrl: string): Promise<string> {
+    // Simulated transcription - replace with actual API call
+    return `[TRANSCRIBED AUDIO from ${audioUrl}]
+    
+    "You need to listen to me... I told you not to take the kids without my permission. 
+    This is the third time this week. I'm getting really frustrated with this situation. 
+    You can't just keep ignoring what we agreed to. This is affecting the children and it needs to stop."
+    
+    [Timestamp: 00:15 - Tone: Elevated, Frustrated]
+    [Timestamp: 00:45 - Keywords: Permission, Agreement, Children, Frustrated]`;
+  }
+
+  async classifyViolationFromMedia(violationId: number): Promise<any> {
+    try {
+      // Get violation with transcript
+      const violationResult = await databaseService.query(
+        `SELECT id, audio_transcript, description FROM violations WHERE id = $1`,
+        [violationId]
+      );
+
+      const violation = violationResult.rows[0];
+      if (!violation.audio_transcript) {
+        throw new Error('No transcript available for classification');
+      }
+
+      // AI Classification of transcript
+      const classification = this.analyzeTranscriptForViolations(violation.audio_transcript);
+
+      // Update violation with AI classification
+      await databaseService.query(
+        `UPDATE violations 
+         SET ai_classification = $1,
+             ai_classification = $2,
+             updated_at = NOW()
+         WHERE id = $3`,
+        [classification.type, JSON.stringify(classification), violationId]
+      );
+
+      logger.info(`✅ Violation classified: ${classification.type} (Confidence: ${classification.confidence})`);
+      return classification;
+    } catch (error) {
+      logger.error('Classification failed', error);
+      throw error;
+    }
+  }
+
+  private analyzeTranscriptForViolations(transcript: string): any {
+    // Simplified analysis - in production use NLP/ML model
+    const lowerTranscript = transcript.toLowerCase();
+
+    const patterns = {
+      harassment: {
+        keywords: [
+          'constant',
+          'repeated',
+          'won\'t stop',
+          'every day',
+          'always',
+          'can\'t handle',
+          'fed up',
+        ],
+        threshold: 0.6,
+      },
+      control: {
+        keywords: ['need to listen', 'have to', 'must', 'i control', 'you can\'t', 'permission'],
+        threshold: 0.5,
+      },
+      threats: {
+        keywords: [
+          'going to',
+          'you\'ll regret',
+          'i\'ll make you',
+          'you\'ll see',
+          'i\'m warning you',
+        ],
+        threshold: 0.7,
+      },
+      verbal_abuse: {
+        keywords: ['stupid', 'idiot', 'crazy', 'useless', 'pathetic', 'loser', 'worthless'],
+        threshold: 0.5,
+      },
+    };
+
+    const scores: any = {};
+
+    for (const [type, pattern] of Object.entries(patterns)) {
+      const matches = (pattern as any).keywords.filter((keyword: string) =>
+        lowerTranscript.includes(keyword)
+      );
+      const matchRate = matches.length / (pattern as any).keywords.length;
+
+      if (matchRate >= (pattern as any).threshold) {
+        scores[type] = matchRate;
+      }
+    }
+
+    // Determine primary violation type
+    const primaryType = Object.keys(scores).length > 0 ? Object.keys(scores)[0] : 'unclassified';
+    const confidenceScore = scores[primaryType] || 0;
+
+    return {
+      type: primaryType,
+      confidence: Math.round(confidenceScore * 100) / 100,
+      detected_patterns: Object.keys(scores),
+      severity: this.calculateSeverityFromClassification(primaryType, confidenceScore),
+      flagged_keywords: Object.entries(scores).map(([type, score]) => ({
+        type,
+        score,
+      })),
+      recommendation:
+        confidenceScore > 0.7 ? 'Flag for lawyer review' : 'Monitor for escalation',
+    };
+  }
+
+  private calculateSeverityFromClassification(type: string, confidence: number): number {
+    const baseSeverity = {
+      harassment: 60,
+      control: 55,
+      threats: 85,
+      verbal_abuse: 65,
+      unclassified: 30,
+    };
+
+    const base = baseSeverity[type as keyof typeof baseSeverity] || 30;
+    return Math.round(base * confidence);
+  }
+
+  async getMediaForViolation(violationId: number): Promise<ViolationMediaData> {
+    try {
+      const result = await databaseService.query(
+        `SELECT 
+          v.id,
+          v.audio_transcript,
+          v.ai_classification,
+          json_agg(json_build_object(
+            'id', e.id,
+            'file_type', e.file_type,
+            'file_name', e.file_name,
+            'file_size_bytes', e.file_size_bytes,
+            'mime_type', e.mime_type,
+            'storage_url', e.storage_url,
+            'duration_seconds', (e.evidence_metadata->'duration_seconds')::int,
+            'processing_status', COALESCE(e.evidence_metadata->>'processing_status', 'completed')
+          )) as media_files
+         FROM violations v
+         LEFT JOIN evidence e ON v.id = e.violation_id 
+           AND e.evidence_source = 'media_upload'
+         WHERE v.id = $1
+         GROUP BY v.id, v.audio_transcript, v.ai_classification`,
+        [violationId]
+      );
+
+      if (result.rows.length === 0) {
+        throw new Error(`Violation ${violationId} not found`);
+      }
+
+      const row = result.rows[0];
+
+      return {
+        audio_transcript: row.audio_transcript,
+        media_files: row.media_files ? row.media_files.filter((f: any) => f.id) : [],
+        ai_classification: row.ai_classification,
+        processing_metadata: {
+          media_count: row.media_files ? row.media_files.length : 0,
+        },
+      };
+    } catch (error) {
+      logger.error('Failed to get media for violation', error);
+      throw error;
+    }
+  }
+
+  async getViolationsThisMonth(caseId: number): Promise<number> {
+    try {
+      const result = await databaseService.query(
+        `SELECT COUNT(*) as count FROM violations 
+         WHERE case_id = $1 
+         AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', NOW())`,
+        [caseId]
+      );
+
+      return result.rows[0].count;
+    } catch (error) {
+      logger.error('Failed to get monthly violation count', error);
+      throw error;
+    }
+  }
+
+  async updateUserTierMetrics(userId: number): Promise<void> {
+    try {
+      const caseIds = await databaseService.query(
+        `SELECT DISTINCT case_id FROM cases WHERE lawyer_id = $1`,
+        [userId]
+      );
+
+      let totalViolations = 0;
+
+      for (const caseRow of caseIds.rows) {
+        const count = await this.getViolationsThisMonth(caseRow.case_id);
+        totalViolations += count;
+      }
+
+      // Check tier upgrade eligibility
+      let newTier = 'free';
+      if (totalViolations > 50) {
+        newTier = 'enterprise';
+      } else if (totalViolations > 20) {
+        newTier = 'pro';
+      }
+
+      await databaseService.query(
+        `UPDATE users 
+         SET tier = $1, violations_count_this_month = $2, updated_at = NOW()
+         WHERE id = $3`,
+        [newTier, totalViolations, userId]
+      );
+
+      logger.info(`✅ User tier updated: ${newTier} (${totalViolations} violations)`);
+    } catch (error) {
+      logger.error('Failed to update user tier', error);
+    }
+  }
+}
+
+export const mediaService = new MediaService();

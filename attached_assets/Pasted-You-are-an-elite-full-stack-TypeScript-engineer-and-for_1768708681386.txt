@@ -1,0 +1,224 @@
+You are an elite full-stack TypeScript engineer and forensic data architect working on a production SaaS called “Divorce Ledger AI” hosted on Replit.
+
+CONTEXT / CURRENT BUG
+- The app already allows uploading PDFs/photos of financial documents (bills, statements, receipts, etc.).
+- Documents show up correctly under “Docs”.
+- Some documents are analyzed by an LLM and have parsed JSON attached somewhere.
+- BUT the “Finances → Expenses” tab always shows TOTAL EXPENSES = $0/mo, even when a document clearly has an amount due.
+- There is at least one document called “Atmos-January” that is uploaded and (supposedly) analyzed, but Finances still shows $0.
+
+YOUR PRIMARY GOAL
+Fix the entire ingestion → analysis → finances path so that:
+1) Uploading a valid expense document automatically creates expense rows in the database, and
+2) The Finances tab immediately reflects those rows (non-zero totals),
+3) The pipeline is robust, auditable, extensible, and easy to debug going forward.
+
+STACK & CONSTRAINTS
+- Language: TypeScript/JavaScript.
+- Backend: Node/Express or Next.js API routes (whatever is already in this repo).
+- DB layer: Use the existing ORM (likely Drizzle or Prisma). DO NOT introduce a new ORM.
+- Deployment: Replit deployment environment. Respect how env vars and secrets are currently handled.
+- LLM: Continue to use whatever provider is already wired (OpenAI / Anthropic / etc.), but refactor through a clean `llmClient` abstraction so the provider can be swapped.
+
+HIGH-LEVEL PIPELINE YOU MUST IMPLEMENT / REPAIR
+
+Design and wire a clear, testable pipeline:
+
+1. Upload & Storage
+   - File upload endpoint saves the file (PDF/JPG/PNG) and writes a `documents` row with:
+     - id, user_id (and/or case_id), original filename, upload timestamp.
+     - `analysis_status` with values like: 'pending' | 'success' | 'error' | 'no_data'.
+   - Ensure any existing upload logic is preserved, only cleaned up if necessary.
+
+2. OCR + Text Extraction
+   - For PDFs: extract the text layer; fall back to OCR if no text.
+   - For images: run OCR.
+   - Store extracted text and optional layout hints (page, x, y, text) in a suitable column or auxiliary table.
+   - This step should be a separate module (e.g. `extractTextFromDocument(documentId)`).
+
+3. Canonical Document Types (classification)
+   - Implement (or fix) a classifier that maps each document to one of a SMALL, FIXED enum of canonical types:
+
+     UTILITY_BILL
+     BANK_STATEMENT
+     CREDIT_CARD_STATEMENT
+     MORTGAGE_STATEMENT
+     LOAN_STATEMENT
+     PAY_STUB
+     GENERIC_FINANCIAL_EXPENSE
+     GENERIC_FINANCIAL_INCOME
+     PROPERTY_TAX
+     INSURANCE_POLICY
+     NON_FINANCIAL
+
+   - Use filename + extracted text to classify.
+   - Persist `doc_type` and `classification_confidence` to `documents`.
+   - This classifier can call the LLM, but its output MUST be normalized to the enum above.
+
+4. LLM Parsing Service (`parseDocument.ts`)
+   - Create a dedicated service (e.g. `src/services/parseDocument.ts`) with a function like:
+
+       async function analyzeAndPersist(documentId: string): Promise<void>
+
+   - It should:
+     a) Load the document, its extracted text, and doc_type.
+     b) Call `llmClient.parseFinancialDoc(...)` with a strict prompt that returns JSON only.
+     c) Validate the JSON against a TypeScript/Zod schema named `ExpenseDocument`:
+
+        type ExpenseDocument = {
+          parse_status: 'success' | 'no_data' | 'layout_not_supported' | 'low_confidence';
+          language: 'en' | 'es' | 'other';
+          doc_type: (the same enum as above);
+          vendor_name: string | null;
+          billing_period_start: string | null; // YYYY-MM-DD
+          billing_period_end: string | null;
+          statement_date: string | null;
+          due_date: string | null;
+          currency: string;                   // "USD" by default
+          total_amount_due: number | null;
+          total_amount_text: string | null;
+          line_items: {
+            label: string;
+            category_hint: string | null;
+            amount: number;
+            amount_text: string;             // original string with commas/symbols
+            is_credit_or_refund: boolean;
+            is_recurring_guess: boolean;
+            page_number: number | null;
+            surrounding_text_snippet: string | null;
+          }[];
+          notes: string[];
+        };
+
+     d) Persist:
+        - `analysis_status = parse_status`
+        - `parsed_json = ExpenseDocument` (or similar JSON column) on the `documents` row.
+     e) If JSON validation fails, set `analysis_status = 'error'`, log the error, and DO NOT crash.
+
+   - VERY IMPORTANT: The LLM prompt must be conservative:
+     - Never hallucinate numbers or dates.
+     - If something is ambiguous, set it to null and note it.
+     - Always return valid JSON matching the schema.
+
+5. Expense/Income/Asset/Debt Tables & Writer
+   - Inspect the existing DB schema.
+   - If there is already an `expenses` table:
+     - Confirm it has at least: id, user_id (and/or case_id), document_id, vendor_name, amount, currency, billing_period_start, billing_period_end, is_recurring, source_description, raw_text, created_at, updated_at.
+     - If any critical field is missing, create a migration to add it in a backwards-compatible way.
+   - If there is NO `expenses` table, create one via migration and wire it into the ORM.
+
+   - THEN implement the missing crucial step:
+     From within `analyzeAndPersist(documentId)`:
+
+     - If `parse_status === 'success'` and `total_amount_due` is non-null:
+       - Create or upsert a main expense row representing the total amount due.
+     - Also, loop over `line_items` and create additional expense rows for each, with:
+       - `source_description = label`
+       - `raw_text = amount_text`
+       - `is_recurring = is_recurring_guess`
+       - `document_id` linking back for audit.
+     - This insertion must be **idempotent**:
+       - Either delete existing expense rows for that document and re-insert,
+       - Or use an upsert strategy keyed by `(document_id, line_item_index)`.
+
+     - This is the step that was previously missing and is why Finances shows $0/mo. Fix it.
+
+6. Finances Aggregation Logic
+   - Find the existing code that powers the “Finances → Expenses” view.
+   - Ensure it computes totals by querying the `expenses` table, scoped by user_id (and case_id if applicable).
+   - Typical query should be something like:
+
+       SELECT SUM(amount) FROM expenses WHERE user_id = ? AND deleted_at IS NULL;
+
+   - If the current implementation is instead reading totals directly from `documents.parsed_json` or some other place, refactor it to use the `expenses` table as the single source of truth.
+   - Make sure the endpoint or resolver used by the front-end is returning non-zero totals once expense rows exist.
+
+7. Bilingual & Currency-safe Parsing
+   - Make the LLM parsing prompt:
+     - Respect document language (English/Spanish) for extracted text.
+     - ALWAYS output JSON with English field names.
+     - Correctly normalize numbers from both US and Spanish/European formats:
+       - "1.234,56" → 1234.56
+       - "$1,234.56" → 1234.56
+   - Store:
+     - `amount` as a plain numeric value.
+     - `amount_text` as the original string, for audit.
+
+8. Auditability
+   - Every expense row must be traceable back to:
+     - `document_id`
+     - optional `page_number`
+     - `source_description`
+     - `raw_text`
+   - This will later allow the UI to show “click expense → jump to document snippet”; design the schema and writer with this in mind.
+
+9. Error Handling & Observability
+   - Implement a centralized `llmClient` wrapper:
+     - Configurable model name from env.
+     - Retry with exponential backoff on transient errors.
+     - Timeout for slow responses.
+     - Structured errors.
+   - Log, for each analysis:
+     - documentId, doc_type, parse_status, token usage, latency.
+   - Add an admin/debug endpoint (or simple log viewer) that returns the N most recent analysis errors.
+
+10. Tests & Fixtures
+    - Create fixture text files (e.g., in `tests/fixtures/`) representing:
+      - A utility bill.
+      - A simple credit card statement.
+      - A receipt.
+    - Implement tests for:
+      - JSON validation layer (Zod schema).
+      - Expense writer: given a fixed `ExpenseDocument`, the correct rows are created in `expenses`.
+      - Idempotency: re-running analysis for the same document does not double-count totals.
+    - Where direct LLM calls are impractical in tests, mock the llmClient.
+
+11. Verifying the FIX (very important)
+    - After implementation:
+      1) Start the app locally.
+      2) Upload a simple test PDF with a clear “Total Due: $123.45”.
+      3) Confirm:
+         - A `documents` row is created with `analysis_status = 'success'`.
+         - At least one row exists in `expenses` for that document with amount 123.45.
+         - The Finances → Expenses tab shows a non-zero total, including this amount.
+      4) Repeat with another document and verify that the totals update appropriately and are not double-counted.
+
+CODING STYLE & PROCESS
+- Do NOT introduce new frameworks or large architectural overhauls. Work with the existing stack and patterns, but refactor messy pieces as needed.
+- Keep modules small and focused:
+  - `services/extractText.ts`
+  - `services/parseDocument.ts`
+  - `services/financesAggregator.ts`
+  - `services/llmClient.ts`
+- When editing large files, apply incremental, well-scoped changes.
+- Prefer explicit types and schemas for all model I/O, especially for anything produced by the LLM.
+- After changes, ensure the project builds and any existing tests still pass.
+
+DELIVERABLES
+By the time you are done, the repository must include:
+
+1) A working `analyzeAndPersist(documentId)` pipeline that:
+   - Extracts text,
+   - Classifies the doc,
+   - Calls the LLM,
+   - Validates JSON,
+   - Updates the document row,
+   - CREATES/UPDATES expense records in the `expenses` table.
+
+2) A Finances backend that:
+   - Reads totals from `expenses`,
+   - Returns correct non-zero values for the authenticated user.
+
+3) Migrations and schema updates for any new fields/tables.
+
+4) A small README section or code comments summarizing:
+   - The pipeline stages,
+   - How to add new document types,
+   - How to debug when a document shows “Unable to analyze – please review manually”,
+   - How to verify that the Finances tab is wired correctly.
+
+Begin by scanning the repo to locate:
+- Document upload & storage code,
+- Any existing “analyze” or “parse” logic,
+- The Finances endpoint(s) and DB schema,
+then plan and execute the changes described above.

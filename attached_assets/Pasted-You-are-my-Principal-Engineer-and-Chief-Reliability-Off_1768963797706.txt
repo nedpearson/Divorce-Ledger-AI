@@ -1,0 +1,339 @@
+You are my Principal Engineer and Chief Reliability Officer for my Divorce / Forensic Financial Evidence App. You have FULL access to this entire Replit project.
+
+This codebase powers my divorce-legal forensic system, including:
+- Evidence and document ingestion (PDFs, images, statements, receipts, etc.).
+- Financial transaction intake and categorization (expenses, income, assets, liabilities).
+- Custody / incident / violation logging.
+- Attorney-ready dashboards, reports, and export flows.
+- Demo vs Live environments.
+
+VERY IMPORTANT ARCHITECTURE DECISION
+====================================
+
+You MUST keep Express as the primary backend API and orchestration layer. Do NOT remove Express and do NOT remove any `/api/...` routes.
+
+Express is responsible for:
+- auth/session:
+  - `/api/auth/session`
+  - `/api/admin/security/users/:userId/revoke-sessions`
+- subscription tiers and quotas:
+  - `/api/subscription`
+- divorce dashboard data:
+  - `/api/violations`
+  - `/api/debug/finances`
+  - `/api/appwrite/files`
+- version + feature flags sent to the frontend:
+  - `/api/version`
+- demo vs live mode behavior, environment flags, and any security guards.
+
+Appwrite is the backing infrastructure for:
+- file storage,
+- AI/OCR/analysis of documents,
+- document categorization results.
+
+My goal is:
+
+1. KEEP Express as the stable API + business logic layer.
+2. Use Appwrite as the single source of truth for:
+   - document storage,
+   - AI / OCR / analysis,
+   - document categorization (expenses, income, legal categories, violations, etc.).
+3. Make the entire app healthy and reliable end-to-end:
+   - no build failures,
+   - no recurring runtime errors,
+   - no broken document analysis/categorization flows.
+
+Do NOT just “fix one line.” Treat this as a FULL diagnostic and repair session for the whole divorce app.
+
+==================================================
+1. PROJECT DISCOVERY & HEALTH BASELINE
+==================================================
+
+1) Determine the stack and entry points:
+   - Identify the front-end framework (React, Vite, Next, etc.).
+   - Identify the Node/Express backend and where the Appwrite client is integrated.
+   - Locate:
+     - Main frontend entry files (`index.tsx`, `App.tsx`, `main.tsx`, etc.).
+     - Backend entry files (`server.ts`, `index.ts`, etc.).
+     - Main routing / dashboard files for:
+       - Divorce dashboard (main landing),
+       - Evidence/document upload,
+       - Financial dashboards,
+       - Custody/violation logs,
+       - Attorney/export views.
+
+2) Inspect `package.json`:
+   - List what scripts exist: `dev`, `start`, `build`, `test`, `lint`, `typecheck`, etc.
+   - Identify tooling: TypeScript, ESLint, Prettier, Jest, Vitest, etc.
+
+3) Run the available health commands and FIX all real problems:
+   - `npm run build` – fix all build errors until it succeeds.
+   - `npm run lint` (if available) – fix critical lint problems that indicate real bugs.
+   - `npm run typecheck` or `tsc --noEmit` (if TypeScript) – fix type errors that map to real runtime issues.
+   - `npm test` (if present) – ensure tests run without crashing (ideally all pass).
+
+Constraints:
+   - Do NOT delete scripts or disable tools just to make commands “green”.
+   - Fix the actual broken code instead.
+
+==================================================
+2. RUNTIME DIAGNOSTICS & LOG TRIAGE
+==================================================
+
+1) Start the dev server and run the divorce app like a real user:
+   - Load the main dashboard.
+   - Login/auth flow (including demo mode).
+   - Evidence/document upload flows:
+     - PDFs, images, statements, receipts, etc.
+   - Financial/forensic flows:
+     - Transaction ingestion,
+     - Categorization into expenses/income/assets/liabilities.
+   - Custody / incident / violation logging flows.
+   - Attorney-focused flows:
+     - reports, exports, drill-down views.
+   - Create / update / delete actions for:
+     - evidence/documents,
+     - transactions,
+     - incidents/violations,
+     - notes.
+
+2) While exercising these flows, watch:
+   - Browser console for red errors or warnings.
+   - Replit/Node server logs for:
+     - uncaught exceptions,
+     - unhandled promise rejections,
+     - Appwrite-related errors,
+     - broken `/api/...` endpoints.
+
+3) For EACH unique runtime error or warning:
+   - Capture its message and stack trace.
+   - Treat it as a distinct issue.
+   - Fix the ROOT CAUSE (not just suppress the message).
+
+==================================================
+3. STATIC CODE SCAN FOR BUG HOTSPOTS
+==================================================
+
+Search the entire codebase for common bug indicators, especially in:
+- evidence/document ingestion,
+- financial calculation and categorization,
+- custody/incident logging,
+- appwrite integration layers.
+
+Scan for:
+   - `TODO`, `FIXME`, `HACK`, `XXX`.
+   - `@ts-ignore`, `eslint-disable`, `any`, `any[]` in critical logic.
+   - Empty `catch` blocks or `catch (e) {}` with no logging or handling.
+   - `console.error` messages that clearly indicate something broken but not fixed.
+
+Check React patterns that may cause infinite loops:
+   - `useEffect` with missing dependency arrays calling `setState`, navigation, or data fetches on every render.
+   - `useEffect` whose dependencies are updated by the effect in a loop.
+   - `setState` or navigation calls directly inside render.
+
+Async issues:
+   - Missing `await` for obvious Promises, especially:
+     - Appwrite calls (file storage, DB, functions),
+     - HTTP calls to `/api/...`.
+   - Functions declared `async` but never awaited by callers.
+
+Appwrite and API usage:
+   - Verify required parameters are passed correctly (bucket IDs, collection IDs, etc.).
+   - Ensure correct typing of responses to avoid runtime field access errors.
+
+For each problematic pattern, fix it in a clean, minimal, maintainable way.
+
+==================================================
+4. EXPRESS + APPWRITE DIVISION OF LABOR
+==================================================
+
+VERY IMPORTANT: Do NOT remove Express. Do NOT remove `/api/...` routes.
+
+1) Identify all backend code that handles:
+   - Document upload,
+   - Document analysis,
+   - Document categorization,
+   - Any `[Appwrite Analysis]` logs or queue processors,
+   - `/api/appwrite/files` and any similar routes.
+
+2) Refactor these flows so that:
+   - ALL heavy analysis and categorization work is done by Appwrite:
+     - Appwrite functions,
+     - Appwrite queues,
+     - Appwrite collections.
+   - Express is responsible ONLY for:
+     - validating inputs (file types, sizes, required fields),
+     - mapping requests to the correct Appwrite operations,
+     - writing/reading relevant metadata (case ID, user ID, environment, tier),
+     - returning a clean JSON response,
+     - handling and logging errors.
+
+3) Remove or disable any OLD, conflicting analysis logic that:
+   - tries to process documents fully inside Node/Express,
+   - duplicates what Appwrite is now doing,
+   - or is a known source of failures.
+
+4) Keep the following working and stable:
+   - `[express] serving on port 5000`,
+   - `/api/version` response including feature flags (AI Document Analysis, Batch Re-analysis, Smart Categorization, etc.),
+   - `/api/auth/session` behavior:
+     - 401 when not logged in (normal),
+     - 200 with user and `environment` when logged in,
+   - `/api/subscription` tier logic (free/individual/pro/team/enterprise),
+   - `/api/violations` fetching and persistence,
+   - `/api/appwrite/files` returning Appwrite-backed file lists for the current user/environment.
+
+5) PostCSS warning:
+   - “A PostCSS plugin did not pass the `from` option to `postcss.parse`”
+   - If possible, fix configuration so that the plugin receives a proper `from` option.
+   - Do NOT remove major plugins or CSS tooling just to silence this warning if they are needed for the UI.
+
+==================================================
+5. PRIORITIZED FIXING STRATEGY
+==================================================
+
+Fix issues in this order:
+
+1) Hard crashes and build failures:
+   - Anything preventing `npm run build` or the dev server from starting.
+   - Any uncaught exceptions thrown in critical flows.
+
+2) Infinite loops and runaway rendering:
+   - React “Too many re-renders” errors.
+   - Route guards that bounce between routes.
+   - Effects that refire endlessly.
+
+3) Data-flow and API errors:
+   - Incorrect Appwrite calls,
+   - Incorrect /api route parameter handling,
+   - Mis-typed responses that cause runtime crashes,
+   - Unhandled promise rejections and missing `await`s in:
+     - evidence/document upload,
+     - transaction ingestion,
+     - incident logging,
+     - report/export generation.
+
+4) Critical UI/UX breakage:
+   - Components failing to render because of errors.
+   - Key flows (upload/delete/save) that silently fail (especially documents and violations).
+
+5) Obviously dead or dangerous code:
+   - Old, obviously wrong functions that are never called.
+   - Commented-out hacks that should be replaced or removed.
+
+==================================================
+6. HOW TO FIX – RULES & CONSTRAINTS
+==================================================
+
+- Do NOT silently swallow real errors.
+  - If an error is expected (e.g., file too large, unsupported format, exceeded quotas), handle it explicitly and return a clear error to the frontend.
+  - Log unexpected errors on the server with enough context (endpoint, user/case ID if available).
+
+- Do NOT turn off tools to hide errors:
+  - Do NOT globally `eslint-disable` whole files, except as an absolute last resort with a clear comment.
+  - Do NOT spam `@ts-ignore` to bypass type errors instead of fixing them.
+
+- Keep changes localized and minimal:
+  - Fix the smallest unit possible (function, component, module) that resolves the issue.
+  - Only perform larger refactors when absolutely required for stability.
+
+- Maintain existing correct business behavior:
+  - Do NOT change legal/financial semantics or business rules unless they are clearly wrong or causing a bug.
+
+==================================================
+7. ADD BASIC SAFETY GUARDS
+==================================================
+
+Backend (Express + Appwrite):
+   - Ensure all main `/api/...` routes:
+     - validate inputs,
+     - wrap external calls (Appwrite, other services) in `try/catch`,
+     - respond with appropriate HTTP 4xx/5xx and a clear JSON error message.
+   - Log errors in a consistent format, including:
+     - route/operation name,
+     - user/case/environment when available,
+     - timestamp,
+     - error message and stack.
+
+Frontend (React):
+   - Wrap major async actions in `try/catch`, especially:
+     - Uploading evidence/documents,
+     - Triggering analysis or re-analysis,
+     - Creating/updating/deleting violations and incidents,
+     - Any export/report generation.
+   - Provide proper loading and error states:
+     - Show loaders while awaiting results,
+     - Show clear toasts/modals for errors (not silent failures).
+   - Ensure no unhandled promise rejections from fetch/axios/Appwrite calls.
+
+Prevent obvious infinite loops:
+   - Fix `useEffect` dependencies and feedback loops.
+   - Make sure route guards converge on a stable route.
+   - Avoid updating state in render paths.
+
+==================================================
+8. VERIFY & REGRESSION CHECK
+==================================================
+
+After implementing fixes:
+
+1) Re-run:
+   - `npm run build`
+   - `npm run lint` (if available)
+   - `npm run typecheck` or `tsc --noEmit` (if available)
+   - `npm test` (if available)
+
+Requirements:
+   - Build and typecheck MUST succeed.
+   - Lint/tests must not crash. Remaining minor style warnings are acceptable, but there must be no critical functional issues.
+
+2) Start the dev server again and run a smoke test:
+   - Load the main divorce dashboard.
+   - Perform:
+     - login/auth (demo + live where applicable),
+     - evidence/document upload and analysis via Appwrite,
+     - viewing categorized documents (expenses, income, etc.),
+     - transaction views,
+     - incident/violation create/list flows,
+     - any attorney/export/report flows.
+   - Watch both browser console and server logs:
+     - No red errors.
+     - No obvious infinite loops or blank critical pages.
+
+If deep architectural issues remain that cannot be realistically solved in this pass, leave clear TODO comments:
+   - what the issue is,
+   - why it is complex,
+   - what kind of refactor would be needed later.
+
+==================================================
+9. DOCUMENT WHAT YOU DID
+==================================================
+
+When you are finished, add a short internal summary (e.g., in a `CHANGELOG.md` or similar):
+
+   - List of files changed (with paths).
+   - Key root causes found (bullet points).
+   - Most important fixes applied (especially to Express/Appwrite integration).
+   - Any remaining TODOs that require business/legal decisions or large future refactors.
+
+==================================================
+10. RESOURCE / TOKEN USAGE
+==================================================
+
+- Be efficient and targeted:
+   - Use searches to find real hotspots instead of touching everything.
+   - Do NOT rewrite modules that are stable and unrelated.
+- Focus first on:
+   - Actual build/runtime errors,
+   - Then on structural problems that are very likely to cause future errors, especially around:
+     - Express routes,
+     - Appwrite integration,
+     - document analysis & categorization,
+     - demo vs live modes,
+     - auth and subscription enforcement.
+
+Your final state should be:
+- Express intact and serving on port 5000 as the main backend,
+- Appwrite as the single engine for document analysis and categorization,
+- The app building and running cleanly with no red errors in normal flows,
+- Divorce-specific features (evidence, finances, violations, attorney exports) working reliably end-to-end.

@@ -1,0 +1,353 @@
+// src/services/quickbooks/quickbooks.service.ts
+
+import axios, { AxiosInstance } from 'axios';
+import { Pool } from 'pg';
+
+export interface QuickBooksCredentials {
+  realm_id: string;
+  access_token: string;
+  refresh_token: string;
+  token_expires_at: string;
+}
+
+export interface ExpenseData {
+  id?: string;
+  account_id: string;
+  vendor_id: string;
+  amount: number;
+  currency_code: string;
+  txn_date: string;
+  doc_number: string;
+  description: string;
+  category?: string;
+  details?: Record<string, any>;
+}
+
+export class QuickBooksService {
+  private client: AxiosInstance;
+  private realmId: string;
+  private pool: Pool;
+  private credentials: QuickBooksCredentials | null = null;
+
+  constructor(pool: Pool) {
+    this.pool = pool;
+    this.realmId = process.env.QB_REALM_ID || '';
+
+    // Initialize axios with base URL
+    this.client = axios.create({
+      baseURL: `https://quickbooks.api.intuit.com/v2/company/${this.realmId}`,
+      timeout: 10000,
+    });
+
+    // Add interceptor for authorization
+    this.client.interceptors.request.use((config) => {
+      if (this.credentials) {
+        config.headers.Authorization = `Bearer ${this.credentials.access_token}`;
+      }
+      return config;
+    });
+  }
+
+  async initialize(): Promise<void> {
+    console.log('🔧 Initializing QuickBooks service...');
+    
+    // Load credentials from database
+    await this.loadCredentials();
+
+    // Check token expiration and refresh if needed
+    if (this.credentials && this.isTokenExpired()) {
+      await this.refreshAccessToken();
+    }
+
+    console.log('✅ QuickBooks service ready');
+  }
+
+  private async loadCredentials(): Promise<void> {
+    try {
+      const result = await this.pool.query(
+        'SELECT * FROM quickbooks_credentials WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1',
+        [process.env.QB_ADMIN_USER_ID]
+      );
+
+      if (result.rows.length > 0) {
+        this.credentials = result.rows[0];
+      }
+    } catch (error) {
+      console.error('Failed to load QuickBooks credentials:', error);
+    }
+  }
+
+  private isTokenExpired(): boolean {
+    if (!this.credentials) return true;
+    return new Date(this.credentials.token_expires_at) < new Date();
+  }
+
+  async refreshAccessToken(): Promise<void> {
+    try {
+      if (!this.credentials) throw new Error('No credentials found');
+
+      const response = await axios.post('https://oauth.platform.intuit.com/oauth2/tokens/introspect', {
+        grant_type: 'refresh_token',
+        refresh_token: this.credentials.refresh_token,
+        client_id: process.env.QB_CLIENT_ID,
+        client_secret: process.env.QB_CLIENT_SECRET,
+      });
+
+      // Update credentials
+      this.credentials.access_token = response.data.access_token;
+      this.credentials.token_expires_at = new Date(
+        Date.now() + response.data.expires_in * 1000
+      ).toISOString();
+
+      // Save to database
+      await this.pool.query(
+        'UPDATE quickbooks_credentials SET access_token = $1, token_expires_at = $2 WHERE realm_id = $3',
+        [
+          this.credentials.access_token,
+          this.credentials.token_expires_at,
+          this.realmId,
+        ]
+      );
+
+      console.log('✅ QuickBooks token refreshed');
+    } catch (error) {
+      console.error('Failed to refresh QuickBooks token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create an expense in QuickBooks
+   * Maps billing records to QB expenses
+   */
+  async createExpense(expense: ExpenseData): Promise<string> {
+    try {
+      const qbExpense = {
+        txnDate: expense.txn_date,
+        line: [
+          {
+            amount: expense.amount,
+            description: expense.description,
+            detailType: 'ExpenseLineDetail',
+            expenseLineDetail: {
+              customerRef: {
+                value: expense.vendor_id,
+              },
+              accountRef: {
+                value: expense.account_id,
+              },
+              taxCodeRef: {
+                value: '1', // Non-taxable
+              },
+            },
+          },
+        ],
+        docNumber: expense.doc_number,
+        entityRef: {
+          value: expense.vendor_id,
+          name: 'Vendor',
+        },
+        paymentMethodRef: {
+          value: '3', // Check
+        },
+      };
+
+      const response = await this.client.post('/purchase', qbExpense);
+
+      console.log(`✅ Expense created in QB: ${response.data.id}`);
+      return response.data.id;
+    } catch (error) {
+      console.error('Failed to create QB expense:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create an invoice in QuickBooks
+   * Maps user billing records to QB invoices
+   */
+  async createInvoice(data: {
+    customer_id: string;
+    amount: number;
+    due_date: string;
+    description: string;
+    invoice_number: string;
+  }): Promise<string> {
+    try {
+      const qbInvoice = {
+        line: [
+          {
+            amount: data.amount,
+            description: data.description,
+            detailType: 'SalesItemLineDetail',
+            salesItemLineDetail: {
+              itemRef: {
+                value: process.env.QB_SERVICE_ITEM_ID || '1',
+              },
+              qty: 1,
+              unitPrice: data.amount,
+            },
+          },
+        ],
+        customerRef: {
+          value: data.customer_id,
+        },
+        invNumber: data.invoice_number,
+        dueDate: data.due_date,
+        currencyRef: {
+          value: 'USD',
+        },
+      };
+
+      const response = await this.client.post('/invoice', qbInvoice);
+
+      console.log(`✅ Invoice created in QB: ${response.data.id}`);
+      return response.data.id;
+    } catch (error) {
+      console.error('Failed to create QB invoice:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sync user data to QuickBooks as customers
+   */
+  async syncCustomer(user: {
+    id: string;
+    email: string;
+    name?: string;
+    tier: string;
+  }): Promise<string> {
+    try {
+      const customer = {
+        displayName: user.name || user.email,
+        emailAddr: {
+          address: user.email,
+        },
+        primaryEmailAddr: {
+          address: user.email,
+        },
+        notes: `Tier: ${user.tier} | ID: ${user.id}`,
+      };
+
+      const response = await this.client.post('/customer', customer);
+
+      // Save QB customer ID to user metadata
+      await this.pool.query(
+        'UPDATE users SET metadata = jsonb_set(metadata, \'{quickbooks_customer_id}\', to_jsonb($1)) WHERE id = $2',
+        [response.data.id, user.id]
+      );
+
+      console.log(`✅ Customer synced to QB: ${response.data.id}`);
+      return response.data.id;
+    } catch (error) {
+      console.error('Failed to sync QB customer:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get expense categories from QuickBooks
+   */
+  async getExpenseAccounts(): Promise<Array<{ id: string; name: string }>> {
+    try {
+      const query = "SELECT * FROM Account WHERE accountType = 'Expense'";
+      const response = await this.client.get('/query', {
+        params: { query },
+      });
+
+      return response.data.queryResponse[0].map((account: any) => ({
+        id: account.id,
+        name: account.name,
+      }));
+    } catch (error) {
+      console.error('Failed to fetch QB expense accounts:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Sync billing record to QuickBooks
+   */
+  async syncBillingRecord(billing: {
+    id: string;
+    user_id: string;
+    amount_cents: number;
+    period_start: string;
+    period_end: string;
+    status: string;
+  }): Promise<void> {
+    try {
+      if (billing.status !== 'charged') {
+        console.log(`Skipping QB sync for billing record ${billing.id} (status: ${billing.status})`);
+        return;
+      }
+
+      // Get user and QB customer ID
+      const userResult = await this.pool.query(
+        'SELECT * FROM users WHERE id = $1',
+        [billing.user_id]
+      );
+
+      if (userResult.rows.length === 0) {
+        throw new Error(`User not found: ${billing.user_id}`);
+      }
+
+      const user = userResult.rows[0];
+      let qbCustomerId = user.metadata?.quickbooks_customer_id;
+
+      // Sync user to QB if not already synced
+      if (!qbCustomerId) {
+        qbCustomerId = await this.syncCustomer(user);
+      }
+
+      // Create invoice in QB
+      const invoiceNumber = `INV-${billing.id.substring(0, 8)}`;
+      const qbId = await this.createInvoice({
+        customer_id: qbCustomerId,
+        amount: billing.amount_cents / 100,
+        due_date: billing.period_end,
+        description: `DivorceASE Platform - ${billing.period_start} to ${billing.period_end}`,
+        invoice_number: invoiceNumber,
+      });
+
+      // Store QB ID in billing metadata
+      await this.pool.query(
+        'UPDATE billing_records SET payment_data = jsonb_set(payment_data, \'{quickbooks_id}\', to_jsonb($1)) WHERE id = $2',
+        [qbId, billing.id]
+      );
+
+      console.log(`✅ Billing record ${billing.id} synced to QB as invoice ${qbId}`);
+    } catch (error) {
+      console.error(`Failed to sync billing record ${billing.id} to QB:`, error);
+    }
+  }
+
+  /**
+   * Batch sync recent billing records
+   */
+  async batchSyncBillingRecords(limit: number = 50): Promise<void> {
+    try {
+      const result = await this.pool.query(
+        `SELECT * FROM billing_records 
+         WHERE status = 'charged' 
+         AND payment_data->>'quickbooks_id' IS NULL 
+         ORDER BY created_at DESC 
+         LIMIT $1`,
+        [limit]
+      );
+
+      console.log(`📦 Syncing ${result.rows.length} billing records to QB...`);
+
+      for (const billing of result.rows) {
+        await this.syncBillingRecord(billing);
+        // Rate limit: 100 requests per minute
+        await new Promise((resolve) => setTimeout(resolve, 600));
+      }
+
+      console.log(`✅ Batch sync complete`);
+    } catch (error) {
+      console.error('Batch sync failed:', error);
+    }
+  }
+}

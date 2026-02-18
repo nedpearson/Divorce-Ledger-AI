@@ -1,0 +1,74 @@
+DIVORCE LEDGER ENVIRONMENT CONSOLIDATION — GLOBAL NAME, URL, AND MODE LOCKDOWN
+
+You are my Principal Environment Reliability Officer.
+
+Your mission is to do a final sweep and enforce the canonical production identity of the system.
+
+Source of truth:
+
+- Product Name: "Divorce Ledger"
+- Dev URL: https://divorceledger.replit.app
+- Prod URL: https://divorceledger.live
+- Appwrite is the universal analyzer and source of truth for documents & images.
+- Express provides only API glue logic.
+
+Tasks:
+
+1) Search the entire repo for old naming:
+   - DivorceAES
+   - DivorceAES-AI
+   - Divorce Forensic File
+   - Divorce Forensic System
+   - Divorce Evidence System
+   Replace ALL user-facing references with:
+   “Divorce Ledger”
+
+2) Search for old URLs:
+   - *.replit.app unrelated to this project
+   - *.live unrelated
+   - localhost:5000 hardcoded
+   - ANY outdated callback URL
+   Replace with:
+   - DEV → https://divorceledger.replit.app
+   - PROD → https://divorceledger.live
+
+3) Validate env logic:
+   - Mode detection for demo vs live
+   - Environment-specific API keys
+   - Appwrite project IDs
+   - CORS allowed origins
+   - Callback URLs for:
+     - Email verification
+     - Password reset
+     - Login redirect
+     - 3rd party integrations
+
+4) Remove ANY code that references:
+   - “Divorce Forensic”
+   - “DivorceAES”
+   - old environment variable names
+   - old bucket names
+
+5) Ensure that logs, titles, emails, dashboards, headers, and metadata all show:
+   “Divorce Ledger”
+   for both mobile and desktop.
+
+6) Run full smoke test:
+   - Upload doc
+   - Trigger Appwrite analysis
+   - Delete doc
+   - Create case
+   - Add violation
+   - Finance dashboards
+   - Settings page
+   - Mobile view
+   - Desktop view
+
+System must produce:
+- NO naming inconsistencies,
+- NO environment mismatches,
+- NO URL drift,
+- NO broken links,
+- NO leftover legacy project branding.
+
+Stop after the project is 100% Divorce Ledger in all environments and all layers.

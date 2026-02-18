@@ -1,0 +1,99 @@
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+Stripe development initialized successfully (validated)
+
+=== Startup Health Check ===
+[OK] Database: PostgreSQL connection successful
+[OK] Stripe: Initialized successfully in test mode (validated)
+============================
+
+Initializing Stripe schema...
+Stripe schema ready
+{ autoExpandLists: undefined, stripeApiVersion: undefined } StripeSync initialized
+Setting up managed webhook...
+Webhook setup returned without URL - may be already configured
+Syncing Stripe data...
+Stripe data synced
+Demo data already exists, skipping seed.
+✅ Health Check Routes Loaded
+   GET /api/health (quick)
+   GET /api/health/detailed (comprehensive)
+Analytics Routes Loaded
+   GET /api/analytics/platform-metrics
+   GET /api/analytics/cohorts
+   GET /api/analytics/usage-trends
+   GET /api/analytics/revenue
+   POST /api/admin/billing/process-monthly
+   POST /api/admin/quotas/reset-monthly
+   POST /api/admin/migrations/apply-pending
+QuickBooks Multi-Tenant Routes Loaded
+   GET /api/quickbooks/status
+   GET /api/quickbooks/auth-url
+   GET /api/quickbooks/callback
+   POST /api/quickbooks/disconnect
+✅ API Documentation Routes Loaded
+   GET /api/docs - Swagger UI
+   GET /api/docs/openapi.yaml - OpenAPI spec (YAML)
+   GET /api/docs/openapi.json - OpenAPI spec (JSON)
+   GET /api/docs/version - API version info
+✅ ETL Pipeline Routes Loaded
+   GET /api/etl/status
+   GET /api/etl/history
+   POST /api/etl/run/full
+Media & Analytics Routes Loaded:
+   POST /api/violations/:violationId/media
+   POST /api/violations/:violationId/transcript
+   POST /api/violations/:violationId/classify
+   GET  /api/violations/:violationId/media
+   GET  /api/users/violations-this-month
+   GET  /api/cases/:caseId/violations-count
+   POST /api/users/:userId/update-tier
+   GET  /api/users/:userId/tier-stats
+   GET  /api/users/:userId/usage-metrics
+   POST /api/users/:userId/check-upload
+   GET  /api/users/:userId/tier-recommendation
+   POST /api/users/:userId/log-usage
+   GET  /api/users/:userId/billing
+   GET  /api/users/:userId/billing/history
+   POST /api/users/:userId/billing/save
+   GET  /api/tier-pricing
+   POST /api/users/:userId/migrate-tier
+   GET  /api/users/:userId/migration
+   GET  /api/users/:userId/migration/history
+   POST /api/migrations/:migrationId/cancel
+   GET  /api/users/:userId/quota-status
+   POST /api/users/:userId/reset-quota
+   GET  /api/users/:userId/quota-history
+   POST /api/admin/reset-all-quotas
+   GET  /api/admin/analytics/platform
+   GET  /api/admin/analytics/tiers
+   GET  /api/admin/analytics/trends
+   GET  /api/admin/analytics/revenue
+   GET  /api/admin/analytics/top-users
+   GET  /api/admin/analytics/cohorts
+   POST /api/admin/billing/process-monthly
+Demo reset scheduler started - will run at midnight UTC daily
+[CRON] Starting scheduler...
+[CRON] Scheduled tasks:
+  - Reset Monthly Quotas: Day 1 at 00:05 UTC
+  - Process Monthly Billings: Day 1 at 00:10 UTC
+  - Apply Pending Tier Migrations: Day 1 at 00:15 UTC
+Dashboard Service starting...
+WebSocket server initialized
+Dashboard Service ready
+3:32:57 PM [express] serving on port 5000
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+3:33:02 PM [express] GET /api/subscription 304 in 9ms :: {"tier":"pro","tierInfo":{"name":"Pro","price":49,"maxCases":-1,"maxViolationsPerMonth":50,"pdfWatermark":false,"maxTeamMembers":1,"aiPatternDetection":true,"hiddenAssetDetection":false,"apiAccess":false,"customTemplates":false,"prioritySupport":false,"maxFileSizeMB":100,"maxStorageMB":2048,"maxVoiceTranscriptionsPerMonth":-1,"maxMediaUploadsPerMonth":-1,"maxVideoLengthSeconds":-1,"aiClassification":"advanced","screenshotOCR":true},"usage":{"casesCount":0,"violationsCountThisMonth":0,"remainingViolations":50,"remainingCases":null,"voiceTranscriptionsThisMonth":0,"mediaUploadsThisMonth":0,"remainingVoice":"unlimited","remainingMedia":"unlimited"},"subscription":{"status":"active","stripeCustomerId":null,"stripeSubscriptionId":null},"allTiers":{"free":{"name":"Free","price":0,"maxCases":1,"maxViolationsPerMonth":10,"pdfWatermark":true,"maxTeamMembers":1,"aiPatternDetection":false,"hiddenAssetDetection":false,"apiAccess":false,"customTemplates":false,"prioritySupport":false,"maxFileSizeMB":10,"maxStorageMB":100,"maxVoiceTranscriptionsPerMonth":10,"maxMediaUploadsPerMonth":5,"maxVideoLengthSeconds":30,"aiClassification":"manual","screenshotOCR":false},"individual":{"name":"Individual","price":12,"maxCases":1,"maxViolationsPerMonth":20,"pdfWatermark":false,"maxTeamMembers":1,"aiPatternDetection":false,"hiddenAssetDetection":false,"apiAccess":false,"customTemplates":false,"prioritySupport":false,"maxFileSizeMB":50,"maxStorageMB":500,"maxVoiceTranscriptionsPerMonth":100,"maxMediaUploadsPerMonth":50,"maxVideoLengthSeconds":120,"aiClassification":"basic","screenshotOCR":false},"pro":{"name":"Pro","price":49,"maxCases":-1,"maxViolationsPerMonth":50,"pdfWatermark":false,"maxTeamMembers":1,"aiPatternDetection":true,"hiddenAssetDetection":false,"apiAccess":false,"customTemplates":false,"prioritySupport":false,"maxFileSizeMB":100,"maxStorageMB":2048,"maxVoiceTranscriptionsPerMonth":-1,"maxMediaUploadsPerMonth":-1,"maxVideoLengthSeconds":-1,"aiClassification":"advanced","screenshotOCR":true},"team":{"name":"Team","price":149,"maxCases":-1,"maxViolationsPerMonth":-1,"pdfWatermark":false,"maxTeamMembers":5,"aiPatternDetection":true,"hiddenAssetDetection":false,"apiAccess":false,"customTemplates":false,"prioritySupport":true,"maxFileSizeMB":250,"maxStorageMB":10240,"maxVoiceTranscriptionsPerMonth":-1,"maxMediaUploadsPerMonth":-1,"maxVideoLengthSeconds":-1,"aiClassification":"advanced","screenshotOCR":true},"enterprise":{"name":"Enterprise","price":399,"maxCases":-1,"maxViolationsPerMonth":-1,"pdfWatermark":false,"maxTeamMembers":-1,"aiPatternDetection":true,"hiddenAssetDetection":true,"apiAccess":true,"customTemplates":true,"prioritySupport":true,"maxFileSizeMB":500,"maxStorageMB":-1,"maxVoiceTranscriptionsPerMonth":-1,"maxMediaUploadsPerMonth":-1,"maxVideoLengthSeconds":-1,"aiClassification":"custom","screenshotOCR":true}}}
+3:42:58 PM [express] GET /api/subscription 304 in 17ms :: {"tier":"pro","tierInfo":{"name":"Pro","price":49,"maxCases":-1,"maxViolationsPerMonth":50,"pdfWatermark":false,"maxTeamMembers":1,"aiPatternDetection":true,"hiddenAssetDetection":false,"apiAccess":false,"customTemplates":false,"prioritySupport":false,"maxFileSizeMB":100,"maxStorageMB":2048,"maxVoiceTranscriptionsPerMonth":-1,"maxMediaUploadsPerMonth":-1,"maxVideoLengthSeconds":-1,"aiClassification":"advanced","screenshotOCR":true},"usage":{"casesCount":0,"violationsCountThisMonth":0,"remainingViolations":50,"remainingCases":null,"voiceTranscriptionsThisMonth":0,"mediaUploadsThisMonth":0,"remainingVoice":"unlimited","remainingMedia":"unlimited"},"subscription":{"status":"active","stripeCustomerId":null,"stripeSubscriptionId":null},"allTiers":{"free":{"name":"Free","price":0,"maxCases":1,"maxViolationsPerMonth":10,"pdfWatermark":true,"maxTeamMembers":1,"aiPatternDetection":false,"hiddenAssetDetection":false,"apiAccess":false,"customTemplates":false,"prioritySupport":false,"maxFileSizeMB":10,"maxStorageMB":100,"maxVoiceTranscriptionsPerMonth":10,"maxMediaUploadsPerMonth":5,"maxVideoLengthSeconds":30,"aiClassification":"manual","screenshotOCR":false},"individual":{"name":"Individual","price":12,"maxCases":1,"maxViolationsPerMonth":20,"pdfWatermark":false,"maxTeamMembers":1,"aiPatternDetection":false,"hiddenAssetDetection":false,"apiAccess":false,"customTemplates":false,"prioritySupport":false,"maxFileSizeMB":50,"maxStorageMB":500,"maxVoiceTranscriptionsPerMonth":100,"maxMediaUploadsPerMonth":50,"maxVideoLengthSeconds":120,"aiClassification":"basic","screenshotOCR":false},"pro":{"name":"Pro","price":49,"maxCases":-1,"maxViolationsPerMonth":50,"pdfWatermark":false,"maxTeamMembers":1,"aiPatternDetection":true,"hiddenAssetDetection":false,"apiAccess":false,"customTemplates":false,"prioritySupport":false,"maxFileSizeMB":100,"maxStorageMB":2048,"maxVoiceTranscriptionsPerMonth":-1,"maxMediaUploadsPerMonth":-1,"maxVideoLengthSeconds":-1,"aiClassification":"advanced","screenshotOCR":true},"team":{"name":"Team","price":149,"maxCases":-1,"maxViolationsPerMonth":-1,"pdfWatermark":false,"maxTeamMembers":5,"aiPatternDetection":true,"hiddenAssetDetection":false,"apiAccess":false,"customTemplates":false,"prioritySupport":true,"maxFileSizeMB":250,"maxStorageMB":10240,"maxVoiceTranscriptionsPerMonth":-1,"maxMediaUploadsPerMonth":-1,"maxVideoLengthSeconds":-1,"aiClassification":"advanced","screenshotOCR":true},"enterprise":{"name":"Enterprise","price":399,"maxCases":-1,"maxViolationsPerMonth":-1,"pdfWatermark":false,"maxTeamMembers":-1,"aiPatternDetection":true,"hiddenAssetDetection":true,"apiAccess":true,"customTemplates":true,"prioritySupport":true,"maxFileSizeMB":500,"maxStorageMB":-1,"maxVoiceTranscriptionsPerMonth":-1,"maxMediaUploadsPerMonth":-1,"maxVideoLengthSeconds":-1,"aiClassification":"custom","screenshotOCR":true}}}
+ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false (default). This could indicate a misconfiguration which would prevent express-rate-limit from accurately identifying users. See https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/ for more information.
+    at Object.xForwardedForHeader (file:///home/runner/workspace/node_modules/express-rate-limit/dist/index.mjs:337:13)
+    at wrappedValidations.<computed> [as xForwardedForHeader] (file:///home/runner/workspace/node_modules/express-rate-limit/dist/index.mjs:651:22)
+    at Object.keyGenerator (file:///home/runner/workspace/node_modules/express-rate-limit/dist/index.mjs:754:20)
+    at file:///home/runner/workspace/node_modules/express-rate-limit/dist/index.mjs:815:32
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///home/runner/workspace/node_modules/express-rate-limit/dist/index.mjs:796:5 {
+  code: 'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR',
+  help: 'https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/'

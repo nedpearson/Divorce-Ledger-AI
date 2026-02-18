@@ -1,0 +1,623 @@
+You are my Principal Engineer and Chief Reliability Officer with FULL access to this entire Replit project.
+
+This project powers my divorce/legal evidence and forensic financial system, including:
+
+Evidence and document ingestion (PDFs, Word docs, bank/credit card statements, receipts, screenshots, photos, etc.).
+
+Financial transaction and forensic analysis (expenses, income, assets, liabilities, transfers).
+
+Custody/incident/violation logging.
+
+Attorney-ready dashboards, reports, and exports.
+
+The production frontend is served at: https://divorceledger.live/home.
+
+NON-NEGOTIABLE ARCHITECTURE
+
+DO NOT remove Express or any /api routes.
+
+From the current logs, you can see:
+
+[express] serving on port 5000
+
+[Appwrite] Client initialized successfully
+
+[Appwrite Analysis] Starting queue processor (interval: 15000ms)
+
+GET /api/version
+
+GET /api/auth/session
+
+GET /api/subscription
+
+GET /api/violations
+
+GET /api/appwrite/files
+
+POST /api/admin/security/users/:userId/revoke-sessions
+
+Express is the main API and orchestration layer and must stay. It is responsible for:
+
+Auth/session (/api/auth/session, /api/admin/security/users/:userId/revoke-sessions)
+
+Subscription tiers & quotas (/api/subscription for free/individual/pro/team/enterprise)
+
+Divorce dashboards & data (/api/violations, /api/debug/finances, /api/appwrite/files, etc.)
+
+Version & feature flags (/api/version – currently returning “AI Document Analysis”, “Batch Re-analysis”, “Smart Categorization”)
+
+Environment separation (demo vs live – e.g., demo user, environment: "demo")
+
+Appwrite must be the single global engine for ALL document and picture analysis & categorization.
+
+All documents (PDFs, Word docs, etc.) and pictures/screenshots/photos are analyzed and categorized by Appwrite, not by ad-hoc Node logic.
+
+This must work reliably for all clients:
+
+Desktop browser
+
+Mobile browser
+
+Installed/PWA versions of the app
+
+The front-end (React) always calls Express (/api/...); Express delegates analysis and categorization to Appwrite.
+
+Express remains the only API surface for the front-end.
+
+Express acts as:
+
+Input validator
+
+Orchestrator for Appwrite
+
+Environment gatekeeper (demo vs live)
+
+Business rules layer (tiers, quotas, case ownership, security, etc.)
+
+A) ONE-PASS, END-TO-END GLOBAL HEALTH FIX
+
+Treat this as a single, end-to-end diagnostic and repair session, not a one-line patch.
+
+Discover stack and entry points:
+
+Confirm front-end framework (React/Vite) and entry points (e.g., main.tsx, App.tsx, routing layout).
+
+Confirm backend stack (Node + Express) and where it’s started.
+
+Locate divorce-specific modules/views:
+
+Evidence / Documents
+
+Finance / Transactions
+
+Violations / Incidents
+
+Case dashboards
+
+Settings / Subscription / Admin pages
+
+Inspect package.json:
+
+Enumerate scripts: dev, start, build, lint, typecheck, test, etc.
+
+Note TypeScript/ESLint/Prettier/Jest/Vitest or other tooling.
+
+Run health commands and fix underlying issues (do NOT neuter tooling):
+
+npm run build → must succeed.
+
+npm run typecheck / tsc --noEmit (if present) → must succeed.
+
+npm run lint → fix all bug-indicating errors (no blanket eslint-disable / @ts-ignore).
+
+npm test (if present) → must at least run without crashing.
+
+Do not delete scripts or disable tools just to make them “green.”
+
+B) RUNTIME TRIAGE – KEY FLOWS (TARGETING https://divorceledger.live/home UX)
+
+Start the dev server and exercise these flows while watching:
+
+Browser console for red errors.
+
+Replit shell/server logs and stack traces.
+
+Network calls to /api/....
+
+Minimum flows:
+
+Landing/dashboard load (/home equivalent).
+
+Auth/session:
+
+Pre-login: /api/auth/session 401 with {"error":"No session"} is acceptable.
+
+After demo/login: /api/auth/session returns the logged-in user with environment set correctly, no errors.
+
+Document & picture upload:
+
+PDFs, Word docs, images (JPG/PNG/etc.) via the UI on both desktop-sized and mobile-sized viewports.
+
+Analysis and categorization:
+
+Status should go from uploaded → processing → complete (or failed).
+
+Categories (finance + evidence) must show in UI.
+
+Listing & filtering:
+
+/api/appwrite/files should correctly list files with statuses/categories for the current user/environment.
+
+Delete behavior:
+
+Deleting from the UI must actually delete from Appwrite storage + metadata + analysis results and remove it from UI with no ghosts.
+
+Violations/Incidents:
+
+/api/violations listing and CRUD must function (demo env included).
+
+Finance dashboards:
+
+Verify endpoints behind financial summary views do not error.
+
+Version/subscription:
+
+/api/version and /api/subscription must respond correctly.
+
+For every unique error or warning, capture and fix the root cause, not just swallow or hide it.
+
+C) APPWRITE-ONLY ANALYSIS & CATEGORIZATION (DOCS + PICTURES, GLOBAL)
+
+Goal: All document and image analysis/categorization is done by Appwrite.
+Express orchestrates, validates, and exposes results to the UI.
+
+Locate every code path that:
+
+Uploads documents or images (front-end and Express routes).
+
+Performs OCR/AI analysis of PDFs/images.
+
+Categorizes into finance/evidence/violation-related buckets.
+
+Runs queue or interval workers (e.g., [Appwrite Analysis] Starting queue processor (interval: 15000ms)).
+
+Contains legacy/local analysis not using Appwrite.
+
+Refactor pipeline to be single-source-of-truth:
+
+Upload (via Express, for both mobile and desktop clients):
+
+Validate:
+
+File type and size within configured limits.
+
+environment (demo vs live).
+
+caseId and user ownership.
+
+Upload binary to Appwrite Storage (bucket) using a consistent naming scheme including:
+
+environment (demo/live)
+
+caseId
+
+userId
+
+docType (document/image/other)
+
+Create/Upsert metadata record in Appwrite DB (or application DB layer) with fields such as:
+
+id
+
+ownerUserId
+
+caseId
+
+environment
+
+source (upload-web, upload-mobile, etc.)
+
+status (uploaded | processing | complete | failed)
+
+fileRef (bucket ID + file ID)
+
+originalFilename, mimeType, size
+
+analysisJobId (if used)
+
+ledgerBucket (see finance model below)
+
+financeCategory, financeSubcategory
+
+evidenceCategory (e.g., financial, communication, custody-violation, etc.)
+
+analysisSummary, analysisDetails, errorMessage
+
+timestamps (createdAt, updatedAt)
+
+Immediately trigger analysis via Appwrite Function / Event / Queue and record status = "processing".
+
+Analysis (Appwrite-side):
+
+Fetch the file from Storage.
+
+Run OCR/AI and classification:
+
+Extracted text (when relevant).
+
+Vendor/payee, amounts, dates for finance docs.
+
+Finance category/bucket (QuickBooks-style below).
+
+Evidence category (e.g., financial evidence, communication, custody/visitation, etc.).
+
+Confidence scores.
+
+Short “reasoning” string.
+
+Write results back into the same metadata record:
+
+status = "complete" or "failed"
+
+ledgerBucket, financeCategory, financeSubcategory
+
+evidenceCategory
+
+analysisSummary, analysisDetails
+
+errorMessage if failure
+
+Express API endpoints should expose this cleanly to the UI:
+
+GET /api/documents – paginated list with status + categories.
+
+GET /api/documents/:id – complete record.
+
+POST /api/documents/:id/reanalyze – triggers re-analysis via Appwrite.
+
+DELETE /api/documents/:id – full delete pipeline (below).
+
+Remove or redirect conflicting local logic:
+
+Any Node-only analysis that duplicates Appwrite must be:
+
+Removed, or
+
+Wrapped so it always delegates to Appwrite for final categories.
+
+Global behavior across mobile and desktop:
+
+All upload/analysis/delete paths (desktop browser, mobile browser, PWA) must go through Express → Appwrite.
+
+No separate or divergent pipelines; this must be globally consistent.
+
+D) DELETE PIPELINE – END-TO-END, NO GHOSTS
+
+When a user deletes a document or picture:
+
+Express route (e.g., DELETE /api/documents/:id):
+
+Validate environment, user, case, and permissions.
+
+Perform, in a safe sequence (and handle partial failures):
+
+Mark metadata record as deleted (or remove it) in Appwrite DB.
+
+Delete the file from Appwrite Storage (or mark as deleted).
+
+Remove or mark any linked analysis records as deleted.
+
+On failure, log a structured error + correlation/trace ID, and return a clear error JSON; do not pretend success if something failed.
+
+React UI:
+
+Show confirmation prompt.
+
+Optimistically remove item, but reconcile with API response.
+
+On error, restore item or show clear error toast.
+
+Ensure all delete behavior respects demo vs live isolation, and no data or files bleed across environments.
+
+E) UPLOAD + ANALYSIS PROGRESS UX
+
+Implement robust progress indicators:
+
+Upload progress:
+
+Use upload progress events (XHR/axios/fetch, depending on stack).
+
+Show % uploaded and handle cancel/retry.
+
+Analysis progress:
+
+After upload, show status states: Uploading → Processing → Complete/Failed.
+
+Implement status polling (e.g., GET /api/documents/:id/status) with backoff, or use the existing WebSocket if available.
+
+Stop polling once status is final.
+
+Error UX:
+
+Replace generic “Analysis failed” with:
+
+Friendly message,
+
+Optionally a “Details”/debug section with trace ID.
+
+F) FINANCE CATEGORIZATION MODEL (QUICKBOOKS-STYLE)
+
+Implement a central, QuickBooks-like finance category model.
+
+1) Ledger buckets (top-level)
+
+Every financial doc/transaction must map to exactly one of:
+
+INCOME
+
+EXPENSE
+
+COGS (Cost of Goods Sold)
+
+ASSET
+
+LIABILITY
+
+TAX
+
+OWNER_EQUITY
+
+TRANSFER
+
+UNKNOWN
+
+2) Example QuickBooks-style income categories
+
+INCOME / Sales of Product Income
+
+INCOME / Service/Fee Income
+
+INCOME / Sales – Online
+
+INCOME / Sales – In-Store
+
+INCOME / Rental Income
+
+INCOME / Refunds & Reimbursements
+
+INCOME / Other Primary Income
+
+INCOME / Other Miscellaneous Income
+
+3) COGS categories
+
+COGS / Cost of Goods Sold – Materials
+
+COGS / Cost of Goods Sold – Labor
+
+COGS / Cost of Goods Sold – Shipping/Freight
+
+COGS / Cost of Goods Sold – Other
+
+4) Expense categories (QuickBooks-like)
+
+EXPENSE / Advertising & Marketing
+
+EXPENSE / Automobile & Vehicle
+
+EXPENSE / Bank Charges & Fees
+
+EXPENSE / Commissions & Fees
+
+EXPENSE / Contractors & Subcontractors
+
+EXPENSE / Dues & Subscriptions
+
+EXPENSE / Insurance – General
+
+EXPENSE / Insurance – Health
+
+EXPENSE / Interest Paid
+
+EXPENSE / Legal & Professional Services
+
+EXPENSE / Meals
+
+EXPENSE / Travel
+
+EXPENSE / Entertainment
+
+EXPENSE / Office Expenses
+
+EXPENSE / Office Supplies
+
+EXPENSE / Postage & Delivery
+
+EXPENSE / Rent or Lease – Office
+
+EXPENSE / Rent or Lease – Vehicles/Equipment
+
+EXPENSE / Repairs & Maintenance
+
+EXPENSE / Payroll Expenses
+
+EXPENSE / Payroll Taxes
+
+EXPENSE / Taxes & Licenses
+
+EXPENSE / Telephone & Internet
+
+EXPENSE / Utilities
+
+EXPENSE / Shipping & Delivery
+
+EXPENSE / Merchant Processing Fees
+
+EXPENSE / Software & SaaS
+
+EXPENSE / Training & Education
+
+EXPENSE / Miscellaneous Expense
+
+5) Assets, Liabilities, Tax, Equity, Transfer
+
+ASSET / Bank Account
+
+ASSET / Accounts Receivable
+
+ASSET / Fixed Asset – Property
+
+ASSET / Fixed Asset – Vehicles
+
+ASSET / Other Current Asset
+
+LIABILITY / Credit Card
+
+LIABILITY / Loan – Mortgage
+
+LIABILITY / Loan – Vehicle
+
+LIABILITY / Other Current Liability
+
+LIABILITY / Long-Term Liability
+
+TAX / Income Tax
+
+TAX / Sales Tax Payable
+
+TAX / Property Tax
+
+OWNER_EQUITY / Owner’s Equity
+
+OWNER_EQUITY / Owner’s Draw
+
+OWNER_EQUITY / Owner’s Contributions
+
+TRANSFER / Transfer Between Accounts
+
+6) How analysis must use these categories
+
+The Appwrite analysis function must:
+
+Predict ledgerBucket, financeCategory, and optional financeSubcategory.
+
+If the document is clearly a financial doc (bank/credit card statement, receipt, invoice) and the model is uncertain:
+
+Default ledgerBucket = EXPENSE
+
+Default financeCategory = Miscellaneous Expense (or a defined “Needs Review” type).
+
+Store a short explanation in the record (analysisSummary) for audit and attorney review.
+
+Centralize category definitions in a single config/module.
+Do not scatter strings; use enums or constants to avoid typos.
+
+Ensure demo and live share the same category dictionary but different data.
+
+G) EXPRESS BACKEND: CLEAN, SAFE, ENVIRONMENT-AWARE
+
+Keep all existing routes (/api/version, /api/auth/session, /api/subscription, /api/violations, /api/appwrite/files, admin security routes, etc.), but harden them:
+
+Add input validation (schema-based).
+
+Use unified async error handling and central error middleware:
+
+Log { route, method, userId, environment, traceId, error }.
+
+Return consistent JSON error structure.
+
+Strict environment isolation:
+
+Every DB/Appwrite query must be scoped to environment (demo | live).
+
+Prevent any cross-contamination between demo and live users’ data.
+
+Ensure all Appwrite calls are properly awaited and no unhandled promise rejections occur.
+
+H) FRONTEND: NO INFINITE LOOPS / CLEAN RENDERING
+
+Scan React code for:
+
+useEffect loops (dependency issues, state update loops).
+
+State updates inside render.
+
+Route guards that cause navigation loops.
+
+Components that crash on mount due to missing data assumptions.
+
+Fix them so that:
+
+Documents/Evidence view
+
+Violations/Incidents view
+
+Finance dashboards
+
+Settings/Subscription/Admin views
+
+all render without red errors in the console during normal use.
+
+I) POSTCSS WARNING – FIX PROPERLY
+
+From the logs:
+
+“A PostCSS plugin did not pass the from option to postcss.parse. This may cause imported assets to be incorrectly transformed.”
+
+Find the PostCSS pipeline and identify which plugin is causing this.
+
+Adjust postcss.config.* or bundler config so from is passed correctly.
+
+Update plugin versions only if needed.
+
+Do NOT remove the plugin or disable PostCSS globally just to hide the warning.
+
+J) FINAL VERIFICATION
+
+After all changes:
+
+Run:
+
+npm run build → must succeed.
+
+npm run typecheck / tsc --noEmit → must succeed.
+
+npm run lint → no critical issues.
+
+npm test (if present) → must run without crashing.
+
+Start the dev server and smoke test:
+
+Log in (demo and live where applicable) and ensure /api/auth/session returns expected data.
+
+Upload multiple docs and pictures (desktop & mobile viewport):
+
+See upload progress.
+
+See analysis progress.
+
+See QuickBooks-style finance categories appear.
+
+Delete a doc/picture:
+
+Confirm removal from UI, Appwrite storage, and metadata.
+
+Check /api/version, /api/subscription, /api/violations, /api/appwrite/files:
+
+No red errors in browser console or server logs.
+
+K) DELIVERABLES / SUMMARY
+
+When done, add a concise summary to the repo (e.g., CHANGELOG.md):
+
+Files changed (paths).
+
+Root causes found.
+
+Key fixes (especially Appwrite analysis, delete pipeline, finance category model).
+
+Remaining TODOs that need business/legal decisions.
+
+Any new environment variables and where they’re used.
+
+Apply all of this now, making Appwrite the bulletproof, global engine for analyzing and categorizing all documents and pictures across mobile and desktop, with Express as the stable API layer behind https://divorceledger.live/home.

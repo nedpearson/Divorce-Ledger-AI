@@ -1,0 +1,3 @@
+Notifications → New Evidence → Review/Approve → Auto-add to Case Timeline
+     ↓
+AI summarizes key violations for court filing

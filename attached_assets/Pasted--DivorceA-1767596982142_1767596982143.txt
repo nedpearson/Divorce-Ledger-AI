@@ -1,0 +1,81 @@
+┌─────────────────────────────────────────────────────────────────────────┐
+│              DivorceASE AI: Voice/Media Processing Pipeline              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+USER TIER VALIDATION
+───────────────────
+  Upload Request
+      ↓
+  Check: users.tier
+  Check: File size < tier_limit
+      ├─ free: 10MB
+      ├─ pro: 100MB
+      └─ enterprise: 500MB
+      ↓
+  ✅ Proceed OR ❌ Reject
+
+MEDIA UPLOAD
+────────────
+  Audio/Video/Image File
+      ↓
+  [evidence] table
+  - file_type: 'audio' | 'video' | 'image'
+  - storage_url: S3/Cloud reference
+  - evidence_metadata: { duration_seconds, etc }
+      ↓
+  Queue Job: transcribe_audio / transcribe_video
+
+TRANSCRIPTION
+──────────────
+  [processing_queue] → job_type: 'transcribe_audio'
+      ↓
+  AI Service (Deepgram / AssemblyAI / Whisper)
+      ↓
+  [violations] table
+  - audio_transcript: Full text of speech
+  - evidence_metadata: Updated with transcript
+      ↓
+  Transcript extracted + stored
+
+CLASSIFICATION
+───────────────
+  audio_transcript + violation.description
+      ↓
+  NLP Analysis:
+  ├─ Pattern matching (keywords)
+  ├─ Tone analysis (aggressive, threatening)
+  ├─ Entity extraction (names, places, times)
+  └─ Severity scoring
+      ↓
+  [violations] table
+  - ai_classification: 'harassment' | 'control' | 'threats' | 'verbal_abuse'
+  - severity_score: Updated based on transcript analysis
+      ↓
+  Classification result
+
+USER TIER UPDATE
+─────────────────
+  violations_count_this_month += 1
+      ↓
+  Check tier eligibility:
+  - 1-20 violations/month: 'free'
+  - 21-50 violations/month: 'pro'
+  - 50+ violations/month: 'enterprise'
+      ↓
+  [users] table
+  - tier: Auto-upgraded
+  - violations_count_this_month: Updated
+      ↓
+  Tier updated
+
+EVIDENCE LINKING
+─────────────────
+  violations.media_files = [ {id, type, transcript, classification} ]
+  violations.audio_transcript = Full text
+  violations.ai_classification = Detected type
+      ↓
+  [timeline_events] created with:
+  - event_type: 'media_evidence'
+  - event_data: { media_id, transcript_snippet, classification }
+      ↓
+  Linked to case timeline

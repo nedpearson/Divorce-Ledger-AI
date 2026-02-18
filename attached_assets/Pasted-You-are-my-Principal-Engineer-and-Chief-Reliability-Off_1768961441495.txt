@@ -1,0 +1,453 @@
+You are my Principal Engineer and Chief Reliability Officer with FULL access to this entire Replit project for my Divorce / Forensic Financial Evidence App.
+
+This codebase powers my divorce-legal forensic system, including:
+
+Evidence and document ingestion (PDFs, images, statements, etc.).
+
+Financial transaction intake and categorization (expenses, income, assets, liabilities).
+
+Custody / incident / violation logging.
+
+Attorney-ready dashboards, reports, and export flows.
+
+Your mission is to make the entire divorce app stable, predictable, and clean.
+
+GOAL (CRITICAL)
+
+Perform a ONE-PASS, END-TO-END, GLOBAL HEALTH FIX for this divorce app codebase:
+
+Find and fix all current, reproducible errors and crashes.
+
+Eliminate obvious infinite loops, unhandled rejections, missing awaits, and runtime warnings.
+
+Make the app build, start, and run cleanly with NO red errors in the console for normal user flows.
+
+Leave the codebase maintainable and well-structured – no random band-aids, no hacks that will obviously break later.
+
+Do NOT just “fix the one line” that is currently failing. Treat this as a full diagnostic and repair session for the divorce app.
+
+1. PROJECT DISCOVERY & HEALTH BASELINE
+
+Determine the stack and entry points:
+
+Identify the front-end framework (React, Next, Vite, etc.).
+
+Identify the back-end (Express/Node, Appwrite SDK usage, other APIs).
+
+Locate:
+
+Main entry files (index.tsx, App.tsx, main.tsx, server.ts, index.ts, etc.).
+
+Main routing / dashboard files, especially those for:
+
+Divorce dashboard / main landing.
+
+Evidence / document upload.
+
+Financial / transaction dashboards.
+
+Custody / violation logs.
+
+Attorney / export views.
+
+Inspect package.json and note:
+
+scripts (dev, start, build, test, lint, typecheck, etc.).
+
+Tooling in use:
+
+TypeScript, ESLint, Prettier, Jest, Vitest, Playwright, etc.
+
+Run the available health commands (as appropriate):
+
+npm run build (or equivalent) – fix build errors until it passes.
+
+npm run lint – fix critical lint errors that indicate real bugs or runtime risk.
+
+npm run typecheck or tsc --noEmit (if TypeScript) – fix type errors that indicate actual runtime problems.
+
+npm test / npm run test (if present) – ensure tests at least run without crashing (ideally pass).
+
+Important:
+
+Do NOT delete scripts or disable tooling just to make commands “green”.
+
+Fix underlying code problems instead of silencing tools.
+
+2. RUNTIME DIAGNOSTICS & LOG TRIAGE
+
+Start the dev server and run the divorce app as a real user:
+
+Exercise the key flows (at minimum):
+
+Load the main divorce dashboard.
+
+Login / auth flow (if present).
+
+Evidence / document upload flows:
+
+Bank statements, credit card statements, receipts, PDFs, images.
+
+Any “drag-and-drop” or “upload” modules.
+
+Financial / forensic flows:
+
+Transaction ingestion and categorization (e.g., expenses, income, transfers).
+
+Asset / liability / account overviews.
+
+Custody / incident logging flows:
+
+Violation / incident creation.
+
+Viewing and editing incident logs.
+
+Attorney-focused flows:
+
+Generating summaries, exports, reports, or drill-down views.
+
+Critical actions:
+
+Create / update / delete for evidence, transactions, incidents, and notes.
+
+Watch for:
+
+Red errors in the browser console:
+
+React errors, uncaught exceptions, failed hooks, routing errors.
+
+Warnings indicating serious issues:
+
+Infinite re-renders.
+
+Strict mode issues.
+
+Missing keys that cause unstable lists.
+
+Errors and stack traces in the Replit shell / server logs:
+
+Backend route failures.
+
+Appwrite or other SDK failures.
+
+Unhandled promise rejections.
+
+For EACH unique runtime error or warning:
+
+Capture its message and stack trace.
+
+Track it as a distinct issue.
+
+Fix the root cause, not just suppress or hide the message.
+
+3. STATIC CODE SCAN FOR BUG HOTSPOTS
+
+Search the entire divorce app codebase for common bug indicators. Specifically scan for:
+
+TODO, FIXME, HACK, XXX in:
+
+Evidence ingestion, transaction parsing, categorization logic, custody logging, and reporting.
+
+@ts-ignore, eslint-disable, any, any[] in core logic, especially:
+
+Financial calculation modules.
+
+Evidence/document processing modules.
+
+API clients for Appwrite or other services.
+
+Empty catch blocks or catch (e) {} with no logging or handling.
+
+console.error messages that clearly indicate broken behavior but are not actually fixed.
+
+React patterns that commonly cause infinite loops:
+
+useEffect( with no dependency array that:
+
+Calls setState.
+
+Triggers navigation.
+
+Performs data fetching on every render.
+
+useEffect whose dependency is changed by its own effect in a way that causes a loop.
+
+setState or navigation calls directly inside component render bodies.
+
+Async issues:
+
+Missing await on obvious promises (especially for:
+
+File uploads.
+
+Appwrite calls.
+
+HTTP requests for evidence / transactions / incidents).
+
+Functions declared async but never awaited at the call site.
+
+API/SDK usage:
+
+Appwrite or other SDK calls missing required arguments or misusing types.
+
+Wrong collection IDs, bucket IDs, or parameters that cause runtime failures.
+
+Incorrect handling of Promise results (assuming sync when async).
+
+For each problematic pattern, fix it in a clean, maintainable way, appropriate to this divorce app.
+
+4. PRIORITIZED FIXING STRATEGY
+
+Fix issues in this order:
+
+Hard crashes and build failures
+
+Anything that prevents:
+
+npm run build from succeeding.
+
+The dev server from starting.
+
+Anything that throws uncaught exceptions at runtime:
+
+Especially in evidence upload, financial calculations, or incident logging.
+
+Infinite loops, runaway rendering, or redirect loops
+
+“Too many re-renders” errors.
+
+Route guards or auth checks that bounce between routes.
+
+Effects that refire endlessly due to bad dependencies.
+
+Data-flow and API errors
+
+Incorrect arguments to Appwrite or other APIs.
+
+Mis-typed responses that cause runtime crashes when accessing fields.
+
+Unhandled promise rejections and missing awaits in:
+
+Upload flows.
+
+Transaction ingestion.
+
+Incident creation / update / delete.
+
+Report generation.
+
+Critical UI/UX breakage
+
+Components that fail to render due to errors.
+
+Key divorce app flows that silently fail, especially:
+
+Evidence/document upload that appears to succeed but does nothing.
+
+Transactions that do not get stored or categorized.
+
+Incidents / violations that are not persisted or not displayed.
+
+Broken routing to critical dashboards (e.g., blank pages where primary views should be).
+
+Obviously dead or dangerous code
+
+Old, unused functions that are clearly wrong and never called.
+
+Commented-out hacks that should be replaced with a safe pattern or removed.
+
+5. HOW TO FIX – RULES & CONSTRAINTS
+
+When fixing anything in the divorce app:
+
+Do NOT silently swallow real errors.
+
+If an error is expected (e.g., file too large, unsupported format), handle it explicitly and show a clear, user-friendly message.
+
+Always log unexpected errors on the server in a structured way.
+
+Do NOT turn off tools just to “make the error go away”.
+
+Do NOT remove lint rules.
+
+Do NOT eslint-disable entire files.
+
+Do NOT @ts-ignore large blocks unless:
+
+There is a clearly documented reason; and
+
+It is truly unavoidable in this pass.
+
+Keep changes as localized as possible:
+
+If a bug is due to a single function or component, fix that code instead of rewriting the entire module.
+
+Only refactor more broadly when strictly necessary for stability or correctness.
+
+Maintain existing business behavior where it’s correct:
+
+Do not change legal / financial semantics unless they are clearly wrong or causing a bug.
+
+For example, keep existing categorization rules and legal wording unless they directly cause failures.
+
+6. ADD BASIC SAFETY GUARDS
+
+Add lightweight, targeted safety improvements where appropriate.
+
+6.1 Backend (APIs, Appwrite, etc.)
+
+Ensure all main API routes and backend handlers for the divorce app have:
+
+Proper validation of inputs, especially for:
+
+Evidence/document uploads (file types, size limits, required fields).
+
+Financial transactions (amount, currency, dates, account IDs).
+
+Incidents/violations (timestamps, parties involved, type).
+
+try/catch around external calls (Appwrite, other APIs) with:
+
+Proper HTTP 4xx/5xx response.
+
+Clear error message in JSON.
+
+Structured error logging that includes:
+
+Endpoint / operation name.
+
+User / account / case ID if available.
+
+Timestamp.
+
+Error message and stack.
+
+6.2 Frontend (React / UI)
+
+For the divorce app front-end:
+
+Wrap major async actions in try/catch:
+
+Evidence/document upload.
+
+Transaction import / categorization.
+
+Incident create/update/delete.
+
+Attorney export / report generation.
+
+Provide user-friendly feedback:
+
+Loading indicators for async operations.
+
+Clear error toasts/modals for failures (not just silent failures).
+
+Ensure network calls:
+
+Handle loading states.
+
+Handle error states gracefully.
+
+Do not leave unhandled promise rejections.
+
+6.3 Prevent obvious infinite loops
+
+Fix useEffect / state feedback loops.
+
+Ensure route guards converge on a stable, valid route (e.g., login → dashboard or dashboard → login), not loops.
+
+Avoid updating state in render paths; use proper hooks and event handlers.
+
+7. VERIFY & REGRESSIONS CHECK
+
+After completing all fixes:
+
+Re-run the core health commands:
+
+npm run build
+
+npm run lint (if available)
+
+npm run typecheck or tsc --noEmit (if available)
+
+npm test (if available)
+
+Requirements:
+
+Build and typecheck must succeed.
+
+Lint/tests should have no critical issues or crashes. Non-critical stylistic warnings are acceptable but should not hide real bugs.
+
+Start the dev server and perform a smoke test focused on divorce-specific flows:
+
+Load the main divorce dashboard.
+
+Run through:
+
+Login/auth (if present).
+
+Evidence/document upload and confirmation.
+
+Transaction ingestion and basic categorization display.
+
+Incident / violation creation and listing.
+
+Any attorney/export view or summary report.
+
+While testing:
+
+Watch browser console for red errors.
+
+Watch server logs for stack traces or unhandled rejections.
+
+Confirm:
+
+No uncaught red errors.
+
+No obvious infinite loops or runaway renders.
+
+No critical UI completely missing (blank or error-only screens).
+
+Core divorce app flows feel stable and responsive.
+
+If there are deep architectural issues that cannot realistically be fixed in one session, leave clearly documented TODOs explaining:
+
+What the issue is.
+
+Why it is non-trivial.
+
+Roughly what refactor or redesign would be needed later.
+
+8. DOCUMENT WHAT YOU DID
+
+When you are done, produce a concise but clear internal summary (e.g., as comments, a CHANGELOG.md, or similar) including:
+
+List of files you changed (paths).
+
+Key root causes you found (bullet points).
+
+Example: “Unawaited Appwrite document create in evidence upload handler causing intermittent failures.”
+
+Most important fixes you applied:
+
+Example: “Stabilized transaction categorization hook to avoid infinite loop when filters change.”
+
+Any remaining known limitations or TODOs that require:
+
+Legal/business decisions.
+
+Significant architectural redesigns.
+
+9. RESOURCE / TOKEN USAGE
+
+Be efficient with your analysis:
+
+Use targeted searches and inspect only the necessary files.
+
+Do NOT rewrite files that are clearly working and unrelated to the divorce flows.
+
+Focus on:
+
+Real, observable errors first (build/runtime).
+
+Then structural problems that are highly likely to cause future errors, especially around evidence ingestion, transaction handling, incident logging, and attorney exports.

@@ -1,0 +1,113 @@
+You are my senior full-stack engineer with full access to this Replit project.
+
+The app is currently stuck in a CONSTANT LOOP as soon as I open it in the browser (Replit webview). It keeps reloading / redirecting / re-rendering and never settles into a stable screen.
+
+I do NOT want another superficial patch. I want you to:
+
+1. TREAT THIS AS A ROOT-CAUSE, END-TO-END STABILITY FIX
+   - Your goal is to:
+     - Find the exact code paths causing the loop.
+     - Fix them in a clean, maintainable way.
+     - Add safeguards so this cannot silently return.
+   - Minimize token usage: search precisely, avoid rewriting unrelated files, and explain briefly.
+
+2. REPRODUCE AND CHARACTERIZE THE LOOP
+   - Start the dev server and open the app.
+   - Observe exactly what happens:
+     - Is the page doing a full browser reload?
+     - Is it bouncing between routes (e.g., `/login` ↔ `/dashboard`)?
+     - Is it stuck re-rendering a component (React “Too many re-renders” or similar)?
+   - Check:
+     - Browser console logs.
+     - Network tab/requests if available.
+     - Server logs in the Replit console.
+
+3. SYSTEMATICALLY SEARCH FOR LIKELY LOOP SOURCES
+   Search the entire codebase for patterns that commonly cause infinite loops on load, including but not limited to:
+
+   a) React / frontend state loops:
+      - `useEffect(` that:
+        - Has NO dependency array, but calls `setState`, navigation, or any prop/state-changing function.
+        - Has a dependency array that includes a value it itself changes, causing a feedback loop.
+      - Components that call `setState`, `setSomething`, or `navigate` directly during render (not in an effect or event handler).
+      - Any `useLayoutEffect` that updates state or performs navigation without guards.
+
+   b) Auth / routing redirect loops:
+      - Route guards / wrappers that do something like:
+        - “If NOT authenticated, redirect to /login”
+        - “If authenticated, redirect to /dashboard”
+      - Multiple layers of guards that conflict, e.g.:
+        - Guard A: from `/` → `/login`
+        - Guard B: from `/login` → `/dashboard` (based on stale or mis-read auth state)
+      - Logic that reads tokens or session from storage and immediately redirects before the state finishes initializing.
+
+   c) Polling / intervals / timers:
+      - `setInterval`, `setTimeout`, or custom polling hooks running on every render or effect without cleanup.
+      - WebSocket or SSE handlers that trigger a navigation or state change on every connection/message.
+
+   d) Server-side redirect loops:
+      - Middleware or route handlers that redirect back to the same URL or form a cycle of redirects.
+      - Any SSR / server-render path that always responds with a redirect rather than a final page.
+
+4. FIX THE ROOT CAUSES CLEANLY
+
+   For each loop you find, apply these principles:
+
+   a) React effect / state loops
+      - If an effect should run only once on mount, add `[]` as the dependency array.
+      - If an effect depends on something that it changes, restructure it to avoid direct feedback.
+      - Never call `setState` directly in the body of a component render – only in:
+        - event handlers,
+        - `useEffect` / `useLayoutEffect` with proper guards,
+        - or controlled logic that cannot fire every render.
+
+   b) Auth / routing loops
+      - Make auth checks idempotent:
+        - Initialize an explicit `authStatus` enum: `"unknown" | "authenticated" | "unauthenticated"`.
+        - While `authStatus === "unknown"`, DO NOT redirect; show a loading screen.
+        - Only redirect once, when transitioning from `"unknown"` to a stable state.
+      - Ensure that each route guard has a clear, one-way condition:
+        - Example: On protected route:
+          - If unauthenticated → redirect to `/login` ONCE.
+          - If authenticated → render page, DO NOT redirect anywhere.
+      - If there is a “remember this device” or auto-login logic, ensure it does not cause repeated redirects during the same session.
+
+   c) Server redirect loops
+      - Inspect any `res.redirect` or equivalent logic.
+      - Ensure there is no path `A → B` and `B → A`.
+      - Ensure root `/` resolves to a real page or a single, deterministic redirect chain that terminates.
+
+5. ADD SAFEGUARDS AND BASIC TESTING
+
+   - Add a small, low-overhead logging / guard mechanism around:
+     - auth initialization,
+     - router guards,
+     - initial app bootstrap.
+   - Optional but preferred:
+     - If the project uses Jest, Vitest, or similar, add at least one test that confirms:
+       - The main route can render without throwing.
+       - Auth guard logic for a “guest” user and an “authenticated” user does NOT produce circular redirects.
+
+6. CLEAN UP AND DOCUMENT THE CHANGES
+
+   - Do NOT perform massive refactors. Only touch the files and components directly involved in the loop.
+   - After changes:
+     - Restart the dev server.
+     - Open the app again and confirm:
+       - No more constant refresh / redirect loop.
+       - I can land on the expected initial screen and interact normally.
+   - In a short summary comment to me, list:
+     - The root cause(s) you found.
+     - The files and functions you changed.
+     - What safeguards you added to prevent future infinite loops.
+
+7. CONSTRAINTS
+
+   - Minimize token/credit usage:
+     - Search with tight keywords first (e.g., `useEffect`, `navigate(`, `redirect(`, `setInterval(`, `auth`, `ProtectedRoute`, `RequireAuth`).
+     - Do not rewrite working code that is clearly unrelated to the loop.
+   - The final state MUST:
+     - Load once when I open the app.
+     - Not auto-refresh, bounce between routes, or trigger React re-render warnings on initial load.
+
+Please now perform this full investigation and apply targeted, minimal fixes until the app opens WITHOUT any constant looping behavior.

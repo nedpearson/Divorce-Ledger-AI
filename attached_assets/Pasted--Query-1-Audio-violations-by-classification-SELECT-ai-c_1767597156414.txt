@@ -1,0 +1,79 @@
+-- Query 1: Audio violations by classification
+SELECT 
+  ai_classification,
+  COUNT(*) as count,
+  AVG(severity_score) as avg_severity,
+  MAX(severity_score) as max_severity
+FROM violations
+WHERE audio_transcript IS NOT NULL
+GROUP BY ai_classification
+ORDER BY count DESC;
+
+-- Query 2: Media uploads by user tier
+SELECT 
+  u.tier,
+  COUNT(DISTINCT u.id) as users,
+  COUNT(e.id) as total_media_uploads,
+  SUM(e.file_size_bytes) / (1024*1024) as total_size_mb,
+  AVG(e.file_size_bytes) / 1024 as avg_size_kb
+FROM users u
+LEFT JOIN cases c ON u.id = c.lawyer_id
+LEFT JOIN violations v ON c.id = v.case_id
+LEFT JOIN evidence e ON v.id = e.violation_id AND e.evidence_source = 'media_upload'
+GROUP BY u.tier;
+
+-- Query 3: Transcription quality metrics
+SELECT 
+  DATE_TRUNC('day', v.created_at) as date,
+  COUNT(*) as transcriptions,
+  AVG(
+    CASE 
+      WHEN e.evidence_metadata->>'transcript' IS NOT NULL THEN 1
+      ELSE 0
+    END
+  ) as success_rate,
+  COUNT(DISTINCT v.case_id) as cases_with_media
+FROM violations v
+LEFT JOIN evidence e ON v.id = e.violation_id AND e.file_type = 'audio'
+WHERE v.audio_transcript IS NOT NULL
+GROUP BY DATE_TRUNC('day', v.created_at)
+ORDER BY date DESC;
+
+-- Query 4: High-risk violations from voice (AI classified)
+SELECT 
+  c.case_number,
+  v.id as violation_id,
+  v.ai_classification as detected_type,
+  v.severity_score,
+  v.audio_transcript,
+  COUNT(e.id) as supporting_media_count
+FROM cases c
+JOIN violations v ON c.id = v.case_id
+LEFT JOIN evidence e ON v.id = e.violation_id AND e.evidence_source = 'media_upload'
+WHERE v.audio_transcript IS NOT NULL
+  AND v.ai_classification IN ('threats', 'physical_abuse', 'harassment')
+  AND v.severity_score > 70
+GROUP BY c.case_number, v.id, v.ai_classification, v.severity_score, v.audio_transcript
+ORDER BY v.severity_score DESC;
+
+-- Query 5: User tier upgrade candidates
+SELECT 
+  u.id,
+  u.email,
+  u.tier,
+  u.violations_count_this_month,
+  COUNT(DISTINCT c.id) as active_cases,
+  COUNT(DISTINCT e.id) as media_uploads,
+  CASE 
+    WHEN u.violations_count_this_month > 50 THEN 'enterprise'
+    WHEN u.violations_count_this_month > 20 THEN 'pro'
+    ELSE 'free'
+  END as recommended_tier
+FROM users u
+LEFT JOIN cases c ON u.id = c.lawyer_id
+LEFT JOIN violations v ON c.id = v.case_id
+LEFT JOIN evidence e ON v.id = e.violation_id AND e.evidence_source = 'media_upload'
+WHERE u.violations_count_this_month > 0
+GROUP BY u.id, u.email, u.tier, u.violations_count_this_month
+HAVING u.violations_count_this_month >= 20
+ORDER BY u.violations_count_this_month DESC;

@@ -1,0 +1,92 @@
+Act as a Principal Engineer brought in to stabilize a broken codebase. Your mission is to perform a disciplined “repo-wide repair + routing normalization + endpoint hardening” and leave the project in a provably correct state.
+
+CONTEXT
+This project uses Appwrite for Auth/DB/Storage and has a React/Tailwind frontend plus a Node/TS backend (framework may vary). There are currently issues: routes/endpoints inconsistent, files scattered, incorrect imports/paths, broken build, missing handlers, and unreliable document/photo analysis flow. We need a single canonical routing scheme and “foolproof” behavior (no silent failures, no silent finalization).
+
+HARD RULES
+1) Do NOT add new features. Only fix architecture, routing, endpoints, file organization, and correctness bugs.
+2) Minimize churn: do not refactor working modules unless required to fix correctness.
+3) Every change must be backed by: (a) compile/build passing, (b) route map, (c) health/selftest endpoints.
+4) No secrets in client code. Appwrite API key server-only via Replit Secrets.
+5) No silent writes: AI analysis can only write suggested_* fields + needs_user_review; finalization requires user approval.
+
+PHASE 0 — INVENTORY (must do first, before edits)
+A) Detect runtime stack and entry points:
+- Identify whether backend is Express/Fastify/Next API/Vite dev server/etc.
+- Identify frontend router (React Router/Next pages/etc.)
+B) Produce a “Route & Endpoint Map” table:
+- Frontend routes (path -> component file)
+- Backend endpoints (method + path -> handler file)
+- External integrations (Appwrite SDK usage points)
+C) Produce a “Breakage Report”:
+- All TypeScript/ESLint errors
+- All failing imports/paths
+- All missing files/handlers referenced by routes
+- All duplicate/conflicting route definitions
+
+STOP and print Phase 0 outputs in your response before making changes. Then proceed automatically (no further approval needed).
+
+PHASE 1 — CANONICAL STRUCTURE + ROUTING NORMALIZATION
+Implement ONE canonical layout (choose the closest to current stack) and migrate scattered files into it with correct imports:
+
+/src
+  /client        (React UI)
+  /server        (API routes, appwrite server client, analysis engine)
+  /shared        (types/schemas/constants safe for client)
+  /fixtures      (selftest docs/images, dev only)
+  /tests         (validation unit tests)
+
+Routing rules:
+- All backend endpoints live under /api/*
+- Frontend only calls /api/* and never Appwrite admin-key operations.
+- Provide a single “router index” listing all endpoints and mounting them.
+
+Create/repair these endpoints (even if currently broken):
+GET  /api/health              -> returns {ok:true, build, commit, time}
+GET  /api/routes              -> returns full backend route list
+POST /api/auth/*              -> only if needed (otherwise use Appwrite client session)
+POST /api/upload              -> uploads to Appwrite Storage (server or client; pick one and standardize)
+POST /api/analyze/:fileId     -> runs analysis pipeline and writes AnalysisRun + suggested fields
+GET  /api/dev/selftest-financial (dev-only) -> runs fixtures through pipeline and returns results
+
+PHASE 2 — FIX ALL IMPORTS, PATHS, AND ENDPOINT CALL SITES
+- Replace any hard-coded URLs with a single config: API_BASE, APPWRITE endpoint/project.
+- Ensure frontend endpoints match backend exactly (method/path/payload).
+- Remove duplicate endpoints and dead code references.
+- Ensure consistent casing and file naming (no mixed route handlers).
+- Ensure tsconfig path aliases (optional) or relative paths are correct.
+
+PHASE 3 — HARDEN CORRECTNESS (FOOLPROOF BEHAVIOR)
+- Add strict request/response schemas for each endpoint (Zod).
+- Add centralized error middleware:
+  - Every endpoint returns {error:{code,message,details}, trace_id}
+- Add idempotency for /api/analyze:
+  - key = storage_file_id + prompt_version + model_version
+- Add state machine enforcement for files.status transitions.
+- Ensure analysis_runs are immutable.
+- Ensure needs_user_review gate is applied for low confidence/validation failure/poor quality.
+
+PHASE 4 — TESTS + VERIFICATION COMMANDS
+- Add unit tests for validation checks (money/date logic).
+- Add a “smoke” script that:
+  1) starts server
+  2) hits /api/health
+  3) hits /api/routes
+  4) runs /api/dev/selftest-financial (if dev)
+- Update README with exact commands to run tests and start the app.
+
+OUTPUT REQUIREMENTS (end of work)
+1) Updated Route & Endpoint Map (final).
+2) List of files moved/renamed (with old -> new paths).
+3) How to run: dev server, tests, selftest.
+4) Confirmed invariants:
+   - build passes
+   - endpoints reachable
+   - no admin keys in client
+   - no silent finalization
+
+Proceed now:
+- Run the inventory
+- Apply repairs
+- Ensure the app runs end-to-end
+- Keep changes minimal but comprehensive for stability.

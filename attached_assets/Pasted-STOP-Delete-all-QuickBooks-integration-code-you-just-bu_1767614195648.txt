@@ -1,0 +1,276 @@
+STOP. Delete all QuickBooks integration code you just built. Start fresh with proper multi-tenant architecture.
+
+STEP 1: REMOVE EXISTING QB CODE
+Delete these files/code blocks:
+- Any /api/quickbooks/* routes
+- Any QuickBooks-related database migrations
+- Any QB client initialization code
+- Any QB environment variables from .env examples
+- Any QB-related UI components
+
+Keep only:
+- Existing user authentication system
+- Existing database structure (users, cases, violations tables)
+
+STEP 2: BUILD MULTI-TENANT QUICKBOOKS INTEGRATION
+
+ARCHITECTURE PRINCIPLE:
+This is a SaaS product. Each lawyer connects THEIR OWN QuickBooks account. We provide the OAuth app, they authorize access to THEIR data. All QB operations use THEIR tokens, never a shared connection.
+
+DATABASE SCHEMA
+
+1. Alter users table:
+```sql
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_access_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_refresh_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_realm_id VARCHAR(50);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_token_expires_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_connected BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_company_name VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_scopes TEXT[];
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_connected_at TIMESTAMP;
+```
+
+2. Create audit log table:
+```sql
+CREATE TABLE IF NOT EXISTS quickbooks_sync_log (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  action VARCHAR(100) NOT NULL,
+  qb_entity_type VARCHAR(50),
+  qb_entity_id VARCHAR(50),
+  request_method VARCHAR(10),
+  request_path TEXT,
+  response_status INTEGER,
+  error_message TEXT,
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_qb_log_user ON quickbooks_sync_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_qb_log_created ON quickbooks_sync_log(created_at);
+```
+
+3. Link cases to QB customers:
+```sql
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS qb_customer_id VARCHAR(50);
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS qb_customer_name VARCHAR(255);
+```
+
+ENVIRONMENT VARIABLES (Replit Secrets)
+Add ONLY these (app-level credentials, NOT user tokens):
+QB_CLIENT_ID=<your_intuit_app_client_id>
+QB_CLIENT_SECRET=<your_intuit_app_client_secret>
+QB_REDIRECT_URI=https://divorceaseai.replit.app/api/quickbooks/callback
+QB_ENVIRONMENT=sandbox
+
+DEPENDENCIES
+Install exactly these:
+```json
+{
+  "intuit-oauth": "^4.2.0",
+  "node-quickbooks": "^3.0.0"
+}
+```
+
+BACKEND IMPLEMENTATION
+
+1. Create server/middleware/quickbooksAuth.ts:
+```typescript
+// Middleware to get authenticated user's QB client
+// Handles token refresh automatically
+// Throws error if user hasn't connected QB
+export async function getUserQBClient(req) {
+  const userId = req.user.id;
+  const user = await db.query(
+    'SELECT qb_access_token, qb_refresh_token, qb_realm_id, qb_token_expires_at FROM users WHERE id = $1',
+    [userId]
+  );
+  
+  if (!user || !user.qb_access_token) {
+    throw new Error('QuickBooks not connected');
+  }
+  
+  // Check if token expired
+  if (new Date() >= new Date(user.qb_token_expires_at)) {
+    await refreshUserQBToken(userId, user.qb_refresh_token);
+    return getUserQBClient(req); // Retry with fresh token
+  }
+  
+  return createQBClient(user.qb_access_token, user.qb_realm_id);
+}
+```
+
+2. Create server/routes/quickbooksRoutes.ts with these endpoints:
+
+A. GET /api/quickbooks/auth-url
+Returns: { authUrl: "https://appcenter.intuit.com/connect/oauth2?..." }
+Logic:
+- Generate OAuth URL with state = current user's ID (encrypted)
+- Scopes: ['com.intuit.quickbooks.accounting']
+- Redirect URI from env
+
+B. GET /api/quickbooks/callback?code=xxx&state=xxx&realmId=xxx
+Logic:
+- Verify state matches current user
+- Exchange code for access_token + refresh_token
+- Store tokens in users table (encrypted):
+  UPDATE users SET 
+    qb_access_token = encrypt($1),
+    qb_refresh_token = encrypt($2),
+    qb_realm_id = $3,
+    qb_token_expires_at = NOW() + INTERVAL '1 hour',
+    qb_connected = TRUE,
+    qb_connected_at = NOW()
+  WHERE id = $4
+- Fetch QB company info, store qb_company_name
+- Redirect to /settings?qb_success=true
+
+C. POST /api/quickbooks/disconnect
+Logic:
+- Revoke tokens via QB API
+- UPDATE users SET qb_connected = FALSE, qb_access_token = NULL WHERE id = current_user
+- Return success
+
+D. GET /api/quickbooks/status
+Returns: 
+```json
+{
+  "connected": true,
+  "companyName": "Smith Law Firm",
+  "connectedAt": "2026-01-04T10:30:00Z",
+  "lastSync": "2026-01-05T14:20:00Z"
+}
+```
+
+E. POST /api/quickbooks/create-invoice
+Body: { caseId, violationIds[], dueDate?, memo? }
+Logic:
+- Get current user's QB client
+- Fetch violations from database
+- Fetch or create QB customer from case (store qb_customer_id)
+- Create QB invoice:
+  Customer: linked to case
+  Line items: one per violation
+    Description: "{violation_type} on {date}"
+    Amount: $0 (lawyer edits in QB)
+    ServiceDate: violation date
+  Memo: "DivorceASE Case #{caseId}"
+- Log to quickbooks_sync_log
+- Return: { invoiceId, invoiceUrl, qbInvoiceNumber }
+
+F. GET /api/quickbooks/expenses?caseId=X&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+Logic:
+- Get current user's QB client
+- Query QB Purchase objects where Memo contains case ID or customer matches case
+- Return: [{ date, vendor, amount, description, qbId }]
+- Cache results for 1 hour
+
+G. POST /api/quickbooks/expense-report
+Body: { caseId, startDate, endDate, format: 'pdf' }
+Logic:
+- Fetch expenses using above endpoint
+- Generate PDF using existing PDF generation logic
+- Return downloadable file
+
+3. Security requirements:
+- Encrypt tokens at rest using crypto.createCipheriv with SECRET_KEY
+- Rate limit: 100 QB API calls per user per day
+- Log all API calls to quickbooks_sync_log
+- Validate all QB webhook signatures
+- Never log decrypted tokens
+- Use parameterized queries only
+
+4. Error handling:
+- Token expired → auto-refresh, retry request
+- QB API error → log to sync_log, return user-friendly message
+- User not connected → return 403 with "Connect QuickBooks in Settings"
+- Rate limit exceeded → return 429 with "Daily QuickBooks limit reached"
+
+FRONTEND IMPLEMENTATION
+
+1. Add to Settings page (Settings/Integrations tab):
+```tsx
+{user.qb_connected ? (
+  <div className="qb-connected">
+    <CheckIcon /> Connected to QuickBooks
+    <p>Company: {user.qb_company_name}</p>
+    <p>Connected: {formatDate(user.qb_connected_at)}</p>
+    <Button onClick={disconnectQB} variant="secondary">Disconnect</Button>
+  </div>
+) : (
+  <div className="qb-not-connected">
+    <p>Connect your QuickBooks account to:</p>
+    <ul>
+      <li>Export violations as invoices</li>
+      <li>Track case expenses</li>
+      <li>Generate expense reports</li>
+    </ul>
+    <Button onClick={connectQB}>Connect QuickBooks</Button>
+  </div>
+)}
+```
+
+2. Add to Case detail page:
+- New "Expenses" tab showing QB expenses for this case
+- [Export Violations to Invoice] button (only if qb_connected)
+- [Generate Expense Report] button
+
+3. Add QuickBooks icon to main nav (only if user.qb_connected)
+
+MODE ISOLATION (CRITICAL)
+- Demo mode: use QB sandbox credentials, separate QB test company
+- Live mode: use production QB credentials, real companies
+- Enforce in getUserQBClient() - check current mode, use correct env vars
+- NEVER mix demo and live QB data
+
+RATE LIMITING & COST CONTROL
+- QB API limits: 500/minute, 10K/day (per app, shared across users)
+- User limits: 100 calls/day per user
+- Track in users table:
+  ALTER TABLE users ADD COLUMN qb_api_calls_today INTEGER DEFAULT 0;
+  ALTER TABLE users ADD COLUMN qb_daily_reset_at DATE;
+- Reset counter daily at midnight UTC
+- Block requests if user exceeds limit
+
+TESTING CHECKLIST
+Run and paste results:
+1. npm run lint
+2. npm run typecheck
+3. Create TWO test users (A and B)
+4. User A connects QB Sandbox Company A
+5. User B connects QB Sandbox Company B
+6. User A creates invoice from violations → verify in Company A
+7. User B creates invoice from violations → verify in Company B
+8. User A tries to fetch User B's expenses → verify 403 error
+9. Check quickbooks_sync_log for all API calls
+10. Verify tokens are encrypted in database (SELECT qb_access_token FROM users; should see gibberish)
+
+WHAT NOT TO BUILD
+❌ Full accounting sync (GL, A/R, A/P)
+❌ Payment processing (Stripe handles that)
+❌ Automatic syncing (manual export only)
+❌ Chart of accounts management
+❌ Bank reconciliation
+❌ Payroll features
+❌ Multi-currency
+❌ Custom QB reports
+❌ Any feature that requires write access beyond invoices/expenses
+
+ACCEPTANCE CRITERIA (FAIL IF ANY FALSE)
+✅ Each user has their own QB connection (no shared tokens)
+✅ User A cannot access User B's QB data
+✅ Tokens encrypted at rest
+✅ Token refresh happens automatically
+✅ Rate limiting enforced (100 calls/user/day)
+✅ All API calls logged
+✅ Demo/Live mode isolation intact
+✅ Only 2 dependencies added (intuit-oauth, node-quickbooks)
+✅ UI shows connection status in Settings
+✅ Invoice creation works end-to-end
+
+DELIVERY
+Show me:
+1. Database migration SQL
+2. API routes structure
+3. Settings page UI mockup
+4. Test results for 2-user isolation test

@@ -1,0 +1,133 @@
+You are the SUPERVISOR ORCHESTRATOR for a multi-phase hardening of this repository.
+
+In this conversation there may be up to three separate “master prompts”:
+
+1) DEMO MASTER PROMPT
+   Title: “MASTER PROMPT — FULL DEMO-RESET REPAIR + HARDENING”
+
+2) LIVE MASTER PROMPT
+   Title: “MASTER PROMPT — FULL LIVE-MODE HARDENING + SCHEDULER/BILLING REPAIR”
+
+3) (Optional) ENVIRONMENT SANITY MASTER PROMPT
+   Title: something like “MASTER PROMPT — ENVIRONMENT SANITY / CONFIG GUARDRAILS”
+   If present, treat it as Phase 3. If not present, skip Phase 3.
+
+Your job is to:
+
+- Discover these master prompts in the earlier text of this conversation.
+- Execute them SEQUENTIALLY against this repository, as three ordered phases:
+  Phase 1: Demo Mode hardening (DEMO MASTER PROMPT)
+  Phase 2: Live / Production hardening (LIVE MASTER PROMPT)
+  Phase 3: Environment sanity / config separation (ENV SANITY MASTER PROMPT), if present
+- For each phase, strictly follow the Steps and output format (Sections A–G) defined by that phase’s master prompt.
+- Maintain a clear, phase-by-phase structure in your outputs.
+
+========================
+GLOBAL SUPERVISOR RULES
+========================
+
+1. DO NOT restate, rewrite, or “improve” the master prompts themselves. Treat them as authoritative specifications.
+2. For each phase, locate the corresponding master prompt text in this conversation and follow its instructions exactly:
+   - Its Steps (Step 1, Step 2, …)
+   - Its Sections (A, B, C, … G) for outputs
+3. Respect output limits:
+   - If you hit a token/output limit, stop at a natural breakpoint.
+   - Wait for the user to respond with “continue”.
+   - When the user says “continue”, resume EXACTLY where you left off, without repeating prior content, and continue that same phase until done.
+4. Do not skip Steps or Sections. If something is not applicable, explicitly say so in that Section.
+5. All changes must be applied to this repository only; do not invent external services or files that do not exist unless the master prompt explicitly instructs you to create new files or migrations.
+
+=================
+PHASE 1 — DEMO
+=================
+
+1. Find the DEMO MASTER PROMPT in this conversation:
+   Title: “MASTER PROMPT — FULL DEMO-RESET REPAIR + HARDENING”.
+
+2. Execute it from Step 1 through its final step, exactly as written:
+   - Perform the global analysis it describes.
+   - Implement the “lazy reset” and any demo reset guards it specifies.
+   - Implement any demo-specific tables, migrations, middleware, endpoints, and APP_MODE protections it specifies.
+   - Ensure demo reset is isolated from live/prod, as per that prompt.
+
+3. For Phase 1, produce the outputs in the structure required by the DEMO MASTER PROMPT:
+   - Section A — Summary of issues for DEMO.
+   - Section B — Files modified.
+   - Section C — New files.
+   - Section D — Migrations.
+   - Section E — Full patch/diffs for all relevant files.
+   - Section F — Test and validation instructions.
+   - Section G — Validation transcript / evidence of checks.
+
+4. If the DEMO MASTER PROMPT defines more or fewer Sections, adhere to its exact list and naming.
+
+5. Complete Phase 1 fully before starting Phase 2. Do not interleave phases.
+
+=================
+PHASE 2 — LIVE
+=================
+
+After Phase 1 is fully completed (including its tests/validation), move to Phase 2.
+
+1. Find the LIVE MASTER PROMPT:
+   Title: “MASTER PROMPT — FULL LIVE-MODE HARDENING + SCHEDULER/BILLING REPAIR”.
+
+2. Execute it from Step 1 through its final step, exactly as written:
+   - Perform the global analysis for live/prod logic, billing, quotas, and schedulers.
+   - Harden and isolate all live-mode features from demo mode.
+   - Implement the centralized live-mode scheduler with proper APP_MODE/CRON_ENABLED guards.
+   - Harden billing, subscription, quota resets, and any audit/evidence chain-of-custody logic as specified.
+   - Ensure that no demo-reset behavior is reachable in APP_MODE=live or equivalent.
+
+3. For Phase 2, produce the outputs in the structure required by the LIVE MASTER PROMPT:
+   - Section A — Summary of live-mode issues.
+   - Section B — Files modified.
+   - Section C — New files.
+   - Section D — Migrations.
+   - Section E — Full patch/diffs.
+   - Section F — Test and validation instructions.
+   - Section G — Validation transcript / evidence of checks.
+
+4. Again, follow exactly whatever Sections and naming the LIVE MASTER PROMPT defines. If they differ slightly from Phase 1, respect that.
+
+5. Complete Phase 2 fully before starting Phase 3.
+
+=============================
+PHASE 3 — ENVIRONMENT SANITY
+=============================
+
+If (and only if) there is an ENVIRONMENT SANITY MASTER PROMPT present in the earlier text of this conversation, treat it as Phase 3. If not present, explicitly state that Phase 3 is skipped.
+
+For Phase 3, you will:
+
+1. Find the environment sanity/config guardrails master prompt.
+2. Execute its instructions fully, from Step 1 to the end, against this repository, focusing on:
+   - Separation and correctness of env vars and configuration for demo / dev / live.
+   - Separate DB URLs / schemas for different modes where specified.
+   - Separate storage buckets / prefixes, JWT secrets, Stripe keys, etc., as specified.
+   - Startup sanity checks that detect misconfigurations and either log loudly or fail fast.
+   - Any additional environment-guard logic that prompt mandates.
+
+3. Produce outputs in the structure that the ENVIRONMENT SANITY MASTER PROMPT defines (again, Sections A–G or its equivalent).
+
+If the environment-sanity prompt is not present, your responsibility for Phase 3 is simply to say:
+   - “Phase 3 (Environment Sanity) skipped because no ENVIRONMENT SANITY MASTER PROMPT was provided in this conversation.”
+
+=======================================
+INTERACTION MODEL / HOW TO HANDLE USER
+=======================================
+
+- Start executing Phase 1 immediately after reading this supervisor prompt and locating the DEMO MASTER PROMPT.
+- When you reach the end of your output limit during any Phase, stop cleanly and wait for the user to type “continue”.
+- When the user types “continue”, resume exactly where you left off in the current Phase.
+- Only move to the next Phase after the current Phase has:
+  - Finished all Steps in its master prompt AND
+  - Produced all required Sections (A–G or equivalent).
+
+- At the very end, after all applicable Phases are complete, produce a short final summary that:
+  - Names which Phases were run (Demo, Live, Environment).
+  - Confirms that APP_MODE isolation, demo reset behavior, live billing/scheduler behavior, and environment configuration are consistent and hardened according to the three master prompts.
+
+Do not deviate from this orchestration role.
+Do not invent additional phases.
+Do not ignore or rewrite any of the master prompts.

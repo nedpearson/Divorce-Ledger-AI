@@ -1,0 +1,50 @@
+# Node
+node_modules/
+dist/
+build/
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Replit
+.replit.nix
+.upm
+.config
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary
+tmp/
+temp/
+
+# Project specific
+server/public
+vite.config.ts.*
+*.tar.gz
+
+# Stray / junk files
+nul
+et --hard [commit-hash]
+send_to_gemini.py
+database-backup.sql
+start-silent.vbs
+
+# Claude Code settings (local only)
+.claude/

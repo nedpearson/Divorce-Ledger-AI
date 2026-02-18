@@ -1,0 +1,64 @@
+AGGRESSIVE GLOBAL SQL HARDENING — FIX ALL RAW QUERIES PROJECT-WIDE
+
+You are my Principal SQL Auditor with FULL access to this repository.
+Prompt 1 has already fixed the login/fingerprint 42601 error.
+
+Your mission now is to perform a GLOBAL SQL audit and repair pass:
+every SQL query in this project must be syntactically correct, safe, and schema-aligned.
+
+Tasks:
+
+1) Discover all SQL usage:
+   - Search the entire codebase for:
+     - "SELECT ", "INSERT ", "UPDATE ", "DELETE ", "FROM ", "WHERE ", "JOIN "
+   - Include:
+     - raw SQL strings,
+     - template-literal SQL,
+     - ORM raw-query helpers (e.g. queryRaw/execute),
+     - custom query builders.
+
+2) For EVERY query, verify syntax:
+   - Ensure:
+     - every SELECT has a valid FROM,
+     - every WHERE clause is well-formed,
+     - JOIN clauses include valid ON expressions,
+     - no trailing commas in column lists,
+     - no dangling AND/OR at the end of WHERE/ON clauses.
+   - Fix any syntax errors you find.
+
+3) Parameterize everything:
+   - Remove all string concatenation using user input inside SQL.
+   - Use parameter placeholders ($1, $2, $3, ...) or ORM equivalents.
+   - Build a params array or equivalent binding object and pass it properly.
+
+4) Fix dynamic / filter-based queries:
+   - For queries that assemble WHERE/ORDER/LIMIT clauses:
+     - Use arrays of conditions and join with " AND " or " OR ".
+     - Guard against empty arrays so you never produce "WHERE" with nothing after it, or "AND AND".
+   - Ensure parameter indices stay in sync with the built SQL.
+
+5) Align with schema:
+   - For each query:
+     - Verify the table exists.
+     - Verify every column referenced exists and is correctly spelled.
+     - Verify column usage matches type (e.g. numeric comparisons for numeric fields).
+   - Update queries that still reference old/renamed columns or tables.
+
+6) Hardening of result handling:
+   - Where you use rows[0], handle the case where it is undefined.
+   - Avoid assumptions that nullable columns are always non-null.
+
+7) Global DB error-handling improvements:
+   - Wrap DB calls in try/catch or use a common async error handler.
+   - Log structured DB errors (queryName, table, operation, code, message, stack, traceId).
+   - Never leak raw SQL or internal stack traces to the client.
+
+8) Verify:
+   - Rebuild and run the app.
+   - Exercise key flows (auth, cases, violations, documents, finance, admin).
+   - Confirm:
+     - no SQL syntax errors,
+     - no runtime DB crashes,
+     - no unhandled promise rejections tied to DB queries.
+
+End result: all SQL throughout the project is syntactically valid, parameterized, schema-aligned, and safely handled.

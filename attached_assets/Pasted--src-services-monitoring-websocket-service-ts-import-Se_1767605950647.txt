@@ -1,0 +1,71 @@
+// src/services/monitoring/websocket.service.ts
+
+import { Server as SocketIOServer, Socket } from 'socket.io';
+import { Server as HTTPServer } from 'http';
+import { DashboardService, DashboardMetrics } from './dashboard.service';
+
+export class WebSocketService {
+  private io: SocketIOServer;
+  private dashboardService: DashboardService;
+  private connectedClients: Set<string> = new Set();
+
+  constructor(httpServer: HTTPServer, dashboardService: DashboardService) {
+    this.io = new SocketIOServer(httpServer, {
+      cors: {
+        origin: process.env.DASHBOARD_URL || 'http://localhost:3000',
+        methods: ['GET', 'POST'],
+      },
+    });
+
+    this.dashboardService = dashboardService;
+  }
+
+  initialize(): void {
+    // Connection handler
+    this.io.on('connection', (socket: Socket) => {
+      console.log(`✅ Dashboard client connected: ${socket.id}`);
+      this.connectedClients.add(socket.id);
+
+      // Send initial metrics
+      socket.emit('metrics:initial', this.dashboardService.getMetrics());
+
+      // Subscribe to metric updates
+      this.dashboardService.on('metrics:updated', (metrics: DashboardMetrics) => {
+        socket.emit('metrics:update', metrics);
+      });
+
+      // Handle disconnection
+      socket.on('disconnect', () => {
+        console.log(`❌ Dashboard client disconnected: ${socket.id}`);
+        this.connectedClients.delete(socket.id);
+      });
+
+      // Handle dashboard actions (e.g., manual refresh)
+      socket.on('action:refresh', async () => {
+        socket.emit('metrics:update', this.dashboardService.getMetrics());
+      });
+
+      // Handle drill-down requests
+      socket.on('action:drill-down', async (metric: string) => {
+        const details = await this.getDrillDownData(metric);
+        socket.emit('data:drill-down', { metric, details });
+      });
+    });
+
+    console.log(`🔌 WebSocket server initialized`);
+  }
+
+  private async getDrillDownData(metric: string): Promise<any> {
+    // Implement drill-down for specific metrics
+    // This would fetch detailed data for visualization
+    return {};
+  }
+
+  broadcast(event: string, data: any): void {
+    this.io.emit(event, data);
+  }
+
+  getConnectedClients(): number {
+    return this.connectedClients.size;
+  }
+}

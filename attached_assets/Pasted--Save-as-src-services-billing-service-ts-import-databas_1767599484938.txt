@@ -1,0 +1,254 @@
+// Save as: src/services/billing.service.ts
+
+import { databaseService } from './database.service';
+import { logger } from '../utils/logger';
+
+export interface BillingRecord {
+  id: string;
+  user_id: number;
+  tier: string;
+  period_start: Date;
+  period_end: Date;
+  violations_recorded: number;
+  storage_used_mb: number;
+  amount_cents: number; // Stripe amount in cents
+  status: 'pending' | 'charged' | 'failed' | 'refunded';
+  stripe_invoice_id?: string;
+  created_at: Date;
+}
+
+export interface TierPricingConfig {
+  tier: string;
+  monthly_base_price_cents: number;
+  overage_charge_per_violation_cents: number; // Charge extra if violations exceed limit
+  overage_charge_per_gb_cents: number; // Charge extra if storage exceeds limit
+}
+
+const TIER_PRICING: Record<string, TierPricingConfig> = {
+  free: {
+    tier: 'free',
+    monthly_base_price_cents: 0,
+    overage_charge_per_violation_cents: 0,
+    overage_charge_per_gb_cents: 0,
+  },
+  individual: {
+    tier: 'individual',
+    monthly_base_price_cents: 1200, // $12/month
+    overage_charge_per_violation_cents: 50, // $0.50 per violation over 20/month
+    overage_charge_per_gb_cents: 100, // $1 per GB over 500MB
+  },
+  pro: {
+    tier: 'pro',
+    monthly_base_price_cents: 4900, // $49/month
+    overage_charge_per_violation_cents: 25, // $0.25 per violation over 50/month
+    overage_charge_per_gb_cents: 50, // $0.50 per GB over 2GB
+  },
+  team: {
+    tier: 'team',
+    monthly_base_price_cents: 14900, // $149/month
+    overage_charge_per_violation_cents: 0, // Unlimited
+    overage_charge_per_gb_cents: 0, // Unlimited
+  },
+  enterprise: {
+    tier: 'enterprise',
+    monthly_base_price_cents: 39900, // $399/month
+    overage_charge_per_violation_cents: 0, // Unlimited
+    overage_charge_per_gb_cents: 0, // Unlimited
+  },
+};
+
+export class BillingService {
+  /**
+   * Calculate monthly billing for a user
+   */
+  async calculateMonthlyBilling(userId: number, month: Date = new Date()): Promise<BillingRecord> {
+    try {
+      const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
+      const endOfMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+
+      // Get user tier
+      const userResult = await databaseService.query(
+        `SELECT id, tier FROM users WHERE id = $1`,
+        [userId]
+      );
+
+      if (!userResult.rows[0]) {
+        throw new Error(`User ${userId} not found`);
+      }
+
+      const userTier = userResult.rows[0].tier;
+      const pricing = TIER_PRICING[userTier];
+
+      // Get violations count for month
+      const violationsResult = await databaseService.query(
+        `SELECT COUNT(*) as count FROM violations v
+         JOIN cases c ON v.case_id = c.id
+         WHERE c.lawyer_id = $1
+         AND DATE_TRUNC('month', v.created_at) = DATE_TRUNC('month', $2)`,
+        [userId, month]
+      );
+
+      const violationsCount = parseInt(violationsResult.rows[0].count) || 0;
+
+      // Get storage used for month
+      const storageResult = await databaseService.query(
+        `SELECT SUM(e.file_size_bytes) / (1024*1024*1024) as storage_gb
+         FROM evidence e
+         JOIN violations v ON e.violation_id = v.id
+         JOIN cases c ON v.case_id = c.id
+         WHERE c.lawyer_id = $1
+         AND DATE_TRUNC('month', e.created_at) = DATE_TRUNC('month', $2)
+         AND e.evidence_source = 'media_upload'`,
+        [userId, month]
+      );
+
+      const storageGB = parseFloat(storageResult.rows[0].storage_gb) || 0;
+      const storageMB = storageGB * 1024;
+
+      // Calculate charges
+      let totalChargeCents = pricing.monthly_base_price_cents;
+
+      // Add overage charges (if tier has limits)
+      if (userTier === 'individual' || userTier === 'pro') {
+        const tierLimits =
+          userTier === 'individual'
+            ? { violations: 20, storage: 500 }
+            : { violations: 50, storage: 2048 };
+
+        if (violationsCount > tierLimits.violations) {
+          const overageViolations = violationsCount - tierLimits.violations;
+          totalChargeCents += overageViolations * pricing.overage_charge_per_violation_cents;
+        }
+
+        if (storageMB > tierLimits.storage) {
+          const overageGB = (storageMB - tierLimits.storage) / 1024;
+          totalChargeCents += Math.ceil(overageGB) * pricing.overage_charge_per_gb_cents;
+        }
+      }
+
+      const billingRecord: BillingRecord = {
+        id: \`billing_\${userId}_\${month.getFullYear()}-\${String(month.getMonth() + 1).padStart(2, '0')}\`,
+        user_id: userId,
+        tier: userTier,
+        period_start: startOfMonth,
+        period_end: endOfMonth,
+        violations_recorded: violationsCount,
+        storage_used_mb: storageMB,
+        amount_cents: totalChargeCents,
+        status: 'pending',
+        created_at: new Date(),
+      };
+
+      return billingRecord;
+    } catch (error) {
+      logger.error('Billing calculation failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save billing record to database
+   */
+  async saveBillingRecord(record: BillingRecord): Promise<void> {
+    try {
+      await databaseService.query(
+        \`INSERT INTO billing_records (
+          id, user_id, tier, period_start, period_end, violations_recorded,
+          storage_used_mb, amount_cents, status, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+        ON CONFLICT (id) DO UPDATE SET
+          amount_cents = $8,
+          status = $9\`,
+        [
+          record.id,
+          record.user_id,
+          record.tier,
+          record.period_start,
+          record.period_end,
+          record.violations_recorded,
+          record.storage_used_mb,
+          record.amount_cents,
+          record.status,
+        ]
+      );
+
+      logger.info(\`💳 Billing record saved: \${record.id}\`);
+    } catch (error) {
+      logger.error('Failed to save billing record', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get billing history for user
+   */
+  async getBillingHistory(userId: number, months: number = 12): Promise<BillingRecord[]> {
+    try {
+      const result = await databaseService.query(
+        \`SELECT * FROM billing_records
+         WHERE user_id = $1
+         ORDER BY period_start DESC
+         LIMIT $2\`,
+        [userId, months]
+      );
+
+      return result.rows;
+    } catch (error) {
+      logger.error('Failed to get billing history', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process all monthly billings (run on 1st of month)
+   */
+  async processMonthlyBillings(): Promise<{ processed: number; failed: number }> {
+    try {
+      const lastMonth = new Date();
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+      logger.info('📅 Starting monthly billing process...');
+
+      // Get all active users
+      const usersResult = await databaseService.query(
+        \`SELECT id FROM users WHERE status = 'active'\`
+      );
+
+      let processed = 0;
+      let failed = 0;
+
+      for (const user of usersResult.rows) {
+        try {
+          const billing = await this.calculateMonthlyBilling(user.id, lastMonth);
+          await this.saveBillingRecord(billing);
+          processed++;
+        } catch (error) {
+          logger.error(\`Failed to bill user \${user.id}\`, error);
+          failed++;
+        }
+      }
+
+      logger.info(\`✅ Monthly billing complete: \${processed} processed, \${failed} failed\`);
+      return { processed, failed };
+    } catch (error) {
+      logger.error('Monthly billing process failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get pricing for tier
+   */
+  static getPricing(tier: string): TierPricingConfig {
+    return TIER_PRICING[tier] || TIER_PRICING.free;
+  }
+
+  /**
+   * Format price for display
+   */
+  static formatPrice(cents: number): string {
+    return \`$\${(cents / 100).toFixed(2)}\`;
+  }
+}
+
+export const billingService = new BillingService();

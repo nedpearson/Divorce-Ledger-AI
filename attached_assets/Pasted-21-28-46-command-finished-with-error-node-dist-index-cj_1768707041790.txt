@@ -1,0 +1,214 @@
+21:28:46
+command finished with error [node ./dist/index.cjs]: signal: terminated
+01-17 21:28:46
+main done, exiting
+Wrap
+Colors
+Security Scanner
+Security and Privacy Scanner
+Beta
+Run a scan to check for potential security risks and privacy leaks in your application. Scans are typically complete within minutes. Learn more
+No vulnerabilities found.
+Ready to deploy?
+Last ran on
+ 
+9:24 pm, Jan 17, 2026
+Security
+Detected user input used to manually construct a SQL string. This is usually bad practice because manual construction could accidentally result in a SQL injection. An attacker could use a SQL injection to steal or modify contents of the database. Instead, use a parameterized query which is available by default in most database engines. Alternatively, consider using an object-relational mapper (ORM) such as Sequelize which will protect your queries.
+Vulnerability scans are enabled by the following Replit partners:
+Security scans are powered by Semgrep Community Edition.
+Privacy scans are powered by HoundDog.ai.
+Security scanning powered by Semgrep and privacy scanning powered by HoundDog.ai , both running locally on Replit infrastructure. No code or data is transmitted to any third party, including Semgrep or HoundDog.ai.
+ai-capture.service.ts
+import { GoogleGenAI } from "@google/genai";
+  fileName: string
+): Promise<CaptureAnalysisResult> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "user",
+          content: `You are a legal document analyst for divorce proceedings. Analyze this document content and categorize it.
+
+Document Name: ${fileName}
+Content: ${text.slice(0, 2000)}
+
+Provide a JSON response with:
+1. "title": A descriptive title for this document (max 50 chars)
+2. "category": One of: ${DOCUMENT_CATEGORIES.join(", ")}
+3. "extractedText": A summary of the key points (max 500 chars)
+4. "suggestedLink": Where this should be linked - one of: "finances", "timeline", "case", "evidence"
+5. "confidence": Your confidence from 0.0 to 1.0
+
+Respond ONLY with valid JSON.`,
+        },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 500,
+    });
+
+    const content = response.choices[0]?.message?.content || "{}";
+    const result = JSON.parse(content);
+
+    return {
+      title: result.title || fileName.replace(/\.[^/.]+$/, ""),
+      category: DOCUMENT_CATEGORIES.includes(result.category) ? result.category : "other",
+      extractedText: result.extractedText || text.slice(0, 500),
+      suggestedLink: result.suggestedLink || "case",
+      confidence: Math.max(0, Math.min(1, parseFloat(result.confidence) || 0.7)),
+    };
+  } catch (error) {
+    console.error("Document text analysis failed:", error);
+    return {
+      title: fileName.replace(/\.[^/.]+$/, ""),
+      category: "other",
+      extractedText: text.slice(0, 500),
+      suggestedLink: "case",
+      confidence: 0,
+    };
+  }
+}
+
+Diff: intake-orchestrator.service.ts
+server/services/intake-orchestrator.service.ts
+-70
++0
+    errors: traceValidation.errors,
+    warnings: traceValidation.warnings
+  };
+}
+  
+  // Enforce source_trace for all normalized numeric fields
+  const numericFields = [
+    { field: 'amounts.total_amount_normalized', value: validated.amounts.total_amount_normalized },
+    { field: 'amounts.subtotal_normalized', value: validated.amounts.subtotal_normalized },
+    { field: 'amounts.tax_normalized', value: validated.amounts.tax_normalized },
+    { field: 'amounts.fees_normalized', value: validated.amounts.fees_normalized },
+    { field: 'amounts.interest_normalized', value: validated.amounts.interest_normalized },
+    { field: 'amounts.payment_amount_normalized', value: validated.amounts.payment_amount_normalized },
+    { field: 'amounts.balance_before_normalized', value: validated.amounts.balance_before_normalized },
+    { field: 'amounts.balance_after_normalized', value: validated.amounts.balance_after_normalized }
+  ];
+  
+  for (const { field, value } of numericFields) {
+    if (value !== null && value !== undefined) {
+      const hasTrace = validated.source_trace.some(
+        st => st.field.includes(field) || st.field.includes(field.split('.').pop()!)
+      );
+      if (!hasTrace) {
+        errors.push(`Normalized field '${field}' has value ${value} but no source_trace entry - traceability violation`);
+      }
+    }
+  }
+  
+  // Enforce source_trace for classification
+  const hasClassificationTrace = validated.source_trace.some(
+    st => st.field.includes('classification') || st.field.includes('category') || st.field.includes('doc_type')
+  );
+  if (!hasClassificationTrace && validated.confidence.overall < 0.7) {
+    errors.push("Classification has no source_trace and confidence is below 0.7 - traceability violation");
+  } else if (!hasClassificationTrace) {
+    warnings.push("Classification has no source_trace - based on inference only");
+  }
+  
+  // Verify ledger_actions_proposed reference existing amounts/categories
+  for (let i = 0; i < validated.ledger_actions_proposed.length; i++) {
+    const action = validated.ledger_actions_proposed[i];
+    if (action.action_type === "ADD_TRANSACTION" && action.transaction) {
+      const suggestedAmount = action.transaction.suggested_amount;
+      
+      // Check if suggested amount matches any known amount in the document
+      if (suggestedAmount !== null && suggestedAmount !== undefined) {
+        const knownAmounts = [
+          validated.amounts.total_amount_normalized,
+          validated.amounts.subtotal_normalized,
+          validated.amounts.payment_amount_normalized,
+          ...validated.line_items.map(li => li.line_total_normalized)
+        ].filter(a => a !== null && a !== undefined);
+        
+        const matchesKnown = knownAmounts.some(a => Math.abs(a! - suggestedAmount) < 0.01);
+        if (!matchesKnown && knownAmounts.length > 0) {
+          warnings.push(`Ledger action ${i} proposes amount ${suggestedAmount} which doesn't match any extracted amount`);
+        }
+      }
+      
+      // Check if category is reasonable
+      const suggestedCategory = action.transaction.suggested_category;
+      if (suggestedCategory && suggestedCategory !== validated.classifications.primary_category) {
+        warnings.push(`Ledger action ${i} uses category '${suggestedCategory}' which differs from document classification '${validated.classifications.primary_category}'`);
+      }
+    }
+  }
+  
+  // Low confidence warnings
+  if (validated.confidence.overall < 0.5) {
+    warnings.push(`Overall confidence ${validated.confidence.overall.toFixed(2)} is below threshold`);
+  }
+  
+  return { valid: errors.length === 0, errors, warnings };
+}
+// ==================== ORCHESTRATOR MAIN FUNCTION (PLANNING ONLY) ====================
+document-intake.service.ts
+import OpenAI from "openai";
+import { z } from "zod";
+import type { DocumentCategory } from "@shared/schema";
+
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
+
+// ==================== CANONICAL ZOD SCHEMAS (Single Source of Truth) ====================
+
+export const sourceTraceSchema = z.object({
+  field: z.string(),
+  evidence_snippet: z.string(),
+  approx_page: z.number(),
+  comment: z.string()
+});
+
+export const ledgerActionSchema = z.object({
+  action_type: z.enum(["ADD_TRANSACTION", "UPDATE_TRANSACTION", "NO_LEDGER_ACTION"]),
+  reason: z.string(),
+  transaction: z.object({
+    suggested_date: z.string().nullable(),
+    suggested_amount: z.number().nullable(),
+    suggested_currency: z.string(),
+    suggested_category: z.string(),
+    suggested_sub_category: z.string(),
+    suggested_account: z.string().nullable(),
+    suggested_counterparty: z.string().nullable(),
+    notes_for_user: z.string()
+  })
+});
+
+export const documentIntakeResultSchema = z.object({
+  doc_type: z.string(),
+  doc_language: z.string(),
+  summary: z.string(),
+  parties: z.object({
+    payer_name: z.string().nullable(),
+    payee_name: z.string().nullable(),
+    issuer_name: z.string().nullable(),
+    account_holder: z.string().nullable(),
+    other_parties: z.array(z.object({ role: z.string(), name: z.string() }))
+  }),
+  amounts: z.object({
+Diff: document-intake.service.ts
+server/services/document-intake.service.ts
+-2
++3
+    }
+  }
+  
+  // Check transaction_dates normalized fields - REQUIRED
+  result.dates.transaction_dates.forEach((txDate, idx) => {
+  // Check transaction_dates normalized fields - REQUIRED (handle missing/empty array)
+  const transactionDates = result.dates?.transaction_dates ?? [];
+  transactionDates.forEach((txDate, idx) => {
+    const txDatePath = `dates.transaction_dates[${idx}].normalized`;
+    if (txDate.normalized !== null && !hasExactTrace(txDatePath)) {
+      errors.push(`TRACEABILITY VIOLATION: Missing source_trace for '${txDatePath}' with value ${txDate.normalized}`);
+Publishing
+Publish a live, stable, public version of your App, unaffected by the changes you make in the workspace.

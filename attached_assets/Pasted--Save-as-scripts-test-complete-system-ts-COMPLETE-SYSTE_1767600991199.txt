@@ -1,0 +1,522 @@
+// Save as: scripts/test-complete-system.ts
+/**
+ * COMPLETE SYSTEM VALIDATION
+ * Tests: Billing → Tier Enforcement → Analytics
+ */
+
+import { databaseService } from '../src/services/database.service';
+import { tierEnforcementService } from '../src/services/tier-enforcement.service';
+import { billingService } from '../src/services/billing.service';
+import { tierMigrationService } from '../src/services/tier-migration.service';
+import { quotaResetService } from '../src/services/quota-reset.service';
+import { analyticsService } from '../src/services/analytics.service';
+import { logger } from '../src/utils/logger';
+
+interface TestResult {
+  name: string;
+  passed: boolean;
+  duration: number;
+  error?: string;
+}
+
+class SystemValidator {
+  private results: TestResult[] = [];
+  private testUser: { id: number; email: string } = { id: 0, email: '' };
+
+  /**
+   * PHASE 1: Setup Test Data
+   */
+  async setupTestData(): Promise<void> {
+    logger.info('\n🔧 PHASE 1: Setting up test data...\n');
+
+    try {
+      // Create test user
+      const userResult = await databaseService.query(
+        `INSERT INTO users (email, tier, status, violations_count_this_month)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (email) DO UPDATE SET tier = $2
+         RETURNING id, email`,
+        ['test-system@example.com', 'individual', 'active', 0]
+      );
+
+      this.testUser = userResult.rows[0];
+      logger.info(`✅ Test user created: ${this.testUser.email} (ID: ${this.testUser.id})`);
+
+      // Create test cases
+      const caseResult = await databaseService.query(
+        `INSERT INTO cases (lawyer_id, case_name, case_type)
+         VALUES ($1, $2, $3)
+         RETURNING id`,
+        [this.testUser.id, 'System Test Case', 'Civil']
+      );
+
+      const caseId = caseResult.rows[0].id;
+      logger.info(`✅ Test case created: ${caseId}`);
+
+      // Create test violations
+      for (let i = 0; i < 15; i++) {
+        await databaseService.query(
+          `INSERT INTO violations (case_id, violation_type, severity)
+           VALUES ($1, $2, $3)`,
+          [caseId, 'Rule ' + (i + 1), 'medium']
+        );
+      }
+
+      logger.info(`✅ Created 15 test violations`);
+    } catch (error) {
+      logger.error('Setup failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * TEST 1: Tier Enforcement
+   */
+  async testTierEnforcement(): Promise<void> {
+    const start = Date.now();
+    logger.info('\n📋 TEST 1: Tier Enforcement\n');
+
+    try {
+      // Individual tier: 20 violation limit
+      const check1 = await tierEnforcementService.checkViolationLimit(this.testUser.id, 'individual');
+      
+      if (!check1.isAllowed && check1.violations >= 20) {
+        this.addResult('Violation Limit Check (Individual)', true, Date.now() - start);
+      } else {
+        this.addResult('Violation Limit Check (Individual)', false, Date.now() - start);
+      }
+
+      // Check storage limit
+      const check2 = await tierEnforcementService.checkStorageLimit(this.testUser.id, 'individual');
+      
+      if (check2.isAllowed || !check2.isAllowed) {
+        this.addResult('Storage Limit Check', true, Date.now() - start);
+      }
+
+      // Verify recommendation logic
+      const recommendation = await tierEnforcementService.recommendTier(this.testUser.id);
+      
+      if (recommendation.recommendedTier) {
+        this.addResult('Tier Recommendation', true, Date.now() - start);
+        logger.info(`   💡 Recommended tier: ${recommendation.recommendedTier}`);
+      }
+    } catch (error) {
+      this.addResult('Tier Enforcement', false, Date.now() - start, error as Error);
+    }
+  }
+
+  /**
+   * TEST 2: Usage Audit Logging
+   */
+  async testUsageAuditLogging(): Promise<void> {
+    const start = Date.now();
+    logger.info('\n📊 TEST 2: Usage Audit Logging\n');
+
+    try {
+      // Get audit records
+      const auditResult = await databaseService.query(
+        `SELECT * FROM usage_audit WHERE user_id = $1 ORDER BY recorded_at DESC LIMIT 1`,
+        [this.testUser.id]
+      );
+
+      if (auditResult.rows.length > 0) {
+        const audit = auditResult.rows[0];
+        this.addResult('Usage Audit Record Created', true, Date.now() - start);
+        logger.info(`   📝 Latest audit: ${audit.recorded_at}`);
+        logger.info(`   Violations: ${audit.violations} | Storage: ${audit.storage}MB`);
+      } else {
+        this.addResult('Usage Audit Record Created', false, Date.now() - start);
+      }
+    } catch (error) {
+      this.addResult('Usage Audit Logging', false, Date.now() - start, error as Error);
+    }
+  }
+
+  /**
+   * TEST 3: Billing Calculation
+   */
+  async testBillingCalculation(): Promise<void> {
+    const start = Date.now();
+    logger.info('\n💳 TEST 3: Billing Calculation\n');
+
+    try {
+      // Calculate this month's billing
+      const billing = await billingService.calculateMonthlyBilling(this.testUser.id);
+
+      if (billing.amount_cents > 0) {
+        this.addResult('Billing Calculation', true, Date.now() - start);
+        logger.info(`   Tier: ${billing.tier}`);
+        logger.info(`   Violations: ${billing.violations_recorded}`);
+        logger.info(`   Storage: ${billing.storage_used_mb}MB`);
+        logger.info(`   Amount: ${billingService.formatPrice(billing.amount_cents)}`);
+      } else {
+        this.addResult('Billing Calculation', false, Date.now() - start);
+      }
+
+      // Save billing record
+      await billingService.saveBillingRecord(billing);
+      this.addResult('Billing Record Persistence', true, Date.now() - start);
+
+      // Retrieve billing history
+      const history = await billingService.getBillingHistory(this.testUser.id, 1);
+      
+      if (history.length > 0) {
+        this.addResult('Billing History Retrieval', true, Date.now() - start);
+      }
+    } catch (error) {
+      this.addResult('Billing Calculation', false, Date.now() - start, error as Error);
+    }
+  }
+
+  /**
+   * TEST 4: Tier Migration
+   */
+  async testTierMigration(): Promise<void> {
+    const start = Date.now();
+    logger.info('\n⬆️  TEST 4: Tier Migration\n');
+
+    try {
+      // Schedule migration with grace period
+      const migration = await tierMigrationService.migrateTier(
+        this.testUser.id,
+        'pro',
+        'Test migration',
+        7 // 7-day grace period
+      );
+
+      if (migration.status === 'pending') {
+        this.addResult('Tier Migration Scheduled', true, Date.now() - start);
+        logger.info(`   ${migration.from_tier} → ${migration.to_tier}`);
+        logger.info(`   Grace period: ${migration.grace_period_days} days`);
+      }
+
+      // Get active migration
+      const activeMigration = await tierMigrationService.getActiveMigration(this.testUser.id);
+      
+      if (activeMigration) {
+        this.addResult('Active Migration Retrieval', true, Date.now() - start);
+      }
+
+      // Cancel migration
+      if (migration.id) {
+        await tierMigrationService.cancelMigration(migration.id);
+        this.addResult('Migration Cancellation', true, Date.now() - start);
+      }
+    } catch (error) {
+      this.addResult('Tier Migration', false, Date.now() - start, error as Error);
+    }
+  }
+
+  /**
+   * TEST 5: Quota Reset
+   */
+  async testQuotaReset(): Promise<void> {
+    const start = Date.now();
+    logger.info('\n🔄 TEST 5: Quota Reset\n');
+
+    try {
+      // Get days until reset
+      const daysUntil = quotaResetService.daysUntilReset();
+      this.addResult('Next Reset Calculation', true, Date.now() - start);
+      logger.info(`   Days until next reset: ${daysUntil}`);
+
+      // Simulate quota reset for this user
+      const beforeReset = await databaseService.query(
+        `SELECT violations_count_this_month FROM users WHERE id = $1`,
+        [this.testUser.id]
+      );
+
+      logger.info(`   Violations before reset: ${beforeReset.rows[0].violations_count_this_month}`);
+
+      // Get reset history
+      const history = await quotaResetService.getResetHistory(this.testUser.id);
+      
+      if (Array.isArray(history)) {
+        this.addResult('Quota Reset History', true, Date.now() - start);
+      }
+    } catch (error) {
+      this.addResult('Quota Reset', false, Date.now() - start, error as Error);
+    }
+  }
+
+  /**
+   * TEST 6: Analytics
+   */
+  async testAnalytics(): Promise<void> {
+    const start = Date.now();
+    logger.info('\n📈 TEST 6: Analytics\n');
+
+    try {
+      // Platform metrics
+      const metrics = await analyticsService.getPlatformMetrics();
+      
+      if (metrics.total_users > 0) {
+        this.addResult('Platform Metrics', true, Date.now() - start);
+        logger.info(`   Total users: ${metrics.total_users}`);
+        logger.info(`   Active users: ${metrics.active_users}`);
+        logger.info(`   Revenue this month: ${billingService.formatPrice(metrics.revenue_this_month_cents)}`);
+      }
+
+      // Cohort analysis
+      const cohorts = await analyticsService.getCohortAnalysis(3);
+      
+      if (cohorts.length > 0) {
+        this.addResult('Cohort Analysis', true, Date.now() - start);
+        logger.info(`   Analyzed ${cohorts.length} cohorts`);
+      }
+
+      // Usage trends
+      const trends = await analyticsService.getUsageTrends(30);
+      
+      if (trends.length > 0) {
+        this.addResult('Usage Trends', true, Date.now() - start);
+        logger.info(`   Tracked ${trends.length} days of usage`);
+      }
+
+      // Revenue by tier
+      const revenue = await analyticsService.getRevenueByTier();
+      
+      if (revenue.length > 0) {
+        this.addResult('Revenue by Tier', true, Date.now() - start);
+        revenue.forEach((tier) => {
+          logger.info(`   ${tier.tier}: ${billingService.formatPrice(tier.total_revenue_cents)}`);
+        });
+      }
+    } catch (error) {
+      this.addResult('Analytics', false, Date.now() - start, error as Error);
+    }
+  }
+
+  /**
+   * TEST 7: Data Consistency Checks
+   */
+  async testDataConsistency(): Promise<void> {
+    const start = Date.now();
+    logger.info('\n🔍 TEST 7: Data Consistency Checks\n');
+
+    try {
+      // Check 1: Users without billing records
+      const noBillingResult = await databaseService.query(
+        `SELECT COUNT(*) as count FROM users u
+         WHERE u.status = 'active' 
+         AND u.id NOT IN (SELECT DISTINCT user_id FROM billing_records)
+         AND u.created_at < NOW() - INTERVAL '1 day'`
+      );
+
+      const noBillingCount = parseInt(noBillingResult.rows[0].count);
+      
+      if (noBillingCount === 0) {
+        this.addResult('Billing Records Coverage', true, Date.now() - start);
+      } else {
+        logger.warn(`   ⚠️  ${noBillingCount} users missing billing records`);
+        this.addResult('Billing Records Coverage', noBillingCount < 5, Date.now() - start);
+      }
+
+      // Check 2: Orphaned violations (case deleted but violation remains)
+      const orphanedResult = await databaseService.query(
+        `SELECT COUNT(*) as count FROM violations v
+         WHERE v.case_id NOT IN (SELECT id FROM cases)`
+      );
+
+      const orphanedCount = parseInt(orphanedResult.rows[0].count);
+      
+      if (orphanedCount === 0) {
+        this.addResult('Data Referential Integrity', true, Date.now() - start);
+      } else {
+        logger.warn(`   ⚠️  ${orphanedCount} orphaned violations detected`);
+      }
+
+      // Check 3: Usage audit coverage
+      const auditGapResult = await databaseService.query(
+        `SELECT COUNT(*) as count FROM users u
+         WHERE u.status = 'active'
+         AND u.id NOT IN (SELECT DISTINCT user_id FROM usage_audit WHERE recorded_at > NOW() - INTERVAL '24 hours')`
+      );
+
+      const auditGapCount = parseInt(auditGapResult.rows[0].count);
+      
+      if (auditGapCount === 0) {
+        this.addResult('Usage Audit Coverage (24h)', true, Date.now() - start);
+      }
+
+      // Check 4: Billing amount validation
+      const invalidAmountResult = await databaseService.query(
+        `SELECT COUNT(*) as count FROM billing_records
+         WHERE amount_cents < 0 OR amount_cents > 999900` // > $9,999
+      );
+
+      const invalidCount = parseInt(invalidAmountResult.rows[0].count);
+      
+      if (invalidCount === 0) {
+        this.addResult('Billing Amount Validation', true, Date.now() - start);
+      }
+    } catch (error) {
+      this.addResult('Data Consistency Checks', false, Date.now() - start, error as Error);
+    }
+  }
+
+  /**
+   * TEST 8: Performance Benchmarks
+   */
+  async testPerformance(): Promise<void> {
+    const start = Date.now();
+    logger.info('\n⚡ TEST 8: Performance Benchmarks\n');
+
+    try {
+      // Benchmark 1: Tier enforcement check
+      const tierStart = Date.now();
+      await tierEnforcementService.checkViolationLimit(this.testUser.id, 'individual');
+      const tierDuration = Date.now() - tierStart;
+      
+      if (tierDuration < 200) {
+        this.addResult('Tier Check Performance (<200ms)', true, tierDuration);
+        logger.info(`   ✅ Tier enforcement: ${tierDuration}ms`);
+      } else {
+        this.addResult('Tier Check Performance (<200ms)', false, tierDuration);
+        logger.warn(`   ⚠️  Tier enforcement: ${tierDuration}ms (slow!)`);
+      }
+
+      // Benchmark 2: Billing calculation
+      const billingStart = Date.now();
+      await billingService.calculateMonthlyBilling(this.testUser.id);
+      const billingDuration = Date.now() - billingStart;
+      
+      if (billingDuration < 300) {
+        this.addResult('Billing Calculation Performance (<300ms)', true, billingDuration);
+        logger.info(`   ✅ Billing calculation: ${billingDuration}ms`);
+      }
+
+      // Benchmark 3: Analytics query
+      const analyticsStart = Date.now();
+      await analyticsService.getPlatformMetrics();
+      const analyticsDuration = Date.now() - analyticsStart;
+      
+      if (analyticsDuration < 500) {
+        this.addResult('Analytics Query Performance (<500ms)', true, analyticsDuration);
+        logger.info(`   ✅ Platform metrics: ${analyticsDuration}ms`);
+      }
+    } catch (error) {
+      this.addResult('Performance Benchmarks', false, Date.now() - start, error as Error);
+    }
+  }
+
+  /**
+   * TEST 9: End-to-End Workflow
+   */
+  async testEndToEndWorkflow(): Promise<void> {
+    const start = Date.now();
+    logger.info('\n🔗 TEST 9: End-to-End Workflow\n');
+
+    try {
+      logger.info('   1️⃣  Uploading evidence...');
+      // Simulated in tier enforcement
+
+      logger.info('   2️⃣  Checking tier limits...');
+      const enforcement = await tierEnforcementService.checkViolationLimit(
+        this.testUser.id,
+        'individual'
+      );
+
+      logger.info('   3️⃣  Logging usage...');
+      // Verified in audit test
+
+      logger.info('   4️⃣  Calculating billing...');
+      const billing = await billingService.calculateMonthlyBilling(this.testUser.id);
+
+      logger.info('   5️⃣  Saving billing record...');
+      await billingService.saveBillingRecord(billing);
+
+      logger.info('   6️⃣  Checking analytics...');
+      await analyticsService.getPlatformMetrics();
+
+      logger.info('   7️⃣  Validating data...');
+      // Verified in consistency test
+
+      if (billing.amount_cents >= 0) {
+        this.addResult('End-to-End Workflow', true, Date.now() - start);
+      }
+    } catch (error) {
+      this.addResult('End-to-End Workflow', false, Date.now() - start, error as Error);
+    }
+  }
+
+  /**
+   * Helper: Add test result
+   */
+  private addResult(name: string, passed: boolean, duration: number, error?: Error): void {
+    this.results.push({
+      name,
+      passed,
+      duration,
+      error: error?.message,
+    });
+  }
+
+  /**
+   * Print summary report
+   */
+  private printReport(): void {
+    logger.info('\n' + '='.repeat(70));
+    logger.info('✅ TEST SUMMARY');
+    logger.info('='.repeat(70) + '\n');
+
+    const passed = this.results.filter((r) => r.passed).length;
+    const total = this.results.length;
+    const percentage = Math.round((passed / total) * 100);
+
+    const table = this.results.map((result) => ({
+      Test: result.name,
+      Status: result.passed ? '✅ PASS' : '❌ FAIL',
+      Duration: `${result.duration}ms`,
+      Error: result.error || '-',
+    }));
+
+    console.table(table);
+
+    logger.info('\n' + '='.repeat(70));
+    logger.info(`📊 RESULTS: ${passed}/${total} passed (${percentage}%)`);
+    logger.info('='.repeat(70) + '\n');
+
+    if (percentage === 100) {
+      logger.info('🎉 ALL SYSTEMS OPERATIONAL!\n');
+    } else if (percentage >= 80) {
+      logger.info('⚠️  MOST SYSTEMS OPERATIONAL - Review failures\n');
+    } else {
+      logger.info('❌ CRITICAL FAILURES - Do not deploy\n');
+    }
+  }
+
+  /**
+   * Run all tests
+   */
+  async runAll(): Promise<void> {
+    try {
+      await this.setupTestData();
+      await this.testTierEnforcement();
+      await this.testUsageAuditLogging();
+      await this.testBillingCalculation();
+      await this.testTierMigration();
+      await this.testQuotaReset();
+      await this.testAnalytics();
+      await this.testDataConsistency();
+      await this.testPerformance();
+      await this.testEndToEndWorkflow();
+
+      this.printReport();
+
+      // Cleanup
+      await databaseService.query(`DELETE FROM users WHERE email = $1`, [
+        'test-system@example.com',
+      ]);
+
+      process.exit(this.results.every((r) => r.passed) ? 0 : 1);
+    } catch (error) {
+      logger.error('Test suite failed:', error);
+      process.exit(1);
+    }
+  }
+}
+
+// Run validator
+const validator = new SystemValidator();
+validator.runAll();

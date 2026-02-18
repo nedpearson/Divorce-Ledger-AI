@@ -1,0 +1,105 @@
+// Save as: src/services/quota-reset.service.ts
+
+import { databaseService } from './database.service';
+import { logger } from '../utils/logger';
+
+export interface QuotaReset {
+  user_id: number;
+  reset_at: Date;
+  reset_month: string; // YYYY-MM format
+  violations_count_before: number;
+  violations_count_after: number;
+}
+
+export class QuotaResetService {
+  /**
+   * Check and reset monthly quotas for all users at month boundary
+   * Call this daily or use cron job
+   */
+  async resetMonthlyQuotas(): Promise<{ reset: number; failed: number }> {
+    try {
+      const now = new Date();
+      const currentMonth = \`\${now.getFullYear()}-\${String(now.getMonth() + 1).padStart(2, '0')}\`;
+
+      // Get all active users
+      const usersResult = await databaseService.query(
+        `SELECT id, violations_count_this_month FROM users WHERE status = 'active'`
+      );
+
+      let reset = 0;
+      let failed = 0;
+
+      for (const user of usersResult.rows) {
+        try {
+          // Record the reset
+          if (user.violations_count_this_month > 0) {
+            await databaseService.query(
+              \`INSERT INTO quota_reset_log (
+                user_id, reset_at, reset_month, violations_count_before
+              ) VALUES ($1, NOW(), $2, $3)\`,
+              [user.id, currentMonth, user.violations_count_this_month]
+            );
+
+            // Reset counter
+            await databaseService.query(
+              `UPDATE users SET violations_count_this_month = 0 WHERE id = $1`,
+              [user.id]
+            );
+
+            reset++;
+            logger.info(\`✅ Reset quota for user \${user.id}\`);
+          }
+        } catch (error) {
+          logger.error(\`Failed to reset quota for user \${user.id}\`, error);
+          failed++;
+        }
+      }
+
+      logger.info(\`📊 Monthly quota reset: \${reset} reset, \${failed} failed\`);
+      return { reset, failed };
+    } catch (error) {
+      logger.error('Monthly quota reset failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get quota reset history for user
+   */
+  async getResetHistory(userId: number, months: number = 12): Promise<QuotaReset[]> {
+    try {
+      const result = await databaseService.query(
+        \`SELECT * FROM quota_reset_log
+         WHERE user_id = $1
+         ORDER BY reset_at DESC
+         LIMIT $2\`,
+        [userId, months]
+      );
+
+      return result.rows;
+    } catch (error) {
+      logger.error('Failed to get quota reset history', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get next reset date (beginning of next month)
+   */
+  getNextResetDate(): Date {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  }
+
+  /**
+   * Days until next quota reset
+   */
+  daysUntilReset(): number {
+    const now = new Date();
+    const nextReset = this.getNextResetDate();
+    const diffTime = nextReset.getTime() - now.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+}
+
+export const quotaResetService = new QuotaResetService();

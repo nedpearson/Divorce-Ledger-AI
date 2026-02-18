@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Divorce Ledger Platform - Monitoring Dashboard</title>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.warning {
+      background: #f59e0b;
+    }
+
+    .status-dot.error {
+      background: #ef4444;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .card-header {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #8b8b9a;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .card-value {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #10b981;
+    }
+
+    .card-unit {
+      font-size: 12px;
+      color: #8b8b9a;
+    }
+
+    .card-change {
+      font-size: 12px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      color: #60a5fa;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      text-align: left;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #8b8b9a;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-success {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+    }
+
+    .badge-warning {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
+
+    .badge-danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .refresh-btn {
+      padding: 8px 16px;
+      background: #10b981;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .refresh-btn:hover {
+      background: #059669;
+      transform: scale(1.05);
+    }
+
+    .refresh-btn.loading {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      padding: 20px;
+      color: #8b8b9a;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Divorce Ledger Platform Monitor</h1>
+        <p style="color: #8b8b9a; margin-top: 5px;">Real-time system health & metrics</p>
+      </div>
+      <div class="status-indicator">
+        <span>System Status:</span>
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connecting...</span>
+        <button class="refresh-btn" onclick="manualRefresh()">Refresh</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-header">Total Users</div>
+        <div class="card-value" id="totalUsers">0</div>
+        <div class="card-unit">active accounts</div>
+        <div class="card-change">Last 7 days: <span id="activeUsers7d">0</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">This Month Revenue</div>
+        <div class="card-value" id="monthlyRevenue">$0</div>
+        <div class="card-unit">USD charged</div>
+        <div class="card-change">Avg per user: <span id="avgRevenue">$0</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Pending Payments</div>
+        <div class="card-value" id="pendingBilling">0</div>
+        <div class="card-unit">records</div>
+        <div class="card-change">Amount: $<span id="pendingAmount">0</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">API Health</div>
+        <div class="card-value" id="dbHealth">--</div>
+        <div class="card-unit">ms response</div>
+        <div class="card-change">Status: <span id="apiStatus">Checking...</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Violations (This Month)</div>
+        <div class="card-value" id="totalViolations">0</div>
+        <div class="card-unit">total</div>
+        <div class="card-change">At-risk users: <span id="atRiskUsers">0</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Application Uptime</div>
+        <div class="card-value" id="uptime">0h</div>
+        <div class="card-unit">continuous</div>
+        <div class="card-change">Last restart: <span id="lastRestart">just now</span></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="chart-container">
+        <h3 style="margin-bottom: 20px;">Users by Tier</h3>
+        <canvas id="tierChart"></canvas>
+      </div>
+
+      <div class="chart-container">
+        <h3 style="margin-bottom: 20px;">Billing Status</h3>
+        <canvas id="billingChart"></canvas>
+      </div>
+    </div>
+
+    <h2 style="margin: 40px 0 20px 0;">System Details</h2>
+
+    <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+      <h3 style="margin-bottom: 15px;">Scheduled Tasks</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Schedule</th>
+            <th>Next Run</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Apply Tier Migrations</td>
+            <td>Daily @ 00:15 UTC</td>
+            <td id="nextMigration">--</td>
+            <td><span class="badge badge-success">Active</span></td>
+          </tr>
+          <tr>
+            <td>Process Monthly Billing</td>
+            <td>1st @ 02:00 UTC</td>
+            <td id="nextBilling">--</td>
+            <td><span class="badge badge-success">Active</span></td>
+          </tr>
+          <tr>
+            <td>Reset Daily Quotas</td>
+            <td>Daily @ 00:00 UTC</td>
+            <td id="nextReset">--</td>
+            <td><span class="badge badge-success">Active</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+      <h3 style="margin-bottom: 15px;">Billing Pipeline</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Count</th>
+            <th>Total Amount</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-warning">Pending</span></td>
+            <td id="billingPending">0</td>
+            <td id="billingPendingAmount">$0</td>
+            <td><a href="#" style="color: #60a5fa;">Review</a></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-success">Charged</span></td>
+            <td id="billingCharged">0</td>
+            <td id="billingChargedAmount">$0</td>
+            <td><a href="#" style="color: #60a5fa;">View</a></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-danger">Failed</span></td>
+            <td id="billingFailed">0</td>
+            <td>--</td>
+            <td><a href="#" style="color: #60a5fa;">Retry</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer>
+      <p>
+        Last updated: <span id="lastUpdate">--</span> | 
+        Connected clients: <span id="connectedClients">0</span> | 
+        Version 1.0.0
+      </p>
+    </footer>
+  </div>
+
+  <script>
+    const socket = io();
+    let tierChart, billingChart;
+
+    socket.on('connect', () => {
+      console.log('Connected to monitoring server');
+      updateStatus('connected');
+    });
+
+    socket.on('metrics:initial', (metrics) => {
+      console.log('Received initial metrics:', metrics);
+      updateDashboard(metrics);
+    });
+
+    socket.on('metrics:update', (metrics) => {
+      console.log('Metrics updated:', metrics);
+      updateDashboard(metrics);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from server');
+      updateStatus('disconnected');
+    });
+
+    function updateStatus(status) {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+
+      if (status === 'connected') {
+        dot.classList.remove('warning', 'error');
+        text.textContent = 'Healthy';
+        text.style.color = '#10b981';
+      } else if (status === 'disconnected') {
+        dot.classList.add('error');
+        text.textContent = 'Disconnected';
+        text.style.color = '#ef4444';
+      } else {
+        dot.classList.add('warning');
+        text.textContent = 'Connecting...';
+        text.style.color = '#f59e0b';
+      }
+    }
+
+    function updateDashboard(metrics) {
+      const formatDate = (dateStr) => {
+        return new Date(dateStr).toLocaleString();
+      };
+
+      const formatUptime = (seconds) => {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        if (hours > 0) return `${hours}h ${minutes}m`;
+        return `${minutes}m`;
+      };
+
+      document.getElementById('totalUsers').textContent = metrics.users.total;
+      document.getElementById('activeUsers7d').textContent = metrics.users.active_7d;
+
+      document.getElementById('monthlyRevenue').textContent = `$${metrics.billing.charged_this_month_usd}`;
+      document.getElementById('avgRevenue').textContent = metrics.users.total > 0 
+        ? `$${Math.round(metrics.billing.charged_this_month_usd / metrics.users.total)}` 
+        : '$0';
+
+      document.getElementById('pendingBilling').textContent = metrics.billing.pending_count;
+      document.getElementById('pendingAmount').textContent = metrics.billing.pending_amount_usd;
+
+      document.getElementById('dbHealth').textContent = metrics.health.db_response_time_ms;
+      document.getElementById('apiStatus').textContent = metrics.health.db_response_time_ms < 100 ? 'Optimal' : 'Good';
+
+      document.getElementById('totalViolations').textContent = metrics.violations.total_this_month;
+      document.getElementById('atRiskUsers').textContent = metrics.violations.at_risk_users;
+
+      document.getElementById('uptime').textContent = formatUptime(metrics.uptime);
+      document.getElementById('lastUpdate').textContent = formatDate(metrics.timestamp);
+
+      document.getElementById('nextMigration').textContent = formatDate(metrics.scheduler.next_tier_migration);
+      document.getElementById('nextBilling').textContent = formatDate(metrics.scheduler.next_billing_run);
+
+      document.getElementById('billingPending').textContent = metrics.billing.pending_count;
+      document.getElementById('billingPendingAmount').textContent = `$${metrics.billing.pending_amount_usd}`;
+      document.getElementById('billingCharged').textContent = '--';
+      document.getElementById('billingChargedAmount').textContent = `$${metrics.billing.charged_this_month_usd}`;
+      document.getElementById('billingFailed').textContent = metrics.billing.failed_count;
+
+      updateCharts(metrics);
+    }
+
+    function updateCharts(metrics) {
+      const tierCtx = document.getElementById('tierChart').getContext('2d');
+      
+      if (tierChart) {
+        tierChart.data.datasets[0].data = Object.values(metrics.users.by_tier);
+        tierChart.update();
+      } else {
+        tierChart = new Chart(tierCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Free', 'Individual', 'Pro', 'Team', 'Enterprise'],
+            datasets: [{
+              data: Object.values(metrics.users.by_tier),
+              backgroundColor: [
+                '#ef4444',
+                '#f59e0b',
+                '#10b981',
+                '#3b82f6',
+                '#8b5cf6'
+              ],
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: { color: '#e0e0e0' }
+              }
+            }
+          }
+        });
+      }
+
+      const billingCtx = document.getElementById('billingChart').getContext('2d');
+      
+      if (billingChart) {
+        billingChart.data.datasets[0].data = [
+          metrics.billing.pending_count,
+          metrics.billing.charged_this_month_usd / 100,
+          metrics.billing.failed_count
+        ];
+        billingChart.update();
+      } else {
+        billingChart = new Chart(billingCtx, {
+          type: 'bar',
+          data: {
+            labels: ['Pending', 'Charged (USD)', 'Failed'],
+            datasets: [{
+              label: 'Count / Amount',
+              data: [
+                metrics.billing.pending_count,
+                metrics.billing.charged_this_month_usd / 100,
+                metrics.billing.failed_count
+              ],
+              backgroundColor: ['#f59e0b', '#10b981', '#ef4444'],
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: { color: '#e0e0e0' }
+              }
+            },
+            scales: {
+              y: {
+                ticks: { color: '#8b8b9a' },
+                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+              },
+              x: {
+                ticks: { color: '#8b8b9a' },
+                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function manualRefresh() {
+      const btn = event.target;
+      btn.classList.add('loading');
+      socket.emit('action:refresh');
+      setTimeout(() => btn.classList.remove('loading'), 1000);
+    }
+  </script>
+</body>
+</html>

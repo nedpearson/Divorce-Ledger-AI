@@ -1,0 +1,310 @@
+You are my Principal Engineer and Integration Architect with FULL access to this entire Replit project.
+
+Assume the previous 7-section diagnostic and reliability pass has already completed successfully and all core app flows are healthy and production-ready.
+
+Now I want you to do a focused, second pass with this updated architecture requirement:
+
+0. HARD REQUIREMENTS (DO NOT CHANGE THESE)
+
+Express stays as the single API surface for the front-end.
+
+Do NOT remove Express.
+
+Do NOT bypass /api/... routes from the front-end.
+
+Appwrite must be the universal file analyzer and filer for ALL documents and pictures.
+
+Every uploaded file (PDF, Word, image, screenshot, etc.) must:
+
+be stored in Appwrite Storage, and
+
+have its analysis and categorization done by Appwrite (functions/queues), not ad hoc Node code.
+
+There must be no other system storing or analyzing files in parallel.
+
+Internal finance model should remain simple and stable.
+
+Internally, keep a small, core set of finance fields (e.g., ledgerBucket, financeCategory, financeSubcategory) that are integration-agnostic.
+
+Extended QuickBooks-style buckets (COGS, TAX, OWNER_EQUITY, TRANSFER, etc.) should be treated as mapping targets, not required core schema.
+
+QuickBooks and Firefly integrations must work via a mapping layer, not by changing the base storage/analysis pipeline.
+
+Appwrite still does universal analysis.
+
+A separate mapping layer translates internal categories into QuickBooks/Firefly categories/accounts when (and only when) an integration is enabled.
+
+Globally clean up remaining errors and noisy logs.
+
+No red errors in normal logs.
+
+No “UnhandledPromiseRejection” warnings.
+
+No spammy debug logs in production paths.
+
+Tooling warnings (like PostCSS from warnings) should be fixed at the root where practical.
+
+1. VERIFY & ENFORCE APPWRITE AS UNIVERSAL FILE ANALYZER/FILER
+
+Search the entire codebase for all file handling and analysis paths:
+
+Upload endpoints and functions (upload, file, document, image, photo, screenshot, etc.).
+
+Any local/Node analysis logic that parses PDFs, images, or text.
+
+Existing Appwrite storage and analysis usage (appwrite, storage, functions, queue, [Appwrite Analysis] logs, etc.).
+
+For every file upload path (desktop, mobile, PWA):
+
+Ensure the upload ultimately goes to Appwrite Storage only (no duplicate filesystem or foreign storage).
+
+Ensure there is a single metadata record per file in the database (Appwrite DB or the app’s DB):
+
+id
+
+ownerUserId
+
+caseId
+
+environment (demo/live)
+
+docType (e.g., bank-statement, credit-card-statement, receipt, court-order, screenshot, photo-evidence, etc.)
+
+status (uploaded, processing, complete, failed)
+
+fileRef (bucket + file ID)
+
+originalFilename, mimeType, size
+
+analysisJobId (if used)
+
+ledgerBucket (simple internal value, see section 2)
+
+financeCategory, financeSubcategory
+
+evidenceCategory
+
+analysisSummary, analysisDetails, errorMessage
+
+timestamps
+
+Enforce universal Appwrite analysis:
+
+All analysis must be triggered via Appwrite:
+
+Appwrite functions or queues must read from the Storage bucket, perform OCR/AI, and write results back to the metadata record.
+
+Remove or neutralize any Node/Express-only “analysis” routines that try to categorize or OCR files without Appwrite, unless they now just call Appwrite.
+
+Confirm that front-end flows (desktop & mobile) only interact with files through:
+
+Express /api/... endpoints
+
+Which in turn call Appwrite (Storage + DB + Functions) for analysis and categorization.
+
+2. KEEP INTERNAL FINANCE MODEL SIMPLE (INTEGRATION-AGNOSTIC)
+
+You do NOT need to fully implement extended QuickBooks buckets in the core schema.
+
+Define or confirm a minimal internal finance model, for each analyzed financial file:
+
+ledgerBucket – small enum such as:
+
+INCOME
+
+EXPENSE
+
+ASSET
+
+LIABILITY
+
+UNKNOWN
+(If COGS is already implemented and working, keep it; otherwise consider it optional.)
+
+financeCategory – a manageable set of internal categories (e.g., rent, utilities, legal-fees, groceries, fuel, etc.).
+
+Optional financeSubcategory – if already in use.
+
+Ensure the Appwrite analysis populates these internal fields consistently:
+
+If the file is clearly financial and classification is confident:
+
+Assign appropriate ledgerBucket and financeCategory.
+
+If classification is uncertain but it is clearly financial:
+
+Default to ledgerBucket = EXPENSE and financeCategory = "miscellaneous" or "needs-review".
+
+Keep this internal finance model stable and independent of any external accounting system (QuickBooks, Firefly, etc.).
+
+3. BUILD A CLEAN MAPPING LAYER FOR QUICKBOOKS / FIREFLY
+
+The extended QuickBooks ledger buckets (COGS, TAX, OWNER_EQUITY, TRANSFER, etc.) and any Firefly categories/accounts should be handled via a mapping layer.
+
+Introduce or confirm a single mapping module:
+
+Something like financeMappings.ts (name is flexible) that contains:
+
+Internal → QuickBooks mapping.
+
+Internal → Firefly mapping.
+
+This mapping layer should:
+
+Take internal fields:
+
+ledgerBucket
+
+financeCategory
+
+financeSubcategory
+
+And return:
+
+Target QuickBooks account/category info (if QuickBooks is connected).
+
+Target Firefly category/account info (if Firefly is connected).
+
+The mapping layer must NOT change the base storage/analysis pipeline:
+
+Appwrite still writes only internal fields.
+
+Mapping is applied only when:
+
+QuickBooks is linked and we are syncing or previewing exports, or
+
+Firefly is linked and we are syncing or previewing exports.
+
+Ensure there are clear integration points:
+
+For QuickBooks:
+
+e.g., endpoints like /api/integrations/quickbooks/preview or /api/integrations/quickbooks/export.
+
+For Firefly:
+
+e.g., /api/integrations/firefly/preview or /api/integrations/firefly/export.
+
+These endpoints should:
+
+Read internal records,
+
+Call the mapping layer,
+
+Show or send mapped categories/accounts without mutating internal data unless explicitly configured to do so.
+
+Do NOT require extended buckets (COGS, TAX, OWNER_EQUITY, TRANSFER) to be populated internally everywhere.
+
+They may exist as targets inside the mapping module, not as mandatory base fields on every document.
+
+4. GLOBAL ERROR & LOG CLEANUP (VISIBLE + HIDDEN)
+
+Now that logic is stable, clean the logs and error behavior globally.
+
+Async safety:
+
+Ensure all async Express handlers are wrapped in an async error handler to prevent UnhandledPromiseRejection.
+
+Confirm there are no warnings about unhandled rejections left in logs.
+
+Logging levels:
+
+Convert noisy console.log or verbose debug spam in hot paths into:
+
+Proper logger calls with levels (debug, info, warn, error), OR
+
+Remove them if they add no value.
+
+Expected/normal conditions (like 401 from /api/auth/session before login) must:
+
+Not be logged at error level.
+
+Prefer debug or info with concise messages.
+
+Error responses:
+
+Ensure all Express routes return consistent JSON on error:
+
+Example: { error: { message, code, traceId } }.
+
+No HTML stack traces should leak to the client.
+
+Unexpected errors must be logged with sufficient context (route, userId, environment, traceId, stack).
+
+Tooling warnings (including PostCSS):
+
+Re-check for the PostCSS warning:
+
+“A PostCSS plugin did not pass the from option to postcss.parse…”
+
+Fix the underlying config or plugin version if it still appears, rather than ignoring it.
+
+Also clean up other build-time warnings where practical, particularly if they might indicate latent issues.
+
+Production-like logging baseline:
+
+In “production” mode, the app should:
+
+Not log development-only debug noise.
+
+Log errors and important audit events in a structured, consistent format.
+
+5. VERIFICATION – UNIVERSAL APPWRITE ANALYSIS + CLEAN LOGS
+
+After implementing the above:
+
+Run again:
+
+npm run build
+
+npm run typecheck / tsc --noEmit
+
+npm run lint
+
+npm test (if present)
+
+All must pass without runtime crashes or toolchain errors.
+
+Start the dev server and perform a final smoke test (desktop and mobile):
+
+Upload multiple documents and pictures:
+
+Confirm they are all stored in Appwrite.
+
+Confirm analysis and categorization are filled by Appwrite only.
+
+Check the document list:
+
+Files have consistent status, docType, ledgerBucket, and categories.
+
+Delete documents:
+
+They disappear from UI and Appwrite (storage + metadata) with no ghosts.
+
+Trigger or simulate QuickBooks/Firefly workflows:
+
+Confirm that mapping from internal finance fields to external categories happens only via the mapping layer.
+
+Watch logs:
+
+No red errors in the browser console for normal flows.
+
+No unhandled promise warnings or noisy debug spam in the server logs.
+
+Confirm and document:
+
+Appwrite is the only file analyzer/filer.
+
+Internal finance model is simple and stable.
+
+QuickBooks/Firefly are supported through mapping only.
+
+Logs are clean, and any remaining warnings are benign and intentional.
+
+Implement all of this now so that:
+
+Appwrite is the universal and authoritative analyzer and filer for all documents and pictures.
+
+QuickBooks/Firefly integration is driven by a clean, explicit mapping layer.
+
+All errors, warnings, and noisy logs are fixed or made intentional and minimal, globally.

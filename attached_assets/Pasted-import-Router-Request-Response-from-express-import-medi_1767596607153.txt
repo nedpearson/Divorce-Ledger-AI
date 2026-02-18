@@ -1,0 +1,145 @@
+import { Router, Request, Response } from 'express';
+import { mediaService } from '../services/media.service';
+import { logger } from '../utils/logger';
+
+const router = Router();
+
+/**
+ * POST /violations/:violationId/media
+ * Upload voice/media file to violation
+ */
+router.post('/violations/:violationId/media', async (req: Request, res: Response) => {
+  try {
+    const {
+      caseId,
+      fileName,
+      fileType,
+      fileSizeBytes,
+      mimeType,
+      storageUrl,
+      durationSeconds,
+    } = req.body;
+
+    if (!['audio', 'video', 'image'].includes(fileType)) {
+      return res.status(400).json({ error: 'Invalid file type' });
+    }
+
+    const media = await mediaService.uploadMedia(
+      parseInt(req.params.violationId),
+      caseId,
+      fileName,
+      fileType,
+      fileSizeBytes,
+      mimeType,
+      storageUrl,
+      durationSeconds
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Media uploaded successfully',
+      data: media,
+    });
+  } catch (error) {
+    logger.error('Media upload failed', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * POST /violations/:violationId/transcribe
+ * Transcribe audio for violation
+ */
+router.post('/violations/:violationId/transcribe', async (req: Request, res: Response) => {
+  try {
+    const { mediaFileId } = req.body;
+
+    const transcript = await mediaService.transcribeAudio(
+      parseInt(req.params.violationId),
+      mediaFileId
+    );
+
+    res.json({
+      success: true,
+      message: 'Audio transcribed successfully',
+      data: { transcript },
+    });
+  } catch (error) {
+    logger.error('Transcription failed', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * POST /violations/:violationId/classify
+ * AI classify violation from transcript
+ */
+router.post('/violations/:violationId/classify', async (req: Request, res: Response) => {
+  try {
+    const classification = await mediaService.classifyViolationFromMedia(
+      parseInt(req.params.violationId)
+    );
+
+    res.json({
+      success: true,
+      message: 'Violation classified successfully',
+      data: classification,
+    });
+  } catch (error) {
+    logger.error('Classification failed', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * GET /violations/:violationId/media
+ * Get all media/transcripts for violation
+ */
+router.get('/violations/:violationId/media', async (req: Request, res: Response) => {
+  try {
+    const mediaData = await mediaService.getMediaForViolation(parseInt(req.params.violationId));
+
+    res.json({
+      success: true,
+      data: mediaData,
+    });
+  } catch (error) {
+    logger.error('Failed to get media', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * POST /users/:userId/update-tier
+ * Update user tier based on violation count
+ */
+router.post('/users/:userId/update-tier', async (req: Request, res: Response) => {
+  try {
+    await mediaService.updateUserTierMetrics(parseInt(req.params.userId));
+
+    res.json({
+      success: true,
+      message: 'User tier metrics updated',
+    });
+  } catch (error) {
+    logger.error('Failed to update tier', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+export default router;

@@ -1,0 +1,143 @@
+PREVIEW URL REFUSED TO CONNECT – FIX SERVER STARTUP, PORT, AND RUN COMMAND
+
+You are my Principal DevOps & Runtime Engineer with FULL access to this Replit project.
+
+Context:
+- This project is the “Divorce Ledger” app (Express backend + React frontend + Appwrite + Postgres).
+- I have run several hardening prompts already.
+- NOW: when I click “Run” / “Open in Browser” / Preview, I get a browser error like:
+  “refused to connect” for a URL such as:
+  29f517c3-9727-4ac2-b928-1094780f3e66-00-…replit.dev
+
+This means the Replit container is up but **no web server is listening on the expected port** OR the server
+crashes on startup.
+
+Your mission is to do a focused runtime/port fix WITHOUT changing the core Divorce Ledger architecture.
+
+====================================
+1. DIAGNOSE WHY PREVIEW REFUSES
+====================================
+
+1) Inspect the current run configuration:
+   - .replit / replit.nix run command.
+   - package.json "scripts" (especially "start" and "dev").
+
+2) Run the project as Replit normally does and watch:
+   - The first error in the Replit console.
+   - Whether the Node/Express server actually starts.
+   - Whether any process exits immediately due to an exception.
+
+3) Identify the exact cause of “refused to connect”, such as:
+   - No Express `app.listen(...)` ever called.
+   - The server is listening on the wrong port (not process.env.PORT).
+   - The run command only builds but does not start a web server.
+   - A crash on startup (TypeScript/build error, SQL/Appwrite init error, etc.).
+
+====================================
+2. FIX PORT BINDING & SERVER STARTUP
+====================================
+
+1) Ensure the main Express server file:
+   - Imports and configures the app.
+   - Calls `app.listen(PORT, ...)` exactly once, where:
+     - `PORT` is derived from `process.env.PORT` with a safe default, e.g.:
+
+       const PORT = process.env.PORT || 5000;
+       app.listen(PORT, () => {
+         console.log(`[express] serving on port ${PORT}`);
+       });
+
+   - Do NOT break existing logs (e.g. Dashboard Service ready, WebSocket server initialized, etc).
+
+2) Ensure the port used by Express aligns with Replit’s expectations:
+   - As long as we use `process.env.PORT` (with optional fallback), Replit will proxy the preview URL correctly.
+   - Do NOT hardcode a random port that Replit will not expose.
+
+3) Fix .replit / run command:
+   - The command Replit uses should:
+     - Install dependencies if needed.
+     - Start the actual backend/server entrypoint (or dev server).
+   - Do NOT use a script that builds and exits (no long-running server).
+   - If there is a separate frontend dev server (Vite/React), ensure:
+     - We are starting the correct process that Replit routes to, usually the backend that serves API and/or static files.
+
+====================================
+3. HANDLE STARTUP CRASHES CLEANLY
+====================================
+
+If the server is crashing during startup:
+
+1) Find the FIRST stack trace on startup:
+   - It could be:
+     - A SQL/DB connection error,
+     - An Appwrite initialization error,
+     - A missing env variable,
+     - A TypeScript transpile error, etc.
+
+2) Fix the root cause WITHOUT removing core capabilities:
+   - For DB/Appwrite:
+     - If certain env vars are missing, add safe default behavior:
+       - Log a clear warning.
+       - Avoid crashing the entire server in demo mode.
+     - Prefer “degraded but running” over total crash in development/demo.
+   - For TypeScript/build errors:
+     - Fix the code or config so it compiles.
+   - For missing imports/modules:
+     - Correct import paths and ensure required dependencies are in package.json.
+
+3) Ensure after fixes:
+   - The server process stays alive.
+   - The log shows:
+     - something like “[express] serving on port …”
+     - and any previous “Dashboard Service ready” or equivalent startup messages.
+
+====================================
+4. DO NOT BREAK EXISTING ARCHITECTURE
+====================================
+
+While fixing the preview/refused-to-connect issue:
+
+- Do NOT remove:
+  - Express,
+  - Appwrite integration,
+  - Postgres DB usage,
+  - Existing routes and services that already worked.
+
+- Do NOT:
+  - Comment out large parts of the startup to make the error disappear.
+  - Disable major functionality permanently.
+
+Fix ONLY:
+- The port binding,
+- The run command,
+- Any startup crash that prevents the server from listening.
+
+====================================
+5. VERIFICATION
+====================================
+
+After your fixes:
+
+1) Run the project again in Replit.
+2) Confirm in the console:
+   - The Node/Express server starts successfully.
+   - No fatal startup errors.
+   - A log entry confirming listening, e.g. “[express] serving on port …”.
+
+3) Use the Preview / Open in Browser link:
+   - Confirm the Divorce Ledger UI loads.
+   - Navigate to:
+     - Login,
+     - Dashboard,
+     - Documents,
+     - Violations.
+   - Confirm that the browser no longer reports “refused to connect”.
+
+4) Ensure that:
+   - No new major errors were introduced.
+   - The app still behaves according to its existing architecture and features.
+
+Stop once:
+- The Replit preview URL successfully connects to a running server.
+- No startup crashes remain.
+- The app is fully accessible again via preview.

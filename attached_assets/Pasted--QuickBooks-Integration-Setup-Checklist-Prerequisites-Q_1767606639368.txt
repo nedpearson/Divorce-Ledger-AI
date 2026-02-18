@@ -1,0 +1,65 @@
+# QuickBooks Integration Setup Checklist
+
+## Prerequisites
+- [ ] QuickBooks Online account
+- [ ] Intuit Developer account
+- [ ] OAuth app registered in Intuit Developer Portal
+
+## Setup Steps
+
+### 1. Intuit Developer Portal
+- [ ] Create app at https://developer.intuit.com
+- [ ] Get Client ID and Client Secret
+- [ ] Configure redirect URI: https://your-app.com/auth/quickbooks/callback
+- [ ] Add scopes: com.intuit.quickbooks.accounting
+
+### 2. Environment Configuration
+- [ ] Set QB_CLIENT_ID
+- [ ] Set QB_CLIENT_SECRET
+- [ ] Set QB_REALM_ID (after first auth)
+- [ ] Set QB_ADMIN_USER_ID
+
+### 3. Database Setup
+- [ ] Run quickbooks-integration.sql migration
+- [ ] Verify tables created: quickbooks_credentials, quickbooks_sync_log
+
+### 4. Service Initialization
+- [ ] Add QuickBooksService to app initialization
+- [ ] Configure OAuth routes
+- [ ] Add QB sync cron job
+
+### 5. Testing
+- [ ] Test OAuth flow: /auth/quickbooks/connect
+- [ ] Verify credentials saved in DB
+- [ ] Test QB API calls
+- [ ] Test billing record sync
+- [ ] Check QB dashboard for synced data
+
+### 6. Monitoring
+- [ ] Monitor sync job logs
+- [ ] Check QB sync failures
+- [ ] Set up alerts for token expiration
+- [ ] Review sync history endpoint
+
+## API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/auth/quickbooks/connect` | GET | Initiate OAuth flow |
+| `/auth/quickbooks/callback` | GET | OAuth callback handler |
+| `/api/quickbooks/status` | GET | Check QB connection |
+| `/api/quickbooks/sync-history` | GET | View sync activity |
+| `/api/quickbooks/sync-now` | POST | Trigger immediate sync |
+
+## Scheduled Jobs
+
+| Job | Schedule | Purpose |
+|-----|----------|---------|
+| Billing Sync | Hourly @ :00 | Sync billing records to QB |
+| Token Refresh | On-demand | Refresh expired access tokens |
+
+## Monitoring Dashboard
+- Display QB connection status
+- Show recent sync activity
+- Alert on sync failures
+- Display token expiration warnings

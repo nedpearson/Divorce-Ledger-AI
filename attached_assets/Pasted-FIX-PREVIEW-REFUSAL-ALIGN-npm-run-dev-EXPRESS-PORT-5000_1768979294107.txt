@@ -1,0 +1,182 @@
+FIX PREVIEW REFUSAL – ALIGN `npm run dev`, EXPRESS PORT 5000, AND .REPLIT WORKFLOW
+
+You are my Principal DevOps & Runtime Engineer with FULL access to this Replit project.
+
+Here is the current `.replit` (DO NOT delete it; only adjust where needed):
+
+modules = ["web", "nodejs-22", "postgresql-16"]
+run = "npm run dev"
+hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+
+[nix]
+channel = "stable-24_05"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[env]
+PORT = "5000"
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["node", "./dist/index.cjs"]
+build = ["npm", "run", "build"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[agent]
+integrations = ["javascript_database:1.0.0", "javascript_object_storage:2.0.0", "stripe:2.0.0", "javascript_openai_ai_integrations:2.0.0", "sendgrid:1.0.0", "javascript_gemini_ai_integrations:2.0.0"]
+
+[userenv]
+
+[userenv.shared]
+ADMIN_EMAIL = "nedpearson@gmail.com"
+ADMIN_PASSWORD = "$Building@7949$"
+APPWRITE_ENDPOINT = "https://nyc.cloud.appwrite.io/v1"
+APPWRITE_PROJECT_ID = "696dc1cb0033cf776b3b"
+
+[userenv.development]
+NODE_ENV = "development"
+STRIPE_MODE = "test"
+
+The preview URL now shows “refused to connect”. That means:
+
+- `npm run dev` is NOT leaving a server listening on port 5000
+- or the server crashes on startup
+- or Express is not actually listening.
+
+Your mission is to repair **dev startup and ports** WITHOUT changing the Divorce Ledger architecture (Express + React frontend, Appwrite, Postgres) and WITHOUT breaking the deployment config.
+
+====================================
+1. REPAIR `npm run dev` TO START A SERVER ON PORT 5000
+====================================
+
+1) Inspect `package.json` and locate the "dev" script used by `npm run dev`:
+   - If it does not exist, create a correct one.
+   - The "dev" script MUST start a long-running Node/Express process that listens on a port visible to Replit (port 5000 / process.env.PORT), not just build and exit.
+   - Examples:
+     - For pure backend dev:
+         "dev": "node server.js"
+     - For TS:
+         "dev": "ts-node src/server.ts" or "nodemon src/server.ts"
+
+2) If the project uses a React/Vite dev server:
+   - Either:
+     - use a combined dev setup that also runs the backend on port 5000, OR
+     - serve the frontend through the backend during dev.
+   - The key requirement is: something must be listening on `process.env.PORT` (5000) so Replit’s workflow `waitForPort = 5000` succeeds and preview works.
+
+3) Make sure `npm run dev`:
+   - Does not exit immediately,
+   - Does not only run build (`npm run build`),
+   - Actually starts a dev server and leaves it running.
+
+====================================
+2. ENSURE EXPRESS BINDS TO `process.env.PORT` (5000)
+====================================
+
+1) Find the main Express entry file (the same one used by the production deployment `node ./dist/index.cjs`).
+
+2) Confirm that it contains logic similar to:
+
+   const PORT = process.env.PORT || 5000;
+   app.listen(PORT, () => {
+     console.log("[express] serving on port " + PORT);
+   });
+
+3) If the port is hardcoded to something else (e.g., 3000, 5173, etc.), or if listen is missing:
+   - Fix it to use `process.env.PORT || 5000`.
+   - Do NOT duplicate multiple listen() calls.
+
+4) Ensure the dev server and the build/production entry (dist/index.cjs) both resolve to a single consistent Express app that listens on `PORT`.
+
+====================================
+3. FIX ANY STARTUP CRASHES THAT PREVENT LISTENING
+====================================
+
+1) Run `npm run dev` (the same script used by Replit) and look at the FIRST red error in the console:
+   - It may be:
+     - a missing module/import,
+     - an Appwrite initialization error,
+     - a DB connection error,
+     - an env var error,
+     - a TypeScript build/transpile issue.
+
+2) Fix those root causes WITHOUT:
+   - removing Express,
+   - removing Appwrite integration,
+   - removing Postgres,
+   - disabling major features.
+
+3) For environment-related failures in dev:
+   - Prefer safe fallbacks and clear warnings over hard crashes, especially in demo mode.
+   - But do NOT fake successful flows; only avoid catastrophic startup failures.
+
+====================================
+4. KEEP DEPLOYMENT CONFIG WORKING
+====================================
+
+1) The `[deployment]` block uses:
+
+   [deployment]
+   deploymentTarget = "autoscale"
+   run = ["node", "./dist/index.cjs"]
+   build = ["npm", "run", "build"]
+
+   Do NOT break this.
+   - Ensure `npm run build` still generates `dist/index.cjs` correctly.
+   - Ensure the production server also uses `process.env.PORT` for the port.
+
+2) Double-check that any changes made to the dev entrypoint do not prevent `npm run build` from working.
+
+====================================
+5. VERIFY PREVIEW & HEALTH
+====================================
+
+After your fixes:
+
+1) Run the project with the standard Replit “Run” / workflow so it executes:
+   - `npm run dev`
+   - waitForPort = 5000
+
+2) Confirm in the logs:
+   - The server starts,
+   - You see something like:
+     `[express] serving on port 5000`
+     `Dashboard Service ready`
+   - No fatal startup crash.
+
+3) Open the Preview / web view:
+   - Confirm the Divorce Ledger UI loads (no “refused to connect”).
+   - Navigate:
+     - Login,
+     - Dashboard,
+     - Documents,
+     - Violations,
+     - Finance.
+
+4) Ensure:
+   - No new major errors were introduced,
+   - Existing architecture (Express, Appwrite, Postgres, front-end) is intact.
+
+Do NOT change business logic or architecture; ONLY repair the dev startup pipeline, Express port binding, and any immediate startup crashes that blocked the server from listening on port 5000.

@@ -1,0 +1,170 @@
+// Add to src/routes/analytics.routes.ts
+
+import { Router, Request, Response } from 'express';
+import { analyticsService } from '../services/analytics.service';
+import { billingService } from '../services/billing.service';
+import { tierMigrationService } from '../services/tier-migration.service';
+import { quotaResetService } from '../services/quota-reset.service';
+import { logger } from '../utils/logger';
+
+const router = Router();
+
+/**
+ * GET /analytics/platform-metrics
+ * High-level platform metrics
+ */
+router.get('/analytics/platform-metrics', async (req: Request, res: Response) => {
+  try {
+    const metrics = await analyticsService.getPlatformMetrics();
+
+    res.json({
+      success: true,
+      data: metrics,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Failed to get platform metrics', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * GET /analytics/cohorts
+ * Cohort retention analysis
+ */
+router.get('/analytics/cohorts', async (req: Request, res: Response) => {
+  try {
+    const months = req.query.months ? parseInt(req.query.months as string) : 12;
+    const cohorts = await analyticsService.getCohortAnalysis(months);
+
+    res.json({
+      success: true,
+      data: cohorts,
+    });
+  } catch (error) {
+    logger.error('Failed to get cohort analysis', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * GET /analytics/usage-trends
+ * Usage trends over time
+ */
+router.get('/analytics/usage-trends', async (req: Request, res: Response) => {
+  try {
+    const days = req.query.days ? parseInt(req.query.days as string) : 90;
+    const trends = await analyticsService.getUsageTrends(days);
+
+    res.json({
+      success: true,
+      data: trends,
+    });
+  } catch (error) {
+    logger.error('Failed to get usage trends', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * GET /analytics/revenue
+ * Revenue breakdown by tier
+ */
+router.get('/analytics/revenue', async (req: Request, res: Response) => {
+  try {
+    const month = req.query.month ? new Date(req.query.month as string) : undefined;
+    const revenue = await analyticsService.getRevenueByTier(month);
+
+    res.json({
+      success: true,
+      data: revenue,
+      currency: 'USD',
+      period: month
+        ? `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`
+        : 'current',
+    });
+  } catch (error) {
+    logger.error('Failed to get revenue data', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * POST /admin/billing/process-monthly
+ * Process monthly billings for all users
+ */
+router.post('/admin/billing/process-monthly', async (req: Request, res: Response) => {
+  try {
+    const result = await billingService.processMonthlyBillings();
+
+    res.json({
+      success: true,
+      data: result,
+      message: `Processed ${result.processed} users, ${result.failed} failed`,
+    });
+  } catch (error) {
+    logger.error('Monthly billing failed', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * POST /admin/quotas/reset-monthly
+ * Reset monthly quotas for all users
+ */
+router.post('/admin/quotas/reset-monthly', async (req: Request, res: Response) => {
+  try {
+    const result = await quotaResetService.resetMonthlyQuotas();
+
+    res.json({
+      success: true,
+      data: result,
+      message: `Reset ${result.reset} users, ${result.failed} failed`,
+    });
+  } catch (error) {
+    logger.error('Quota reset failed', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * POST /admin/migrations/apply-pending
+ * Apply pending tier migrations
+ */
+router.post('/admin/migrations/apply-pending', async (req: Request, res: Response) => {
+  try {
+    const result = await tierMigrationService.applyPendingMigrations();
+
+    res.json({
+      success: true,
+      data: result,
+      message: `Applied ${result.applied} migrations, ${result.failed} failed`,
+    });
+  } catch (error) {
+    logger.error('Migration application failed', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+export default router;

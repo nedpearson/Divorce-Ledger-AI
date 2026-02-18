@@ -1,0 +1,263 @@
+// Save as: src/services/analytics.service.ts
+
+import { databaseService } from './database.service';
+import { logger } from '../utils/logger';
+
+export interface AnalyticsMetrics {
+  total_users: number;
+  active_users: number;
+  tier_distribution: Record<string, number>;
+  total_violations: number;
+  total_storage_used_mb: number;
+  revenue_this_month_cents: number;
+  average_case_per_user: number;
+  average_violations_per_user: number;
+  churn_rate_percent: number;
+}
+
+export interface UserCohortMetrics {
+  cohort_month: string;
+  users_in_cohort: number;
+  users_active_now: number;
+  retention_rate: number;
+  average_tier: string;
+  average_monthly_violations: number;
+}
+
+export class AnalyticsService {
+  /**
+   * Get high-level platform metrics
+   */
+  async getPlatformMetrics(): Promise<AnalyticsMetrics> {
+    try {
+      // Total and active users
+      const usersResult = await databaseService.query(
+        `SELECT 
+          COUNT(*) as total,
+          SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active
+         FROM users`
+      );
+
+      const totalUsers = parseInt(usersResult.rows[0].total);
+      const activeUsers = parseInt(usersResult.rows[0].active);
+
+      // Tier distribution
+      const tierResult = await databaseService.query(
+        `SELECT tier, COUNT(*) as count FROM users GROUP BY tier`
+      );
+
+      const tierDistribution: Record<string, number> = {};
+      for (const row of tierResult.rows) {
+        tierDistribution[row.tier] = parseInt(row.count);
+      }
+
+      // Total violations
+      const violationsResult = await databaseService.query(
+        `SELECT COUNT(*) as count FROM violations`
+      );
+
+      const totalViolations = parseInt(violationsResult.rows[0].count);
+
+      // Total storage
+      const storageResult = await databaseService.query(
+        `SELECT SUM(file_size_bytes) / (1024*1024) as storage_mb
+         FROM evidence WHERE evidence_source = 'media_upload'`
+      );
+
+      const totalStorageMB = parseFloat(storageResult.rows[0].storage_mb) || 0;
+
+      // This month revenue
+      const revenueResult = await databaseService.query(
+        \`SELECT SUM(amount_cents) as revenue FROM billing_records
+         WHERE DATE_TRUNC('month', period_start) = DATE_TRUNC('month', NOW())\`
+      );
+
+      const revenueCents = parseInt(revenueResult.rows[0].revenue) || 0;
+
+      // Averages
+      const avgResult = await databaseService.query(
+        \`SELECT
+          AVG(case_count) as avg_cases,
+          AVG(violation_count) as avg_violations
+         FROM (
+          SELECT 
+            u.id,
+            COUNT(DISTINCT c.id) as case_count,
+            COUNT(DISTINCT v.id) as violation_count
+          FROM users u
+          LEFT JOIN cases c ON u.id = c.lawyer_id
+          LEFT JOIN violations v ON c.id = v.case_id
+          GROUP BY u.id
+         ) subquery\`
+      );
+
+      const avgCasesPerUser = parseFloat(avgResult.rows[0].avg_cases) || 0;
+      const avgViolationsPerUser = parseFloat(avgResult.rows[0].avg_violations) || 0;
+
+      // Churn rate (users inactive last 30 days / total)
+      const churnResult = await databaseService.query(
+        \`SELECT 
+          SUM(CASE WHEN last_active < NOW() - INTERVAL '30 days' THEN 1 ELSE 0 END) as churned,
+          COUNT(*) as total
+         FROM users WHERE status = 'active'\`
+      );
+
+      const churnedUsers = parseInt(churnResult.rows[0].churned) || 0;
+      const churnRate = totalUsers > 0 ? (churnedUsers / totalUsers) * 100 : 0;
+
+      return {
+        total_users: totalUsers,
+        active_users: activeUsers,
+        tier_distribution: tierDistribution,
+        total_violations: totalViolations,
+        total_storage_used_mb: totalStorageMB,
+        revenue_this_month_cents: revenueCents,
+        average_case_per_user: Math.round(avgCasesPerUser * 100) / 100,
+        average_violations_per_user: Math.round(avgViolationsPerUser * 100) / 100,
+        churn_rate_percent: Math.round(churnRate * 100) / 100,
+      };
+    } catch (error) {
+      logger.error('Failed to get platform metrics', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get cohort analysis (users grouped by signup month)
+   */
+  async getCohortAnalysis(months: number = 12): Promise<UserCohortMetrics[]> {
+    try {
+      const result = await databaseService.query(
+        \`SELECT 
+          DATE_TRUNC('month', u.created_at) as cohort_month,
+          COUNT(u.id) as users_in_cohort,
+          SUM(CASE WHEN u.status = 'active' THEN 1 ELSE 0 END) as users_active_now,
+          AVG(
+            CASE 
+              WHEN u.tier = 'free' THEN 0
+              WHEN u.tier = 'individual' THEN 1
+              WHEN u.tier = 'pro' THEN 2
+              WHEN u.tier = 'team' THEN 3
+              WHEN u.tier = 'enterprise' THEN 4
+              ELSE 0
+            END
+          ) as tier_avg,
+          AVG(u.violations_count_this_month) as avg_violations
+         FROM users u
+         WHERE u.created_at >= NOW() - INTERVAL '\${months} month'
+         GROUP BY cohort_month
+         ORDER BY cohort_month DESC\`
+      );
+
+      return result.rows.map((row) => ({
+        cohort_month: row.cohort_month.toISOString().split('T')[0].substring(0, 7),
+        users_in_cohort: parseInt(row.users_in_cohort),
+        users_active_now: parseInt(row.users_active_now),
+        retention_rate: Math.round(
+          ((parseInt(row.users_active_now) / parseInt(row.users_in_cohort)) * 100)
+        ),
+        average_tier: this.getTierFromAverage(parseFloat(row.tier_avg)),
+        average_monthly_violations: Math.round(parseFloat(row.avg_violations) * 100) / 100,
+      }));
+    } catch (error) {
+      logger.error('Failed to get cohort analysis', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get usage trends (violations & storage over time)
+   */
+  async getUsageTrends(days: number = 90): Promise<Array<{
+    date: string;
+    violations_created: number;
+    storage_added_mb: number;
+  }>> {
+    try {
+      const result = await databaseService.query(
+        \`SELECT 
+          DATE(v.created_at) as date,
+          COUNT(DISTINCT v.id) as violations_created,
+          SUM(e.file_size_bytes) / (1024*1024) as storage_added_mb
+         FROM violations v
+         LEFT JOIN evidence e ON v.id = e.violation_id
+         WHERE v.created_at >= NOW() - INTERVAL '\${days} day'
+         GROUP BY DATE(v.created_at)
+         ORDER BY date DESC\`
+      );
+
+      return result.rows.map((row) => ({
+        date: row.date.toISOString().split('T')[0],
+        violations_created: parseInt(row.violations_created),
+        storage_added_mb: parseFloat(row.storage_added_mb) || 0,
+      }));
+    } catch (error) {
+      logger.error('Failed to get usage trends', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get revenue by tier
+   */
+  async getRevenueByTier(month?: Date): Promise<Array<{
+    tier: string;
+    subscription_revenue_cents: number;
+    overage_revenue_cents: number;
+    total_revenue_cents: number;
+    user_count: number;
+  }>> {
+    try {
+      const m = month || new Date();
+      const monthStr = \`\${m.getFullYear()}-\${String(m.getMonth() + 1).padStart(2, '0')}\`;
+
+      const result = await databaseService.query(
+        \`SELECT 
+          br.tier,
+          COUNT(DISTINCT br.user_id) as user_count,
+          SUM(
+            CASE 
+              WHEN br.tier = 'free' THEN 0
+              WHEN br.tier = 'individual' THEN 1200
+              WHEN br.tier = 'pro' THEN 4900
+              WHEN br.tier = 'team' THEN 14900
+              WHEN br.tier = 'enterprise' THEN 39900
+              ELSE 0
+            END
+          ) as subscription_revenue,
+          SUM(br.amount_cents - 
+            CASE 
+              WHEN br.tier = 'free' THEN 0
+              WHEN br.tier = 'individual' THEN 1200
+              WHEN br.tier = 'pro' THEN 4900
+              WHEN br.tier = 'team' THEN 14900
+              WHEN br.tier = 'enterprise' THEN 39900
+              ELSE 0
+            END
+          ) as overage_revenue,
+          SUM(br.amount_cents) as total_revenue
+         FROM billing_records br
+         WHERE DATE_TRUNC('month', br.period_start) = '\${monthStr}'
+         GROUP BY br.tier\`
+      );
+
+      return result.rows;
+    } catch (error) {
+      logger.error('Failed to get revenue by tier', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Helper: Convert tier average to tier name
+   */
+  private getTierFromAverage(avg: number): string {
+    if (avg >= 4) return 'enterprise';
+    if (avg >= 3) return 'team';
+    if (avg >= 2) return 'pro';
+    if (avg >= 1) return 'individual';
+    return 'free';
+  }
+}
+
+export const analyticsService = new AnalyticsService();

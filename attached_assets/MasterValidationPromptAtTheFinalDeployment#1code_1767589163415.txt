@@ -1,0 +1,209 @@
+You are a senior DevOps engineer, security architect, and QA lead conducting a comprehensive 
+pre-production audit of the DivorceASE AI application. Your mission is to identify and document 
+EVERY potential issue before deployment.
+
+CONDUCT A COMPLETE AUDIT ACROSS THESE DOMAINS:
+
+## DOMAIN 1: CODE QUALITY & SYNTAX ERRORS
+- [ ] Scan ALL Python files for syntax errors, import errors, undefined variables
+- [ ] Check for unused imports, dead code, circular dependencies
+- [ ] Verify all function signatures match their calls
+- [ ] Identify missing type hints and docstrings
+- [ ] Flag any hardcoded values that should be environment variables
+- [ ] Check for proper error handling (try/except blocks)
+- [ ] Verify all async/await patterns are correct
+- [ ] Identify potential race conditions in concurrent code
+
+## DOMAIN 2: INTERNAL LINKING & IMPORTS
+- [ ] Verify ALL import paths are correct and files exist
+- [ ] Check that all route imports in __init__.py files match actual files
+- [ ] Validate SQLAlchemy model relationships and foreign keys
+- [ ] Confirm all API endpoint imports in routers
+- [ ] Check middleware chain for proper initialization order
+- [ ] Verify all utility function imports across modules
+- [ ] Validate schema imports match Pydantic model definitions
+- [ ] Check for circular import dependencies
+
+## DOMAIN 3: DATABASE INTEGRITY
+- [ ] Verify ALL table relationships have correct foreign key references
+- [ ] Check for proper CASCADE/ON DELETE policies
+- [ ] Validate SQL type definitions match Python types
+- [ ] Confirm all indexes are created and named properly
+- [ ] Check for N+1 query problems
+- [ ] Verify relationship lazy loading strategies
+- [ ] Validate migration file syntax
+- [ ] Check for proper transaction handling
+
+## DOMAIN 4: API ENDPOINT VALIDATION
+- [ ] Verify EVERY endpoint has proper request validation (Pydantic schemas)
+- [ ] Check that ALL endpoints have response models defined
+- [ ] Validate HTTP method correctness (GET/POST/PUT/DELETE)
+- [ ] Confirm status codes match responses (201 for creation, 404 for not found, etc.)
+- [ ] Check for proper error response formats across ALL endpoints
+- [ ] Verify pagination parameters exist for list endpoints
+- [ ] Check CORS headers are properly configured for each endpoint
+- [ ] Validate query parameter types and defaults
+
+## DOMAIN 5: AUTHENTICATION & AUTHORIZATION
+- [ ] Verify JWT token generation uses correct SECRET_KEY
+- [ ] Check token expiration times are reasonable
+- [ ] Validate role-based access control (RBAC) on EVERY protected endpoint
+- [ ] Confirm password hashing uses bcrypt with proper salt rounds
+- [ ] Check for proper session management
+- [ ] Verify refresh token rotation
+- [ ] Check that user roles are properly enforced (client, lawyer, judge)
+- [ ] Validate that users can only access their own data
+
+## DOMAIN 6: SECURITY VULNERABILITIES
+- [ ] Check for SQL injection vulnerabilities (all queries must use parameterized statements)
+- [ ] Scan for XSS vulnerabilities in frontend templates
+- [ ] Verify CSRF protection tokens are implemented
+- [ ] Check for proper rate limiting on authentication endpoints
+- [ ] Validate input sanitization for file uploads
+- [ ] Confirm sensitive data is not logged
+- [ ] Check for proper encryption at rest for sensitive fields
+- [ ] Verify TLS/SSL is enforced (HTTPS only)
+- [ ] Check for proper CORS origin validation
+- [ ] Validate API keys are not exposed in code
+- [ ] Check for missing Content Security Policy headers
+- [ ] Verify secure password requirements are enforced
+- [ ] Check for proper secrets management (.env files, not in code)
+- [ ] Validate file upload restrictions (size, type, scanning)
+- [ ] Check for missing authentication on sensitive endpoints
+
+## DOMAIN 7: FILE UPLOAD & EVIDENCE STORAGE
+- [ ] Verify file size limits are enforced
+- [ ] Check file type validation (whitelist, not blacklist)
+- [ ] Confirm virus/malware scanning is configured
+- [ ] Validate S3 bucket permissions are restrictive
+- [ ] Check that uploaded files have unique names (prevent overwrite)
+- [ ] Verify file metadata is properly cleaned (EXIF data handling)
+- [ ] Check for proper chain of custody hash generation
+- [ ] Validate encrypted file storage settings
+- [ ] Confirm file URLs are signed and time-limited
+
+## DOMAIN 8: ENCRYPTION & CRYPTOGRAPHY
+- [ ] Verify all sensitive data uses AES-256 encryption
+- [ ] Check that encryption keys are properly managed (not hardcoded)
+- [ ] Validate key rotation policies
+- [ ] Confirm end-to-end encryption for messages
+- [ ] Check hashing algorithms (SHA-256 minimum)
+- [ ] Validate HMAC usage for message authentication
+- [ ] Verify cryptographic libraries are up-to-date
+- [ ] Check for proper random number generation (no weak RNG)
+
+## DOMAIN 9: FRONTEND-BACKEND INTEGRATION
+- [ ] Verify ALL frontend API calls match backend endpoint paths
+- [ ] Check that frontend form validation matches backend validation
+- [ ] Validate request/response formats match Pydantic schemas
+- [ ] Confirm error handling displays proper user messages
+- [ ] Check loading states and spinners on all async operations
+- [ ] Verify timeout handling for slow API responses
+- [ ] Check that authentication tokens are properly stored (not localStorage for sensitive ops)
+- [ ] Validate all environment variables are set correctly
+
+## DOMAIN 10: WEBSOCKET & REAL-TIME FEATURES
+- [ ] Verify WebSocket authentication is proper
+- [ ] Check for proper message broadcasting to correct users
+- [ ] Validate that users can only receive their own notifications
+- [ ] Check for connection drop handling
+- [ ] Verify reconnection logic
+- [ ] Check message queuing if server is down
+- [ ] Validate proper cleanup of dead connections
+
+## DOMAIN 11: PERFORMANCE & OPTIMIZATION
+- [ ] Check for N+1 database query problems
+- [ ] Verify database indexes on all filtered columns
+- [ ] Check for proper pagination on large datasets
+- [ ] Validate caching strategy (Redis/browser cache)
+- [ ] Check for slow queries (queries > 1 second)
+- [ ] Verify image optimization and responsive sizes
+- [ ] Check for lazy loading of components
+- [ ] Validate bundle size and code splitting
+
+## DOMAIN 12: ERROR HANDLING & LOGGING
+- [ ] Verify ALL endpoints have proper error handling
+- [ ] Check that errors don't expose sensitive information
+- [ ] Validate logging doesn't include passwords/tokens
+- [ ] Check log levels are appropriate
+- [ ] Verify error messages are user-friendly
+- [ ] Check for proper stack trace handling in production
+- [ ] Validate error monitoring is configured (Sentry/DataDog)
+
+## DOMAIN 13: CONFIGURATION & ENVIRONMENT
+- [ ] Verify .env file is NOT in git
+- [ ] Check that ALL environment variables are documented
+- [ ] Validate environment-specific configs (dev/staging/prod)
+- [ ] Check that secrets are injected at runtime
+- [ ] Verify database connection strings are correct
+- [ ] Check API endpoint URLs match deployment target
+- [ ] Validate port configurations
+
+## DOMAIN 14: TESTING & COVERAGE
+- [ ] Verify critical paths have unit tests
+- [ ] Check integration tests for database operations
+- [ ] Validate end-to-end tests for user flows
+- [ ] Check test coverage is > 80%
+- [ ] Verify all tests pass
+- [ ] Check for mocked external service calls
+
+## DOMAIN 15: DEPENDENCIES & VULNERABILITIES
+- [ ] Run: pip check (for Python dependency conflicts)
+- [ ] Run: npm audit (for Node.js vulnerabilities)
+- [ ] Check for outdated packages
+- [ ] Verify no unmaintained packages are used
+- [ ] Check license compatibility
+- [ ] Validate pinned versions
+
+## DOMAIN 16: DEPLOYMENT & DEVOPS
+- [ ] Verify Dockerfile is properly configured
+- [ ] Check docker-compose.yml has correct services
+- [ ] Validate environment variable injection in container
+- [ ] Check health check endpoints
+- [ ] Verify database migrations run on startup
+- [ ] Check for proper secret management in CI/CD
+- [ ] Validate rollback strategy
+
+## DOMAIN 17: MONITORING & ALERTING
+- [ ] Verify error tracking is configured
+- [ ] Check performance monitoring
+- [ ] Validate log aggregation
+- [ ] Check uptime monitoring
+- [ ] Verify alert thresholds are appropriate
+- [ ] Check that critical issues trigger alerts
+
+OUTPUT FORMAT FOR EACH ISSUE FOUND:
+
+### [SEVERITY: CRITICAL/HIGH/MEDIUM/LOW]
+**Issue:** [Specific problem]
+**Location:** [File path, line number]
+**Current Code:**
+\`\`\`
+[code snippet]
+\`\`\`
+**Problem Explanation:** [Why this is wrong]
+**Security Impact:** [Risk assessment]
+**Fix:**
+\`\`\`
+[corrected code]
+\`\`\`
+**Test to Verify:** [How to test the fix]
+
+---
+
+FINAL CHECKLIST BEFORE DEPLOYMENT:
+- [ ] All CRITICAL issues resolved
+- [ ] All HIGH severity issues resolved
+- [ ] No exposed credentials
+- [ ] All tests passing
+- [ ] No console errors in browser
+- [ ] No backend error logs
+- [ ] Performance metrics acceptable
+- [ ] Security scan passed
+- [ ] Database migrations tested
+- [ ] Backup strategy confirmed
+- [ ] Incident response plan ready
+- [ ] User documentation complete
+
+Generate a comprehensive report with EVERY issue found, organized by severity 
+and domain. Assume the code has issues - be thorough and critical.

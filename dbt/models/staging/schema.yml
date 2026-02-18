@@ -1,0 +1,92 @@
+version: 2
+
+sources:
+  - name: raw
+    database: "{{ env_var('PGDATABASE') }}"
+    schema: public
+    tables:
+      - name: users
+        description: "Raw user data from application database"
+      - name: billing_records
+        description: "Billing and payment records"
+      - name: violations
+        description: "Court order violation records"
+      - name: tier_migrations
+        description: "Subscription tier migration history"
+      - name: assets
+        description: "User asset records"
+      - name: debts
+        description: "User debt records"
+      - name: incomes
+        description: "User income records"
+      - name: expenses
+        description: "User expense records"
+      - name: cases
+        description: "Legal case records"
+      - name: quickbooks_sync_log
+        description: "QuickBooks API sync audit log"
+
+models:
+  - name: stg_billing
+    description: "Cleaned billing records with date dimension keys"
+    columns:
+      - name: billing_id
+        description: "Primary key"
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "Foreign key to users"
+        tests:
+          - not_null
+      - name: date_id
+        description: "Foreign key to dim_date (YYYYMMDD format)"
+
+  - name: stg_users
+    description: "Cleaned user dimension with SCD Type 2 support"
+    columns:
+      - name: user_id
+        description: "Primary key"
+        tests:
+          - unique
+          - not_null
+      - name: email
+        description: "User email (masked for PII compliance)"
+        tests:
+          - unique
+
+  - name: stg_violations
+    description: "Cleaned violations with evidence counts"
+    columns:
+      - name: violation_id
+        description: "Primary key"
+        tests:
+          - unique
+          - not_null
+      - name: severity
+        description: "Violation severity level"
+        tests:
+          - accepted_values:
+              values: ['critical', 'high', 'medium', 'low']
+
+  - name: stg_subscriptions
+    description: "Subscription records with tier references"
+    columns:
+      - name: subscription_id
+        description: "Primary key"
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_financial_records
+    description: "Unified financial records from assets, debts, income, expenses"
+    columns:
+      - name: record_id
+        description: "Primary key"
+        tests:
+          - not_null
+      - name: record_type
+        description: "Type of financial record"
+        tests:
+          - accepted_values:
+              values: ['asset', 'debt', 'income', 'expense']

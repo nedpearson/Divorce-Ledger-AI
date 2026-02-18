@@ -1,0 +1,104 @@
+2026-01-05 06:31:09.72
+ef19d3b3
+User
+at node:internal/main/run_main_module:28:49 {
+2026-01-05 06:31:09.72
+ef19d3b3
+User
+at Module.load (node:internal/modules/cjs/loader:1275:32)
+2026-01-05 06:31:09.72
+ef19d3b3
+User
+^
+2026-01-05 06:31:09.72
+ef19d3b3
+User
+at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+2026-01-05 06:31:09.72
+ef19d3b3
+User
+at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+2026-01-05 06:31:09.72
+ef19d3b3
+User
+at Object. (/home/runner/workspace/dist/index.cjs:535:339)
+2026-01-05 06:31:09.72
+ef19d3b3
+User
+TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string or an instance of URL. Received undefined
+2026-01-05 06:31:09.72
+ef19d3b3
+User
+}
+2026-01-05 06:31:09.73
+ef19d3b3
+System
+command finished with error [node ./dist/index.cjs]: exit status 1
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+at Module._load (node:internal/modules/cjs/loader:1096:12)
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+at node:internal/main/run_main_module:28:49 {
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+node:internal/url:1487
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+^
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+throw new ERR_INVALID_ARG_TYPE('path', ['string', 'URL'], path);
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+at Module._compile (node:internal/modules/cjs/loader:1529:14)
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string or an instance of URL. Received undefined
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+at Object. (/home/runner/workspace/dist/index.cjs:535:339)
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+Node.js v20.19.3
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+at Module.load (node:internal/modules/cjs/loader:1275:32)
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+at fileURLToPath (node:internal/url:1487:11)
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+code: 'ERR_INVALID_ARG_TYPE'
+2026-01-05 06:31:14.74
+ef19d3b3
+User
+}
+2026-01-05 06:31:14.75
+ef19d3b3
+System
+command finished with error [node ./dist/index.cjs]: exit status 1
+2026-01-05 06:31:22.50
+ef19d3b3
+System
+crash loop detected

@@ -1,0 +1,220 @@
+**BEGIN PROMPT**
+
+You are the Lead Security Engineer performing a **security hardening / OWASP review** on this repository.
+
+Your objective is to:
+
+- Identify and fix security risks in authentication, authorization, data handling, and configuration.
+- Implement pragmatic mitigations suitable for this stack.
+- Document and codify security posture.
+
+Follow the stages below.
+
+------------------------------------------------------
+1. SECURITY THREAT SURFACE ANALYSIS
+------------------------------------------------------
+
+Perform a repository-wide scan to identify:
+
+- Auth and session handling:
+  - Login routes.
+  - Session cookies or JWT handling.
+  - OAuth flows if any.
+- Role/permission handling:
+  - Admin vs user vs demo roles.
+  - Any RBAC or permission checks.
+- Input handling:
+  - Routes receiving user input (query/body/params).
+  - File upload endpoints.
+  - Websocket handlers.
+- Data stores:
+  - DB access (ORM/raw queries).
+  - Caching layers (Redis, etc.).
+  - Blob storage for files.
+- External integrations:
+  - Stripe or other payments.
+  - Email providers.
+  - Webhooks.
+- Sensitive data:
+  - Places where PII, financial data, or legal evidence is stored or processed.
+
+Internally classify risks by category (e.g., OWASP Top 10: injection, broken auth, etc.).
+
+------------------------------------------------------
+2. AUTHENTICATION & SESSION HARDENING
+------------------------------------------------------
+
+Audit and improve:
+
+1. Session management:
+   - If using cookies:
+     - Ensure `HttpOnly`, `Secure`, `SameSite` flags appropriately set.
+   - If using JWTs:
+     - Check token signing algorithm and secret management.
+     - Check token lifetime and refresh rules.
+2. Login, logout, and session invalidation:
+   - Ensure logouts invalidate sessions/JWTs properly.
+   - Ensure brute-force protections are considered (rate limiting, lockout, etc.).
+3. Credential handling:
+   - Verify passwords are hashed with a modern algorithm (e.g., bcrypt, Argon2).
+   - Ensure no plaintext passwords or secrets in logs.
+4. Demo mode:
+   - Ensure demo auth is clearly separated from live.
+   - Ensure demo users cannot access live data or admin capabilities.
+
+Implement or refactor code to enforce secure defaults where it is currently unclear or weak.
+
+------------------------------------------------------
+3. AUTHORIZATION / ACCESS CONTROL
+------------------------------------------------------
+
+Review all routes, controllers, and services for:
+
+- Missing or weak authorization checks.
+- Implicit trust of user-supplied identifiers (e.g., user IDs, case IDs, org IDs).
+
+Implement:
+
+1. Centralized authorization helpers, e.g.:
+   - `requireAuth`
+   - `requireRole('admin')`
+   - `requireCaseAccess(caseId)`
+2. Protect sensitive routes:
+   - Admin dashboards.
+   - Billing management.
+   - Demo reset endpoints.
+   - Evidence and document access.
+3. Ensure multi-tenant boundaries (if applicable):
+   - Data must be scoped to the authenticated user / team / tenant.
+   - IDOR (Insecure Direct Object Reference) mitigations:
+     - Never rely solely on IDs from the client without verifying ownership / access.
+
+------------------------------------------------------
+4. INPUT VALIDATION & OUTPUT ENCODING
+------------------------------------------------------
+
+Identify:
+
+- All API endpoints that accept JSON, query parameters, path params, or file uploads.
+- Any use of user input in SQL, NoSQL, or dynamic queries.
+- Any use of user input in templated HTML or front-end rendering.
+
+Ensure:
+
+1. Input validation:
+   - Use a validation library (e.g., Zod, Joi, Yup, class-validator) or frameworks’ built-in validation.
+   - Add schemas for request bodies where they are currently unchecked.
+2. Prevention of injection:
+   - If using an ORM, ensure parameterized queries.
+   - If doing raw SQL, parameterize everything; remove string concatenation.
+3. Output encoding:
+   - Ensure user-supplied content rendered in HTML is properly encoded to prevent XSS.
+
+------------------------------------------------------
+5. FILE UPLOADS, STORAGE, AND EVIDENCE HANDLING
+------------------------------------------------------
+
+Given the likely presence of file uploads (PDFs, images, legal/financial docs):
+
+1. Validate uploaded file types and sizes:
+   - Enforce restricted mimetypes/extensions.
+   - Enforce per-file and total size limits based on subscription tier/env.
+2. Storage paths:
+   - Ensure no path traversal (`../`) is possible.
+   - Avoid exposing internal storage paths directly.
+3. Access control:
+   - Ensure only authorized users can download/view the files they own or are allowed to see.
+4. Malware risk (if applicable):
+   - Consider how files are scanned or flagged, if this exists.
+   - If not present, at least document where an AV/scan step would plug in.
+
+------------------------------------------------------
+6. SECRETS MANAGEMENT & LOGGING
+------------------------------------------------------
+
+Review:
+
+- Secrets usage:
+  - DB passwords, JWT secrets, Stripe keys, etc.
+  - Ensure they are **only** read from env config and not hard-coded.
+- Logging practices:
+  - Ensure no sensitive data is logged (passwords, full payment data, full JWTs, etc.).
+  - Ensure logs do not leak internal errors to end users in a way that reveals stack traces or secrets.
+
+Implement:
+
+- Redaction where necessary.
+- Safer error responses for clients (generic messages) while logging stack traces server-side.
+
+------------------------------------------------------
+7. RATE LIMITING / ABUSE PROTECTION (IF APPLICABLE)
+------------------------------------------------------
+
+Add or improve:
+
+- Rate limiting middleware on sensitive endpoints:
+  - Login.
+  - Signup.
+  - Password reset.
+  - Any high-cost AI or document-processing routes.
+- Basic DoS safeguards:
+  - Request size limits.
+  - Timeout configuration where relevant.
+
+------------------------------------------------------
+8. SECURITY HEADERS & HTTPS ASSUMPTIONS
+------------------------------------------------------
+
+Ensure:
+
+- Appropriate HTTP security headers are set via middleware, e.g.:
+  - `X-Frame-Options` or `Content-Security-Policy` (or modern equivalents).
+  - `X-Content-Type-Options: nosniff`
+  - `Referrer-Policy`
+- Application assumes HTTPS in production:
+  - Correct cookie `Secure` flags in prod.
+  - Trust proxy settings correctly configured if behind a reverse proxy.
+
+------------------------------------------------------
+9. OUTPUT FORMAT — STRUCTURED SECURITY REPORT
+------------------------------------------------------
+
+After applying fixes, output:
+
+SECTION A — Security Issues Found
+- Grouped by category (auth, authz, injection, XSS, secrets, etc.).
+
+SECTION B — Security Controls Implemented
+- Bullet list of each control added (e.g., “Added rate limiting on /api/login with X thresholds”).
+
+SECTION C — Files Modified
+- Path + brief change description.
+
+SECTION D — New Files / Modules
+- Path + purpose (e.g., `securityHeadersMiddleware`, `rateLimiter`, `authzHelpers`).
+
+SECTION E — Full Patchset
+- Copy-paste-ready diffs for all relevant files.
+
+SECTION F — Security Testing Instructions
+- Manual and automated checks:
+  - How to verify login/session behavior.
+  - How to verify access control.
+  - How to confirm headers and rate limiting.
+  - Suggested tools (e.g., OWASP ZAP, basic scripts).
+
+SECTION G — Residual Risks & Future Work
+- Honest list of:
+  - Risks that remain.
+  - Things not addressed but recommended (e.g., full pen-test, bug bounty, HSM/KMS).
+
+------------------------------------------------------
+10. EXECUTION RULES
+------------------------------------------------------
+
+- Do not restate this prompt.
+- Proceed step by step.
+- If you hit a token limit, stop cleanly and wait for “continue”.
+- Resume precisely where you left off.
+
+**END PROMPT**

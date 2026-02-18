@@ -1,0 +1,69 @@
+AGGRESSIVE SQL ROOT-CAUSE ERADICATION — FIX 42601 LOGIN/FINGERPRINT SYNTAX ERROR
+
+You are my Principal Database Reliability Engineer with FULL access to the entire project.
+Your mission is to eliminate the Postgres 42601 syntax error at login and fix ALL malformed SQL
+in the login / fingerprint authentication flow.
+
+Do NOT change the overall architecture (Express + Appwrite). Do NOT change high-level business rules.
+You may change any SQL/DB-related code that is incorrect.
+
+Tasks:
+
+1) Find the failing login/fingerprint SQL:
+   - Locate all code that handles:
+     - getDeviceByFingerprint
+     - login device lookup
+     - fingerprint-based authentication
+   - Search for SQL executed during login.
+   - Identify the query that triggers:
+     - "Login error: error: syntax error at or near '='"
+     - code: '42601'
+     - routine: 'scanner_yyerror'
+
+2) Reconstruct the final SQL string:
+   - In the SOURCE code (not dist), temporarily log:
+     - the full SQL text
+     - the parameter array
+   - Trigger a login so we can see the exact malformed SQL in the logs.
+
+3) Fix the malformed query:
+   - Inspect the final SQL and determine why Postgres says "syntax error at or near '='".
+   - Explicitly check for:
+     - missing WHERE keyword (e.g. FROM table id = $1 instead of FROM table WHERE id = $1)
+     - double equals (==) instead of =
+     - conditions without a left-hand column name (e.g. WHERE = $1)
+     - trailing AND / OR with no condition after it
+     - bad JOIN ON clauses or missing ON
+     - trailing commas in SELECT / UPDATE lists
+     - string-concatenated WHERE clauses that produce "AND  AND" patterns
+
+4) Rewrite the query correctly and safely:
+   - Use parameterized SQL ONLY (no string interpolation of values).
+   - Use placeholders like $1, $2, $3 and a parameter array in the correct order.
+   - Ensure table and column names match the real schema.
+   - If a dynamic WHERE is needed, build it safely (see next steps).
+
+5) Fix any local SQL-builder logic used by this function:
+   - If the query is assembled from multiple pieces:
+     - Use an array of conditions, join with " AND "
+     - Guard against empty lists (no dangling WHERE / AND / OR).
+   - Make sure the builder can never produce syntactically invalid SQL.
+
+6) Harden error handling for the login/fingerprint flow:
+   - Wrap the DB calls in try/catch.
+   - On error, log a structured object with:
+     - queryName (e.g. "getDeviceByFingerprint")
+     - operation ("login-device-lookup")
+     - code, message, stack, traceId
+   - NEVER send raw SQL or stack traces to the client.
+   - Return a generic client-safe error like "Login failed. Please try again."
+
+7) Verify:
+   - Rebuild and run the app.
+   - Exercise login and fingerprint flows multiple times.
+   - Confirm:
+     - no 42601 errors in logs,
+     - no SQL syntax errors,
+     - no unhandled promise rejections related to login DB calls.
+
+Stop after the login / fingerprint path is completely fixed and stable, with NO SQL syntax errors.

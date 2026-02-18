@@ -1,0 +1,7 @@
+Home Screen → "Document Violation" → Camera/Gallery → Submit → Send to Lawyer
+     ↓
+Evidence marked with:
+- Automatic timestamp (GPS location optional)
+- Violation type (pre-selected or custom)
+- Description (voice transcription or text)
+- Photos/video (encrypted, timestamped)

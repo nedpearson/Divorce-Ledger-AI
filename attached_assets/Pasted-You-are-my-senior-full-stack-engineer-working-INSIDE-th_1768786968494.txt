@@ -1,0 +1,263 @@
+You are my senior full-stack engineer working INSIDE this exact Replit project (DivorceAES AI).
+
+The core bug:
+
+When I upload a document or create “test1”, the Finances / Forensic Financial Records never get populated from the document.
+
+The Replit AI already queried the DB and found:
+
+Only one real row in documents (title like ATMOS_APRIL, user demo-user).
+
+The “test1” document I see in the UI does not exist in the database.
+
+For the existing row, file_url is NULL and description contains placeholder text like "[Linked to: Financial Records]".
+
+The preview modal is showing description/placeholder text, not actual OCR / AI-extracted content.
+
+I need you to do a full, permanent fix of the entire “document → analysis → finances” pipeline, not just a cosmetic change.
+
+HIGH-LEVEL GOAL
+
+Make it so that, for both LIVE and DEMO modes:
+
+When a user uploads a document (PDF/image) or takes a picture:
+
+A row is ALWAYS created in the documents table for the correct user (not hard-coded demo-user).
+
+The row stores at least: id, user_id, title, description, category, file_url, ai_analysis_status, ai_extracted_text (or equivalent), created_at.
+
+file_url is a real, reachable URL/path to the uploaded file (wherever this project stores files).
+
+A background step (or immediate API call) runs OCR + AI analysis and:
+
+Extracts text from the document.
+
+Infers category (Financial, Legal, etc.).
+
+Creates or updates related financial records (transactions / line items) that appear in the Finances / Forensic Ledger tabs.
+
+The document preview dialog:
+
+Shows the true title, category, and date.
+
+Shows real extracted text from the document (not placeholder “Extracted document text will appear here”).
+
+Shows any link(s) from the document to financial records (e.g., “[Linked to: Financial Records]”) based on actual relationships, not hard-coded strings.
+
+The Finances tab:
+
+Queries the same canonical data that the document analysis produced.
+
+For any new upload that contains financial information, I should be able to see new rows derived from that document (or at least one linked transaction) WITHOUT manual DB work.
+
+All of this must work going forward for any new uploads, both in LIVE and DEMO, without needing me to touch code again.
+
+STEP 1 – MAP THE CURRENT PIPELINE
+
+Systematically inspect the code to understand the existing flow.
+
+Explicitly open and review at least:
+
+DB schema / ORM models (e.g., Drizzle/Prisma/knex) for:
+
+documents
+
+any financial_records, transactions, or equivalent tables
+
+users
+
+All backend routes / handlers involved in:
+
+document upload (file input, drag-and-drop, camera)
+
+document analysis / OCR / AI calls
+
+document → finances linkage
+
+Frontend pages/components:
+
+client/src/pages/documents.tsx (already opened in previous attempts)
+
+the document preview modal
+
+the finances / forensic ledger page(s)
+
+any “New Document” or upload components.
+
+Document (in your own reasoning, not to user) the exact flow of data:
+
+Upload UI → API route / upload handler → file storage → DB insert into documents → analysis job → DB updates (document + financial tables) → Finances UI query.
+
+STEP 2 – FIND THE ROOT CAUSES
+
+Identify and fix all of the following classes of issues (they may all be present):
+
+Missing DB insert / wrong user_id
+
+Verify that, on every upload, we actually call an endpoint that does a INSERT INTO documents (or ORM equivalent).
+
+If you find that demo data is seeded but user uploads are only kept in memory or in a different table, unify that.
+
+Remove any hard-coded demo-user in production flows; use the authenticated user from the auth layer.
+
+file_url never set
+
+Find where files are uploaded (Replit storage, S3, local /uploads, etc.).
+
+Ensure that the code that completes upload ALWAYS writes a real file_url into the documents row.
+
+If the project uses signed URLs, store the persistent path or storage key.
+
+Analysis not triggered or not writing back
+
+Locate the code that does OCR / AI analysis. This might be in an API route like /api/analyzeDocument, a queue worker, or a serverless function.
+
+Confirm that, after analysis, it updates the documents row with:
+
+ai_analysis_status (e.g., “completed”)
+
+ai_extracted_text or equivalent field
+
+category inferred from the analysis
+
+any linkage to financial tables (e.g., foreign keys to financial_records or a join table).
+
+If there is no pipeline from extracted text to financial records, implement a minimal version:
+
+Extract structured data (amount, vendor, date, category) into a JSON structure;
+
+Create or update rows in the finances table.
+
+UI reading from wrong fields or wrong environment
+
+In the document preview dialog, confirm that you are showing the extracted text field from the DB, not just description or placeholder text.
+
+Remove any code that seeds or displays static placeholder like “Extracted document text will appear here”.
+
+Ensure the Finances and Documents pages are filtering by the same user_id and environment (LIVE vs DEMO) so we are not looking at empty queries.
+
+LIVE vs DEMO environment confusion
+
+Locate any environment flags like mode, environment, demo, etc. in the DB schema or code.
+
+Make sure that:
+
+DEMO uploads go to demo data, but LIVE uploads go to the real user’s data.
+
+There is no situation where the UI in LIVE mode is pointing at demo tables or vice versa.
+
+STEP 3 – IMPLEMENT CONCRETE FIXES
+
+Based on the above analysis, make code changes that:
+
+Guarantee DB persistence on upload
+
+In the upload handler, after successful file storage:
+
+Insert a documents row with all required fields populated, especially:
+
+user_id
+
+title (default to filename if user did not specify)
+
+description (optional)
+
+category defaulting to “Uncategorized” or “Unknown”
+
+file_url set to the stored file location
+
+ai_analysis_status = 'pending'
+
+Return the new document ID to the client.
+
+Wire up analysis to document + finances
+
+Make sure there is an API or job that:
+
+Takes a document ID, fetches file_url, runs OCR + AI, and returns structured data.
+
+Updates the documents record with extracted text and category.
+
+Writes financial rows into the relevant table(s) when the document contains financial info.
+
+Fix the document preview UI
+
+In the preview modal component, explicitly read from the correct fields:
+
+Title: doc.title
+
+Category: doc.category
+
+Date: doc.created_at (or explicit document date field)
+
+Body: doc.ai_extracted_text (fallback to description only if extracted text is empty).
+
+Remove any static placeholder that is currently being stored in the DB as description.
+
+Ensure that if a document has no extracted text yet (status = pending), the UI clearly shows “Analysis pending” rather than fake text.
+
+Fix the Finances / Ledger queries
+
+Locate the API / hooks that feed the Finances page.
+
+Ensure that these queries join or filter on the same keys created by the analysis step. Examples:
+
+financial_records.document_id = documents.id, or
+
+A join table like document_financial_links.
+
+Confirm that when a new document is analyzed and financial rows are created, the Finances page immediately reflects them.
+
+Add logging and minimal tests
+
+Add server-side logging to the upload and analysis handlers so that, if anything fails, we can see it in the Replit console.
+
+If the project already has tests, add at least one end-to-end style test that simulates:
+
+Creating a user
+
+Uploading a small test document
+
+Running analysis
+
+Verifying that a documents row and at least one financial record exist.
+
+STEP 4 – CLEAN UP BAD / LEGACY DATA
+
+Find any documents rows that:
+
+have file_url IS NULL and are obviously demo placeholders ("[Linked to: Financial Records]");
+
+or belong to old/seeding logic that is confusing the UI.
+
+Either:
+
+delete them entirely in DEV/DEMO, or
+
+clearly mark them as environment = 'demo-seed' so they never show up in LIVE queries.
+
+STEP 5 – SHOW ME THE RESULT
+
+After you complete the fixes:
+
+Rebuild / restart the app.
+
+Walk through one full example in LIVE mode:
+
+Upload a test document (e.g., a simple one-page bill).
+
+Show the inserted documents row (via SQL/ORM debug) with a non-null file_url.
+
+Show evidence that analysis ran and updated ai_extracted_text + category.
+
+Show the new financial record row(s) created from that analysis.
+
+Confirm that:
+
+The document preview shows real extracted text.
+
+The Finances / Forensic ledger tab shows the amounts/info derived from that document.
+
+If anything fails at any step, continue iterating and fixing until the full pipeline works reliably.
+
+End of prompt. Implement all of the above autonomously.

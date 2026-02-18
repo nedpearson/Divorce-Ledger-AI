@@ -1,0 +1,73 @@
+FRONTEND OBSERVABILITY & REGRESSION GUARDS — CATCH FUTURE UI/UX FAILURES EARLY
+
+You are my Principal Frontend Observability Engineer.
+
+Now that Divorce Ledger’s frontend is stable and optimized, your mission is to add LIGHTWEIGHT
+observability and guard rails so future changes don’t silently break important flows.
+
+Tasks:
+
+1) Centralized error reporting:
+   - Implement or confirm a single place to catch unhandled frontend errors:
+     - Global ErrorBoundary at the app root,
+     - window.onerror / unhandledrejection handlers (if appropriate).
+   - On error:
+     - Log a concise report:
+       {
+         type: "frontend-error",
+         route,
+         message,
+         stack,
+         userId if available,
+         environment (demo/live),
+         timestamp
+       }
+     - Send to backend logging endpoint (or console in dev).
+
+2) User-facing error fallbacks:
+   - Ensure error boundaries show:
+     - A clear message (e.g., “Something went wrong”),
+     - A “Try again” or “Reload” option,
+     - Optionally a support link.
+
+3) Basic UI regression checks:
+   - Add simple smoke-test utilities (unit/integration tests) for:
+     - Rendering main pages without crashing:
+       - Home/Dashboard
+       - Documents
+       - Violations
+       - Finance
+       - Settings/Auth
+   - Test cases can be minimal:
+     - Mount route component,
+     - Assert it renders a key element (like a title or main panel).
+
+4) Network-edge handling:
+   - Ensure components display:
+     - Loading states,
+     - Error states (e.g. “Could not load documents”),
+     - Retry buttons where meaningful.
+   - Prevent blank screens when network is offline or slow.
+
+5) Console hygiene:
+   - Clean up remaining console.warn/console.error in normal flows.
+   - Only log:
+     - truly unexpected errors,
+     - structured diagnostic info.
+
+6) Documentation:
+   - Briefly document, in a DEV doc or comment:
+     - Where the main ErrorBoundary is,
+     - Where frontend logs go,
+     - How to run basic frontend tests.
+
+7) Final verification:
+   - Run build + any frontend tests.
+   - Use app normally:
+     - Intentionally break a minor call (e.g., simulate API error) to ensure UI error states work and logs record it.
+   - Confirm:
+     - Frontend does not silently fail,
+     - Errors are caught and surfaced cleanly,
+     - No unnecessary noise in console.
+
+Stop when the frontend has basic but robust observability and guard rails to catch future UI regressions quickly.

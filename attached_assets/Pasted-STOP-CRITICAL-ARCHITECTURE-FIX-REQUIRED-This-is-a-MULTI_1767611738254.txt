@@ -1,0 +1,132 @@
+STOP. CRITICAL ARCHITECTURE FIX REQUIRED.
+
+This is a MULTI-TENANT SaaS application. Each lawyer must connect THEIR OWN QuickBooks account, not a single shared connection.
+
+REVISED ARCHITECTURE (replace what you just built)
+
+1) OAUTH FLOW CHANGES
+- DO NOT use environment variables for QB credentials in production
+- Instead, use these environment variables ONLY for the OAuth app registration:
+  QB_CLIENT_ID=<your_app_client_id> (same for all users)
+  QB_CLIENT_SECRET=<your_app_secret> (same for all users)
+  QB_REDIRECT_URI=https://divorceaseai.replit.app/api/quickbooks/callback
+
+- Each USER stores THEIR OWN tokens in the database:
+  ALTER TABLE users ADD COLUMN qb_access_token TEXT;
+  ALTER TABLE users ADD COLUMN qb_refresh_token TEXT;
+  ALTER TABLE users ADD COLUMN qb_realm_id VARCHAR(50); -- their QB company ID
+  ALTER TABLE users ADD COLUMN qb_token_expires_at TIMESTAMP;
+  ALTER TABLE users ADD COLUMN qb_connected BOOLEAN DEFAULT FALSE;
+
+2) USER FLOW (how lawyers connect)
+Step 1: Lawyer goes to Settings → Integrations
+Step 2: Clicks [Connect My QuickBooks]
+Step 3: Redirects to QuickBooks OAuth (Intuit's servers)
+Step 4: Lawyer authorizes access to THEIR QuickBooks
+Step 5: Callback stores THEIR tokens in users table (user_id = current user)
+Step 6: All subsequent QB API calls use THAT user's tokens
+
+3) API CALL PATTERN (enforce per-user isolation)
+Every QB API call MUST:
+- Get current authenticated user_id from session
+- Fetch THAT user's qb_access_token from database
+- Use THAT token for the API call
+- If token expired, auto-refresh using THAT user's qb_refresh_token
+- NEVER use another user's tokens
+
+Example middleware:
+```javascript
+async function getUserQBClient(req) {
+  const userId = req.user.id; // from your auth middleware
+  const user = await db.query('SELECT qb_access_token, qb_refresh_token, qb_realm_id FROM users WHERE id = $1', [userId]);
+  
+  if (!user.qb_access_token) {
+    throw new Error('QuickBooks not connected. Please connect in Settings.');
+  }
+  
+  // Check if token expired, refresh if needed
+  if (isTokenExpired(user)) {
+    await refreshQBToken(userId);
+    return getUserQBClient(req); // retry with fresh token
+  }
+  
+  return createQBClient(user.qb_access_token, user.qb_realm_id);
+}
+```
+
+4) REVISED ROUTES
+GET /api/quickbooks/connect
+- Generates OAuth URL with state param = current user_id
+- Redirects to QuickBooks
+
+GET /api/quickbooks/callback?code=xxx&state=user_id&realmId=xxx
+- Exchanges code for tokens
+- Stores tokens in users table WHERE id = state (user_id)
+- Redirects to settings with success message
+
+POST /api/quickbooks/disconnect
+- Sets qb_connected = FALSE for current user
+- Optionally revokes tokens via QB API
+
+GET /api/quickbooks/status
+- Returns { connected: true/false, companyName: "Lawyer's QB Company" }
+- Uses current user's tokens
+
+POST /api/quickbooks/create-invoice (REVISED)
+- Gets current user's QB client
+- Creates invoice in THAT user's QuickBooks
+- NOT in your QuickBooks
+
+5) SECURITY ADDITIONS
+- Add qb_scopes column to track what permissions user granted:
+  ALTER TABLE users ADD COLUMN qb_scopes TEXT[]; 
+  (stores: ['com.intuit.quickbooks.accounting'])
+
+- Encrypt tokens at rest:
+  - Use crypto.createCipheriv with your SECRET_KEY
+  - Decrypt only when making API calls
+  - NEVER log decrypted tokens
+
+- Add webhook verification (for QB notifications):
+  POST /api/quickbooks/webhook
+  - Verify Intuit signature
+  - Handle token revocation events
+  - Update qb_connected = FALSE if user disconnects in QB
+
+6) FRONTEND CHANGES
+Settings → Integrations page:
+IF user.qb_connected:
+  ✅ Connected to QuickBooks
+  Company: "Smith & Associates Law Firm"
+  Last sync: 2 hours ago
+  [Disconnect] button
+ELSE:
+  [Connect My QuickBooks] button
+  "Link your QuickBooks account to export invoices and track expenses"
+
+7) ONBOARDING FLOW (optional but recommended)
+After user signs up for Pro/Enterprise tier:
+- Show modal: "Connect QuickBooks to unlock invoicing"
+- Skip button if they want to do it later
+- Saves qb_onboarding_dismissed = TRUE
+
+8) REVISED VERIFICATION
+Test with TWO different users:
+1. User A connects QB Sandbox Company A
+2. User B connects QB Sandbox Company B
+3. User A creates invoice → verify it goes to Company A only
+4. User B creates invoice → verify it goes to Company B only
+5. User A tries to access User B's QB data → verify it fails
+
+ACCEPTANCE CHECK (FAIL IF ANY TRUE)
+❌ Any user can access another user's QB data
+❌ Tokens stored in environment variables (except app-level creds)
+❌ Single shared QB connection for all users
+❌ Tokens not encrypted at rest
+❌ Missing token refresh logic
+❌ No webhook handler for disconnection events
+
+DELETE/REVERT if you built:
+- Any code that uses a single QB connection for all users
+- Any code that stores user tokens in environment variables
+- Any code that doesn't check user_id before QB API calls

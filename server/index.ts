@@ -1,0 +1,303 @@
+import express, { type Request, Response, NextFunction } from "express";
+import cookieParser from "cookie-parser";
+import { registerRoutes } from "./routes";
+import { validateEnv, isLiveMode, isDemoMode, getAppMode } from "./config";
+
+// Run environment sanity check
+validateEnv();
+import { serveStatic } from "./static";
+import { createServer } from "http";
+import { startDemoResetScheduler, maybeResetDemo } from "./demo-reset";
+import { demoResetMiddleware } from "./middleware/demoReset";
+import adminDemoRouter from "./routes/adminDemo";
+import { testDatabaseConnection } from "./db";
+import { runMigrations } from 'stripe-replit-sync';
+import { getStripeSync, initStripe as initStripeClient, isStripeAvailable, getStripeMode } from "./stripeClient";
+import { WebhookHandlers } from "./webhookHandlers";
+import { startupService } from "./startup";
+import { cronScheduler } from "./cron-scheduler";
+import { liveScheduler } from "./live-scheduler";
+import { Pool } from "pg";
+import { DashboardService } from "./dashboard-service";
+import { WebSocketService } from "./websocket-service";
+import { logFireflyConfigStatus } from "./config/firefly.config";
+import { isAppwriteConfigured, initializeAppwrite } from "./services/appwrite/client";
+import { startQueueProcessor } from "./services/appwrite/analysisService";
+
+import { createLogger } from "./lib/logger";
+import { globalErrorHandler } from "./lib/errorHandler";
+
+const startupLogger = createLogger("Startup");
+
+process.on("uncaughtException", (err) => {
+  startupLogger.error("Uncaught Exception", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  startupLogger.error("Unhandled Promise Rejection", reason as Error, { 
+    promiseInfo: String(promise) 
+  });
+});
+
+import helmet from "helmet";
+import hpp from "hpp";
+import xss from "xss-clean";
+
+import { loopWatchdogMiddleware } from "./middleware/loopWatchdog";
+
+const app = express();
+
+// Security Middlewares
+app.use(loopWatchdogMiddleware);
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === "production",
+  crossOriginEmbedderPolicy: false,
+}));
+app.use(xss());
+app.use(hpp());
+
+// Enable trust proxy for proper IP detection behind Replit's proxy
+app.set('trust proxy', 1);
+const httpServer = createServer(app);
+
+// Initialize monitoring services
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const dashboardService = new DashboardService(pool);
+const wsService = new WebSocketService(httpServer, dashboardService);
+
+declare module "http" {
+  interface IncomingMessage {
+    rawBody: unknown;
+  }
+}
+
+// Initialize Stripe schema and sync data (called after startupService has validated Stripe)
+async function initStripe() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    console.log('DATABASE_URL not set, skipping Stripe sync/webhook setup');
+    return;
+  }
+
+  // Stripe credentials already validated by startupService
+  if (!isStripeAvailable()) {
+    return;
+  }
+
+  try {
+    console.log('Initializing Stripe schema...');
+    await runMigrations({ databaseUrl });
+    console.log('Stripe schema ready');
+
+    const stripeSync = await getStripeSync();
+
+    console.log('Setting up managed webhook...');
+    const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+    try {
+      const result = await stripeSync.findOrCreateManagedWebhook(
+        `${webhookBaseUrl}/api/stripe/webhook`
+      );
+      if (result?.webhook?.url) {
+        console.log(`Webhook configured: ${result.webhook.url}`);
+      } else {
+        console.log('Webhook setup returned without URL - may be already configured');
+      }
+    } catch (webhookError: any) {
+      console.log('Webhook setup skipped:', webhookError.message);
+    }
+
+    // Sync all existing Stripe data in background
+    console.log('Syncing Stripe data...');
+    stripeSync.syncBackfill()
+      .then(() => console.log('Stripe data synced'))
+      .catch((err: any) => console.error('Error syncing Stripe data:', err));
+  } catch (error) {
+    console.error('Failed to initialize Stripe:', error);
+  }
+}
+
+// Register Stripe webhook route BEFORE express.json() - needs raw Buffer
+app.post(
+  '/api/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    const { isStripeAvailable } = await import("./stripeClient");
+    if (!isStripeAvailable()) {
+      return res.status(503).json({ error: 'Stripe not configured' });
+    }
+
+    const signature = req.headers['stripe-signature'];
+    if (!signature) {
+      return res.status(400).json({ error: 'Missing stripe-signature' });
+    }
+
+    try {
+      const sig = Array.isArray(signature) ? signature[0] : signature;
+      if (!Buffer.isBuffer(req.body)) {
+        console.error('STRIPE WEBHOOK ERROR: req.body is not a Buffer');
+        return res.status(500).json({ error: 'Webhook processing error' });
+      }
+      await WebhookHandlers.processWebhook(req.body as Buffer, sig);
+      res.status(200).json({ received: true });
+    } catch (error: any) {
+      console.error('Webhook error:', error.message);
+      res.status(400).json({ error: 'Webhook processing error' });
+    }
+  }
+);
+
+// Now apply JSON middleware for all other routes
+// Increased limit to 50MB for base64 encoded images
+app.use(
+  express.json({
+    limit: '50mb',
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
+
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+app.use(cookieParser());
+app.use(demoResetMiddleware);
+app.use(adminDemoRouter);
+
+export function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+
+      log(logLine);
+    }
+  });
+
+  next();
+});
+
+(async () => {
+  // Run centralized startup health checks
+  try {
+    await startupService.initialize();
+  } catch (error) {
+    console.error("Startup health check failed:", error instanceof Error ? error.message : error);
+    if (startupService.hasCriticalErrors()) {
+      console.error("Critical errors detected - some features may not work");
+    }
+  }
+
+  // Validate Firefly III configuration (optional global config)
+  logFireflyConfigStatus();
+
+  const dbConnected = startupService.isHealthy();
+
+  // Initialize Stripe webhook/sync if database is connected
+  if (dbConnected && isStripeAvailable()) {
+    await initStripe();
+  }
+
+  await registerRoutes(httpServer, app);
+
+  if (dbConnected) {
+    const appMode = getAppMode();
+    console.log(`[STARTUP] Application mode: ${appMode.toUpperCase()}`);
+
+    // LIVE MODE: Start live scheduler for billing, quotas, tier migrations
+    if (isLiveMode()) {
+      console.log('[STARTUP] Live mode detected - initializing live scheduler...');
+      liveScheduler.start();
+    }
+
+    // DEMO MODE: Start demo-specific schedulers
+    if (isDemoMode()) {
+      console.log('[STARTUP] Demo mode detected - initializing demo reset scheduler...');
+      startDemoResetScheduler();
+      
+      // Legacy cron scheduler for demo mode (if needed)
+      if (process.env.CRON_ENABLED === 'true') {
+        cronScheduler.start();
+      }
+
+      // Lazy check stale demo on startup
+      maybeResetDemo().catch(err => {
+        console.error('[DEMO] Initial startup reset check failed:', err);
+      });
+    }
+    
+    // Start monitoring services (both modes)
+    dashboardService.start().catch(err => {
+      console.error('Failed to start dashboard service:', err);
+    });
+    wsService.initialize();
+    
+    // APPWRITE AUTO-START: Start queue processor if Appwrite is configured
+    // This ensures documents are analyzed even if /api/appwrite/setup wasn't called
+    if (isAppwriteConfigured()) {
+      try {
+        initializeAppwrite();
+        startQueueProcessor(15000);
+        console.log('[STARTUP] Appwrite queue processor started (15s interval)');
+      } catch (err) {
+        console.warn('[STARTUP] Failed to start Appwrite queue processor:', err);
+      }
+    }
+  }
+
+  // Serve monitoring dashboard
+  app.get('/dashboard', (_req, res) => {
+    res.sendFile('dashboard.html', { root: 'public' });
+  });
+
+  app.use(globalErrorHandler);
+
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (process.env.NODE_ENV === "production") {
+    serveStatic(app);
+  } else {
+    const { setupVite } = await import("./vite");
+    await setupVite(httpServer, app);
+  }
+
+  // ALWAYS serve the app on the port specified in the environment variable PORT
+  // Other ports are firewalled. Default to 5000 if not specified.
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = parseInt(process.env.PORT || "5000", 10);
+  httpServer.listen(
+    {
+      port,
+      host: "0.0.0.0",
+      ...(process.platform !== "win32" && { reusePort: true }),
+    },
+    () => {
+      log(`serving on port ${port}`);
+    },
+  );
+})();

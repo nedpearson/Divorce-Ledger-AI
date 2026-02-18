@@ -1,0 +1,46 @@
+You have already tried to build a full document-analysis pipeline for “Divorce Ledger AI”, but the Finances → Expenses tab still shows TOTAL EXPENSES = $0/mo even after uploading a clear expense document.
+
+Now I want you to do three very specific things, in this order, and show me the code for each:
+
+1) ADD DIAGNOSTIC SCRIPTS
+- Create a file `scripts/debugDocs.ts` that:
+  - Connects to the existing DB through the current ORM.
+  - Prints the 5 most recent rows from the `documents` table with:
+    - id, user_id (and/or case_id), analysis_status, doc_type, and parsed_json.total_amount_due.
+- Create a file `scripts/debugExpenses.ts` that:
+  - Prints the 10 most recent rows from the `expenses` table, including user_id, case_id/mode if present, document_id, amount, currency, and created_at.
+- Make sure these scripts are runnable from the Replit shell, e.g.:
+  - `npx ts-node scripts/debugDocs.ts`
+  - `npx ts-node scripts/debugExpenses.ts`
+If ts-node is not used in this project, adapt to whatever runner the repo already uses.
+
+2) ENSURE THE ANALYZER WRITES EXPENSES
+- Find the function (or route) responsible for analyzing uploaded documents (e.g. `analyzeAndSave`, `processDocument`, or similar).
+- After a parsed result with `parse_status === "success"` and a non-null `total_amount_due`, make sure you:
+  - Delete or soft-delete any existing expense rows for that document.
+  - Insert at least one expense row into the `expenses` table with:
+    - the correct user_id and case_id/mode,
+    - document_id,
+    - amount = total_amount_due,
+    - currency,
+    - a reasonable source_description (e.g. "Total Amount Due").
+- Also, insert line-item expenses if line_items are present.
+- Log to the console: documentId and number of expenses created.
+
+3) VERIFY AND FIX THE FINANCES QUERY
+- Locate the backend code that serves data to the Finances → Expenses tab.
+- Confirm that it reads totals from the `expenses` table, not directly from the documents table.
+- Check all filters: user_id, case_id, and any 'mode' (live/demo) flags.
+- Adjust the insertion logic in step (2) so that new expense rows carry values that satisfy these filters.
+- If necessary, add a temporary debug endpoint `/api/debug/finances` that returns:
+  - total number of expense rows for the current user/case,
+  - the sum of all amounts,
+  - a list of the last 5 expenses with their document_id.
+
+IMPORTANT:
+- Do not change table names or the overall architecture.
+- Keep changes incremental and consistent with the existing code style and ORM usage.
+- After you implement everything, show me:
+  - The contents of `scripts/debugDocs.ts` and `scripts/debugExpenses.ts`.
+  - The updated document-analysis function where expenses are inserted.
+  - The updated Finances aggregation query or endpoint.

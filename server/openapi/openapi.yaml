@@ -1,0 +1,3229 @@
+openapi: 3.0.3
+info:
+  title: Divorce Ledger API
+  description: |
+    Forensic Financial & Legal Case Management API for divorce proceedings.
+    
+    ## Authentication
+    Most endpoints require session-based authentication via cookie. Admin endpoints require an `x-admin-secret` header.
+    
+    ## Environment Separation
+    All data operations are scoped to the user's current environment (LIVE or DEMO).
+    DEMO data resets daily at midnight UTC.
+    
+    ## Subscription Tiers
+    Features are gated based on subscription tier: Free, Individual, Pro, Team, Enterprise.
+    
+    ## Rate Limiting
+    - Login endpoint: 5 attempts per 15 minutes
+    - General API: 100 requests per minute
+    
+    ## Version Management
+    API versioning follows semantic versioning. Breaking changes increment the major version.
+    Current version is included in response headers as `X-API-Version`.
+  version: 1.0.0
+  contact:
+    name: Divorce Ledger Support
+    email: support@divorceledger.live
+  license:
+    name: Proprietary
+    url: https://divorceledger.live/license
+
+servers:
+  - url: /api
+    description: API Base URL (all paths are relative to /api)
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Dashboard
+    description: Dashboard statistics and overview data
+  - name: Cases
+    description: Legal case management
+  - name: Violations
+    description: Court order violation documentation
+  - name: Evidence
+    description: Evidence file management with chain of custody
+  - name: Finances
+    description: Financial data (transactions, assets, debts, income, expenses)
+  - name: Alerts
+    description: System alerts and notifications
+  - name: Subscription
+    description: Subscription and billing management
+  - name: Admin
+    description: Administrative operations (requires admin secret)
+  - name: Events
+    description: Event streaming and analytics (requires admin secret)
+  - name: ETL
+    description: ETL pipeline management (requires admin secret)
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+      description: Session cookie for authenticated users
+    adminSecret:
+      type: apiKey
+      in: header
+      name: x-admin-secret
+      description: Admin secret for privileged operations
+
+  schemas:
+    # Common schemas
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Resource not found"
+        code:
+          type: string
+          description: Machine-readable error code
+          example: "NOT_FOUND"
+        details:
+          type: object
+          description: Additional error context
+          additionalProperties: true
+
+    ValidationError:
+      type: object
+      required:
+        - error
+        - details
+      properties:
+        error:
+          type: string
+          example: "Validation failed"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "email"
+              message:
+                type: string
+                example: "Invalid email format"
+              code:
+                type: string
+                example: "invalid_format"
+
+    Pagination:
+      type: object
+      properties:
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+          description: Number of items per page
+        offset:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Number of items to skip
+        total:
+          type: integer
+          description: Total number of items available
+
+    # User schemas
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - fullName
+        - role
+        - environment
+        - subscriptionTier
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: User's email address (unique)
+          example: "user@example.com"
+        fullName:
+          type: string
+          maxLength: 200
+          description: User's full legal name
+          example: "John Doe"
+        role:
+          type: string
+          enum: [client, attorney, cpa, admin]
+          description: |
+            User role in the system:
+            - client: Primary user managing their case
+            - attorney: Legal professional
+            - cpa: Financial professional
+            - admin: System administrator
+        environment:
+          type: string
+          enum: [live, demo]
+          description: Current data environment
+        profilePhoto:
+          type: string
+          format: uri
+          description: URL to profile photo
+        subscriptionTier:
+          $ref: '#/components/schemas/SubscriptionTier'
+        subscriptionStatus:
+          type: string
+          enum: [active, past_due, canceled, trialing]
+          description: Current subscription status
+        casesCount:
+          type: integer
+          minimum: 0
+          description: Number of active cases
+        violationsCountThisMonth:
+          type: integer
+          minimum: 0
+          description: Violations recorded this billing period
+        voiceTranscriptionsThisMonth:
+          type: integer
+          minimum: 0
+          description: Voice transcriptions used this month
+        mediaUploadsThisMonth:
+          type: integer
+          minimum: 0
+          description: Media uploads used this month
+
+    SubscriptionTier:
+      type: string
+      enum: [free, individual, pro, team, enterprise]
+      description: |
+        Subscription tier determining feature access:
+        - free: Basic features, watermarked PDFs, limited storage
+        - individual: Single user, no watermarks, basic AI
+        - pro: Unlimited cases, advanced AI pattern detection
+        - team: Multi-user support, priority support
+        - enterprise: Full API access, custom templates, hidden asset detection
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: User's email address
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 128
+          description: User's password (minimum 8 characters)
+          example: "secureP@ssw0rd"
+
+    # Case schemas
+    Case:
+      type: object
+      required:
+        - id
+        - userId
+        - title
+        - status
+        - createdAt
+        - environment
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique case identifier
+        userId:
+          type: string
+          format: uuid
+          description: Owner user ID
+        title:
+          type: string
+          maxLength: 200
+          description: Case title/name
+          example: "Smith vs. Smith Divorce"
+        caseNumber:
+          type: string
+          maxLength: 50
+          description: Court-assigned case number
+          example: "2024-DR-001234"
+        court:
+          type: string
+          maxLength: 200
+          description: Court jurisdiction
+          example: "Superior Court of California, Los Angeles County"
+        opposingParty:
+          type: string
+          maxLength: 200
+          description: Name of opposing party
+          example: "Jane Smith"
+        status:
+          type: string
+          enum: [active, closed, pending]
+          description: Current case status
+        createdAt:
+          type: string
+          format: date-time
+          description: Case creation timestamp
+        environment:
+          type: string
+          enum: [live, demo]
+
+    CreateCaseRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Case title (required)
+        caseNumber:
+          type: string
+          maxLength: 50
+          description: Court case number (optional)
+        court:
+          type: string
+          maxLength: 200
+          description: Court jurisdiction (optional)
+        opposingParty:
+          type: string
+          maxLength: 200
+          description: Opposing party name (optional)
+
+    # Violation schemas
+    Violation:
+      type: object
+      required:
+        - id
+        - userId
+        - type
+        - description
+        - timestamp
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        caseId:
+          type: string
+          format: uuid
+          description: Associated case (optional)
+        type:
+          type: string
+          maxLength: 100
+          description: |
+            Violation type category:
+            - custody_interference: Custody/visitation interference
+            - financial_hidden: Hidden assets/income
+            - contempt: Contempt of court
+            - harassment: Harassment or abuse
+            - property_damage: Property damage
+            - other: Other violations
+          example: "custody_interference"
+        description:
+          type: string
+          maxLength: 2000
+          description: Detailed violation description
+        timestamp:
+          type: string
+          format: date-time
+          description: When the violation occurred
+        location:
+          type: string
+          maxLength: 500
+          description: Location where violation occurred
+        mediaUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: URLs to attached media evidence
+        photoCount:
+          type: integer
+          minimum: 0
+          description: Number of photos attached
+        videoDuration:
+          type: integer
+          minimum: 0
+          description: Total video duration in seconds
+        witnesses:
+          type: array
+          items:
+            type: string
+          description: List of witness names
+        isDraft:
+          type: boolean
+          description: Whether violation is a draft
+        status:
+          type: string
+          enum: [pending, reviewed, approved]
+          description: Review status
+        audioTranscript:
+          type: string
+          description: Transcribed audio notes
+        aiClassification:
+          type: string
+          description: AI-assigned classification (Pro+ tiers)
+        aiConfidenceScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: AI classification confidence (0-1)
+        severityScore:
+          type: integer
+          minimum: 0
+          maximum: 10
+          description: Calculated severity score
+
+    CreateViolationRequest:
+      type: object
+      required:
+        - type
+        - description
+      properties:
+        type:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Violation type category
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Detailed description of the violation
+        caseId:
+          type: string
+          format: uuid
+          description: Associated case ID
+        location:
+          type: string
+          maxLength: 500
+          description: Location where violation occurred
+        witnesses:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+          maxItems: 10
+          description: Witness names (max 10)
+        isDraft:
+          type: boolean
+          default: false
+          description: Save as draft
+
+    # Transaction schemas
+    Transaction:
+      type: object
+      required:
+        - id
+        - userId
+        - date
+        - description
+        - amount
+        - category
+        - type
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+          description: Transaction date (YYYY-MM-DD)
+        description:
+          type: string
+          maxLength: 500
+        amount:
+          type: integer
+          description: Amount in cents
+        category:
+          type: string
+          maxLength: 100
+        type:
+          type: string
+          enum: [income, expense, transfer]
+        environment:
+          type: string
+          enum: [live, demo]
+
+    CreateTransactionRequest:
+      type: object
+      required:
+        - date
+        - description
+        - amount
+        - category
+        - type
+      properties:
+        date:
+          type: string
+          format: date
+          description: Transaction date
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+        amount:
+          type: integer
+          minimum: 1
+          description: Amount in cents (must be positive)
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        type:
+          type: string
+          minLength: 1
+
+    # Asset schemas
+    Asset:
+      type: object
+      required:
+        - id
+        - userId
+        - name
+        - category
+        - value
+        - ownership
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 200
+          description: Asset name/description
+        category:
+          type: string
+          maxLength: 100
+          description: Asset category (real_estate, vehicle, investment, etc.)
+        value:
+          type: integer
+          minimum: 0
+          description: Current value in cents
+        ownership:
+          type: string
+          maxLength: 50
+          description: Ownership type (joint, self, spouse)
+        verified:
+          type: boolean
+          description: Whether value has been verified
+
+    CreateAssetRequest:
+      type: object
+      required:
+        - name
+        - category
+        - value
+        - ownership
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        value:
+          type: integer
+          minimum: 0
+        ownership:
+          type: string
+          minLength: 1
+          maxLength: 50
+        verified:
+          type: boolean
+          default: false
+
+    # Debt schemas
+    Debt:
+      type: object
+      required:
+        - id
+        - userId
+        - name
+        - category
+        - amount
+        - ownership
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 200
+        category:
+          type: string
+          maxLength: 100
+        amount:
+          type: integer
+          minimum: 0
+          description: Total debt amount in cents
+        ownership:
+          type: string
+          maxLength: 50
+        monthlyPayment:
+          type: integer
+          minimum: 0
+          description: Monthly payment in cents
+
+    CreateDebtRequest:
+      type: object
+      required:
+        - name
+        - category
+        - amount
+        - ownership
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        amount:
+          type: integer
+          minimum: 0
+        ownership:
+          type: string
+          minLength: 1
+          maxLength: 50
+        monthlyPayment:
+          type: integer
+          minimum: 0
+
+    # Income schemas
+    Income:
+      type: object
+      required:
+        - id
+        - userId
+        - source
+        - amount
+        - frequency
+        - owner
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        source:
+          type: string
+          maxLength: 200
+        amount:
+          type: integer
+          minimum: 0
+          description: Income amount in cents
+        frequency:
+          type: string
+          enum: [weekly, biweekly, monthly, annually]
+        verified:
+          type: boolean
+        owner:
+          type: string
+          maxLength: 50
+
+    CreateIncomeRequest:
+      type: object
+      required:
+        - source
+        - amount
+        - frequency
+        - owner
+      properties:
+        source:
+          type: string
+          minLength: 1
+          maxLength: 200
+        amount:
+          type: integer
+          minimum: 0
+        frequency:
+          type: string
+          minLength: 1
+        owner:
+          type: string
+          minLength: 1
+          maxLength: 50
+        verified:
+          type: boolean
+          default: false
+
+    # Expense schemas
+    Expense:
+      type: object
+      required:
+        - id
+        - userId
+        - category
+        - description
+        - amount
+        - frequency
+        - owner
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        category:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        amount:
+          type: integer
+          minimum: 0
+        frequency:
+          type: string
+          enum: [weekly, biweekly, monthly, annually]
+        owner:
+          type: string
+          maxLength: 50
+
+    CreateExpenseRequest:
+      type: object
+      required:
+        - category
+        - description
+        - amount
+        - frequency
+        - owner
+      properties:
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+        amount:
+          type: integer
+          minimum: 0
+        frequency:
+          type: string
+          minLength: 1
+        owner:
+          type: string
+          minLength: 1
+          maxLength: 50
+
+    # Alert schemas
+    Alert:
+      type: object
+      required:
+        - id
+        - userId
+        - type
+        - severity
+        - title
+        - description
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          description: Alert type (anomaly, deadline, warning)
+        severity:
+          type: string
+          enum: [critical, warning, info]
+          description: Alert severity level
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+        isRead:
+          type: boolean
+
+    # Dashboard schemas
+    DashboardStats:
+      type: object
+      properties:
+        totalAssets:
+          type: integer
+          description: Total asset value in cents
+        totalDebts:
+          type: integer
+          description: Total debt value in cents
+        monthlyIncome:
+          type: integer
+          description: Monthly income in cents
+        monthlyExpenses:
+          type: integer
+          description: Monthly expenses in cents
+        childSupportOwed:
+          type: integer
+          description: Child support owed in cents
+        alimonyOwed:
+          type: integer
+          description: Alimony owed in cents
+        maritalAssets:
+          type: integer
+          description: Marital assets value in cents
+        netPosition:
+          type: integer
+          description: Net financial position in cents
+
+    # Evidence schemas
+    EvidenceFile:
+      type: object
+      required:
+        - id
+        - violationId
+        - userId
+        - fileName
+        - fileType
+        - fileSize
+        - objectPath
+        - timestamp
+      properties:
+        id:
+          type: string
+          format: uuid
+        violationId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        fileName:
+          type: string
+          maxLength: 255
+        fileType:
+          type: string
+          maxLength: 100
+        fileSize:
+          type: integer
+          description: File size in bytes
+        objectPath:
+          type: string
+          description: Storage path
+        timestamp:
+          type: string
+          format: date-time
+        deviceId:
+          type: string
+          description: Originating device identifier
+        gpsLatitude:
+          type: string
+          description: GPS latitude coordinate
+        gpsLongitude:
+          type: string
+          description: GPS longitude coordinate
+        sha256Hash:
+          type: string
+          description: SHA-256 integrity hash
+        isEncrypted:
+          type: boolean
+
+    ChainOfCustody:
+      type: object
+      required:
+        - id
+        - evidenceId
+        - userId
+        - action
+        - timestamp
+      properties:
+        id:
+          type: string
+          format: uuid
+        evidenceId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [uploaded, viewed, downloaded, exported, modified]
+        timestamp:
+          type: string
+          format: date-time
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+        previousHash:
+          type: string
+          description: Hash of previous entry for blockchain-like integrity
+        entryHash:
+          type: string
+          description: Hash of current entry
+
+    # Subscription schemas
+    SubscriptionInfo:
+      type: object
+      properties:
+        tier:
+          $ref: '#/components/schemas/SubscriptionTier'
+        limits:
+          type: object
+          properties:
+            maxCases:
+              type: integer
+              description: -1 for unlimited
+            maxViolationsPerMonth:
+              type: integer
+            maxVoiceTranscriptionsPerMonth:
+              type: integer
+            maxMediaUploadsPerMonth:
+              type: integer
+            maxFileSizeMB:
+              type: integer
+            maxStorageMB:
+              type: integer
+            aiPatternDetection:
+              type: boolean
+            pdfWatermark:
+              type: boolean
+        usage:
+          type: object
+          properties:
+            casesCount:
+              type: integer
+            violationsThisMonth:
+              type: integer
+            voiceTranscriptionsThisMonth:
+              type: integer
+            mediaUploadsThisMonth:
+              type: integer
+        remaining:
+          type: object
+          properties:
+            violations:
+              type: integer
+              description: -1 for unlimited
+            cases:
+              type: integer
+            voiceTranscriptions:
+              type: integer
+            mediaUploads:
+              type: integer
+
+    # Event streaming schemas
+    Event:
+      type: object
+      required:
+        - eventId
+        - eventType
+        - topic
+        - payload
+        - sequenceNumber
+        - createdAt
+      properties:
+        eventId:
+          type: string
+        eventType:
+          type: string
+          description: Event type identifier
+        topic:
+          type: string
+          description: Event topic for routing
+        partitionKey:
+          type: string
+          description: Partition key for ordering
+        payload:
+          type: object
+          additionalProperties: true
+        metadata:
+          type: object
+          additionalProperties: true
+        sequenceNumber:
+          type: string
+        correlationId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    PublishEventRequest:
+      type: object
+      required:
+        - eventType
+        - topic
+        - payload
+      properties:
+        eventType:
+          type: string
+          minLength: 1
+          maxLength: 100
+        topic:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: |
+            Event topics:
+            - user.tier_changed
+            - billing.payment
+            - violation.created
+            - evidence.uploaded
+            - ai.classification
+        payload:
+          type: object
+          additionalProperties: true
+        partitionKey:
+          type: string
+          maxLength: 100
+        correlationId:
+          type: string
+          maxLength: 100
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Authentication required"
+            code: "UNAUTHORIZED"
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Access denied"
+            code: "FORBIDDEN"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Resource not found"
+            code: "NOT_FOUND"
+
+    ValidationFailed:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+
+    TierLimitExceeded:
+      description: Subscription tier limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Violation limit exceeded for your subscription tier"
+            code: "TIER_LIMIT_EXCEEDED"
+
+    RateLimited:
+      description: Too many requests
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until rate limit resets
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Too many login attempts. Please try again in 15 minutes."
+            code: "RATE_LIMITED"
+
+paths:
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      description: |
+        Authenticate user and create session. Rate limited to 5 attempts per 15 minutes.
+        
+        **Business Rules:**
+        - Password must be at least 8 characters
+        - Account locks after 5 failed attempts
+        - Session expires after 24 hours of inactivity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: Session cookie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /dashboard/stats:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard statistics
+      description: Returns aggregated financial statistics for the current user
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /cases:
+    get:
+      tags: [Cases]
+      summary: List user's cases
+      description: Returns all cases for the authenticated user in their current environment
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of cases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Case'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Cases]
+      summary: Create a new case
+      description: |
+        Creates a new legal case.
+        
+        **Business Rules:**
+        - Free tier: Maximum 1 case
+        - Individual tier: Maximum 1 case
+        - Pro/Team/Enterprise: Unlimited cases
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCaseRequest'
+      responses:
+        '201':
+          description: Case created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TierLimitExceeded'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+
+  /cases/{id}:
+    delete:
+      tags: [Cases]
+      summary: Delete a case
+      description: Permanently deletes a case and all associated data
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Case deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Case deleted successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /violations:
+    get:
+      tags: [Violations]
+      summary: List violations
+      description: Returns all violations for the authenticated user
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of violations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Violation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Violations]
+      summary: Create a violation
+      description: |
+        Records a new court order violation.
+        
+        **Business Rules:**
+        - Free tier: 10 violations/month
+        - Individual tier: 20 violations/month
+        - Pro tier: 50 violations/month
+        - Team/Enterprise: Unlimited
+        
+        **AI Classification:**
+        - Pro+ tiers get automatic AI classification
+        - Classification includes severity scoring
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateViolationRequest'
+      responses:
+        '201':
+          description: Violation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Violation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/TierLimitExceeded'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+
+  /violations/{id}:
+    delete:
+      tags: [Violations]
+      summary: Delete a violation
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Violation deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /violations/{id}/status:
+    patch:
+      tags: [Violations]
+      summary: Update violation status
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [pending, reviewed, approved]
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Violation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /transactions:
+    get:
+      tags: [Finances]
+      summary: List transactions
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+
+    post:
+      tags: [Finances]
+      summary: Create a transaction
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+
+  /assets:
+    get:
+      tags: [Finances]
+      summary: List assets
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Asset'
+
+    post:
+      tags: [Finances]
+      summary: Create an asset
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssetRequest'
+      responses:
+        '201':
+          description: Asset created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+
+  /assets/{id}:
+    delete:
+      tags: [Finances]
+      summary: Delete an asset
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Asset deleted
+
+  /debts:
+    get:
+      tags: [Finances]
+      summary: List debts
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of debts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Debt'
+
+    post:
+      tags: [Finances]
+      summary: Create a debt
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDebtRequest'
+      responses:
+        '201':
+          description: Debt created
+
+  /incomes:
+    get:
+      tags: [Finances]
+      summary: List incomes
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of incomes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Income'
+
+    post:
+      tags: [Finances]
+      summary: Create an income
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIncomeRequest'
+      responses:
+        '201':
+          description: Income created
+
+  /expenses:
+    get:
+      tags: [Finances]
+      summary: List expenses
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of expenses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Expense'
+
+    post:
+      tags: [Finances]
+      summary: Create an expense
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExpenseRequest'
+      responses:
+        '201':
+          description: Expense created
+
+  /alerts:
+    get:
+      tags: [Alerts]
+      summary: List alerts
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Alert'
+
+  /alerts/{id}/read:
+    patch:
+      tags: [Alerts]
+      summary: Mark alert as read
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Alert marked as read
+
+  /subscription:
+    get:
+      tags: [Subscription]
+      summary: Get subscription info
+      description: Returns current subscription details, limits, and usage
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Subscription information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionInfo'
+
+  /pricing:
+    get:
+      tags: [Subscription]
+      summary: Get pricing tiers
+      description: Returns all available subscription tiers and their features
+      responses:
+        '200':
+          description: Pricing information
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    price:
+                      type: integer
+                    maxCases:
+                      type: integer
+                    maxViolationsPerMonth:
+                      type: integer
+                    pdfWatermark:
+                      type: boolean
+                    aiPatternDetection:
+                      type: boolean
+
+  /events/status:
+    get:
+      tags: [Events]
+      summary: Get event streaming status
+      description: Returns processor status, topic stats, and dead letter queue count
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: Event streaming status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  processors:
+                    type: object
+                  topics:
+                    type: array
+                    items:
+                      type: object
+                  outbox:
+                    type: object
+                  deadLetterQueue:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /events/publish:
+    post:
+      tags: [Events]
+      summary: Publish an event
+      description: Publishes an event to the event streaming system
+      security:
+        - adminSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishEventRequest'
+      responses:
+        '200':
+          description: Event published
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  event:
+                    $ref: '#/components/schemas/Event'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+
+  /admin/reset-demo:
+    post:
+      tags: [Admin]
+      summary: Reset demo data
+      description: Resets all demo environment data to initial state
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: Demo data reset
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Demo data reset successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Stripe Payment Endpoints
+  /stripe/create-checkout:
+    post:
+      tags: [Subscription]
+      summary: Create Stripe checkout session
+      description: |
+        Creates a Stripe checkout session for subscription purchase.
+        
+        **Business Rules:**
+        - User must be authenticated
+        - Cannot upgrade to a tier lower than current
+        - Returns checkout URL for redirect
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - priceId
+              properties:
+                priceId:
+                  type: string
+                  description: Stripe price ID for the subscription tier
+                successUrl:
+                  type: string
+                  format: uri
+                  description: Redirect URL on successful payment
+                cancelUrl:
+                  type: string
+                  format: uri
+                  description: Redirect URL on cancelled payment
+      responses:
+        '200':
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: Stripe checkout URL
+                  sessionId:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          description: Invalid price ID or tier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /stripe/create-portal:
+    post:
+      tags: [Subscription]
+      summary: Create Stripe billing portal session
+      description: Creates a Stripe customer portal session for subscription management
+      security:
+        - sessionAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                returnUrl:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Portal session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+
+  /stripe/products:
+    get:
+      tags: [Subscription]
+      summary: List Stripe products and prices
+      description: Returns all available subscription products with prices
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        prices:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              amount:
+                                type: integer
+                              interval:
+                                type: string
+                                enum: [month, year]
+
+  /stripe/config:
+    get:
+      tags: [Subscription]
+      summary: Get Stripe publishable key
+      description: Returns the Stripe publishable key for client-side integration
+      responses:
+        '200':
+          description: Stripe configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  publishableKey:
+                    type: string
+
+  # Violation Media Endpoints
+  /violations/{violationId}/media:
+    get:
+      tags: [Evidence]
+      summary: Get violation media files
+      description: Returns all media files attached to a violation
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: violationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of media files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvidenceFile'
+
+    post:
+      tags: [Evidence]
+      summary: Upload media to violation
+      description: |
+        Uploads media file (photo/video) to a violation.
+        
+        **Business Rules:**
+        - Free tier: 5 uploads/month, 30s max video
+        - Individual tier: 50 uploads/month, 2min max video
+        - Pro+ tiers: Unlimited uploads and video length
+        - Generates SHA-256 integrity hash
+        - Creates chain of custody entry
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: violationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Media uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceFile'
+        '403':
+          $ref: '#/components/responses/TierLimitExceeded'
+
+  /violations/{violationId}/transcript:
+    post:
+      tags: [Evidence]
+      summary: Add voice transcript
+      description: |
+        Adds voice transcript to a violation.
+        
+        **Business Rules:**
+        - Free tier: 10 transcriptions/month
+        - Individual tier: 100 transcriptions/month
+        - Pro+ tiers: Unlimited
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: violationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - transcript
+              properties:
+                transcript:
+                  type: string
+                  maxLength: 10000
+      responses:
+        '200':
+          description: Transcript added
+        '403':
+          $ref: '#/components/responses/TierLimitExceeded'
+
+  /violations/{violationId}/classify:
+    post:
+      tags: [Violations]
+      summary: AI classify violation
+      description: |
+        Triggers AI classification for a violation (Pro+ tiers only).
+        
+        **Business Rules:**
+        - Requires Pro tier or higher
+        - Returns classification type and confidence score
+        - Updates violation severityScore
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: violationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Classification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  classification:
+                    type: string
+                  confidenceScore:
+                    type: number
+                    format: float
+                    minimum: 0
+                    maximum: 1
+                  severityScore:
+                    type: integer
+                    minimum: 0
+                    maximum: 10
+        '403':
+          description: AI classification not available for tier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /violations/{id}/evidence:
+    get:
+      tags: [Evidence]
+      summary: Get evidence for violation
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Evidence files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvidenceFile'
+
+  /evidence/{id}/custody:
+    get:
+      tags: [Evidence]
+      summary: Get chain of custody
+      description: Returns the complete chain of custody log for an evidence file
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Chain of custody entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChainOfCustody'
+
+  # User Management Endpoints
+  /users/{userId}/tier-stats:
+    get:
+      tags: [Subscription]
+      summary: Get user tier statistics
+      description: Returns detailed tier usage and limits for a user
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tier statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tier:
+                    $ref: '#/components/schemas/SubscriptionTier'
+                  limits:
+                    type: object
+                  usage:
+                    type: object
+                  remaining:
+                    type: object
+
+  /users/{userId}/usage-metrics:
+    get:
+      tags: [Subscription]
+      summary: Get usage metrics
+      description: Returns current usage metrics for billing period
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Usage metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  violationsThisMonth:
+                    type: integer
+                  voiceTranscriptionsThisMonth:
+                    type: integer
+                  mediaUploadsThisMonth:
+                    type: integer
+                  storageUsedMB:
+                    type: number
+
+  /users/{userId}/billing:
+    get:
+      tags: [Subscription]
+      summary: Get billing information
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Billing information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tier:
+                    type: string
+                  billingCycleStart:
+                    type: string
+                    format: date
+                  nextBillingDate:
+                    type: string
+                    format: date
+                  amountDue:
+                    type: integer
+
+  /users/{userId}/billing/history:
+    get:
+      tags: [Subscription]
+      summary: Get billing history
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Billing history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    periodStart:
+                      type: string
+                      format: date-time
+                    periodEnd:
+                      type: string
+                      format: date-time
+                    amountCents:
+                      type: integer
+                    status:
+                      type: string
+
+  /users/{userId}/migrate-tier:
+    post:
+      tags: [Subscription]
+      summary: Migrate user tier
+      description: Initiates tier migration with optional grace period
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - toTier
+                - reason
+              properties:
+                toTier:
+                  $ref: '#/components/schemas/SubscriptionTier'
+                reason:
+                  type: string
+                gracePeriodDays:
+                  type: integer
+                  minimum: 0
+                  maximum: 30
+      responses:
+        '200':
+          description: Migration initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  migrationId:
+                    type: string
+                  effectiveAt:
+                    type: string
+                    format: date-time
+
+  # Additional Event Endpoints
+  /events:
+    get:
+      tags: [Events]
+      summary: List events
+      description: Returns paginated list of events with optional topic filter
+      security:
+        - adminSecret: []
+      parameters:
+        - name: topic
+          in: query
+          schema:
+            type: string
+          description: Filter by topic
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /events/topics:
+    get:
+      tags: [Events]
+      summary: List event topics
+      description: Returns all topics with event counts
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: Topic statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  topics:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        topic:
+                          type: string
+                        totalEvents:
+                          type: integer
+                        partitions:
+                          type: integer
+                        firstEvent:
+                          type: string
+                          format: date-time
+                        lastEvent:
+                          type: string
+                          format: date-time
+
+  /events/consumers:
+    get:
+      tags: [Events]
+      summary: List consumer groups
+      description: Returns all consumer groups with offset lag
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: Consumer groups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  consumerGroups:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        groupId:
+                          type: string
+                        offsets:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              topic:
+                                type: string
+                              lastOffset:
+                                type: integer
+                              lag:
+                                type: integer
+
+  /events/dlq:
+    get:
+      tags: [Events]
+      summary: List dead letter queue
+      description: Returns failed events in the dead letter queue
+      security:
+        - adminSecret: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Dead letter queue entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deadLetterQueue:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        dlqId:
+                          type: string
+                        eventType:
+                          type: string
+                        topic:
+                          type: string
+                        payload:
+                          type: object
+                        error:
+                          type: string
+                        retryCount:
+                          type: integer
+                        createdAt:
+                          type: string
+                          format: date-time
+
+  /events/dlq/{id}/retry:
+    post:
+      tags: [Events]
+      summary: Retry dead letter event
+      description: Republishes a failed event from the dead letter queue
+      security:
+        - adminSecret: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event retried
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  dlqId:
+                    type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /events/processors/start:
+    post:
+      tags: [Events]
+      summary: Start event processors
+      description: Starts analytics and audit event processors
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: Processors started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: object
+
+  /events/processors/stop:
+    post:
+      tags: [Events]
+      summary: Stop event processors
+      description: Stops all running event processors
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: Processors stopped
+
+  /events/consumers/{groupId}/reset:
+    post:
+      tags: [Events]
+      summary: Reset consumer offset
+      description: Resets consumer group offset for a topic
+      security:
+        - adminSecret: []
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - topic
+              properties:
+                topic:
+                  type: string
+                toEventId:
+                  type: integer
+                  default: 0
+      responses:
+        '200':
+          description: Offset reset
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  consumerGroup:
+                    type: string
+                  topic:
+                    type: string
+                  newOffset:
+                    type: integer
+
+  # ETL Pipeline Endpoints
+  /etl/status:
+    get:
+      tags: [ETL]
+      summary: Get ETL pipeline status
+      description: Returns current ETL pipeline status and recent run information
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: ETL status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [idle, running, error]
+                  lastRun:
+                    type: string
+                    format: date-time
+                  nextScheduledRun:
+                    type: string
+                    format: date-time
+
+  /etl/history:
+    get:
+      tags: [ETL]
+      summary: Get ETL run history
+      security:
+        - adminSecret: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: ETL run history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    runId:
+                      type: string
+                    startedAt:
+                      type: string
+                      format: date-time
+                    completedAt:
+                      type: string
+                      format: date-time
+                    status:
+                      type: string
+                    recordsProcessed:
+                      type: integer
+
+  /etl/run/full:
+    post:
+      tags: [ETL]
+      summary: Trigger full ETL run
+      description: Triggers a complete ETL pipeline run
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: ETL run started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  runId:
+                    type: string
+
+  /etl/run/incremental:
+    post:
+      tags: [ETL]
+      summary: Trigger incremental ETL run
+      description: Triggers an incremental ETL pipeline run (CDC)
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: ETL run started
+
+  # Filing Export Endpoint
+  /filings/export:
+    get:
+      tags: [Cases]
+      summary: Export court filings PDF
+      description: |
+        Generates court-ready PDF export of case data.
+        
+        **Business Rules:**
+        - Free tier: Watermarked PDFs
+        - Individual+ tiers: Clean PDFs without watermarks
+        - Includes SHA-256 integrity hash
+        - Includes chain of custody records
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: caseId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by case ID
+        - name: includeViolations
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: includeFinancials
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  # Evidence Upload Endpoint
+  /evidence:
+    post:
+      tags: [Evidence]
+      summary: Upload evidence file
+      description: |
+        Uploads an evidence file with metadata.
+        
+        **Business Rules:**
+        - Generates SHA-256 integrity hash
+        - Creates initial chain of custody entry
+        - Extracts EXIF metadata from images
+        - GPS coordinates captured if available
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - violationId
+              properties:
+                file:
+                  type: string
+                  format: binary
+                violationId:
+                  type: string
+                  format: uuid
+                description:
+                  type: string
+                deviceId:
+                  type: string
+      responses:
+        '201':
+          description: Evidence uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceFile'
+
+  # Pattern Detection Endpoint
+  /patterns:
+    get:
+      tags: [Dashboard]
+      summary: Get detected patterns
+      description: |
+        Returns AI-detected patterns in case data.
+        
+        **Business Rules:**
+        - Requires Pro tier or higher for AI pattern detection
+        - Free/Individual tiers get basic pattern matching only
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Detected patterns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    description:
+                      type: string
+                    severity:
+                      type: string
+                      enum: [low, medium, high]
+                    relatedItems:
+                      type: array
+                      items:
+                        type: string
+
+  # Health Check Endpoints
+  /health:
+    get:
+      tags: [Admin]
+      summary: Health check
+      description: Returns basic application health status
+      responses:
+        '200':
+          description: Application is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+
+  /health/detailed:
+    get:
+      tags: [Admin]
+      summary: Detailed health check
+      description: Returns detailed health status including database and dependencies
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: Detailed health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  database:
+                    type: object
+                    properties:
+                      connected:
+                        type: boolean
+                      latencyMs:
+                        type: integer
+                  objectStorage:
+                    type: object
+                    properties:
+                      available:
+                        type: boolean
+                  stripe:
+                    type: object
+                    properties:
+                      configured:
+                        type: boolean
+
+  # QuickBooks Integration Endpoints
+  /quickbooks/status:
+    get:
+      tags: [Subscription]
+      summary: Get QuickBooks connection status
+      description: Returns current QuickBooks integration status
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: QuickBooks status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connected:
+                    type: boolean
+                  companyName:
+                    type: string
+                  lastSyncAt:
+                    type: string
+                    format: date-time
+
+  /quickbooks/sync-history:
+    get:
+      tags: [Subscription]
+      summary: Get QuickBooks sync history
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Sync history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    syncId:
+                      type: string
+                    startedAt:
+                      type: string
+                      format: date-time
+                    status:
+                      type: string
+                    recordsSynced:
+                      type: integer
+
+  /quickbooks/sync/trigger:
+    post:
+      tags: [Subscription]
+      summary: Trigger QuickBooks sync
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Sync triggered
+
+  # Messages Endpoints
+  /messages:
+    get:
+      tags: [Cases]
+      summary: List messages
+      description: Returns all messages for the authenticated user
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    senderId:
+                      type: string
+                    senderRole:
+                      type: string
+                    senderName:
+                      type: string
+                    content:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
+                    isRead:
+                      type: boolean
+
+    post:
+      tags: [Cases]
+      summary: Send a message
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  maxLength: 5000
+                attachmentUrl:
+                  type: string
+                  format: uri
+      responses:
+        '201':
+          description: Message sent
+
+  # Suggestions Endpoint
+  /suggestions:
+    get:
+      tags: [Dashboard]
+      summary: Get AI suggestions
+      description: Returns AI-generated suggestions based on case data
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    type:
+                      type: string
+                    title:
+                      type: string
+                    description:
+                      type: string
+                    priority:
+                      type: string
+                      enum: [low, medium, high]
+
+  # Recent Transactions Endpoint
+  /transactions/recent:
+    get:
+      tags: [Finances]
+      summary: Get recent transactions
+      description: Returns the most recent transactions (limit 10)
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Recent transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+
+  # User Violations Count Endpoint
+  /users/violations-this-month:
+    get:
+      tags: [Subscription]
+      summary: Get violations count this month
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Violations count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  limit:
+                    type: integer
+                  remaining:
+                    type: integer
+
+  # Case Violations Count Endpoint
+  /cases/{caseId}/violations-count:
+    get:
+      tags: [Cases]
+      summary: Get violations count for a case
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Violations count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+
+  # User Update Tier Endpoint
+  /users/{userId}/update-tier:
+    post:
+      tags: [Subscription]
+      summary: Update user tier
+      description: Administratively updates a user's subscription tier
+      security:
+        - adminSecret: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tier
+              properties:
+                tier:
+                  $ref: '#/components/schemas/SubscriptionTier'
+      responses:
+        '200':
+          description: Tier updated
+
+  # User Check Upload Endpoint
+  /users/{userId}/check-upload:
+    post:
+      tags: [Subscription]
+      summary: Check if upload is allowed
+      description: Validates if user can upload based on tier limits
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fileType:
+                  type: string
+                fileSizeMB:
+                  type: number
+      responses:
+        '200':
+          description: Upload check result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allowed:
+                    type: boolean
+                  reason:
+                    type: string
+
+  # User Tier Recommendation Endpoint
+  /users/{userId}/tier-recommendation:
+    get:
+      tags: [Subscription]
+      summary: Get tier upgrade recommendation
+      description: Returns AI-based tier upgrade recommendation
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tier recommendation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentTier:
+                    $ref: '#/components/schemas/SubscriptionTier'
+                  recommendedTier:
+                    $ref: '#/components/schemas/SubscriptionTier'
+                  reasons:
+                    type: array
+                    items:
+                      type: string
+
+  # User Log Usage Endpoint
+  /users/{userId}/log-usage:
+    post:
+      tags: [Subscription]
+      summary: Log usage event
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - usageType
+              properties:
+                usageType:
+                  type: string
+                  enum: [violation, voice_transcription, media_upload]
+      responses:
+        '200':
+          description: Usage logged
+
+  # User Billing Save Endpoint
+  /users/{userId}/billing/save:
+    post:
+      tags: [Subscription]
+      summary: Save billing record
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Billing saved
+
+  # Tier Pricing Endpoint
+  /tier-pricing:
+    get:
+      tags: [Subscription]
+      summary: Get all tier pricing details
+      description: Returns detailed pricing and features for all tiers
+      responses:
+        '200':
+          description: Tier pricing
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    price:
+                      type: integer
+                    features:
+                      type: object
+
+  # User Migration Status Endpoint
+  /users/{userId}/migration:
+    get:
+      tags: [Subscription]
+      summary: Get pending tier migration
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Migration status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hasPendingMigration:
+                    type: boolean
+                  migration:
+                    type: object
+                    properties:
+                      fromTier:
+                        type: string
+                      toTier:
+                        type: string
+                      effectiveAt:
+                        type: string
+                        format: date-time
+
+  # Analytics Routes
+  /analytics/overview:
+    get:
+      tags: [Admin]
+      summary: Get analytics overview
+      description: Returns high-level analytics metrics
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: Analytics overview
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalUsers:
+                    type: integer
+                  activeSubscriptions:
+                    type: integer
+                  totalViolations:
+                    type: integer
+                  monthlyRevenue:
+                    type: integer
+
+  /analytics/violations/trends:
+    get:
+      tags: [Admin]
+      summary: Get violation trends
+      security:
+        - adminSecret: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: month
+      responses:
+        '200':
+          description: Violation trends
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    date:
+                      type: string
+                      format: date
+                    count:
+                      type: integer
+
+  # ETL Additional Endpoints
+  /etl/quality/{jobId}:
+    get:
+      tags: [ETL]
+      summary: Get ETL quality metrics
+      security:
+        - adminSecret: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Quality metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  completeness:
+                    type: number
+                  accuracy:
+                    type: number
+                  timeliness:
+                    type: number
+
+  /etl/scheduler/start:
+    post:
+      tags: [ETL]
+      summary: Start ETL scheduler
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: Scheduler started
+
+  /etl/scheduler/stop:
+    post:
+      tags: [ETL]
+      summary: Stop ETL scheduler
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: Scheduler stopped
+
+  /etl/aggregations/run:
+    post:
+      tags: [ETL]
+      summary: Run all aggregations
+      security:
+        - adminSecret: []
+      responses:
+        '200':
+          description: Aggregations run

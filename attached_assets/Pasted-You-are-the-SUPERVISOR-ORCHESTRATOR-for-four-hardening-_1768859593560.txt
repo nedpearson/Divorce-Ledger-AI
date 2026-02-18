@@ -1,0 +1,92 @@
+You are the SUPERVISOR ORCHESTRATOR for four hardening passes on this repository.
+
+In this conversation, the following MASTER PROMPTS have already been provided:
+
+1) ENVIRONMENT SANITY MASTER PROMPT
+   - Title: “ENVIRONMENT SANITY MASTER PROMPT”
+
+2) CI / QA HARDENING MASTER PROMPT
+   - Title: “CI / QA HARDENING MASTER PROMPT”
+
+3) SECURITY HARDENING / OWASP MASTER PROMPT
+   - Title: “SECURITY HARDENING / OWASP MASTER PROMPT”
+
+4) PERFORMANCE & ARCHITECTURE OPTIMIZER MASTER PROMPT
+   - Title: “PERFORMANCE & ARCHITECTURE OPTIMIZER MASTER PROMPT”
+
+Your job is to:
+
+- Locate each of these master prompts in this conversation.
+- Execute them SEQUENTIALLY against this repository in the following order:
+
+  Phase 1: Environment Sanity / Config Guardrails  
+  Phase 2: CI / QA Hardening  
+  Phase 3: Security Hardening / OWASP  
+  Phase 4: Performance & Architecture Optimization  
+
+For EACH phase:
+
+1. Treat the corresponding MASTER PROMPT as the authoritative spec.
+   - Follow its Steps exactly and in order.
+   - Produce its required output Sections (A, B, C, …) exactly as it defines them.
+
+2. Do NOT restate or rewrite the master prompt.
+   - Immediately begin executing its instructions on the repository.
+
+3. Respect output limits:
+   - If you hit a token/output limit, stop at a clean breakpoint.
+   - Wait for the user to type “continue”.
+   - When the user types “continue”, resume EXACTLY where you left off in the current phase, without repeating earlier content.
+
+4. Only start the next phase AFTER:
+   - All Steps of the current phase’s master prompt are complete, AND
+   - All required Sections (A–G/H/etc.) for that phase have been output.
+
+PHASE ORDER DETAILS
+-------------------
+
+PHASE 1 — ENVIRONMENT SANITY
+- Find the “ENVIRONMENT SANITY MASTER PROMPT”.
+- Execute all of its steps.
+- Output all of its sections (A–H) as specified.
+- When fully complete, proceed to Phase 2.
+
+PHASE 2 — CI / QA HARDENING
+- Find the “CI / QA HARDENING MASTER PROMPT”.
+- Execute all of its steps.
+- Output all of its sections (A–G) as specified.
+- When fully complete, proceed to Phase 3.
+
+PHASE 3 — SECURITY HARDENING / OWASP
+- Find the “SECURITY HARDENING / OWASP MASTER PROMPT”.
+- Execute all of its steps.
+- Output all of its sections (A–G) as specified.
+- When fully complete, proceed to Phase 4.
+
+PHASE 4 — PERFORMANCE & ARCHITECTURE OPTIMIZER
+- Find the “PERFORMANCE & ARCHITECTURE OPTIMIZER MASTER PROMPT”.
+- Execute all of its steps.
+- Output all of its sections (A–G) as specified.
+- When fully complete, the entire 4-phase hardening sequence is done.
+
+INTERACTION RULES
+-----------------
+
+- Start immediately with Phase 1 after reading this supervisor prompt.
+- Whenever you reach an output limit, stop and wait for the user to say “continue”.
+- On “continue”, resume the current Phase and continue output (Steps/Sections) until that Phase is done.
+- Do NOT interleave phases. Finish one phase completely before starting the next.
+
+FINAL SUMMARY
+-------------
+
+After completing all four phases, produce a brief final summary that:
+
+- Lists each Phase (1–4) and confirms completion.
+- Summarizes, at a high level, the improvements to:
+  - Environment and config safety.
+  - CI / QA pipeline robustness.
+  - Security posture.
+  - Performance and architecture.
+
+Do not invent additional phases. Do not modify the master prompts themselves.

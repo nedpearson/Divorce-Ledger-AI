@@ -1,0 +1,102 @@
+// src/services/parseDocument.ts
+import { z } from "zod";
+import { db } from "@/db";
+import { expenses } from "@/db/schema/expenses";
+import { documents } from "@/db/schema/documents";
+import { llmClient } from "@/services/llmClient";
+
+// Zod validator for the JSON the model returns
+export const ExpenseDocumentSchema = z.object({
+  parse_status: z.enum([
+    "success",
+    "no_data",
+    "layout_not_supported",
+    "low_confidence"
+  ]),
+  total_amount_due: z.number().nullable(),
+  billing_period_start: z.string().nullable(),
+  billing_period_end: z.string().nullable(),
+  vendor_name: z.string().nullable(),
+  currency: z.string().default("USD"),
+  line_items: z.array(
+    z.object({
+      label: z.string(),
+      amount: z.number(),
+      amount_text: z.string(),
+      is_credit_or_refund: z.boolean(),
+      is_recurring_guess: z.boolean(),
+      page_number: z.number().nullable(),
+      surrounding_text_snippet: z.string().nullable()
+    })
+  )
+});
+
+// MAIN FUNCTION
+export async function analyzeAndSave(documentId: string, extractedText: string) {
+  console.log("Starting analysis for documentId:", documentId);
+
+  // 1. Call the LLM
+  const llmResponse = await llmClient.parseFinancialDoc(extractedText);
+
+  // 2. Validate output
+  let parsed;
+  try {
+    parsed = ExpenseDocumentSchema.parse(llmResponse);
+  } catch (err) {
+    console.error("Validator failed:", err);
+    await db.update(documents)
+      .set({ analysis_status: "error" })
+      .where(documents.id.eq(documentId));
+    return;
+  }
+
+  // 3. Save analysis result into documents table
+  await db.update(documents)
+    .set({
+      analysis_status: parsed.parse_status,
+      parsed_json: parsed
+    })
+    .where(documents.id.eq(documentId));
+
+  // 4. If not a success → STOP
+  if (parsed.parse_status !== "success") {
+    console.log("Document analyzed but has no usable financial data.");
+    return;
+  }
+
+  // 5. CREATE EXPENSE ROW(S)
+  // ----------------------------------------------------------
+  // THIS WAS THE MISSING STEP IN YOUR APP
+  // ----------------------------------------------------------
+
+  // Primary expense (total amount due)
+  if (parsed.total_amount_due) {
+    await db.insert(expenses).values({
+      document_id: documentId,
+      vendor_name: parsed.vendor_name,
+      amount: parsed.total_amount_due,
+      currency: parsed.currency,
+      billing_period_start: parsed.billing_period_start,
+      billing_period_end: parsed.billing_period_end,
+      is_recurring: true,
+      source_description: "Total Amount Due"
+    });
+  }
+
+  // Optional line items (each one is an expense)
+  for (const item of parsed.line_items) {
+    await db.insert(expenses).values({
+      document_id: documentId,
+      vendor_name: parsed.vendor_name,
+      amount: item.amount,
+      currency: parsed.currency,
+      billing_period_start: parsed.billing_period_start,
+      billing_period_end: parsed.billing_period_end,
+      is_recurring: item.is_recurring_guess,
+      source_description: item.label,
+      raw_text: item.amount_text
+    });
+  }
+
+  console.log("Finished creating expenses for document:", documentId);
+}

@@ -1,0 +1,93 @@
+// src/routes/quickbooks-auth.ts
+
+import { Router, Request, Response } from 'express';
+import axios from 'axios';
+import { Pool } from 'pg';
+
+const router = Router();
+
+export function setupQuickBooksAuth(pool: Pool) {
+  /**
+   * Initiate OAuth flow
+   */
+  router.get('/auth/quickbooks/connect', (req: Request, res: Response) => {
+    const state = Math.random().toString(36).substring(7);
+    const authUrl = 'https://appcenter.intuit.com/connect/oauth2';
+
+    // Store state for validation
+    res.cookie('qb_state', state, { httpOnly: true, maxAge: 600000 });
+
+    const params = new URLSearchParams({
+      client_id: process.env.QB_CLIENT_ID || '',
+      response_type: 'code',
+      scope: 'com.intuit.quickbooks.accounting',
+      redirect_uri: `${process.env.APP_URL}/auth/quickbooks/callback`,
+      state,
+    });
+
+    res.redirect(`${authUrl}?${params}`);
+  });
+
+  /**
+   * OAuth callback handler
+   */
+  router.get('/auth/quickbooks/callback', async (req: Request, res: Response) => {
+    try {
+      const { code, state } = req.query;
+      const realmId = req.query.realmId as string;
+      const storedState = req.cookies.qb_state;
+
+      if (state !== storedState) {
+        return res.status(400).json({ error: 'State mismatch' });
+      }
+
+      // Exchange code for token
+      const response = await axios.post(
+        'https://oauth.platform.intuit.com/oauth2/tokens/bearer',
+        {
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: `${process.env.APP_URL}/auth/quickbooks/callback`,
+        },
+        {
+          auth: {
+            username: process.env.QB_CLIENT_ID || '',
+            password: process.env.QB_CLIENT_SECRET || '',
+          },
+        }
+      );
+
+      const { access_token, refresh_token, expires_in } = response.data;
+
+      // Store credentials in database
+      await pool.query(
+        `INSERT INTO quickbooks_credentials 
+         (realm_id, access_token, refresh_token, token_expires_at, user_id, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+         ON CONFLICT (realm_id) DO UPDATE SET
+           access_token = $2, 
+           refresh_token = $3,
+           token_expires_at = $4,
+           updated_at = NOW()`,
+        [
+          realmId,
+          access_token,
+          refresh_token,
+          new Date(Date.now() + expires_in * 1000).toISOString(),
+          req.user?.id || 'admin',
+        ]
+      );
+
+      res.json({
+        success: true,
+        message: 'QuickBooks connected successfully',
+        realm_id: realmId,
+      });
+    } catch (error) {
+      console.error('QuickBooks OAuth error:', error);
+      res.status(500).json({ error: 'Authentication failed' });
+    }
+  });
+
+  return router;
+}

@@ -1,0 +1,112 @@
+me
+Deployment
+Source
+Log
+2026-01-04 21:59:40.18
+3152d1bb
+System
+starting up user application
+2026-01-04 21:59:40.18
+3152d1bb
+System
+metasidecar: loaded enterprise status from environment is_enterprise=false
+2026-01-04 21:59:40.18
+3152d1bb
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2026-01-04 21:59:41.49
+3152d1bb
+User
+Database connection successful
+2026-01-04 21:59:41.54
+3152d1bb
+User
+Demo data already exists, skipping seed.
+2026-01-04 21:59:41.55
+3152d1bb
+User
+Demo reset scheduler started - will run at midnight UTC daily
+2026-01-04 21:59:41.62
+3152d1bb
+User
+3:59:41 AM [express] serving on port 5000
+2026-01-04 22:25:31.10
+3152d1bb
+System
+system: received signal terminated
+2026-01-04 22:25:31.10
+3152d1bb
+System
+command finished with error [node ./dist/index.cjs]: signal: terminated
+2026-01-04 22:25:31.17
+3152d1bb
+System
+main done, exiting
+2026-01-04 22:41:42.48
+3152d1bb
+System
+starting up user application
+2026-01-04 22:41:42.48
+3152d1bb
+System
+metasidecar: loaded enterprise status from environment is_enterprise=false
+2026-01-04 22:41:42.48
+3152d1bb
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2026-01-04 22:41:43.87
+3152d1bb
+User
+Database connection successful
+2026-01-04 22:41:43.94
+3152d1bb
+User
+Demo data already exists, skipping seed.
+2026-01-04 22:41:43.94
+3152d1bb
+User
+Demo reset scheduler started - will run at midnight UTC daily
+2026-01-04 22:41:43.97
+3152d1bb
+User
+4:41:43 AM [express] serving on port 5000
+2026-01-04 22:51:49.42
+115ab2f7
+System
+starting up user application
+2026-01-04 22:51:49.42
+115ab2f7
+System
+metasidecar: loaded enterprise status from environment is_enterprise=false
+2026-01-04 22:51:49.42
+115ab2f7
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2026-01-04 22:51:51.52
+115ab2f7
+User
+Database connection successful
+2026-01-04 22:51:51.52
+115ab2f7
+User
+Initializing Stripe schema...
+2026-01-04 22:51:52.30
+115ab2f7
+User
+Stripe schema ready
+2026-01-04 22:51:52.50
+115ab2f7
+User
+at async eI (/home/runner/workspace/dist/index.cjs:80:27294)
+2026-01-04 22:51:52.50
+115ab2f7
+User
+Failed to initialize Stripe: Error: Stripe production connection not found
+2026-01-04 22:51:52.50
+115ab2f7
+User
+at async nc (/home/runner/workspace/dist/index.cjs:80:27397)
+2026-01-04 22:51:52.50
+115ab2f7
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)

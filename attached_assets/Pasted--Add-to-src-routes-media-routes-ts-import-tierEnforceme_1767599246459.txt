@@ -1,0 +1,118 @@
+// Add to src/routes/media.routes.ts
+
+import { tierEnforcementService } from '../services/tier-enforcement.service';
+
+/**
+ * GET /users/:userId/usage-metrics
+ * Get detailed usage metrics with tier enforcement details
+ */
+router.get('/users/:userId/usage-metrics', async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const metrics = await tierEnforcementService.getUserUsageMetrics(userId);
+    const tierLimits = TierEnforcementService.getTierLimits(metrics.tier);
+
+    res.json({
+      success: true,
+      data: {
+        metrics,
+        tier_limits: tierLimits,
+        usage_percentage: {
+          storage:
+            tierLimits.maxStorageMB !== null
+              ? Math.round((metrics.storage_used_mb / tierLimits.maxStorageMB) * 100)
+              : 0,
+          violations:
+            tierLimits.maxViolationsPerMonth !== null
+              ? Math.round((metrics.violations_this_month / tierLimits.maxViolationsPerMonth) * 100)
+              : 0,
+          cases:
+            tierLimits.maxCases !== null
+              ? Math.round((metrics.cases_active / tierLimits.maxCases) * 100)
+              : 0,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to get usage metrics', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * POST /users/:userId/check-upload
+ * Check if user can upload a file of given size
+ */
+router.post('/users/:userId/check-upload', async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const { fileSizeMB } = req.body;
+
+    if (!fileSizeMB || fileSizeMB <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'fileSizeMB must be a positive number',
+      });
+    }
+
+    const result = await tierEnforcementService.canUploadFile(userId, fileSizeMB);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    logger.error('Upload check failed', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * GET /users/:userId/tier-recommendation
+ * Get recommended tier upgrade
+ */
+router.get('/users/:userId/tier-recommendation', async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const recommendation = await tierEnforcementService.getRecommendedTierUpgrade(userId);
+
+    res.json({
+      success: true,
+      data: recommendation,
+    });
+  } catch (error) {
+    logger.error('Failed to get tier recommendation', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});
+
+/**
+ * POST /users/:userId/log-usage
+ * Manually trigger usage logging (normally done after operations)
+ */
+router.post('/users/:userId/log-usage', async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    await tierEnforcementService.logUsageMetrics(userId);
+
+    res.json({
+      success: true,
+      message: 'Usage metrics logged successfully',
+    });
+  } catch (error) {
+    logger.error('Failed to log usage', error);
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+});

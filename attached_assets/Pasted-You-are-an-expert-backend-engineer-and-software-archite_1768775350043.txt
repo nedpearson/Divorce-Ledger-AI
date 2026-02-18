@@ -1,0 +1,197 @@
+You are an expert backend engineer and software architect working inside my existing Replit project.
+
+I want you to do a FULL “clean up + make it work” pass focused on:
+
+1) A reliable Firefly III integration for personal accounting, and  
+2) A working pipeline from “uploaded / scanned document” → “parsed financial data” → “transaction posted into Firefly III” (with traceability back to the document).
+
+IMPORTANT HIGH-LEVEL REQUIREMENTS
+---------------------------------
+- You MUST first **inspect my existing repo** and understand:
+  - The backend stack (Node/Express, Python/FastAPI, etc.).
+  - The current API routes and folder structure.
+  - Any existing “documents”, “finances”, or “OCR/AI” related code.
+- You MUST adapt to the existing stack instead of blindly assuming a new one.
+- If something already exists (e.g., server, routes, models), CLEANLY REFACTOR or EXTEND it, do NOT randomly duplicate logic.
+- At the end, I need:
+  - A **coherent architecture**.
+  - Code that runs without errors on Replit.
+  - A clear explanation of how the document → finances → Firefly path works.
+
+FIRELY III CONTEXT
+------------------
+I want this app to work like a personal QuickBooks-style ledger but powered by Firefly III.
+
+Assume I will have these environment variables defined in Replit “Secrets”:
+- FIREFLY_BASE_URL  (e.g. https://my-firefly.example.com)
+- FIREFLY_ACCESS_TOKEN  (Personal Access Token from Firefly III)
+
+You must:
+- Centralize their reading/validation in one config module.
+- Fail fast with a clear error if they are missing or invalid.
+
+OVERALL TASKS (DO THESE IN ORDER)
+---------------------------------
+
+STEP 0 – ANALYZE THE PROJECT
+- Look at:
+  - package.json or pyproject / requirements.txt
+  - The main server entrypoint (e.g., index.js, server.ts, main.py, etc.).
+  - Existing routes/controllers related to:
+    - “documents”
+    - “uploads”
+    - “finances” / “transactions” / “ledgers”
+    - any “AI”, “OCR”, or “document parsing”.
+- Summarize to me (briefly) what’s already there:
+  - Stack (Node/Express, FastAPI, etc.).
+  - Where the main HTTP API lives.
+  - How document upload/analysis is currently wired (even if half-broken).
+
+STEP 1 – SET UP / CLEAN ENV CONFIG
+- Create or refine a single config module, for example:
+  - JS/TS: `src/config/env.ts` or `src/config/env.js`
+  - Python: `app/config/env.py` or similar
+- In that module:
+  - Read FIREFLY_BASE_URL and FIREFLY_ACCESS_TOKEN from environment.
+  - Implement a `validate_env()` or equivalent that:
+    - Ensures these variables exist and are non-empty.
+    - Normalizes FIREFLY_BASE_URL (no trailing slash if possible).
+    - Throws or logs a clear startup error if missing.
+- Ensure the main server entrypoint calls this validation at startup.
+
+STEP 2 – IMPLEMENT / REFACTOR FIREFLY CLIENT
+- Create a dedicated module for ALL Firefly network calls, e.g.:
+  - JS/TS: `src/lib/fireflyClient.ts` or `.js`
+  - Python: `app/lib/firefly_client.py`
+- This module should:
+  - Use the existing HTTP client in the project (e.g., axios, node-fetch, Python requests); if none exist, add one dependency.
+  - Use the env config module for FIREFLY_BASE_URL and FIREFLY_ACCESS_TOKEN.
+  - Always attach `Authorization: Bearer <token>` and JSON headers.
+  - Provide **clean functions** for at least:
+    - `list_accounts(params?)`
+    - `list_categories(params?)` (if supported by Firefly)
+    - `create_transaction(payload)` – targeting `/api/v1/transactions` for a **withdrawal** transaction.
+  - Handle errors robustly:
+    - If Firefly returns 4xx/5xx, include status code and response body snippet in the thrown/logged error.
+
+- If the project uses TypeScript, define types/interfaces for the key Firefly payloads/objects in a `types` file (e.g., `src/types/firefly.ts`).
+
+STEP 3 – API ROUTES FOR FIREFLY (BACKEND FACING)
+- Create or refactor an API router dedicated to Firefly, mounted at something like `/api/firefly`.
+  - JS/TS: `src/routes/fireflyRoutes.ts` / `.js`
+  - Python (FastAPI): APIRouter in `routers/firefly.py`
+- Implement at minimum:
+
+  1) `GET /api/firefly/accounts`
+     - Optional query params: `type`, `page`.
+     - Calls `list_accounts` and returns JSON to the client.
+
+  2) `GET /api/firefly/categories` (if categories are supported)
+     - Optional `page` param.
+     - Calls `list_categories` and returns JSON.
+
+  3) `POST /api/firefly/transactions/from-document`
+     - Request body shape (in JSON):
+       {
+         "documentId": "string",
+         "documentUrl": "string",
+         "date": "YYYY-MM-DD",
+         "amount": number,
+         "currencyCode": "USD" (or other),
+         "description": "string",
+         "merchantName": "string",
+         "categoryName": "string",
+         "sourceAccountId": "string",
+         "destinationAccountId": "string",
+         "notes": "string"
+       }
+     - Validate required fields:
+       - documentId, documentUrl, date, amount, currencyCode, sourceAccountId, destinationAccountId.
+       - If missing or invalid, return 400 with a clear JSON error.
+     - Map this into the Firefly “create transaction” payload for a withdrawal:
+       - Attach documentUrl + documentId into notes and/or external_id or metadata so I can trace back to the original document.
+     - Call `create_transaction` from the Firefly client module.
+     - Return the created transaction or a trimmed version of it as JSON.
+
+- Wire this router into the main server (e.g. `app.use("/api/firefly", fireflyRoutes)` or FastAPI include_router).
+
+STEP 4 – DOCUMENT → TRANSACTION SERVICE (INTERNAL)
+- Locate the existing code path where:
+  - A document (PDF/image) gets uploaded.
+  - OCR or AI parsing happens and produces structured fields (like date, amount, merchant, etc.).
+- If such a path exists, do NOT destroy it. Instead:
+  - Create a reusable service module, e.g.:
+    - JS/TS: `src/services/documentToTransaction.ts` / `.js`
+    - Python: `app/services/document_to_transaction.py`
+  - Define a single function such as:
+    - `createTransactionFromParsedDocument(parsedDoc)` that:
+      - Accepts an object with:
+        - documentId
+        - documentUrl
+        - date
+        - amount
+        - currencyCode
+        - merchantName (optional)
+        - categoryName (optional)
+        - description (optional)
+        - sourceAccountId
+        - destinationAccountId
+        - notes (optional)
+      - Validates these fields at the service level (date shape, amount > 0, etc.).
+      - Calls the internal backend endpoint `/api/firefly/transactions/from-document` (or calls the Firefly client directly, whichever is more idiomatic for the current codebase).
+      - Logs success/failure with documentId and any error details.
+- If no such document pipeline exists yet:
+  - Create a minimal placeholder route/controller like:
+    - `POST /api/documents/parsed-to-transaction`
+    - It accepts ParsedDocument JSON, calls `createTransactionFromParsedDocument`, and returns status.
+  - Add TODO comments where UI / OCR / AI integration will plug in later.
+
+STEP 5 – HEALTHCHECKS, LOGGING, AND ERROR HANDLING
+- Ensure there is a simple health endpoint such as `GET /health` returning:
+  - `{ status: "ok", uptime, timestamp }`
+- Ensure there is centralized error handling middleware / exception handler:
+  - Logs relevant request info (method, URL) and the error stack.
+  - Returns a JSON error: `{ error: "message" }` with an appropriate HTTP status.
+- Make sure Firefly-related failures are:
+  - Properly bubbled up or wrapped so I can debug them easily.
+
+STEP 6 – VERIFY EVERYTHING WORKS (MANUAL & PROGRAMMATIC)
+- Once you’ve made all changes, provide:
+  1) The exact commands I should run in Replit’s shell to:
+     - Install any new dependencies.
+     - Start the server.
+  2) Sample `curl` commands (or HTTP examples) for:
+     - `GET /health`
+     - `GET /api/firefly/accounts`
+     - `GET /api/firefly/categories` (if implemented)
+     - `POST /api/firefly/transactions/from-document`
+       - with a realistic JSON example.
+- If the stack already uses tests (Jest, Pytest, etc.), add at least ONE simple test:
+  - A unit or integration test for:
+    - Firefly client mocking a response, OR
+    - `POST /api/firefly/transactions/from-document` using a fake Firefly client.
+- Make sure the tests actually run and pass, or clearly note what I need to do.
+
+STEP 7 – FINAL SUMMARY FOR ME
+- At the end of your work, output a concise but clear summary that includes:
+  - The detected stack and server entrypoint.
+  - The new/updated files and a short description of each.
+  - How the pipeline works now in plain steps, for example:
+    1) Document uploaded → parsed by OCR/AI → we get ParsedDocument structure.
+    2) ParsedDocument passed into `createTransactionFromParsedDocument`.
+    3) That calls `/api/firefly/transactions/from-document`.
+    4) That calls Firefly API and creates a withdrawal transaction with a link back to the original document.
+  - Any TODOs or extension points you left (e.g. user approval step, better account selection UI).
+
+CONSTRAINTS & STYLE
+-------------------
+- Use the existing style and conventions in this repo wherever possible (TypeScript vs JS, FastAPI vs Flask, etc.).
+- Prefer clean, modular code over inline hacks.
+- Comment only where the behavior is non-obvious; don’t spam comments.
+- No huge rewrites that break unrelated functionality; keep changes scoped to:
+  - Environment config,
+  - Firefly integration,
+  - Document→transaction flow,
+  - Error handling where clearly necessary.
+
+Execute all of this now. Start by describing what stack and structure you found, then show me the file-by-file changes you propose and implement, and finally give me the commands and curl examples to verify everything is working.

@@ -1,0 +1,225 @@
+# 📊 Complete Billing & Analytics Architecture
+
+## System Overview
+
+```
+User Upload
+    ↓
+Tier Enforcement (Check limits)
+    ↓
+Media Service (Store file)
+    ↓
+Usage Audit (Log metrics)
+    ↓
+Monthly Processing (1st of month):
+    ├─ Reset Quotas (violations_count_this_month = 0)
+    ├─ Process Billings (Calculate charges)
+    ├─ Apply Migrations (Pending tier changes)
+    └─ Generate Reports (Analytics)
+```
+
+## Billing System
+
+### Pricing Model
+
+| Tier | Base Price | Overage (Violations) | Overage (Storage) |
+|------|-----------|----------------------|-------------------|
+| Free | $0 | None | None |
+| Individual | $12/mo | $0.50 per violation over 20 | $1 per GB over 500MB |
+| Pro | $49/mo | $0.25 per violation over 50 | $0.50 per GB over 2GB |
+| Team | $149/mo | Unlimited | Unlimited |
+| Enterprise | $399/mo | Unlimited | Unlimited |
+
+### Billing Records Table
+
+```sql
+CREATE TABLE billing_records (
+  id VARCHAR(100) PRIMARY KEY,
+  user_id INT,
+  tier VARCHAR(50),
+  period_start TIMESTAMP,
+  period_end TIMESTAMP,
+  violations_recorded INT,
+  storage_used_mb NUMERIC,
+  amount_cents INT,
+  status VARCHAR(20), -- pending, charged, failed
+  stripe_invoice_id VARCHAR(100),
+  created_at TIMESTAMP
+);
+```
+
+Example record for user with overages:
+
+```json
+{
+  "id": "billing_1_2026-01",
+  "user_id": 1,
+  "tier": "pro",
+  "period_start": "2026-01-01",
+  "period_end": "2026-01-31",
+  "violations_recorded": 75,
+  "storage_used_mb": 2500,
+  "amount_cents": 5425,
+  "breakdown": {
+    "base_price": "$49.00",
+    "violation_overage": "25 violations × $0.25 = $6.25",
+    "storage_overage": "0.488GB × $0.50 = $0.24",
+    "total": "$55.49"
+  }
+}
+```
+
+## Tier Migration System
+
+### Migration Flow
+
+```
+User → Trial Ends → Schedule Downgrade
+           ↓
+      Grace Period (7 days)
+           ↓
+   Apply New Tier Limits
+```
+
+### Tier Migrations Table
+
+```sql
+CREATE TABLE tier_migrations (
+  id VARCHAR(100) PRIMARY KEY,
+  user_id INT,
+  from_tier VARCHAR(50),
+  to_tier VARCHAR(50),
+  grace_period_days INT,
+  effective_at TIMESTAMP,
+  status VARCHAR(20) -- pending, active, completed
+);
+```
+
+## Quota Reset System
+
+Resets `violations_count_this_month` counter on 1st of each month.
+
+### Quota Reset Log
+
+```sql
+CREATE TABLE quota_reset_log (
+  id INT PRIMARY KEY,
+  user_id INT,
+  reset_at TIMESTAMP,
+  reset_month VARCHAR(7), -- 2026-01
+  violations_count_before INT
+);
+```
+
+## Analytics Endpoints
+
+### Platform Metrics
+```
+GET /api/analytics/platform-metrics
+
+Response:
+{
+  "total_users": 150,
+  "active_users": 120,
+  "tier_distribution": {
+    "free": 80,
+    "individual": 30,
+    "pro": 10,
+    "enterprise": 5
+  },
+  "total_violations": 5230,
+  "total_storage_used_mb": 15234,
+  "revenue_this_month_cents": 258900, // $2,589
+  "average_case_per_user": 2.3,
+  "average_violations_per_user": 34.8,
+  "churn_rate_percent": 2.1
+}
+```
+
+### Cohort Retention
+```
+GET /api/analytics/cohorts?months=12
+
+Shows which signup cohorts are retaining:
+{
+  "cohort_month": "2025-01",
+  "users_in_cohort": 45,
+  "users_active_now": 38,
+  "retention_rate": 84,
+  "average_tier": "individual",
+  "average_monthly_violations": 22.5
+}
+```
+
+### Usage Trends
+```
+GET /api/analytics/usage-trends?days=90
+
+Shows daily violation & storage growth
+```
+
+### Revenue by Tier
+```
+GET /api/analytics/revenue?month=2026-01
+
+{
+  "tier": "pro",
+  "user_count": 10,
+  "subscription_revenue_cents": 49000,
+  "overage_revenue_cents": 2350,
+  "total_revenue_cents": 51350
+}
+```
+
+## Admin Operations
+
+### Process Monthly Billings
+```
+POST /api/admin/billing/process-monthly
+
+Runs on 1st of month:
+1. Calculate charges for all users
+2. Save to billing_records
+3. Ready for Stripe/payment processor
+```
+
+### Reset Quotas
+```
+POST /api/admin/quotas/reset-monthly
+
+Resets violations_count_this_month for all users
+```
+
+### Apply Pending Migrations
+```
+POST /api/admin/migrations/apply-pending
+
+Applies tier changes that have passed grace period
+```
+
+## Data Architecture
+
+### Semi-Structured (JSONB)
+- `billing_records.metadata` - Payment processor response
+- `tier_migrations.reason` - Human-readable migration reason
+
+### Structured
+- `users.violations_count_this_month` - Monthly counter
+- `users.tier` - Current tier
+- `billing_records.amount_cents` - Calculated charge
+- `usage_audit.storage_used_mb` - Disk usage tracking
+
+### Analytics Queries
+Run directly on `usage_audit` + `billing_records` tables
+for Metabase, Grafana, or custom dashboards.
+
+---
+
+## Production Checklist
+
+- [ ] Wire Stripe API to `billingService.saveBillingRecord()`
+- [ ] Set up cron jobs for monthly operations (1st of month)
+- [ ] Create Metabase dashboard from analytics queries
+- [ ] Set up email alerts for churn/high overage users
+- [ ] Add audit log for all tier changes
+- [ ] Implement grace period reminders (email 3 days before)

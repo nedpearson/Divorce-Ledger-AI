@@ -1,0 +1,210 @@
+#!/bin/bash
+# Save as: scripts/final-check.sh
+# Run: bash scripts/final-check.sh
+
+echo "=========================================="
+echo "🔍 FINAL PRODUCTION READINESS CHECK"
+echo "=========================================="
+echo ""
+
+# Color codes
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+PASSED=0
+FAILED=0
+
+# Helper function
+check() {
+  if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✅ PASS${NC}: $1"
+    ((PASSED++))
+  else
+    echo -e "${RED}❌ FAIL${NC}: $1"
+    ((FAILED++))
+  fi
+}
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "1️⃣  ENVIRONMENT CHECKS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Check if .env exists
+test -f .env
+check "Environment file (.env) exists"
+
+# Check critical environment variables
+grep -q "DATABASE_URL" .env
+check "DATABASE_URL is set"
+
+grep -q "NODE_ENV" .env
+check "NODE_ENV is set"
+
+grep -q "PORT" .env
+check "PORT is set"
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "2️⃣  BUILD CHECKS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Check if dist folder exists
+test -d dist
+check "Build artifacts exist (dist/ folder)"
+
+# Check if package.json exists
+test -f package.json
+check "package.json exists"
+
+# Check if node_modules exists
+test -d node_modules
+check "Dependencies installed (node_modules/)"
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "3️⃣  DATABASE CHECKS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Test database connection
+psql "$(grep DATABASE_URL .env | cut -d '=' -f 2)" -c "SELECT 1;" &>/dev/null
+check "Database connection successful"
+
+# Check if tables exist
+psql "$(grep DATABASE_URL .env | cut -d '=' -f 2)" -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | grep -q "[1-9]"
+check "Database tables exist"
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "4️⃣  APPLICATION START TEST"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Start the app in background
+npm run dev > /tmp/app.log 2>&1 &
+APP_PID=$!
+
+# Wait for app to start
+sleep 5
+
+# Check if process is still running
+kill -0 $APP_PID 2>/dev/null
+check "Application starts without crashing"
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "5️⃣  API HEALTH CHECKS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Test basic health endpoint
+curl -s http://localhost:5000/api/health | grep -q "healthy"
+check "Health endpoint (/api/health) responds"
+
+# Test detailed health endpoint
+curl -s http://localhost:5000/api/health/detailed | grep -q "healthy"
+check "Detailed health endpoint (/api/health/detailed) responds"
+
+# Test a user endpoint
+curl -s http://localhost:5000/api/users/1/quota-status > /dev/null 2>&1
+check "User quota-status endpoint responds (even if no user)"
+
+# Test analytics endpoint
+curl -s http://localhost:5000/api/admin/analytics/platform | grep -q "total_users" || true
+check "Analytics endpoint responds"
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "6️⃣  ROUTES LOADED CHECKS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Check logs for route loading
+grep -q "Routes Loaded" /tmp/app.log
+check "User routes loaded"
+
+grep -q "Analytics Routes Loaded" /tmp/app.log
+check "Analytics routes loaded"
+
+grep -q "Health Check Routes Loaded" /tmp/app.log
+check "Health check routes loaded"
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "7️⃣  CRON SCHEDULER CHECKS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Check if scheduler started
+grep -q "CRON.*Starting scheduler" /tmp/app.log
+check "Cron scheduler started"
+
+# Check if scheduled tasks are registered
+grep -q "Apply Pending Tier Migrations" /tmp/app.log
+check "Tier migration task scheduled"
+
+grep -q "Monthly Billing" /tmp/app.log || grep -q "process-monthly" /tmp/app.log
+check "Monthly billing task scheduled"
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "8️⃣  SECURITY CHECKS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Check if .env is in .gitignore
+grep -q "\.env" .gitignore 2>/dev/null
+check ".env is in .gitignore (secrets protected)"
+
+# Check if no hardcoded secrets in source
+! grep -r "sk_live_\|sk_test_\|password=" src/ 2>/dev/null | grep -v "process.env"
+check "No hardcoded API keys in source code"
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "9️⃣  PERFORMANCE CHECKS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Test response time
+START=$(date +%s%N)
+curl -s http://localhost:5000/api/health > /dev/null
+END=$(date +%s%N)
+RESPONSE_TIME=$(( (END - START) / 1000000 ))
+
+if [ $RESPONSE_TIME -lt 1000 ]; then
+  echo -e "${GREEN}✅ PASS${NC}: Health endpoint responds in ${RESPONSE_TIME}ms (< 1000ms)"
+  ((PASSED++))
+else
+  echo -e "${YELLOW}⚠️  WARN${NC}: Health endpoint responds in ${RESPONSE_TIME}ms (> 1000ms)"
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🔟 CLEANUP"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Kill the test app
+kill $APP_PID 2>/dev/null
+wait $APP_PID 2>/dev/null
+check "Test application stopped cleanly"
+
+echo ""
+echo "=========================================="
+echo "📊 FINAL RESULTS"
+echo "=========================================="
+echo -e "${GREEN}✅ PASSED: $PASSED${NC}"
+echo -e "${RED}❌ FAILED: $FAILED${NC}"
+echo "=========================================="
+
+if [ $FAILED -eq 0 ]; then
+  echo -e "${GREEN}🎉 ALL CHECKS PASSED!${NC}"
+  echo ""
+  echo "Your application is production-ready! 🚀"
+  echo ""
+  echo "To start the application:"
+  echo "  npm run dev"
+  echo ""
+  echo "To run tests:"
+  echo "  npm run test:all"
+  echo ""
+  exit 0
+else
+  echo -e "${RED}⚠️  Some checks failed. Please fix the issues above.${NC}"
+  exit 1
+fi

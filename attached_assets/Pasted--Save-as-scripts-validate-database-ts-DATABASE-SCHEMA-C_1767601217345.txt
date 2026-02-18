@@ -1,0 +1,296 @@
+// Save as: scripts/validate-database.ts
+/**
+ * DATABASE SCHEMA & CONSTRAINT VALIDATION
+ */
+
+import { databaseService } from '../src/services/database.service';
+import { logger } from '../src/utils/logger';
+
+interface SchemaCheck {
+  table: string;
+  check: string;
+  passed: boolean;
+  details?: string;
+}
+
+class DatabaseValidator {
+  private checks: SchemaCheck[] = [];
+
+  /**
+   * Validate all required tables exist
+   */
+  async validateTables(): Promise<void> {
+    logger.info('\n📋 Validating Database Tables...\n');
+
+    const requiredTables = [
+      'users',
+      'cases',
+      'violations',
+      'evidence',
+      'usage_audit',
+      'billing_records',
+      'tier_migrations',
+      'quota_reset_log',
+    ];
+
+    for (const table of requiredTables) {
+      try {
+        const result = await databaseService.query(
+          `SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_name = $1
+          ) as exists`,
+          [table]
+        );
+
+        const exists = result.rows[0].exists;
+        this.checks.push({
+          table,
+          check: 'Table exists',
+          passed: exists,
+          details: exists ? 'Found' : 'Missing',
+        });
+
+        logger.info(`   ${exists ? '✅' : '❌'} ${table}`);
+      } catch (error) {
+        this.checks.push({
+          table,
+          check: 'Table exists',
+          passed: false,
+          details: (error as Error).message,
+        });
+      }
+    }
+  }
+
+  /**
+   * Validate key columns exist
+   */
+  async validateColumns(): Promise<void> {
+    logger.info('\n🔑 Validating Key Columns...\n');
+
+    const columnChecks: Record<string, string[]> = {
+      users: ['id', 'email', 'tier', 'violations_count_this_month', 'status'],
+      billing_records: ['id', 'user_id', 'tier', 'amount_cents', 'status'],
+      tier_migrations: ['id', 'user_id', 'from_tier', 'to_tier', 'grace_period_days'],
+      usage_audit: ['id', 'user_id', 'tier', 'violations', 'storage'],
+    };
+
+    for (const [table, columns] of Object.entries(columnChecks)) {
+      for (const column of columns) {
+        try {
+          const result = await databaseService.query(
+            `SELECT EXISTS (
+              SELECT 1 FROM information_schema.columns 
+              WHERE table_name = $1 AND column_name = $2
+            ) as exists`,
+            [table, column]
+          );
+
+          const exists = result.rows[0].exists;
+          this.checks.push({
+            table,
+            check: `Column: ${column}`,
+            passed: exists,
+          });
+
+          logger.info(`   ${exists ? '✅' : '❌'} ${table}.${column}`);
+        } catch (error) {
+          this.checks.push({
+            table,
+            check: `Column: ${column}`,
+            passed: false,
+            details: (error as Error).message,
+          });
+        }
+      }
+    }
+  }
+
+  /**
+   * Validate indexes exist for performance
+   */
+  async validateIndexes(): Promise<void> {
+    logger.info('\n⚡ Validating Indexes...\n');
+
+    const indexChecks: Record<string, string[]> = {
+      billing_records: ['idx_user_period', 'idx_status'],
+      tier_migrations: ['idx_user_status', 'idx_effective_at'],
+      usage_audit: ['idx_user_month', 'idx_recorded_at'],
+    };
+
+    for (const [table, indexes] of Object.entries(indexChecks)) {
+      for (const index of indexes) {
+        try {
+          const result = await databaseService.query(
+            `SELECT EXISTS (
+              SELECT 1 FROM information_schema.statistics
+              WHERE table_name = $1 AND index_name = $2
+            ) as exists`,
+            [table, index]
+          );
+
+          const exists = result.rows[0].exists;
+          this.checks.push({
+            table,
+            check: `Index: ${index}`,
+            passed: exists,
+            details: exists ? 'Found' : 'Missing (add for performance)',
+          });
+
+          logger.info(`   ${exists ? '✅' : '❌'} ${table}.${index}`);
+        } catch (error) {
+          logger.warn(`   ⚠️  Could not verify ${table}.${index}`);
+        }
+      }
+    }
+  }
+
+  /**
+   * Validate foreign keys
+   */
+  async validateForeignKeys(): Promise<void> {
+    logger.info('\n🔗 Validating Foreign Keys...\n');
+
+    const fkChecks = [
+      { table: 'billing_records', column: 'user_id', references: 'users' },
+      { table: 'tier_migrations', column: 'user_id', references: 'users' },
+      { table: 'usage_audit', column: 'user_id', references: 'users' },
+    ];
+
+    for (const fk of fkChecks) {
+      try {
+        const result = await databaseService.query(
+          `SELECT EXISTS (
+            SELECT 1 FROM information_schema.referential_constraints
+            WHERE table_name = $1 AND column_name = $2
+          ) as exists`,
+          [fk.table, fk.column]
+        );
+
+        const exists = result.rows[0].exists;
+        this.checks.push({
+          table: fk.table,
+          check: `FK: ${fk.column} → ${fk.references}`,
+          passed: exists,
+        });
+
+        logger.info(`   ${exists ? '✅' : '❌'} ${fk.table}.${fk.column} → ${fk.references}`);
+      } catch (error) {
+        logger.warn(`   ⚠️  Could not verify FK for ${fk.table}`);
+      }
+    }
+  }
+
+  /**
+   * Check data integrity
+   */
+  async validateDataIntegrity(): Promise<void> {
+    logger.info('\n🔍 Validating Data Integrity...\n');
+
+    // Check for orphaned records
+    const orphanedViolations = await databaseService.query(
+      `SELECT COUNT(*) as count FROM violations v
+       WHERE v.case_id NOT IN (SELECT id FROM cases)`
+    );
+
+    const orphanedCount = parseInt(orphanedViolations.rows[0].count);
+    this.checks.push({
+      table: 'violations',
+      check: 'No orphaned records',
+      passed: orphanedCount === 0,
+      details: orphanedCount > 0 ? `Found ${orphanedCount} orphaned records` : 'Clean',
+    });
+
+    logger.info(`   ${orphanedCount === 0 ? '✅' : '❌'} Violations referential integrity`);
+
+    // Check for duplicate billing records (same user, same period)
+    const duplicateBilling = await databaseService.query(
+      `SELECT user_id, period_start, COUNT(*) as count 
+       FROM billing_records 
+       GROUP BY user_id, period_start 
+       HAVING COUNT(*) > 1`
+    );
+
+    const hasDuplicates = duplicateBilling.rows.length > 0;
+    this.checks.push({
+      table: 'billing_records',
+      check: 'No duplicate billing periods',
+      passed: !hasDuplicates,
+      details: hasDuplicates ? `Found ${duplicateBilling.rows.length} duplicates` : 'Clean',
+    });
+
+    logger.info(`   ${!hasDuplicates ? '✅' : '❌'} Billing records uniqueness`);
+
+    // Check for invalid tier values
+    const invalidTiers = await databaseService.query(
+      `SELECT COUNT(*) as count FROM users 
+       WHERE tier NOT IN ('free', 'individual', 'pro', 'team', 'enterprise')`
+    );
+
+    const invalidTierCount = parseInt(invalidTiers.rows[0].count);
+    this.checks.push({
+      table: 'users',
+      check: 'Valid tier values only',
+      passed: invalidTierCount === 0,
+      details: invalidTierCount > 0 ? `Found ${invalidTierCount} invalid tiers` : 'Valid',
+    });
+
+    logger.info(`   ${invalidTierCount === 0 ? '✅' : '❌'} Tier value validation`);
+  }
+
+  /**
+   * Print validation report
+   */
+  private printReport(): void {
+    logger.info('\n' + '='.repeat(80));
+    logger.info('DATABASE VALIDATION REPORT');
+    logger.info('='.repeat(80) + '\n');
+
+    const passed = this.checks.filter((c) => c.passed).length;
+    const total = this.checks.length;
+    const percentage = Math.round((passed / total) * 100);
+
+    console.table(
+      this.checks.map((c) => ({
+        Table: c.table,
+        Check: c.check,
+        Status: c.passed ? '✅ PASS' : '❌ FAIL',
+        Details: c.details || '-',
+      }))
+    );
+
+    logger.info('\n' + '='.repeat(80));
+    logger.info(`📊 Results: ${passed}/${total} checks passed (${percentage}%)`);
+    logger.info('='.repeat(80) + '\n');
+
+    if (percentage === 100) {
+      logger.info('✅ Database is ready for production!\n');
+    } else {
+      logger.warn('⚠️  Please fix failing checks before deploying\n');
+    }
+  }
+
+  /**
+   * Run all validations
+   */
+  async runAll(): Promise<void> {
+    try {
+      await this.validateTables();
+      await this.validateColumns();
+      await this.validateIndexes();
+      await this.validateForeignKeys();
+      await this.validateDataIntegrity();
+
+      this.printReport();
+
+      process.exit(this.checks.every((c) => c.passed) ? 0 : 1);
+    } catch (error) {
+      logger.error('Database validation failed:', error);
+      process.exit(1);
+    }
+  }
+}
+
+const validator = new DatabaseValidator();
+validator.runAll();

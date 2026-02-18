@@ -1,0 +1,105 @@
+CSS & LAYOUT CONSISTENCY HARDENING — Z-INDEX, THEME, AND RESPONSIVE DESIGN CLEANUP
+
+You are my Principal UI Systems Engineer.
+
+The Divorce Ledger app is functionally solid and performs well.
+Your mission now is to clean up the **CSS + layout system** so that:
+
+- Visual hierarchy is consistent,
+- Z-index issues are eliminated,
+- Theme (colors, typography, spacings) is coherent,
+- Responsive behavior is predictable.
+
+Constraints:
+- Do NOT redesign the whole UI.
+- Keep the existing brand direction; just make it clean and consistent.
+
+Tasks:
+
+1) Z-index and overlay audit:
+   - Identify all components that use:
+     - modals,
+     - dropdowns,
+     - tooltips,
+     - sidebars/drawers,
+     - toasts/notifications.
+   - Normalize z-index usage:
+     - Create a small z-index scale (e.g. base, dropdown, overlay, modal, toast).
+     - Replace arbitrary z-index values with tokens or constants referencing that scale.
+   - Fix:
+     - cases where dropdowns appear under other UI,
+     - modals that are partially hidden,
+     - toasts behind headers, etc.
+
+2) Global layout shell:
+   - Ensure there is a clear layout structure:
+     - root → header → sidebar → content → footer (as applicable).
+   - Confirm:
+     - consistent padding/margins for main content,
+     - no random 3–5 different top paddings for different pages.
+   - Normalize spacing scale:
+     - Use a consistent spacing system (e.g. 4/8/12/16 px multiples or your design tokens).
+
+3) Typography system:
+   - Define or confirm a consistent typography scale:
+     - Heading levels (H1/H2/H3),
+     - Body text,
+     - Caption/small text.
+   - Replace ad-hoc font-size/font-weight declarations with consistent classes or variables.
+   - Ensure titles across major screens (Documents/Violations/Finance/Settings) use consistent type styling.
+
+4) Color and theme tokens:
+   - Identify core colors:
+     - primary,
+     - secondary,
+     - success,
+     - warning,
+     - danger,
+     - background,
+     - surface,
+     - border,
+     - text colors.
+   - Consolidate them in a theme file / CSS variables / Tailwind config.
+   - Replace scattered hardcoded hex values with those theme tokens where practical.
+   - Ensure contrast is accessible (text vs background, buttons vs surroundings).
+
+5) Component consistency:
+   - Ensure buttons follow a limited set of variants:
+     - primary (solid),
+     - secondary (outline/ghost),
+     - tertiary (link).
+   - Normalize:
+     - border-radius,
+     - padding,
+     - font-weight,
+     - icon placement (if any).
+   - Ensure forms (inputs, selects, textareas) have consistent:
+     - borders,
+     - focus styles,
+     - error states.
+
+6) Responsive layout checks (CSS-level):
+   - Ensure that CSS media queries line up with intentional breakpoints.
+   - Avoid overlapping conflicting media rules.
+   - Where needed, simplify nested flex/grid structures if they cause unexpected overflow or misalignment.
+
+7) Remove legacy/dead CSS:
+   - Search for:
+     - unused CSS classes,
+     - old component styles no longer referenced.
+   - Remove or isolate them to avoid future confusion.
+
+8) Verification:
+   - Go through all major screens:
+     - Desktop & mobile views.
+   - Look for:
+     - overlapping elements,
+     - misaligned cards,
+     - inconsistent paddings/margins between similar sections,
+     - inconsistent button appearances.
+   - Fix until:
+     - UI looks coherent and professional,
+     - no obvious z-index glitches,
+     - spacing and typography feel consistent across the app.
+
+Stop when the CSS and layout system is clean, consistent, and predictable, with coherent theming and no visual “glitches”.

@@ -1,0 +1,52 @@
+Act as a Senior Full-Stack Engineer + Architect (principal-level). You are operating inside Replit. Our backend is Appwrite (Auth, Database, Storage, Realtime). Your job is to design a production-grade, auditable “Document + Photo Intake → AI Analysis → Categorization → Appwrite DB” system with a clean React/Tailwind dashboard.
+
+NON-NEGOTIABLES
+1) Do not write implementation code until I approve the plan and the data model.
+2) Prefer Appwrite primitives first: Auth, Storage, Databases, Realtime, (optional) Functions. Explain when/why you deviate.
+3) Build for correctness and auditability: every derived field must be traceable to an input file + analysis run id + model/version + timestamp.
+4) Provide a user-approval loop: AI suggests; user confirms/edits; system learns (rules/overrides) without silently rewriting history.
+5) Security: least-privilege keys, server-only operations, strict file access rules, and tenant isolation (per-user).
+6) Reliability: idempotent processing, retries, and deterministic state transitions.
+
+PROJECT GOAL
+Users upload documents and images. System extracts text (docs) or uses vision (images), runs AI analysis, and automatically proposes categories and structured metadata. Results are stored in Appwrite Database and displayed in a dashboard with real-time status updates.
+
+TECH STACK / RUNTIME
+- Frontend: React + Tailwind (Vite or Next.js—recommend and justify).
+- Backend: Node.js (TypeScript preferred), Appwrite Node SDK for server operations.
+- AI: Replit AI integrations OR OpenAI via Replit Secrets. Must support:
+  - Vision for images
+  - Text extraction / parsing for PDFs and scans (OCR when needed)
+- Storage: Appwrite Storage bucket(s).
+- DB: Appwrite Databases collections for files, analysis runs, categories, and user overrides.
+- Realtime: Appwrite Realtime for progress + status.
+
+DELIVERABLES (PLAN ONLY — NO CODE YET)
+A) Step-by-step implementation plan broken into milestones (M0..M5) with acceptance criteria.
+B) Data model: Appwrite collections + attributes (types, indexes, required fields), including:
+   - File record schema
+   - Analysis run schema (versioned)
+   - Category schema
+   - User override schema (learning signals)
+C) State machine: precise statuses and transitions (e.g., uploaded → queued → extracting → analyzing → suggested → awaiting_user → finalized → error).
+D) Eventing design: how the analysis is triggered (Appwrite Function vs Replit server job/queue vs client-trigger) with pros/cons and your recommendation.
+E) Security model: which operations happen client-side vs server-side; which keys live in Secrets; rules for per-user access.
+F) API surface: list endpoints/routes and payload contracts (request/response), including idempotency keys.
+G) UX flow: minimal screens and interactions for upload, progress, suggested categorization, and approval/edit.
+H) Risks + mitigations: OCR accuracy, model drift, cost control, large file handling, concurrency, retries.
+
+CONSTRAINTS / PREFERENCES
+- Must support “approval required” before writing final categorization fields.
+- Must preserve raw AI output for audit.
+- Must handle multi-page PDFs and scanned receipts.
+- Must support incremental improvements: rules-based overrides + future “learning” without retraining a model.
+
+OUTPUT FORMAT
+1) Architecture summary (1 page).
+2) Milestones with acceptance criteria.
+3) Data model tables (collections, attributes, indexes).
+4) State machine diagram in text form.
+5) Triggering approach recommendation with rationale.
+6) Endpoint contracts list.
+
+Stop after the plan. Ask for my approval and any remaining decisions that truly require my input.

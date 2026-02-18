@@ -1,0 +1,261 @@
+You are my Principal Engineer and Chief Reliability Officer with FULL access to this Replit project.
+
+All major diagnostics and reliability work have already been completed. The app is healthy and production-ready.
+
+Now I want a targeted, global cleanup to remove all confusion and inconsistencies around product naming and URLs.
+
+Use this as the canonical source of truth:
+
+Canonical product name (what the user sees in UI, titles, etc.):
+“Divorce Ledger”
+
+Dev/preview URL (Replit-hosted web):
+https://divorceledger.replit.app
+
+Production URL (live site):
+https://divorceledger.live
+
+Appwrite remains the universal analyzer/filer for all documents and pictures.
+(Do NOT change that architecture; just make sure nothing conflicts with it.)
+
+Your job is to ensure everything in this repo and runtime reflects this reality, and that no old naming or URL references can cause confusion or bugs.
+
+1. FIND AND NORMALIZE ALL APP NAMES
+
+Search the entire codebase (frontend + backend + scripts + config + README/docs) for any references to old names or inconsistent labels, including but not limited to:
+
+DivorceAES
+
+DivorceAES-AI
+
+Divorce Forensic
+
+Divorce Forensic File
+
+any other mixed branding like “Divorce Evidence System”, “Divorce Forensic File System”, etc.
+
+For every place where the product name is shown to the user (UI text, headings, page titles, emails, meta tags, etc.):
+
+Normalize to:
+“Divorce Ledger”
+
+For internal identifiers (like log prefixes, comments, variable names):
+
+It is OK to keep technical names if they are deeply wired (e.g., an internal project name), but:
+
+Prefer renaming obvious user-facing or config-critical identifiers to a consistent pattern like divorceLedger where feasible.
+
+Do NOT break things just for cosmetic refactors; prioritize correctness and safety.
+
+Absolutely remove any user-facing references that say “Divorce Forensic”, “DivorceAES-AI”, etc.
+
+Ensure any “About”, “Footer”, or “Support” copy that mentions the app by name uses Divorce Ledger only.
+
+2. FIX ALL URL / ORIGIN / ENVIRONMENT CONFUSION
+
+Treat these URLs as canonical:
+
+Dev / preview (Replit): https://divorceledger.replit.app
+
+Prod: https://divorceledger.live
+
+Search for all URLs in the codebase that look like:
+
+.replit.app
+
+.live
+
+Hardcoded localhost URLs used for callbacks or CORS
+
+Any previous domains that may have been used.
+
+Normalize the usage to a clear environment strategy:
+
+For dev / preview:
+
+Anywhere the code needs the public app origin for dev, use https://divorceledger.replit.app (or an env var that points to it, e.g., FRONTEND_BASE_URL_DEV).
+
+For production:
+
+Anywhere the code needs the public app origin for prod, use https://divorceledger.live (or an env var, e.g., FRONTEND_BASE_URL_PROD).
+
+Specifically verify and correct:
+
+CORS configuration:
+
+The backend must allow the correct dev and prod origins, and no stale/incorrect domains.
+
+OAuth/redirect callback URLs, if any:
+
+QuickBooks, Firefly, or any third-party integration should have clear mappings:
+
+Dev callbacks use https://divorceledger.replit.app/...
+
+Prod callbacks use https://divorceledger.live/...
+
+Links generated in emails or notifications:
+
+Should not point to outdated domains or the wrong environment.
+
+Frontend base URLs:
+
+Any baseURL or API_URL or FRONTEND_URL variables must correctly distinguish dev vs prod, and must not reference previous project names.
+
+Make sure the app never displays an old URL in:
+
+Navigation
+
+Help text
+
+Onboarding instructions
+
+Copy/paste “share this link” UI
+
+3. ALIGN ENVIRONMENT FLAGS WITH URL REALITY
+
+You already have environment distinctions like demo vs live.
+Now make sure URL usage matches those environments and there’s no hidden mismatch.
+
+For each environment flag in the backend (e.g., NODE_ENV, APP_ENV, environment: "demo" | "live", etc.):
+
+Confirm how it is used to choose:
+
+Allowed origins
+
+Base URLs
+
+Cookie settings
+
+Appwrite project/bucket IDs
+
+Ensure the following:
+
+When running in the Replit dev/preview context:
+
+The system treats https://divorceledger.replit.app as the UI origin.
+
+When running in production:
+
+The system treats https://divorceledger.live as the main UI origin.
+
+No environment ever mixes or hardcodes the wrong origin.
+
+Check Appwrite config:
+
+Any Appwrite function/endpoint that needs the app URL (e.g., for link generation) should rely on env vars or clear config that can distinguish between dev and prod, and should not embed stale domains.
+
+4. ENSURE APPWRITE REMAINS THE UNIVERSAL FILE ANALYZER/FILER (NO REGRESSIONS)
+
+You MUST preserve the architecture where Appwrite is the universal analyzer and filer for all documents and pictures.
+
+Re-check all file-related paths after your naming/URL changes:
+
+Uploads
+
+Analysis triggers
+
+Re-analysis endpoints
+
+Delete endpoints
+
+Any scheduled/queue processing
+
+Confirm that:
+
+Every file still ends up in Appwrite Storage.
+
+Every analysis is still performed via Appwrite Functions/Queues.
+
+The metadata records still correctly link to Appwrite files and store analysis results.
+
+No new or accidental local storage paths or duplicate file handling were introduced during the renaming.
+
+Validate that the front-end (desktop + mobile) still only use:
+
+Express /api/... routes, which in turn delegate to Appwrite.
+
+5. CLEAN UP ANY REMAINING LOG/ERROR NOISE CAUSED BY RENAMES
+
+Renaming URLs and product names can often expose small missed spots or log noise. Clean them up.
+
+Run the app and:
+
+Open the main flows (upload, list, delete, violations, finance dashboards) on both dev and prod URLs.
+
+Watch:
+
+Browser console
+
+Backend logs (Replit shell)
+
+Fix any residual errors or warnings related to:
+
+Wrong origin / CORS issues.
+
+Incorrect redirect URLs.
+
+Old names/URLs appearing in log messages as if they were still in use.
+
+Misconfigured environment checks that use stale constants.
+
+Ensure that normal usage produces:
+
+No red errors in the browser console.
+
+No unhandled promise rejections or severe warnings.
+
+No confusing logs referring to old product names or URLs.
+
+6. FINAL VERIFICATION
+
+After all name/URL normalization and cleanup:
+
+Re-run the health commands:
+
+npm run build
+
+npm run typecheck / tsc --noEmit
+
+npm run lint
+
+npm test (if present)
+
+All must pass.
+
+Manually verify both URLs:
+
+https://divorceledger.replit.app
+
+https://divorceledger.live
+
+For each:
+
+Login (demo/live as appropriate).
+
+Upload a document and a picture.
+
+Confirm Appwrite analysis runs and categorization still works.
+
+Confirm all visible branding says “Divorce Ledger”.
+
+Confirm generated links (if any) use the correct domain for that environment.
+
+Confirm there are no visible references to old names like “Divorce Forensic File” or “DivorceAES-AI”.
+
+Document the changes briefly (e.g., in a CHANGELOG.md entry):
+
+What names were normalized.
+
+What URLs were corrected.
+
+How environment-specific URLs are now configured.
+
+Implement all of this now so there is zero confusion between old names and the current product, and all configs, URLs, and user-facing text consistently reflect:
+
+Product name: Divorce Ledger
+
+Dev URL: https://divorceledger.replit.app
+
+Prod URL: https://divorceledger.live
+
+Appwrite as the universal file analyzer and filer for all documents and pictures.

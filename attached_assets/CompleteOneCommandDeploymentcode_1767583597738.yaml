@@ -1,0 +1,8 @@
+run = "bash build.sh && echo 'Build Complete! Visit http://localhost:3000'"
+
+modules = ["python-3.11", "nodejs-18"]
+
+entrypoint = "backend/app/main.py"
+
+[nix]
+channel = "stable-23.11"

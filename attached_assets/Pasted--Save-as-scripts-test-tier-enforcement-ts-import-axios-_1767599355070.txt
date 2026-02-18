@@ -1,0 +1,98 @@
+// Save as: scripts/test-tier-enforcement.ts
+
+import axios from 'axios';
+
+const BASE_URL = 'http://localhost:3000/api';
+
+async function testTierEnforcement() {
+  console.log('🛡️ TIER ENFORCEMENT TEST\n');
+  console.log('='.repeat(70) + '\n');
+
+  try {
+    const userId = 1;
+
+    // 1. Get current usage metrics
+    console.log('1️⃣ Getting current usage metrics...');
+    const metricsRes = await axios.get(\`\${BASE_URL}/users/\${userId}/usage-metrics\`);
+    const metrics = metricsRes.data.data;
+
+    console.log(\`✅ Current Usage:\`);
+    console.log(\`   Tier: \${metrics.metrics.tier}\`);
+    console.log(\`   Violations: \${metrics.metrics.violations_this_month} (\${metrics.usage_percentage.violations}%)\`);
+    console.log(\`   Storage: \${metrics.metrics.storage_used_mb.toFixed(1)}MB / \${metrics.tier_limits.maxStorageMB}MB (\${metrics.usage_percentage.storage}%)\`);
+    console.log(\`   Cases: \${metrics.metrics.cases_active} (\${metrics.usage_percentage.cases}%)\n\`);
+
+    // 2. Check if can upload file (small)
+    console.log('2️⃣ Checking upload permission (small file: 5MB)...');
+    const checkSmallRes = await axios.post(\`\${BASE_URL}/users/\${userId}/check-upload\`, {
+      fileSizeMB: 5,
+    });
+
+    if (checkSmallRes.data.data.allowed) {
+      console.log(\`✅ Upload allowed\`);
+      if (checkSmallRes.data.data.warning) {
+        console.log(\`   Warning: \${checkSmallRes.data.data.warning}\`);
+      }
+    } else {
+      console.log(\`❌ Upload blocked: \${checkSmallRes.data.data.reason}\`);
+    }
+    console.log();
+
+    // 3. Check if can upload file (large - might exceed limit)
+    console.log('3️⃣ Checking upload permission (large file: 200MB)...');
+    const checkLargeRes = await axios.post(\`\${BASE_URL}/users/\${userId}/check-upload\`, {
+      fileSizeMB: 200,
+    });
+
+    if (checkLargeRes.data.data.allowed) {
+      console.log(\`✅ Upload allowed\`);
+      if (checkLargeRes.data.data.warning) {
+        console.log(\`   Warning: \${checkLargeRes.data.data.warning}\`);
+      }
+    } else {
+      console.log(\`❌ Upload blocked: \${checkLargeRes.data.data.reason}\`);
+    }
+    console.log();
+
+    // 4. Get tier recommendation
+    console.log('4️⃣ Getting tier upgrade recommendation...');
+    const recRes = await axios.get(\`\${BASE_URL}/users/\${userId}/tier-recommendation\`);
+    const rec = recRes.data.data;
+
+    console.log(\`✅ Tier Analysis:\`);
+    console.log(\`   Current: \${rec.current_tier}\`);
+    console.log(\`   Recommended: \${rec.recommended_tier}\`);
+    console.log(\`   Reason: \${rec.reason}\`);
+    if (rec.upgrade_cost_savings) {
+      console.log(\`   Benefit: \${rec.upgrade_cost_savings}\`);
+    }
+    console.log();
+
+    // 5. Log usage
+    console.log('5️⃣ Logging usage metrics...');
+    await axios.post(\`\${BASE_URL}/users/\${userId}/log-usage\`, {});
+    console.log(\`✅ Usage logged to audit table\n\`);
+
+    console.log('='.repeat(70));
+    console.log('✨ TIER ENFORCEMENT TEST PASSED!\n');
+
+    console.log('📊 Summary:');
+    console.log(\`   Current Tier: \${metrics.metrics.tier}\`);
+    console.log(\`   Tier Limits:\`);
+    console.log(\`     - Max File: \${metrics.tier_limits.maxFileSizeMB}MB\`);
+    console.log(\`     - Max Storage: \${metrics.tier_limits.maxStorageMB || 'Unlimited'}MB\`);
+    console.log(\`     - Max Violations: \${metrics.tier_limits.maxViolationsPerMonth || 'Unlimited'}\`);
+    console.log(\`     - Max Cases: \${metrics.tier_limits.maxCases || 'Unlimited'}\`);
+    console.log(\`   Upload Checks:\`);
+    console.log(\`     - 5MB file: \${checkSmallRes.data.data.allowed ? '✅ Allowed' : '❌ Blocked'}\`);
+    console.log(\`     - 200MB file: \${checkLargeRes.data.data.allowed ? '✅ Allowed' : '❌ Blocked'}\`);
+    console.log(\`   Next Action: \${rec.current_tier !== rec.recommended_tier ? \`Consider upgrading to \${rec.recommended_tier}\` : 'No upgrade needed'}\`);
+
+  } catch (error: any) {
+    console.error('❌ TEST FAILED:');
+    console.error(error.response?.data || error.message);
+    process.exit(1);
+  }
+}
+
+testTierEnforcement();

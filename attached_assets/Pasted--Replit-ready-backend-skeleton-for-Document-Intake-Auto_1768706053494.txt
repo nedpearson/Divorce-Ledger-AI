@@ -1,0 +1,313 @@
+"""
+Replit-ready backend skeleton for:
+- Document Intake & Auto-Categorization Engine
+- Backend Intake Orchestrator
+
+Run in Replit:
+    pip install fastapi uvicorn[standard] pydantic
+    python main.py
+
+Then call endpoints:
+    POST /orchestrator
+    POST /intake-engine
+    POST /upload-demo
+"""
+
+import os
+import json
+from typing import Any, Dict, List, Optional
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field, ValidationError
+
+# ---------------------------------------------------------------------
+# 1) SYSTEM PROMPTS (paste your long prompts here)
+# ---------------------------------------------------------------------
+
+ORCHESTRATOR_SYSTEM_PROMPT = r"""<PASTE YOUR BACKEND ORCHESTRATOR PROMPT HERE>"""
+
+INTAKE_ENGINE_SYSTEM_PROMPT = r"""<PASTE YOUR DOCUMENT INTAKE & AUTO-CATEGORIZATION PROMPT HERE>"""
+
+
+# ---------------------------------------------------------------------
+# 2) LLM CLIENT ABSTRACTION
+# ---------------------------------------------------------------------
+# You can swap this out for OpenAI, Anthropic, etc.
+# Just ensure call_llm(system_prompt, user_payload_json) -> str (raw JSON string).
+# ---------------------------------------------------------------------
+
+def call_llm(system_prompt: str, user_payload_json: str) -> str:
+    """
+    Thin wrapper to call your LLM provider.
+
+    Expected contract:
+        - system_prompt: the full system role text
+        - user_payload_json: JSON string of the input object (event or engine_input)
+        - returns: a JSON string as the model's reply (no extra prose)
+
+    IMPLEMENTATION PLACEHOLDER:
+        - Implement OpenAI, Anthropic, or other provider here.
+    """
+    # Example skeleton for OpenAI (uncomment and adapt if using openai>=1.0.0):
+    #
+    # from openai import OpenAI
+    # client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    # response = client.chat.completions.create(
+    #     model=os.environ.get("LLM_MODEL", "gpt-4.1-mini"),
+    #     messages=[
+    #         {"role": "system", "content": system_prompt},
+    #         {"role": "user", "content": user_payload_json},
+    #     ],
+    #     temperature=0.1,
+    # )
+    # content = response.choices[0].message.content
+    # return content
+    #
+    # For now, raise to force you to plug in a real LLM:
+    raise NotImplementedError("call_llm() must be implemented with your LLM provider.")
+
+
+# ---------------------------------------------------------------------
+# 3) Pydantic Models for I/O Contracts
+#    (Keep relatively flexible but typed enough to catch bad shapes.)
+# ---------------------------------------------------------------------
+
+class FileInfo(BaseModel):
+    file_id: str
+    file_name: str
+    mime_type: str
+    storage_url: Optional[str] = None
+    pages: Optional[int] = None
+
+
+class OCRInfo(BaseModel):
+    raw_text: Optional[str] = None
+    language_hint: Optional[str] = None
+    engine: Optional[str] = None
+
+
+class UserContext(BaseModel):
+    user_id: str
+    matter_id: Optional[str] = None
+    jurisdiction: str = "LA"
+    currency: str = "USD"
+
+
+class ExistingContext(BaseModel):
+    known_accounts: List[Dict[str, Any]] = Field(default_factory=list)
+    known_vendors: List[Dict[str, Any]] = Field(default_factory=list)
+    known_categories: List[Dict[str, Any]] = Field(default_factory=list)
+    open_transactions: List[Dict[str, Any]] = Field(default_factory=list)
+    approval_policies: Dict[str, Any] = Field(
+        default_factory=lambda: {
+            "require_manual_confirmation_for_all": True,
+            "auto_approve_low_risk": False,
+        }
+    )
+
+
+class DocumentUploadEvent(BaseModel):
+    """
+    Event from your app into the Orchestrator.
+
+    - Initial upload: intake_engine_result = None
+    - Post-intake: intake_engine_result is populated and the event is sent again.
+    """
+    event_type: str = Field(..., description="Should be 'DOCUMENT_UPLOADED'")
+    ui_language: str = Field("en", description="UI language for explanations (e.g., 'en' or 'es')")
+    file: FileInfo
+    ocr: OCRInfo
+    user_context: UserContext
+    existing_context: ExistingContext = Field(default_factory=ExistingContext)
+
+    # Optional: when backend calls /orchestrator after intake engine is run
+    intake_engine_result: Optional[Dict[str, Any]] = None
+
+
+class OrchestratorResponse(BaseModel):
+    status: str
+    actions: List[Dict[str, Any]]
+
+
+class IntakeEngineInput(BaseModel):
+    """
+    Minimal version of the engine input schema specified in your Intake Engine prompt.
+    """
+    raw_text: str
+    file_name: str
+    mime_type: str
+    language_hint: Optional[str] = None
+    ui_language: str = "en"
+    existing_context: Dict[str, Any]
+
+
+class IntakeEngineResponse(BaseModel):
+    """
+    Do NOT over-constrain this initially.
+    Your Intake Engine prompt already defines the JSON shape.
+    Keep this type generic; enforce stricter validation in a later iteration.
+    """
+    doc_type: str
+    doc_language: Optional[str] = None
+    summary: Optional[str] = None
+    parties: Optional[Dict[str, Any]] = None
+    amounts: Optional[Dict[str, Any]] = None
+    dates: Optional[Dict[str, Any]] = None
+    accounts: Optional[Dict[str, Any]] = None
+    line_items: Optional[List[Dict[str, Any]]] = None
+    classifications: Optional[Dict[str, Any]] = None
+    ledger_actions_proposed: Optional[List[Dict[str, Any]]] = None
+    source_trace: Optional[List[Dict[str, Any]]] = None
+    confidence: Optional[Dict[str, Any]] = None
+    approval_request: Optional[Dict[str, Any]] = None
+    errors_or_warnings: Optional[List[str]] = None
+
+
+# ---------------------------------------------------------------------
+# 4) LLM-Orchestrated Functions
+# ---------------------------------------------------------------------
+
+def run_orchestrator(event: DocumentUploadEvent) -> OrchestratorResponse:
+    """
+    Sends the DocumentUploadEvent to the Backend Orchestrator LLM
+    using the ORCHESTRATOR_SYSTEM_PROMPT.
+
+    The orchestrator prompt expects:
+        - event as a JSON string (no extra prose)
+        - returns JSON: { "status": ..., "actions": [...] }
+    """
+    try:
+        user_payload_json = event.model_dump_json()
+        raw = call_llm(ORCHESTRATOR_SYSTEM_PROMPT, user_payload_json)
+        parsed = json.loads(raw)
+        return OrchestratorResponse(**parsed)
+    except ValidationError as ve:
+        raise HTTPException(status_code=400, detail=f"Orchestrator schema validation error: {ve}")
+    except json.JSONDecodeError as je:
+        raise HTTPException(status_code=500, detail=f"Orchestrator returned invalid JSON: {je}")
+    except NotImplementedError as nie:
+        # Bubble up so you remember to wire your LLM
+        raise HTTPException(status_code=500, detail=str(nie))
+
+
+def run_intake_engine(engine_input: IntakeEngineInput) -> IntakeEngineResponse:
+    """
+    Sends engine_input to the Document Intake & Auto-Categorization Engine LLM.
+
+    The intake engine prompt expects:
+        - engine_input as a JSON string
+        - returns a JSON object matching its schema
+    """
+    try:
+        user_payload_json = engine_input.model_dump_json()
+        raw = call_llm(INTAKE_ENGINE_SYSTEM_PROMPT, user_payload_json)
+        parsed = json.loads(raw)
+        return IntakeEngineResponse(**parsed)
+    except ValidationError as ve:
+        raise HTTPException(status_code=400, detail=f"Intake engine schema validation error: {ve}")
+    except json.JSONDecodeError as je:
+        raise HTTPException(status_code=500, detail=f"Intake engine returned invalid JSON: {je}")
+    except NotImplementedError as nie:
+        raise HTTPException(status_code=500, detail=str(nie))
+
+
+# ---------------------------------------------------------------------
+# 5) FastAPI Application + Endpoints
+# ---------------------------------------------------------------------
+
+app = FastAPI(title="Forensic Intake Backend", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # tighten in prod
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.post("/orchestrator", response_model=OrchestratorResponse)
+def orchestrator_endpoint(event: DocumentUploadEvent) -> OrchestratorResponse:
+    """
+    Low-level endpoint: directly hit the Orchestrator agent with a full event.
+    - In practice, your backend service would call this, not the frontend.
+    """
+    return run_orchestrator(event)
+
+
+@app.post("/intake-engine", response_model=IntakeEngineResponse)
+def intake_engine_endpoint(engine_input: IntakeEngineInput) -> IntakeEngineResponse:
+    """
+    Low-level endpoint: directly hit the Intake Engine agent with prepared input.
+    - Typically called only by your backend after OCR.
+    """
+    return run_intake_engine(engine_input)
+
+
+# ---------------------------------------------------------------------
+# 6) Demo High-Level Flow Endpoint (optional)
+#    This shows how your app might use the orchestration contract.
+# ---------------------------------------------------------------------
+
+class UploadDemoPayload(BaseModel):
+    """
+    Simplified payload from UI to show the flow.
+    In production, you’d already have file uploaded to storage and OCR done/not done.
+    """
+    ui_language: str = "en"
+    file: FileInfo
+    ocr: OCRInfo
+    user_context: UserContext
+    existing_context: ExistingContext = Field(default_factory=ExistingContext)
+
+
+@app.post("/upload-demo")
+def upload_demo(payload: UploadDemoPayload) -> Dict[str, Any]:
+    """
+    Example orchestration:
+    1. Construct DocumentUploadEvent (no intake_engine_result yet).
+    2. Call Orchestrator LLM.
+    3. If Orchestrator tells us to CALL_INTAKE_ENGINE, we assemble engine_input.
+       (In a real system you'd actually run run_intake_engine(), then call orchestrator again.)
+    """
+    # Step 1: build initial event
+    event = DocumentUploadEvent(
+        event_type="DOCUMENT_UPLOADED",
+        ui_language=payload.ui_language,
+        file=payload.file,
+        ocr=payload.ocr,
+        user_context=payload.user_context,
+        existing_context=payload.existing_context,
+    )
+
+    orch_resp = run_orchestrator(event)
+
+    # In a real pipeline, you'd inspect orch_resp.actions here to:
+    # - trigger OCR (REQUEST_OCR),
+    # - call the intake engine (CALL_INTAKE_ENGINE),
+    # - later persist results (PERSIST_INTAKE_RESULT),
+    # - prepare approval screen (PREPARE_APPROVAL_SCREEN), etc.
+    #
+    # For this demo, just return what the orchestrator suggests.
+
+    return {
+        "orchestrator_status": orch_resp.status,
+        "orchestrator_actions": orch_resp.actions,
+        "note": "In production, your backend would execute these actions (OCR, call intake engine, etc.).",
+    }
+
+
+# ---------------------------------------------------------------------
+# 7) Entry Point
+# ---------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 8000)),
+        reload=True,
+    )

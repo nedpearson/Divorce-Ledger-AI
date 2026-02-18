@@ -1,0 +1,77 @@
+MOBILE & PWA HARDENING — RESPONSIVE LAYOUT, PWA INSTALL, AND TOUCH UX
+
+You are my Principal Mobile & PWA Experience Engineer.
+
+The backend and frontend logic are stable; now focus on MOBILE and PWA quality for Divorce Ledger.
+
+Goals:
+- Excellent mobile UX (small screens).
+- Installable PWA that feels like a native app.
+- No layout breakage or unreadable content.
+
+Tasks:
+
+1) Responsive layout audit:
+   - Test common breakpoints:
+     - ~360–414px width (small phones),
+     - ~768px (tablets),
+     - ~1024+ (desktop).
+   - For each key view (home, docs, violations, finance, settings):
+     - Ensure no horizontal scrolling,
+     - Text is readable (no micro-fonts),
+     - Buttons are finger-friendly (minimum touch sizes),
+     - Tables/lists adapt (wrap, stack, or transform to cards on mobile).
+
+2) Sidebar & navigation:
+   - Ensure the left sidebar is clearly discoverable on mobile:
+     - If using a hamburger/menu button:
+       - Make icon visually obvious and large enough,
+       - Place in top-left or top-right consistently,
+       - Provide visual affordance (e.g., label or tooltip on desktop).
+   - On mobile, ensure:
+     - Sidebar overlay/slide-in does not conflict with scroll,
+     - Body scroll is controlled when sidebar is open.
+
+3) PWA installability:
+   - Validate existence and correctness of:
+     - manifest.json (name, short_name, icons, start_url, display, background_color, theme_color),
+     - service worker registration (if used).
+   - Ensure:
+     - Start URL is consistent with Divorce Ledger routes.
+     - Icons are correct for high-DPI devices.
+   - Confirm:
+     - App is installable on mobile (Add to Home Screen),
+     - App is installable as a desktop PWA where supported.
+
+4) Layout variants:
+   - If there are separate “desktop” and “mobile” layout modes or tabs:
+     - Ensure each is fully functional,
+     - Ensure logic that chooses layout (media queries or JS) is correct,
+     - No broken state or missing components when switching orientation or resizing.
+
+5) Form & input UX:
+   - Ensure:
+     - Inputs are not clipped on mobile,
+     - Keyboard does not permanently hide important fields,
+     - Scroll containers behave correctly while keyboard open.
+   - Where date/time inputs are used:
+     - Prefer native mobile-friendly components.
+
+6) Performance on low-end devices:
+   - Reduce unnecessary animations or heavy transitions on mobile,
+   - Ensure heavy components are not mounted off-screen unnecessarily.
+
+7) Verification:
+   - Test via devtools device emulation + real phone if possible:
+     - Document upload,
+     - Evidence review,
+     - Violations list,
+     - Finance view,
+     - Settings & auth flows.
+   - Confirm:
+     - No overflow issues,
+     - No tap targets too small,
+     - Sidebar clearly discoverable,
+     - PWA install works and launches into a usable layout.
+
+Stop when mobile UX and PWA behavior are first-class and stable.

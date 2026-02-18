@@ -1,0 +1,400 @@
+import { useState, useEffect, lazy, Suspense } from "react";
+import { Switch, Route, Redirect, useLocation } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/lib/theme";
+import { AuthProvider, useAuth } from "@/lib/auth";
+import { SubscriptionProvider } from "@/lib/subscription";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { SubscriptionBadge } from "@/components/upgrade-prompt";
+import { Bell, Loader2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
+import Login from "@/pages/login";
+import Signup from "@/pages/signup";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
+import Home from "@/pages/home";
+import Dashboard from "@/pages/dashboard";
+import NotFound from "@/pages/not-found";
+
+const Finances = lazy(() => import("@/pages/finances"));
+const Violations = lazy(() => import("@/pages/violations"));
+const Timeline = lazy(() => import("@/pages/timeline"));
+const Communication = lazy(() => import("@/pages/communication"));
+const Communications = lazy(() => import("@/pages/communications"));
+const Journal = lazy(() => import("@/pages/journal"));
+const CaseBuilder = lazy(() => import("@/pages/case-builder"));
+const Pricing = lazy(() => import("@/pages/pricing"));
+const Calendar = lazy(() => import("@/pages/calendar"));
+const Legal = lazy(() => import("@/pages/legal"));
+const ChildSupport = lazy(() => import("@/pages/child-support"));
+const Property = lazy(() => import("@/pages/property"));
+const AICoach = lazy(() => import("@/pages/ai-coach"));
+const AnalyticsDashboard = lazy(() => import("@/pages/analytics-dashboard"));
+const Settings = lazy(() => import("@/pages/settings"));
+const Governance = lazy(() => import("@/pages/governance"));
+const Mobile = lazy(() => import("@/pages/mobile"));
+const AdminUsers = lazy(() => import("@/pages/admin-users"));
+const Recommendations = lazy(() => import("@/pages/recommendations"));
+const AdminRecommendations = lazy(() => import("@/pages/admin-recommendations"));
+const Changelog = lazy(() => import("@/pages/changelog"));
+const AdminPanel = lazy(() => import("@/pages/admin"));
+const AppwriteDocuments = lazy(() => import("@/pages/appwrite-documents"));
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { QuickCaptureSheet } from "@/components/quick-capture-sheet";
+import { MobileAppHeaderButton } from "@/components/mobile-app-banner";
+import { EnvironmentBadge } from "@/components/environment-badge";
+import { UpdateNotification } from "@/components/update-notification";
+import { ErrorBoundary } from "@/components/error-boundary";
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    const loginUrl = `/?redirect=${encodeURIComponent(window.location.pathname)}`;
+    return <Redirect to={loginUrl} />;
+  }
+  
+  return <>{children}</>;
+}
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
+
+function AuthLayout({ children }: { children: React.ReactNode }) {
+  const [captureOpen, setCaptureOpen] = useState(false);
+
+  const style = {
+    "--sidebar-width": "14rem",
+    "--sidebar-width-icon": "3rem",
+  };
+
+  return (
+    <SidebarProvider style={style as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <AppSidebar />
+        <div className="flex flex-col flex-1 min-w-0">
+          <header className="flex items-center justify-between gap-2 p-2 border-b h-14 shrink-0">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger data-testid="button-sidebar-toggle" className="md:hidden" />
+              <h1 className="font-semibold text-lg md:hidden">Divorce Ledger</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <SubscriptionBadge />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => {
+                  queryClient.invalidateQueries();
+                  // Avoid direct window.location.reload() in a tight loop
+                  const now = Date.now();
+                  const lastReload = parseInt(sessionStorage.getItem("lastManualReload") || "0");
+                  if (now - lastReload > 5000) {
+                    sessionStorage.setItem("lastManualReload", now.toString());
+                    window.location.reload();
+                  }
+                }}
+                title="Refresh application data"
+                data-testid="button-refresh-all"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" data-testid="button-notifications">
+                <Bell className="h-4 w-4" />
+              </Button>
+              <MobileAppHeaderButton />
+              <ThemeToggle />
+            </div>
+          </header>
+          <main className="flex-1 overflow-auto bg-background pb-20 md:pb-0">
+            <Suspense fallback={<PageLoader />}>
+              {children}
+            </Suspense>
+          </main>
+        </div>
+        <MobileBottomNav onCaptureClick={() => setCaptureOpen(true)} />
+        <QuickCaptureSheet open={captureOpen} onOpenChange={setCaptureOpen} />
+      </div>
+    </SidebarProvider>
+  );
+}
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  const [location] = useLocation();
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    if (location === "/") return null;
+    const redirectUrl = `/?redirect=${encodeURIComponent(location)}`;
+    return <Redirect to={redirectUrl} />;
+  }
+  
+  return <>{children}</>;
+}
+
+import { useLoopWatchdog } from "@/hooks/use-loop-watchdog";
+
+function Router() {
+  useLoopWatchdog({
+    maxRendersPerRoute: 50,
+    timeWindowMs: 4000,
+  });
+  return (
+    <Switch>
+      <Route path="/" component={Login} />
+      <Route path="/signup" component={Signup} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/admin" component={AdminPanel} />
+      <Route path="/home">
+        <RequireAuth>
+          <AuthLayout>
+            <Home />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/dashboard">
+        <RequireAuth>
+          <AuthLayout>
+            <Dashboard />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/finances">
+        <RequireAuth>
+          <AuthLayout>
+            <Finances />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/documents">
+        <RequireAuth>
+          <AuthLayout>
+            <AppwriteDocuments />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/document-intake">
+        <Redirect to="/documents" />
+      </Route>
+      <Route path="/violations">
+        <RequireAuth>
+          <AuthLayout>
+            <Violations />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/timeline">
+        <RequireAuth>
+          <AuthLayout>
+            <Timeline />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/case-builder">
+        <RequireAuth>
+          <AuthLayout>
+            <CaseBuilder />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/communication">
+        <RequireAuth>
+          <AuthLayout>
+            <Communication />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/communications">
+        <RequireAuth>
+          <AuthLayout>
+            <Communications />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/journal">
+        <RequireAuth>
+          <AuthLayout>
+            <Journal />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/calendar">
+        <RequireAuth>
+          <AuthLayout>
+            <Calendar />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/legal">
+        <RequireAuth>
+          <AuthLayout>
+            <Legal />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/child-support">
+        <RequireAuth>
+          <AuthLayout>
+            <ChildSupport />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/property">
+        <RequireAuth>
+          <AuthLayout>
+            <Property />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/analytics">
+        <RequireAuth>
+          <AuthLayout>
+            <AnalyticsDashboard />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/ai-coach">
+        <RequireAuth>
+          <AuthLayout>
+            <AICoach />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/settings">
+        <RequireAuth>
+          <AuthLayout>
+            <Settings />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/pricing">
+        <RequireAuth>
+          <AuthLayout>
+            <Pricing />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/governance">
+        <RequireAuth>
+          <AuthLayout>
+            <Governance />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/recommendations">
+        <RequireAuth>
+          <AuthLayout>
+            <Recommendations />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/mobile">
+        <RequireAuth>
+          <Mobile />
+        </RequireAuth>
+      </Route>
+      <Route path="/admin/users">
+        <RequireAuth>
+          <AuthLayout>
+            <AdminUsers />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/admin/recommendations">
+        <RequireAuth>
+          <AuthLayout>
+            <AdminRecommendations />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/changelog">
+        <RequireAuth>
+          <AuthLayout>
+            <Changelog />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function CacheClearer() {
+  useEffect(() => {
+    const checkVersionAndClearCache = async () => {
+      try {
+        const res = await fetch("/api/version");
+        if (!res.ok) return;
+        const data = await res.json();
+        const serverVersion = data.version;
+        const cachedVersion = localStorage.getItem("appVersion");
+        
+        if (cachedVersion && cachedVersion !== serverVersion) {
+          queryClient.clear();
+          if (import.meta.env.DEV) {
+            console.info("Cache cleared due to app update");
+          }
+          // Do NOT reload here, let the user trigger it or wait for next manual reload
+          localStorage.setItem("appVersion", serverVersion);
+        }
+      } catch (e) {
+        // Ignore version check errors
+      }
+    };
+    
+    checkVersionAndClearCache();
+  }, []);
+  
+  return null;
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <CacheClearer />
+        <ThemeProvider>
+          <AuthProvider>
+            <SubscriptionProvider>
+              <TooltipProvider>
+                <UpdateNotification />
+                <Toaster />
+                <Router />
+              </TooltipProvider>
+            </SubscriptionProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+}
+
+export default App;

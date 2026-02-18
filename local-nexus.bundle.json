@@ -1,0 +1,52 @@
+{
+  "service": {
+    "name": "Divorce Ledger AI",
+    "description": "Forensic financial analysis SaaS for divorce proceedings. Full-stack React + Express + PostgreSQL with AI-powered document intake, QuickBooks integration, Stripe billing, and multi-tier subscription management.",
+    "category": "apps",
+    "tags": ["react", "express", "typescript", "postgres", "ai", "saas", "finance", "legal"],
+    "tech_stack": ["node", "react", "vite", "express", "typescript", "postgresql", "drizzle"],
+    "dependencies": [],
+    "config_paths": ["C:/Users/nedpe/Desktop/Divorce-Ledger-AI/.env"],
+    "port": 5000,
+    "local_url": "http://127.0.0.1:5000",
+    "healthcheck_url": "http://127.0.0.1:5000/api/health",
+    "working_directory": "C:/Users/nedpe/Desktop/Divorce-Ledger-AI",
+    "start_command": "npm run dev",
+    "stop_command": "",
+    "restart_command": "npm run dev",
+    "database_id": null,
+    "database_connection_string": "postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${PGDATABASE}",
+    "database_schema_overview": "Tables: users, cases, transactions, assets, debts, income, violations, documents, alerts, audit_logs, subscriptions"
+  },
+  "database": {
+    "database_name": "divorce_ledger",
+    "type": "postgres",
+    "host": "localhost",
+    "port": 5432,
+    "username_env": "PGUSER",
+    "password_env": "PGPASSWORD",
+    "connection_string": "postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${PGDATABASE}",
+    "schema_overview": "Tables: users, cases, transactions, assets, debts, income, violations, documents, alerts, audit_logs, subscriptions. Managed by Drizzle ORM."
+  },
+  "keys": [
+    { "key_name": "Database URL", "env_var": "DATABASE_URL", "description": "Full PostgreSQL connection string (overrides individual PG* vars)" },
+    { "key_name": "Session Secret", "env_var": "SESSION_SECRET", "description": "Express session encryption key (required)" },
+    { "key_name": "Admin Secret", "env_var": "ADMIN_SECRET", "description": "Secret for admin API operations" },
+    { "key_name": "OpenAI API Key", "env_var": "OPENAI_API_KEY", "description": "OpenAI for AI document analysis" },
+    { "key_name": "Google GenAI Key", "env_var": "GOOGLE_GENAI_API_KEY", "description": "Google Gemini for AI extraction" },
+    { "key_name": "Stripe Secret Key", "env_var": "STRIPE_SECRET_KEY", "description": "Stripe for subscription billing" },
+    { "key_name": "Stripe Publishable Key", "env_var": "VITE_STRIPE_PUBLIC_KEY", "description": "Stripe publishable key (frontend)" },
+    { "key_name": "Twilio Account SID", "env_var": "TWILIO_ACCOUNT_SID", "description": "Twilio for SMS / 2FA" },
+    { "key_name": "Twilio Auth Token", "env_var": "TWILIO_AUTH_TOKEN", "description": "Twilio auth token" },
+    { "key_name": "SendGrid API Key", "env_var": "SENDGRID_API_KEY", "description": "SendGrid for transactional email" },
+    { "key_name": "Appwrite Endpoint", "env_var": "APPWRITE_ENDPOINT", "description": "Appwrite document storage endpoint" },
+    { "key_name": "Appwrite API Key", "env_var": "APPWRITE_API_KEY", "description": "Appwrite server-side API key" }
+  ],
+  "requested_port": 5000,
+  "auto_assign_port": false,
+  "auto_create_db": false,
+  "meta": {
+    "github_repo": "https://github.com/nedpearson/Divorce-Ledger-AI",
+    "notes": "Requires PostgreSQL + DATABASE_URL + SESSION_SECRET to start. Run 'npm install' then 'npm run dev'. Optional: Stripe, OpenAI, Twilio, SendGrid, Appwrite for full features. Demo login: demo@divorceledger.live / demo123"
+  }
+}

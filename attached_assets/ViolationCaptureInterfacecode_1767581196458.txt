@@ -1,0 +1,17 @@
+┌─────────────────────────────────┐
+│  📍 [Date/Time Auto-Filled]     │
+│  📱 Violation Type: [Dropdown]  │
+│                                  │
+│  [CAMERA] [GALLERY] [VIDEO]     │
+│  Photo: [✓ 3 images uploaded]   │
+│  Video: [✓ 45sec video]         │
+│                                  │
+│  Description:                    │
+│  [Text box with voice-to-text]  │
+│  "He picked up 30 min late..."  │
+│                                  │
+│  Witnesses:                      │
+│  [Name fields] (optional)        │
+│                                  │
+│  [SAVE AS DRAFT] [SUBMIT]       │
+└─────────────────────────────────┘

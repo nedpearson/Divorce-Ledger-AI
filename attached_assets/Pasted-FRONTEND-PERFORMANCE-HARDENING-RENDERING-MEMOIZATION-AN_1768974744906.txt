@@ -1,0 +1,75 @@
+FRONTEND PERFORMANCE HARDENING — RENDERING, MEMOIZATION, AND NETWORK EFFICIENCY
+
+You are my Principal Frontend Performance Engineer.
+
+The Divorce Ledger app is stable; now we want it **fast and smooth** on both desktop and mobile.
+
+Constraints:
+- Do NOT remove important UI features.
+- Optimize; do not oversimplify.
+
+Tasks:
+
+1) Identify performance hotspots:
+   - Components that:
+     - Render large lists (documents, violations, transactions).
+     - Have expensive computations in render.
+     - Trigger many network calls.
+   - Use React DevTools Profiler (conceptually) to reason about:
+     - frequent re-renders,
+     - “heavy” components.
+
+2) Optimize list-heavy screens:
+   - For documents/violations/transactions lists:
+     - Implement or confirm:
+       - pagination or infinite scroll (no huge all-at-once lists),
+       - key props are stable and correct,
+       - avoid rebuilding arrays/objects inline when not needed.
+   - Consider virtualization (e.g., react-window) if lists are very large.
+
+3) Memoization:
+   - Use React.memo for pure presentational components that re-render too often.
+   - Use useMemo/useCallback for expensive computations or stable handler props.
+   - Be careful with dependency arrays; avoid stale values.
+
+4) Avoid unnecessary re-renders:
+   - Ensure context providers are not overly broad.
+   - If a context causes widespread re-renders, split it into:
+     - smaller contexts, or
+     - local state + prop passing where appropriate.
+
+5) Network efficiency:
+   - Consolidate redundant API calls:
+     - Prefer a single fetch for a given data segment per screen.
+     - Avoid fetching the same data multiple times in different components on first mount.
+   - Cache or store data at appropriate level (e.g., a data store / context / query client).
+   - Ensure all fetch calls handle slow networks:
+     - show loading states,
+     - avoid spinner flicker (minimum display time if needed).
+
+6) Static assets:
+   - Ensure heavy static assets (images, icons) are:
+     - compressed,
+     - not re-downloaded unnecessarily,
+     - served via appropriate URLs.
+   - Confirm bundler builds separate chunks:
+     - Code-split high-weight routes if not already done (e.g., lazy-load heavy dashboard pages).
+
+7) CPU-bound logic:
+   - If any client-side filtering/sorting is heavy:
+     - Use memoization keyed on data + filters.
+     - Avoid sorting/filtering on every render.
+
+8) Verification:
+   - Build app in production mode.
+   - Manually test:
+     - navigation between major views,
+     - scrolling long lists,
+     - switching filters/sorts,
+     - uploading documents.
+   - Confirm:
+     - UI feels responsive;
+     - no obvious jank;
+     - no large unnecessary re-renders in console/profile.
+
+Stop when the app feels snappy, network calls are efficient, and re-renders are controlled.

@@ -1,0 +1,182 @@
+**BEGIN PROMPT**
+
+You are the Principal Performance and Architecture Engineer assigned to:
+
+- Optimize performance.
+- Reduce algorithmic and architectural inefficiencies.
+- Improve code organization and maintainability.
+
+You must treat this as a **whole-repo optimization pass**, without changing core business semantics.
+
+------------------------------------------------------
+1. PERFORMANCE & ARCHITECTURE SURVEY
+------------------------------------------------------
+
+Scan the codebase for:
+
+- Hot paths:
+  - API endpoints likely called frequently.
+  - AI/ML, OCR, or document-processing routes.
+  - Billing, cron jobs, and background workers.
+- Data access patterns:
+  - N+1 query patterns.
+  - Inefficient joins.
+  - Repeated queries that could be batched or cached.
+- In-memory operations:
+  - Large array iterations.
+  - Sorting/filtering heavy structures.
+  - Nested loops and O(n²) patterns in critical paths.
+- Frontend (if present):
+  - Expensive renders.
+  - Over-fetching from APIs.
+  - Missing memoization in React or equivalent.
+
+Build an internal map of:
+- Likely bottlenecks.
+- Low-hanging optimization targets.
+
+------------------------------------------------------
+2. DEFINE PERFORMANCE PRIORITIES
+------------------------------------------------------
+
+Based on the survey:
+
+- Prioritize:
+  1. API latency and throughput improvements.
+  2. Background job efficiency.
+  3. DB query optimization.
+- Defer:
+  - Micro-optimizations that do not affect user-facing latency or cost.
+
+Document (internally) the top 5–10 targets you will optimize.
+
+------------------------------------------------------
+3. ALGORITHMIC & QUERY OPTIMIZATION
+------------------------------------------------------
+
+For each prioritized hot path:
+
+1. Identify current Big O complexity and DB query count.
+2. Refactor to:
+   - Reduce query count (e.g., use `IN` queries, joins, or ORM includes).
+   - Replace nested loops with maps, indexes, or precomputed structures where appropriate.
+   - Avoid unnecessary repeated work (e.g., parsing, validation, slow I/O calls).
+
+Ensure each optimization preserves business logic and correctness.
+
+------------------------------------------------------
+4. CACHING & MEMOIZATION (WHERE SAFE)
+------------------------------------------------------
+
+Introduce or refine caching where appropriate:
+
+- In-memory caches for:
+  - Tier definitions.
+  - Static metadata (e.g., plan limits, feature flags).
+- Short-lived caches for:
+  - Expensive, read-heavy queries that change infrequently.
+- Frontend memoization:
+  - React `useMemo`, `useCallback`, or equivalent to avoid redoing expensive calculations on every render.
+
+Explicitly avoid caching where it would risk stale or incorrect data in critical flows (e.g., auth decisions).
+
+------------------------------------------------------
+5. BATCHING & ASYNC CONCURRENCY CONTROLS
+------------------------------------------------------
+
+Identify opportunities to:
+
+- Batch similar DB queries.
+- Use `Promise.all` judiciously for independent I/O.
+- Use concurrency limits for:
+  - File processing.
+  - AI calls.
+  - External API calls.
+
+Add guards to prevent:
+
+- Overwhelming external services.
+- Unbounded concurrency leading to resource exhaustion.
+
+------------------------------------------------------
+6. LOGGING & OBSERVABILITY TUNING
+------------------------------------------------------
+
+Optimize logging:
+
+- Avoid extremely verbose logs in tight loops or hot paths.
+- Retain important audit and debug logs but:
+  - Reduce noise.
+  - Use structured logging where helpful.
+
+Add basic timing instrumentation where needed:
+- E.g., small helpers to measure elapsed time on critical operations.
+
+------------------------------------------------------
+7. CODE ORGANIZATION & MODULARITY
+------------------------------------------------------
+
+Refactor:
+
+- Overgrown files/modules into smaller, cohesive units.
+- Spaghetti import graphs into layered architecture:
+  - Config / env
+  - Domain / services
+  - Infrastructure (DB, queues, storage)
+  - Presentation / routes / controllers
+
+Goals:
+
+- Make hot-path code easier to reason about.
+- Avoid circular dependencies.
+- Make it easier to add tests for critical logic.
+
+Do not change public API semantics; focus on internal organization and clarity.
+
+------------------------------------------------------
+8. OUTPUT FORMAT — PERFORMANCE & ARCHITECTURE REPORT
+------------------------------------------------------
+
+After changes, output:
+
+SECTION A — Performance Issues Found
+- List of main bottlenecks:
+  - Query patterns.
+  - Algorithmic inefficiencies.
+  - Over-logging, etc.
+
+SECTION B — Optimizations Implemented
+- Bullet list of concrete changes:
+  - “Reduced N+1 queries in /api/cases from N+1 to 2 queries.”
+  - “Added memoization for plan metadata lookups.”
+
+SECTION C — Files Modified
+- Path + brief description.
+
+SECTION D — New Helpers / Modules
+- Path + purpose (e.g., `performanceTimers`, `batchQueryService`).
+
+SECTION E — Full Patchset
+- Copy-paste-ready diffs.
+
+SECTION F — Validation & Benchmark Instructions
+- How to:
+  - Run tests to ensure correctness.
+  - Run simple benchmarks or perf scripts to see improvements.
+  - Use logs/metrics to confirm lower latency or fewer queries.
+
+SECTION G — Future Optimization Opportunities
+- Short list of:
+  - Deeper optimizations possible later.
+  - Larger refactors that are out-of-scope for this pass.
+
+------------------------------------------------------
+9. EXECUTION RULES
+------------------------------------------------------
+
+- Do not restate this prompt.
+- Start with the survey; then work through the steps.
+- Avoid premature micro-optimizations; focus on impactful changes.
+- If you hit token limits, stop and wait for “continue”, then resume precisely.
+
+**END PROMPT**

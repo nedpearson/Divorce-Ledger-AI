@@ -1,0 +1,47 @@
+You are an expert backend engineer.
+Stack: Node.js, Express, TypeScript (or modern JS if TS not available), running on Replit.
+Goal: Build a clean Firefly III integration layer for a personal finance / forensic-divorce app hosted on Replit.
+
+Requirements:
+	1.	Project Structure
+	•	Create a modular, scalable structure:
+	•	src/server.ts (Express app bootstrap)
+	•	src/config/env.ts (Reads env vars from Replit secrets)
+	•	src/lib/fireflyClient.ts (All HTTP calls to Firefly III)
+	•	src/routes/fireflyRoutes.ts (Express router that exposes my app-specific endpoints)
+	•	src/types/firefly.ts (Type definitions/interfaces for Firefly payloads)
+	•	Code must be Replit-ready: runnable with npm install + npm run dev or npm start.
+	2.	Environment / Config
+	•	Read these from environment (Replit “Secrets”):
+	•	FIREFLY_BASE_URL – e.g., https://my-firefly.example.com
+	•	FIREFLY_ACCESS_TOKEN – Personal Access Token from Firefly III
+	•	Implement a small validateEnv() function in src/config/env.ts that:
+	•	Asserts required env vars are present.
+	•	Throws a clear error (or logs and exits) if anything is missing.
+	3.	Firefly HTTP Client (fireflyClient.ts)
+	•	Use node-fetch or axios.
+	•	Add a small wrapper class: FireflyClient.
+	•	It should:
+	•	Automatically attach the Authorization: Bearer <ACCESS_TOKEN> header.
+	•	Automatically set and accept Content-Type: application/json.
+	•	Handle FIREFLY_BASE_URL correctly (no double slashes).
+	•	Log or throw errors with:
+	•	HTTP status
+	•	URL
+	•	Response body snippet
+	•	Implement at least these methods with proper typing:
+	•	listAccounts(params?: { type?: string; page?: number; })
+	•	listCategories(params?: { page?: number; })
+	•	createTransaction(payload: FireflyTransactionCreatePayload)
+	•	getTransaction(id: string)
+	•	Define FireflyTransactionCreatePayload in src/types/firefly.ts to match Firefly III’s /api/v1/transactions POST body for a withdrawal transaction (e.g., fields like type, date, description, amount, source_id, destination_id, category_name, notes, external_id, etc.).
+	4.	Express API Routes (fireflyRoutes.ts)
+	•	Mount these under /api/firefly:
+	•	GET /api/firefly/accounts
+	•	Optional query params: type, page.
+	•	Calls fireflyClient.listAccounts() and returns JSON.
+	•	GET /api/firefly/categories
+	•	Optional query param: page.
+	•	Calls fireflyClient.listCategories() and returns JSON.
+	•	POST /api/firefly/transactions/from-document
+	•	Input JSON shape (this is key for my OCR/document pipeline):

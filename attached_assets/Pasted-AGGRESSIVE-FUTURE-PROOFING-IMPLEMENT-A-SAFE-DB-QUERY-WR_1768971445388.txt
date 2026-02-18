@@ -1,0 +1,61 @@
+AGGRESSIVE FUTURE-PROOFING — IMPLEMENT A SAFE DB QUERY WRAPPER
+
+You are my Principal DB Safety Architect.
+
+Prompts 1 and 2 have already cleaned up the raw SQL.
+Now I want you to add a reusable safety wrapper for DB queries and migrate critical paths to use it.
+
+Tasks:
+
+1) Implement a DB query wrapper, e.g. safeQuery(name, sql, params):
+   - Parameters:
+     - name: short logical name for the query ("login:getDeviceByFingerprint", "violations:list", etc.).
+     - sql: the SQL string.
+     - params: the parameter array or binding object.
+   - Behavior:
+     - Executes the query using the existing DB client.
+     - On success:
+       - returns the result (rows, rowCount, etc.).
+     - On error:
+       - logs a structured error object:
+         {
+           level: "error",
+           queryName: name,
+           message: error.message,
+           code: error.code,
+           severity: error.severity,
+           table: error.table,
+           position: error.position,
+           stack: error.stack,
+           traceId
+         }
+       - throws a sanitized error object upwards (no raw SQL, no connection details).
+
+2) Integrate safeQuery into all critical modules:
+   - Authentication and login, including fingerprint/device logic.
+   - Sessions.
+   - Cases and related entities.
+   - Violations and incident logging.
+   - Document metadata and finance-related queries.
+   - Admin and security-related queries.
+
+3) Remove ad-hoc low-level DB calls in those paths:
+   - Replace direct client.query(...) or similar calls with safeQuery(...)
+   - Ensure every path has proper try/catch or async error handling.
+
+4) Logging policies:
+   - In development:
+     - safeQuery can optionally log a debug-level short summary of each query.
+   - In production:
+     - keep logs concise: only errors and important audit events.
+   - Ensure debug logging for SQL can be toggled via environment variables or config.
+
+5) Verify:
+   - Rebuild and run the app.
+   - Exercise all critical flows (auth, cases, violations, docs, finance).
+   - Confirm:
+     - No unhandled promise rejections from DB calls.
+     - Errors show up as structured logs via safeQuery.
+     - Client never sees raw SQL errors or stack traces.
+
+Final goal: all critical DB interactions go through safeQuery, giving consistent logging and preventing uncaught DB exceptions.

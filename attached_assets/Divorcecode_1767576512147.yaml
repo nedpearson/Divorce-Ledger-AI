@@ -1,0 +1,2025 @@
+PROJECT NAME: DivorceASE AI
+SUBTITLE: Forensic Financial & Legal Case Management for Divorce
+TYPE: Full-stack SaaS (multi-tenant, subscription-based)
+ARCHITECTURE: Node.js/Express backend + React frontend + PostgreSQL + AI/ML services
+DEPLOYMENT: Replit + Ready for Heroku/AWS scaling
+
+=== PART 1: CORE SYSTEM ARCHITECTURE ===
+
+DATABASE STRUCTURE:
+- PostgreSQL (primary database)
+- Separate schemas: live_tenants, demo_tenants
+  * Never query across schemas
+  * Separate encryption keys per tenant
+- Redis (session management, caching)
+- Firebase Storage (document files, images)
+- Elasticsearch (full-text search on documents)
+
+MULTI-TENANT ISOLATION:
+Every query includes: WHERE tenant_id = ? AND environment = 'live' (or 'demo')
+Never allow cross-tenant data leakage
+Row-level security enforced at database level
+
+SUBSCRIPTION MANAGEMENT:
+- Stripe integration for payments
+- Three tiers: Basic ($49/mo), Professional ($149/mo), Enterprise ($499/mo)
+- Automatic downgrade on failed payment
+- Feature gating by subscription level
+
+AUTHENTICATION:
+- Login page: Email + Password (+ Google OAuth option)
+- Session tokens (JWT) stored in HttpOnly cookies
+- Demo login: demo@divorcease.ai / demo123 (always resets nightly)
+- Live login: attorney@law.com, client@email.com, cpa@forensic.com
+- Two-factor authentication (2FA) available for attorneys
+
+=== PART 2: USER ROLES & PERMISSIONS ===
+
+ROLE 1: CLIENT (Divorce Participant)
+- Can: Upload documents, track finances, document violations, communicate with attorney
+- Cannot: Access other clients' data, modify legal agreements
+- Features: Dashboard, finance tracker, violation logger, messaging, document upload
+
+ROLE 2: ATTORNEY (Legal Counsel)
+- Can: Access all client data, suggest strategies, build legal cases, message clients
+- Cannot: Access clients outside their firm
+- Features: All of above + client management, legal templates, case builder, reporting
+
+ROLE 3: FORENSIC CPA (Financial Expert)
+- Can: Analyze financials, identify hidden assets, suggest strategies
+- Cannot: Modify original documents, access violation logs
+- Features: Analytics, forensic analysis, asset discovery, reporting
+
+ROLE 4: SUPPORT/ADMIN (Platform Support)
+- Can: Access demo data only, assist users
+- Cannot: Access live data
+- Features: Demo access, user assistance tools
+
+=== PART 3: AUTHENTICATION & LOGIN SYSTEM (index.js / auth.js) ===
+
+LOGIN PAGE (Shared for LIVE & DEMO):
+┌─────────────────────────────────────┐
+│ 💼 DivorceASE AI                    │
+│                                     │
+│ [LIVE] [DEMO] ← Toggle buttons     │
+│                                     │
+│ Email: [___________________]        │
+│ Password: [_______________]         │
+│ [Remember Me] [Forgot Password?]    │
+│                                     │
+│ [LOGIN] ← Primary button           │
+│                                     │
+│ Or sign in with:                   │
+│ [Google Sign-In]                   │
+│                                     │
+│ Don't have account? [Sign Up]      │
+└─────────────────────────────────────┘
+
+LIVE MODE SETUP:
+- Email verification required
+- Payment method required on signup
+- 14-day free trial
+- Automatic billing via Stripe
+- Access to all user data immediately
+
+DEMO MODE SETUP:
+- No payment required
+- Auto-generated demo data (realistic scenarios)
+- Resets nightly to ensure no persistent changes
+- Full feature access (all subscription tiers visible)
+- Watermark: "DEMO MODE - Data resets nightly" (top banner)
+- Cannot upgrade to paid in demo
+
+DATABASE SCHEMA (auth_users table):
+{
+  id: UUID (primary key),
+  email: STRING (unique),
+  passwordHash: STRING (bcrypt, salted),
+  fullName: STRING,
+  role: ENUM (client, attorney, cpa, admin),
+  firm: STRING (attorney only, FK to firms table),
+  phone: STRING,
+  address: TEXT,
+  profilePhoto: STRING (Firebase URL),
+  tenantId: UUID (FK to tenants table),
+  environment: ENUM (live, demo),
+  subscriptionTier: ENUM (basic, professional, enterprise),
+  subscriptionStatus: ENUM (active, trialing, past_due, canceled),
+  stripeCustomerId: STRING,
+  twoFactorEnabled: BOOLEAN,
+  createdAt: TIMESTAMP,
+  updatedAt: TIMESTAMP,
+  lastLogin: TIMESTAMP,
+  isActive: BOOLEAN
+}
+
+PASSWORD RESET FLOW:
+1. User clicks "Forgot Password?"
+2. Enter email
+3. Email sent with secure token (expires in 1 hour)
+4. User clicks link, sets new password
+5. Token invalidated after use
+6. Sends confirmation email
+
+TWO-FACTOR AUTHENTICATION (Optional, Required for Attorneys):
+1. Enable 2FA in settings
+2. Scan QR code with authenticator app (Google Authenticator, Authy)
+3. Verify 6-digit code
+4. Store backup codes
+5. On each login, prompt for 6-digit code after password
+
+=== PART 4: MAIN DASHBOARD (dashboard.html / Dashboard.jsx) ===
+
+LAYOUT (Ultra-compact, QuickBooks style):
+
+HEADER:
+┌────────────────────────────────────────────────────────────┐
+│ ☰ Menu  | 💼 DivorceASE AI | [LIVE] [DEMO toggle]    | 🔔 👤│
+└────────────────────────────────────────────────────────────┘
+
+MAIN CONTENT:
+┌─────────────────────────────────────────────────────────────┐
+│ LEFT SIDEBAR (150px, collapsible to 50px)                   │
+├────┬──────────────────────────────────────────────────────┤
+│    │ DASHBOARD CARDS (Ultra-compact):                      │
+│ 📊 │ ┌──────────────────┐ ┌──────────────────┐            │
+│    │ │ ASSETS & DEBTS   │ │ MONTHLY EXPENSES │            │
+│ 💰 │ │ Total Assets     │ │ Total Expenses   │            │
+│    │ │ $2,450,000 ↑ 3%  │ │ $18,500 ↓ 2%     │            │
+│ 📄 │ │ Marital Assets   │ │ Your Portion     │            │
+│    │ │ $1,200,000       │ │ $9,250           │            │
+│ 🚨 │ │ Debts Owed       │ │ Unaccounted      │            │
+│    │ │ $450,000         │ │ $2,100           │            │
+│ 📱 │ └──────────────────┘ └──────────────────┘            │
+│    │                                                       │
+│ ⚙️  │ ┌──────────────────┐ ┌──────────────────┐            │
+│    │ │ CHILD SUPPORT    │ │ ALIMONY STATUS   │            │
+│    │ │ $2,400/month     │ │ $3,500/month     │            │
+│    │ │ Due: Jan 5       │ │ Paid: Jan 3 ✅   │            │
+│    │ │ [Payment Plan]   │ │ [Modify Terms]   │            │
+│    │ └──────────────────┘ └──────────────────┘            │
+│    │                                                       │
+│    │ RECENT TRANSACTIONS (Last 7 days):                   │
+│    │ ┌─────────────────────────────────────────┐          │
+│    │ │ Jan 3 | Grocery Store     | -$145.32   │ ← Click  │
+│    │ │ Jan 3 | Daycare Payment   | -$2,400    │    to    │
+│    │ │ Jan 2 | Medical Expense   | -$850      │  drill   │
+│    │ │ Jan 2 | Child Support Rx. | +$2,400    │   down   │
+│    │ └─────────────────────────────────────────┘          │
+│    │                                                       │
+│    │ VIOLATIONS & ALERTS (Flagged Issues):                │
+│    │ ┌─────────────────────────────────────────┐          │
+│    │ │ 🚨 CRITICAL: Unreported income ($15k)  │ ← Orange │
+│    │ │ ⚠️  WARNING: Missing daycare receipts   │ ← Yellow │
+│    │ │ 📌 NOTICE: Child support due in 2 days │ ← Blue   │
+│    │ └─────────────────────────────────────────┘          │
+│    │                                                       │
+└────┴──────────────────────────────────────────────────────┘
+
+SIDEBAR MENU:
+📊 Dashboard (current view)
+💰 Finances (income, expenses, asset tracking)
+📄 Documents (all uploaded files, organized)
+🚨 Violations (case building against ex)
+📞 Communication (messages, schedules)
+📅 Calendar (child custody, support dates, legal events)
+⚖️ Legal (agreements, court dates, settlement tracker)
+👨‍👩‍👧 Child Support (payments, modification, nesting)
+🏠 Property Settlement (asset division, equitable distribution)
+📈 Analytics & Reports (forensic insights, recommendations)
+🤖 AI Coach (strategy suggestions)
+⚙️ Settings (profile, subscription, integrations)
+
+DASHBOARD STATS (Click any stat for drill-down):
+- Total Assets: $2,450,000 (with pie chart: Cash, Real Estate, Investments, etc.)
+- Total Debts: $450,000 (mortgages, credit cards, loans)
+- Monthly Income: $18,500 (salary, passive income, rental)
+- Monthly Expenses: $18,500 (housing, food, childcare, legal)
+- Net Position: $0 (balanced)
+- Child Support Owed: $2,400/month (due date, payment status)
+- Alimony Owed: $3,500/month (due date, payment status)
+- Custody Schedule: Nesting (alternating weeks)
+- Case Status: Pending Settlement (progress bar)
+- Hidden Asset Flags: 3 (requires attorney review)
+- Settlement Proposal Gap: $125,000 (how far from acceptance)
+
+Each stat is clickable → Shows detailed breakdown with sources + PDF export
+
+=== PART 5: FINANCES MODULE (finances.html / Finances.jsx) ===
+
+LAYOUT:
+┌───────────────────────────────────────────────────────────┐
+│ FINANCES                                                  │
+├───────────────────────────────────────────────────────────┤
+│                                                           │
+│ TABS: [Income] [Expenses] [Assets] [Debts] [Settlement]  │
+│                                                           │
+│ ═══ INCOME TAB ═══                                        │
+│                                                           │
+│ Monthly Income Summary:                                   │
+│ ┌──────────────────────────────────────────┐            │
+│ │ Salary (Your): $8,500/mo ░░░░░░░░░░      │            │
+│ │ Bonus (Your): $4,000/mo  ░░░░             │            │
+│ │ Rental Income: $3,200/mo ░░░              │            │
+│ │ Spouse Income: $2,800/mo ░░░              │            │
+│ │ ─────────────────────────                │            │
+│ │ TOTAL: $18,500/mo                        │            │
+│ │                                          │            │
+│ │ [Add Income Source] [Edit] [Remove]      │            │
+│ └──────────────────────────────────────────┘            │
+│                                                           │
+│ Income Details:                                           │
+│ ┌────────────────────────────────────────────────────┐   │
+│ │ Source | Amount | Frequency | Verif. | Upload Doc │   │
+│ ├────────────────────────────────────────────────────┤   │
+│ │ Salary | $8,500 | Monthly   | ✅     │ [PDF]      │   │
+│ │ Bonus  | $4,000 | Quarterly | ✅     │ [PDF]      │   │
+│ │ Rental | $3,200 | Monthly   | ⏳     │ [PDF]      │   │
+│ └────────────────────────────────────────────────────┘   │
+│                                                           │
+│ ═══ EXPENSES TAB ═══                                      │
+│                                                           │
+│ Monthly Expense Summary:                                  │
+│ ┌──────────────────────────────────────────┐            │
+│ │ Housing: $5,500/mo       ░░░░░░░░░░     │            │
+│ │ Utilities: $350/mo       ░                │            │
+│ │ Food: $800/mo            ░                │            │
+│ │ Childcare: $2,400/mo     ░░░░             │            │
+│ │ Insurance: $600/mo       ░                │            │
+│ │ Medical: $850/mo         ░                │            │
+│ │ Transportation: $450/mo  ░                │            │
+│ │ Legal Fees: $3,500/mo    ░░░░             │            │
+│ │ Other: $3,050/mo         ░░░              │            │
+│ │ ─────────────────────────                │            │
+│ │ TOTAL: $18,500/mo                        │            │
+│ │                                          │            │
+│ │ [Add Expense] [AI Suggest Cuts] [Export] │            │
+│ └──────────────────────────────────────────┘            │
+│                                                           │
+│ Expense Categories (Editable):                            │
+│ ┌────────────────────────────────────────────────────┐   │
+│ │ Category | Budget | Actual | % | This Month?      │   │
+│ ├────────────────────────────────────────────────────┤   │
+│ │ Housing  | $5,500 | $5,500 |100%| [+] [-]        │   │
+│ │ Food     | $800   | $950   |119%| ⚠️ Over budget  │   │
+│ │ Utilities| $350   | $310   |89% | ✅ On track     │   │
+│ │ Legal    | $3,500 | $2,100 |60% | ✅ On track     │   │
+│ └────────────────────────────────────────────────────┘   │
+│                                                           │
+│ ═══ ASSETS TAB ═══                                        │
+│                                                           │
+│ Total Assets: $2,450,000                                  │
+│                                                           │
+│ ┌──────────────────────────────────────────┐            │
+│ │ REAL ESTATE                              │            │
+│ │ Primary Home (Your): $850,000            │            │
+│ │ Vacation Property: $450,000              │            │
+│ │ Rental Property: $650,000                │            │
+│ │ ─────────────────────────                │            │
+│ │ Subtotal: $1,950,000                     │            │
+│ └──────────────────────────────────────────┘            │
+│                                                           │
+│ ┌──────────────────────────────────────────┐            │
+│ │ INVESTMENTS & SAVINGS                    │            │
+│ │ Joint Brokerage Account: $300,000        │            │
+│ │ Your IRA: $150,000                       │            │
+│ │ Spouse IRA: $120,000                     │            │
+│ │ Cash Savings: $50,000                    │            │
+│ │ ─────────────────────────                │            │
+│ │ Subtotal: $620,000                       │            │
+│ │ (Note: $50k in spouse's personal account)│            │
+│ └──────────────────────────────────────────┘            │
+│                                                           │
+│ ┌──────────────────────────────────────────┐            │
+│ │ VEHICLES & PERSONAL PROPERTY             │            │
+│ │ Your Car (2023 BMW): $65,000             │            │
+│ │ Spouse Car (2022 Tesla): $55,000         │            │
+│ │ Jewelry & Art: $45,000                   │            │
+│ │ Furniture & Household: $15,000           │            │
+│ │ ─────────────────────────                │            │
+│ │ Subtotal: $180,000                       │            │
+│ └──────────────────────────────────────────┘            │
+│                                                           │
+│ 🚨 HIDDEN ASSET FLAGS (AI-Detected Anomalies):          │
+│ ├─ Spouse's personal account ($50k) - not on joint return
+│ ├─ Luxury car purchase ($55k) in spouse's name only
+│ ├─ Frequent large cash withdrawals ($2k-5k/month)
+│ │  → Total cash pulled last year: $36k unaccounted
+│ └─ Country club membership ($5k/month) - not disclosed
+│                                                           │
+│ ═══ DEBTS TAB ═══                                         │
+│                                                           │
+│ Total Debts: $450,000                                     │
+│                                                           │
+│ ┌──────────────────────────────────────────┐            │
+│ │ MORTGAGES                                │            │
+│ │ Primary Home: $320,000 (@ 3.5%)          │            │
+│ │ Vacation Property: $150,000 (@ 4.2%)     │            │
+│ │ ─────────────────────────                │            │
+│ │ Subtotal: $470,000                       │            │
+│ │ (Note: Total mortgages exceed assets!)   │            │
+│ └──────────────────────────────────────────┘            │
+│                                                           │
+│ ┌──────────────────────────────────────────┐            │
+│ │ CONSUMER DEBT                            │            │
+│ │ Credit Card 1: $25,000                   │            │
+│ │ Credit Card 2: $12,000                   │            │
+│ │ Personal Loan: $35,000                   │            │
+│ │ ─────────────────────────                │            │
+│ │ Subtotal: $72,000                        │            │
+│ └──────────────────────────────────────────┘            │
+│                                                           │
+│ ═══ SETTLEMENT TAB ═══                                    │
+│                                                           │
+│ PROPOSED SETTLEMENT (Click to drill into details):       │
+│                                                           │
+│ │ ASSET DIVISION               │ YOUR PROPOSAL│ SPOUSE │ │
+│ │                              │              │ OFFER  │ │
+│ ├──────────────────────────────┼──────────────┼────────┤ │
+│ │ Primary Home ($850k)         │ 60% ($510k)  │ 40%    │ │
+│ │ Vacation Property ($450k)    │ 40% ($180k)  │ 60%    │ │
+│ │ Rental Property ($650k)      │ Split 50/50  │ 50/50  │ │
+│ │ Joint Brokerage ($300k)      │ 45% ($135k)  │ 55%    │ │
+│ │ IRA Accounts ($270k total)   │ Keep separate│ Keep   │ │
+│ │ Vehicles ($120k)             │ Keep own car │ Keep   │ │
+│ │                              │              │        │ │
+│ │ TOTAL ASSETS TO YOU:         │ $825k (32%)  │ 68%    │ │
+│ │ TOTAL DEBTS TO YOU:          │ $236k (52%)  │ 48%    │ │
+│ │ NET POSITION:                │ $589k        │ Gap:   │ │
+│ │                              │              │$125k   │ │
+│ │                                                     │ │
+│ │ CHILD SUPPORT & ALIMONY:                           │ │
+│ │ Child Support: $2,400/mo (you pay)                 │ │
+│ │ Alimony: $3,500/mo (you pay)                       │ │
+│ │ Duration: 7 years (alimony), until age 18 (CS)     │ │
+│ │                                                     │ │
+│ │ [Accept] [Counter Offer] [Discuss w/ Attorney]     │ │
+│ └────────────────────────────────────────────────────┘ │
+│                                                           │
+└───────────────────────────────────────────────────────────┘
+
+DRILL-DOWN FEATURE (Critical for QuickBooks-style detail):
+When user clicks any transaction or number, show:
+1. Date, amount, category, description
+2. Uploaded supporting documents (receipts, invoices, PDFs)
+3. Vendor/merchant name, transaction ID, bank statement reference
+4. Who uploaded it (client, attorney, CPA)
+5. AI confidence level in categorization (92% confident in "Child Support")
+6. Related transactions (linked expenses, reimbursements)
+7. Export as PDF with full details
+8. Edit, delete, or reclassify options
+
+Example (Click "$2,400 Childcare Payment"):
+┌────────────────────────────────────────────┐
+│ TRANSACTION DETAILS: Childcare Payment     │
+├────────────────────────────────────────────┤
+│ Date: Jan 3, 2025                          │
+│ Amount: $2,400.00                          │
+│ Category: Child Support & Childcare        │
+│ Subcategory: Daycare (Marital Obligat.)    │
+│ Description: Bright Horizons Daycare       │
+│ Vendor: Bright Horizons Education (ID)     │
+│ Merchant ID: 5829483948                    │
+│                                            │
+│ SUPPORTING DOCUMENTS:                      │
+│ ☑️ Receipt (Jan 3 daycare invoice)         │
+│ ☑️ Bank statement (Chase account ending)   │
+│ ☑️ Court order (Custody agreement)         │
+│ [Download All] [View PDFs] [Share w/ Atty]│
+│                                            │
+│ PAYMENT DETAILS:                           │
+│ Payment Method: Bank Transfer              │
+│ From: Your Checking Account                │
+│ To: Bright Horizons (account ending 4521)  │
+│ Confirmation ID: TRF-2025-01-03-8392847    │
+│ Bank: Chase Bank                           │
+│                                            │
+│ AI CATEGORIZATION:                         │
+│ Confidence: 99% (Perfect match)            │
+│ Reason: Keyword match "Bright Horizons" +  │
+│         Amount matches court order         │
+│ Flagged: ✅ Court-ordered expense          │
+│                                            │
+│ RELATED TRANSACTIONS:                      │
+│ • Jan 1: Tuition payment to same vendor    │
+│ • Jan 2: Related transportation             │
+│                                            │
+│ [Edit] [Delete] [Reclassify] [Export PDF] │
+└────────────────────────────────────────────┘
+
+=== PART 6: DOCUMENTS MODULE (documents.html / Documents.jsx) ===
+
+This is the HEART of the application - most advanced feature.
+
+LAYOUT:
+┌────────────────────────────────────────────────────────────┐
+│ DOCUMENTS & EVIDENCE                                       │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│ TABS: [All Documents] [Financial] [Legal] [Violations]    │
+│       [Receipts/Invoices] [Contracts] [Communications]    │
+│                                                            │
+│ SEARCH & FILTER:                                           │
+│ [Search documents...] [Date Range ↓] [Category ↓]        │
+│ [Status ↓] [AI Confidence ↓] [Source ↓]                  │
+│                                                            │
+│ SORT BY: Date | Name | Category | Confidence | Size       │
+│                                                            │
+│ ═══ ALL DOCUMENTS VIEW ═══                                │
+│                                                            │
+│ ┌─────────────────────────────────────────────────────┐   │
+│ │ DOCUMENT CARD                                       │   │
+│ │                                                     │   │
+│ │ 📄 Bank Statement - Chase (Jan 2025)               │   │
+│ │ Category: 💰 Financial Records                     │   │
+│ │ Subcategory: Bank Account Statement                │   │
+│ │ Date Added: Jan 3, 2025 at 2:14 PM                │   │
+│ │ Source: Mobile upload (camera)                     │   │
+│ │ Size: 2.3 MB                                        │   │
+│ │ AI Confidence: 98% (auto-categorized)              │   │
+│ │                                                     │   │
+│ │ EXTRACTED DATA (OCR):                              │   │
+│ │ ├─ Account Number: ****4521                        │   │
+│ │ ├─ Account Holder: You & Spouse (Joint)            │   │
+│ │ ├─ Statement Period: Jan 1 - Jan 31, 2025          │   │
+│ │ ├─ Total Deposits: $18,500                         │   │
+│ │ ├─ Total Withdrawals: $18,650                      │   │
+│ │ ├─ Ending Balance: $52,400                         │   │
+│ │ └─ Flagged Transactions: 3 (large cash withdrawals)│   │
+│ │                                                     │   │
+│ │ [View Full PDF] [View Extracted Data] [Download]   │   │
+│ │ [Edit Category] [Flag Issue] [Share w/ Attorney]   │   │
+│ │ [Attach to Violation Case] [Archive]               │   │
+│ └─────────────────────────────────────────────────────┘   │
+│                                                            │
+│ ┌─────────────────────────────────────────────────────┐   │
+│ │ 📄 Tax Return - 2024 (1040 + Schedules)            │   │
+│ │ Category: 💰 Financial Records                     │   │
+│ │ Subcategory: Tax Documentation                     │   │
+│ │ Date Added: Jan 2, 2025 at 10:30 AM               │   │
+│ │ Source: File upload (PDF)                          │   │
+│ │ Size: 1.8 MB                                        │   │
+│ │ AI Confidence: 95% (auto-categorized)              │   │
+│ │                                                     │   │
+│ │ EXTRACTED DATA (OCR):                              │   │
+│ │ ├─ Filing Status: Married Filing Jointly           │   │
+│ │ ├─ Gross Income: $226,000                          │   │
+│ │ ├─ Schedule C (Self-Employment): $45,000           │   │
+│ │ ├─ Rental Income (Schedule E): $38,400             │   │
+│ │ ├─ Investment Income (Schedule B): $12,300         │   │
+│ │ ├─ Total Tax Liability: $52,400                    │   │
+│ │ └─ FLAGGED: ⚠️ Discrepancy with spouse's filing    │   │
+│ │              (Spouse claims $18k rental income,    │   │
+│ │               this return shows $38.4k - $20.4k    │   │
+│ │               difference requires investigation)   │   │
+│ │                                                     │   │
+│ │ [View Full PDF] [View Extracted Data] [Download]   │   │
+│ │ [Flag Discrepancy] [Share w/ CPA] [Archive]        │   │
+│ └─────────────────────────────────────────────────────┘   │
+│                                                            │
+│ [Load More] ← Lazy load 10 documents at a time           │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+
+ADVANCED DOCUMENT UPLOAD FEATURES (Mobile-First):
+
+UPLOAD METHOD 1: CAMERA CAPTURE (📷 - Most Important)
+┌─────────────────────────────────────┐
+│ 📱 CAMERA CAPTURE                  │
+│                                     │
+│ [🎥 Open Camera] [📁 Choose File]  │
+│                                     │
+│ Instructions:                       │
+│ 1. Take clear photo of document    │
+│ 2. Ensure all text is visible      │
+│ 3. Good lighting (natural or LED)  │
+│ 4. Avoid shadows/reflections       │
+│ 5. Straight angle (not skewed)     │
+│                                     │
+│ Smart Features:                    │
+│ ✅ Auto-detect document edges      │
+│ ✅ Auto-crop to document only      │
+│ ✅ Enhance contrast automatically  │
+│ ✅ Rotate if needed                │
+│ ✅ OCR scan in real-time           │
+│                                     │
+│ [Retake] [Confirm] [Use This]     │
+└─────────────────────────────────────┘
+
+UPLOAD METHOD 2: FILE UPLOAD (📁)
+- Drag & drop: Drop files anywhere on page
+- Click upload: Multiple files at once
+- Supported: PDF, JPG, PNG, GIF, TIFF, DOCX, XLSX
+- Max file size: 50 MB per file
+- Auto-enhancement: Compress, deskew, enhance OCR quality
+
+UPLOAD METHOD 3: EMAIL FORWARD
+- User gets unique email address: [userid]@upload.divorcease.ai
+- Forward receipts/documents to email
+- Auto-uploaded to correct case
+- OCR processed automatically
+
+UPLOAD METHOD 4: VOICE NOTES / TEXT-TO-SPEECH
+┌──────────────────────────────┐
+│ 🎤 VOICE MEMO                │
+│                              │
+│ [🎤 START RECORDING]         │
+│ (Records and auto-transcribes) │
+│                              │
+│ Transcript:                  │
+│ "I received this invoice for │
+│  the vacation property from  │
+│  the property manager on     │
+│ Jan 3, showing $8,500 for    │
+│ property taxes and repairs"  │
+│                              │
+│ AI auto-categorized as:      │
+│ 📄 Property Settlement       │
+│ 💰 Real Estate Expense       │
+│                              │
+│ [Save] [Edit] [Discard]      │
+└──────────────────────────────┘
+
+=== PART 7: ADVANCED DOCUMENT ANALYZER & OCR ENGINE ===
+
+This is the most critical technical component.
+
+DOCUMENT ANALYZER ARCHITECTURE:
+1. Input: Image/PDF from user
+2. Pre-processing: 
+   - Auto-enhance quality (increase contrast, denoise)
+   - Auto-detect document edges (crop to document only)
+   - Auto-correct skew (straighten tilted photos)
+   - Convert to optimal OCR format (black & white, 300 DPI)
+3. OCR Engine: Google Cloud Vision API (or Tesseract for local)
+   - Extract all text with high accuracy
+   - Detect document type automatically
+   - Identify key fields (amounts, dates, vendor names)
+4. AI Categorization: TensorFlow/PyTorch model (trained on divorce docs)
+   - Classifies into primary category (Financial, Legal, Violation, etc.)
+   - Classifies into subcategory (Bank Statement, Daycare Receipt, etc.)
+   - Calculates confidence score (0-100%)
+   - Flags anomalies (unusual amounts, discrepancies)
+5. Data Extraction: 
+   - Pulls key info (amounts, dates, names, accounts)
+   - Matches against existing records (looks for duplicates)
+   - Links related documents (same vendor, same time period)
+6. Output: Structured data in database + PDF stored in Firebase
+
+DOCUMENT TYPES & EXTRACTION (Pre-trained Models):
+
+TYPE 1: BANK STATEMENTS
+Extract: Account #, holder names, date range, balance, transactions
+Flag: Large cash withdrawals, suspicious transfers, missing deposits
+Categorize: As: ✅ Financial Record → Bank Statement
+
+TYPE 2: TAX RETURNS
+Extract: Filing status, gross income, adjusted income, tax owed, schedules
+Flag: Income discrepancies, unreported business income, unusual deductions
+Categorize: As: ✅ Financial Record → Tax Documentation
+
+TYPE 3: PAYSTUBS / W-2s
+Extract: Gross pay, deductions, year-to-date totals, employer
+Flag: Sudden changes in income, bonuses, overtime
+Categorize: As: ✅ Income Verification → Salary
+
+TYPE 4: DAYCARE / CHILDCARE INVOICES
+Extract: Provider name, child names, dates, amount due, balance
+Flag: Amounts over budget, missing receipts, provider changes
+Categorize: As: ✅ Child Support → Childcare Expense
+
+TYPE 5: LEGAL DOCUMENTS
+Extract: Case number, court, judges, dates, amounts, settlement terms
+Flag: Deadlines, non-compliance, modification requests
+Categorize: As: ✅ Legal Record → Court Order/Agreement
+
+TYPE 6: TEXT MESSAGES / COMMUNICATIONS
+Extract: Sender, recipient, date, time, message content, tone analysis
+Flag: Threatening language, evidence of abuse, child-related conflicts
+Categorize: As: ✅ Communication → Text Message (Evidence)
+
+TYPE 7: PROPERTY DOCUMENTS
+Extract: Address, property type, owner names, value estimate, lien info
+Flag: Ownership discrepancies, undisclosed properties, liens
+Categorize: As: ✅ Property Settlement → Real Estate
+
+TYPE 8: VEHICLE DOCUMENTS
+Extract: Make, model, year, VIN, owner names, value, loan amount
+Flag: Hidden vehicles, rapid depreciations, undisclosed purchases
+Categorize: As: ✅ Asset Tracking → Vehicle
+
+TYPE 9: INVOICES & RECEIPTS
+Extract: Merchant, date, amount, item description, payment method
+Flag: Unusual vendors, excessive spending, cash only transactions
+Categorize: As: ✅ Expense Tracking → [Specific Category]
+
+TYPE 10: MEDICAL RECORDS / PRESCRIPTIONS
+Extract: Patient name, provider name, date, services, costs, insurance info
+Flag: Unusual medical expenses, mental health treatment (relevant to custody)
+Categorize: As: ✅ Health Expense → Medical
+
+AI CATEGORIZATION MODEL (Proprietary):
+- Trained on 10,000+ divorce-related documents
+- 99% accuracy after 100k documents processed
+- Continuously learns from user corrections
+- Uses ensemble method: Multiple models voting on classification
+- Confidence scores allow for manual review threshold (e.g., >85% = auto-file, <85% = ask user)
+
+DOCUMENT STATUS TRACKING:
+- Uploaded: File received, queued for processing
+- Processing: OCR, AI analysis, data extraction in progress
+- Ready: Categorized, ready for use (1-3 seconds typically)
+- Reviewed: Attorney or CPA has reviewed
+- Verified: Confirmed accurate and ready for legal use
+- Flagged: Discrepancy or issue detected, needs manual review
+- Archived: No longer active (but still searchable)
+
+DATABASE SCHEMA (documents table):
+{
+  id: UUID,
+  tenantId: UUID (FK),
+  userId: UUID (FK to uploader),
+  fileName: STRING,
+  fileUrl: STRING (Firebase URL),
+  fileType: STRING (pdf, jpg, png, etc.),
+  fileSize: INTEGER (bytes),
+  primaryCategory: STRING (Financial, Legal, Violation, etc.),
+  subcategory: STRING (Bank Statement, Daycare Invoice, etc.),
+  status: ENUM (uploaded, processing, ready, reviewed, verified, flagged, archived),
+  aiConfidence: FLOAT (0-100),
+  ocrExtractedText: TEXT (full OCR output),
+  extractedData: JSONB {
+    amount: DECIMAL,
+    date: DATE,
+    vendorName: STRING,
+    accountNumber: STRING,
+    ... (varies by type)
+  },
+  flaggedIssues: ARRAY (strings describing anomalies),
+  linkedDocuments: ARRAY (UUIDs of related documents),
+  uploadMethod: ENUM (camera, file, email, voice),
+  uploadedAt: TIMESTAMP,
+  processedAt: TIMESTAMP,
+  reviewedBy: UUID (FK to reviewer),
+  reviewedAt: TIMESTAMP,
+  violationCaseId: UUID (FK, if attached to violation case),
+  notes: TEXT (user or attorney notes),
+  tags: ARRAY (custom tags: #hidedassets, #inconsistency, etc.),
+  createdAt: TIMESTAMP,
+  updatedAt: TIMESTAMP
+}
+
+=== PART 8: VIOLATIONS & CASE BUILDER (violations.html / Violations.jsx) ===
+
+This is where clients build legal evidence against ex-spouse.
+
+LAYOUT:
+┌────────────────────────────────────────────────────────────┐
+│ VIOLATIONS & CASE EVIDENCE                                 │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│ TABS: [Violations] [Evidence Gallery] [Case Summary]       │
+│       [Timeline] [Recommendations]                         │
+│                                                            │
+│ ═══ VIOLATIONS TAB ═══                                     │
+│                                                            │
+│ CASE CATEGORIES:                                           │
+│ ☑️ Financial Misconduct (Hidden Assets, Non-Disclosure)   │
+│ ☑️ Parental Violations (Custody, Child Support)           │
+│ ☑️ Abuse / Threats (Physical, Emotional, Financial)       │
+│ ☑️ Infidelity / Relationships                             │
+│ ☑️ Drug / Alcohol (Substance Abuse)                       │
+│ ☑️ Fraud / Illegal Activity                               │
+│ ☑️ Non-Compliance with Court Orders                       │
+│ ☑️ Other (Describe)                                       │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ VIOLATION #1: HIDDEN ASSETS                               │
+│                                                            │
+│ ┌──────────────────────────────────────────────────────┐  │
+│ │ Title: Unreported Personal Bank Account              │  │
+│ │ Category: Financial Misconduct → Hidden Assets       │  │
+│ │ Date Discovered: Jan 3, 2025                         │  │
+│ │ Status: Active (Ongoing Investigation)               │  │
+│ │ Severity: 🔴 CRITICAL (Could affect settlement)     │  │
+│ │ Impact: Spouse hiding ~$50,000                       │  │
+│ │                                                      │  │
+│ │ DESCRIPTION:                                         │  │
+│ │ "Spouse opened personal bank account (Wells Fargo,  │  │
+│ │  account ending 2943) without my knowledge. I        │  │
+│ │  discovered via credit report. Monthly deposits of   │  │
+│ │  $3k-5k from unknown source. Total: ~$50k hidden."   │  │
+│ │                                                      │  │
+│ │ EVIDENCE ATTACHED: 3 documents                       │  │
+│ │ ├─ 📄 Credit Report (showing account discovery)      │  │
+│ │ ├─ 📷 Screenshot of bank app (neighbor's phone)      │  │
+│ │ └─ 📧 Email conversation (spouse mentioning "my      │  │
+│ │    separate account")                               │  │
+│ │                                                      │  │
+│ │ WITNESS TESTIMONY:                                   │  │
+│ │ ├─ Neighbor: "I saw account details on spouse's     │  │
+│ │ │  phone while visiting"                            │  │
+│ │ └─ Former friend: "Spouse mentioned setting aside   │  │
+│ │    money separately"                                │  │
+│ │                                                      │  │
+│ │ TIMELINE:                                            │  │
+│ │ Dec 1, 2024: Account likely opened (no discovery)   │  │
+│ │ Jan 1-3, 2025: Credit report shows account          │  │
+│ │ Jan 3, 2025: Client discovered, added violation     │  │
+│ │                                                      │  │
+│ │ AI ASSESSMENT: ⚠️ High-Priority                      │  │
+│ │ This evidence suggests spouse is attempting to       │  │
+│ │ hide marital assets. Recommend:                      │  │
+│ │ 1. Subpoena Wells Fargo account statements          │  │
+│ │ 2. Obtain bank records from employer (direct deposit)│  │
+│ │ 3. Subpoena cell phone records (activity timeline)   │  │
+│ │ 4. Deposition: Confront about account & deposits    │  │
+│ │                                                      │  │
+│ │ NEXT STEPS: [Share w/ Attorney] [Add More Evidence] │  │
+│ │            [Mark Resolved] [Archive]                │  │
+│ │                                                      │  │
+│ │ [Edit] [Delete] [Export as Legal Document]          │  │
+│ └──────────────────────────────────────────────────────┘  │
+│                                                            │
+│ VIOLATION #2: MISSED CHILD SUPPORT                        │
+│                                                            │
+│ ┌──────────────────────────────────────────────────────┐  │
+│ │ Title: Non-Payment of Child Support (January)        │  │
+│ │ Category: Non-Compliance with Court Orders           │  │
+│ │ Date Discovered: Jan 5, 2025                         │  │
+│ │ Status: Active & Ongoing                             │  │
+│ │ Severity: 🟠 HIGH (Legal violation)                  │  │
+│ │ Impact: $2,400 owed, 5 days late                    │  │
+│ │                                                      │  │
+│ │ DESCRIPTION:                                         │  │
+│ │ "Child support payment due Jan 1, 2025 ($2,400).     │  │
+│ │  As of Jan 5, payment not received. This is the      │  │
+│ │  third late payment in 6 months."                    │  │
+│ │                                                      │  │
+│ │ EVIDENCE:                                            │  │
+│ │ ├─ 📄 Court Order (specifies due date: 1st of month)│  │
+│ │ ├─ 📧 Email confirmation (payment request sent)     │  │
+│ │ └─ 🏦 Bank statement (payment NOT posted)            │  │
+│ │                                                      │  │
+│ │ PAYMENT HISTORY:                                     │  │
+│ │ • Oct 2024: Paid on time                            │  │
+│ │ • Nov 2024: Late by 7 days (-$168 fees)             │  │
+│ │ • Dec 2024: Late by 10 days (-$240 fees)            │  │
+│ │ • Jan 2025: Late by 5 days (ongoing)                │  │
+│ │                                                      │  │
+│ │ FINANCIAL IMPACT:                                    │  │
+│ │ Late fees accumulated: $408                         │  │
+│ │ Total shortfall (Jan): $2,400                       │  │
+│ │ Interest charges: $45                               │  │
+│ │                                                      │  │
+│ │ AI ASSESSMENT: Pattern detected                     │  │
+│ │ Spouse has capacity to pay (income: $120k/year) but│  │
+│ │ pattern of non-compliance. Recommend:               │  │
+│ │ 1. File motion for contempt of court                │  │
+│ │ 2. Request wage garnishment order                   │  │
+│ │ 3. Request attorney's fees (violation-related)      │  │
+│ │ 4. Track accumulated arrears for future settlement  │  │
+│ │                                                      │  │
+│ │ [Mark as Paid Once Received] [Add Payment Reminder] │  │
+│ └──────────────────────────────────────────────────────┘  │
+│                                                            │
+│ [+ Add New Violation]                                      │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ ═══ EVIDENCE GALLERY TAB ═══                              │
+│                                                            │
+│ All attached evidence in gallery view:                    │
+│                                                            │
+│ [Thumbnail view of all photos/documents]                 │
+│ Click any to enlarge, see details, print                 │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ ═══ CASE SUMMARY TAB ═══                                  │
+│                                                            │
+│ VIOLATION SUMMARY:                                        │
+│ ┌──────────────────────────────────────────────────────┐  │
+│ │ Total Violations Documented: 7                        │  │
+│ │ ├─ Critical (🔴): 2                                   │  │
+│ │ ├─ High (🟠): 3                                       │  │
+│ │ ├─ Medium (🟡): 2                                     │  │
+│ │ └─ Low (🟢): 0                                        │  │
+│ │                                                      │  │
+│ │ ESTIMATED FINANCIAL IMPACT:                          │  │
+│ │ Hidden assets (~$50k)              → Affects division│  │
+│ │ Missed child support ($2,400)       → Contempt charge│  │
+│ │ Undisclosed income ($20k/year)      → Increases CS  │  │
+│ │ Unauthorized vehicle purchase       → Asset discovery│  │
+│ │ ─────────────────────────────────                   │  │
+│ │ POTENTIAL GAIN: +$125,000 in settlement value       │  │
+│ │                                                      │  │
+│ │ [Generate Legal Summary] [Share w/ Attorney]        │  │
+│ │ [Print All Evidence] [Export as PDF]                │  │
+│ └──────────────────────────────────────────────────────┘  │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ ═══ TIMELINE TAB ═══                                      │
+│                                                            │
+│ Interactive timeline showing all violations chronologically:
+│                                                            │
+│  Dec 1   Dec 15   Jan 1   Jan 3   Jan 5                  │
+│  │       │        │       │       │                       │
+│  ●       ●────●   ●───●   ●────●  ●                      │
+│  │       │        │       │       │                       │
+│  Acct    Email    Order  Discov. Payment   Payment         │
+│  Opened  Sent     Date   of Viol. Late    Due Still Late   │
+│                                                            │
+│ [Filter by Category] [Filter by Severity]                │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ ═══ RECOMMENDATIONS TAB ═══                               │
+│                                                            │
+│ AI COACH RECOMMENDATIONS (Based on Violations):           │
+│                                                            │
+│ 1. 🎯 IMMEDIATE (Next 7 Days):                           │
+│    • File motion for contempt (missed child support)      │
+│    • Request temporary wage garnishment                   │
+│    • Subpoena Wells Fargo for hidden account records     │
+│    Estimated cost: $2,000-5,000                          │
+│    Potential gain: +$15,000                              │
+│                                                            │
+│ 2. 📋 SHORT-TERM (Next 30 Days):                         │
+│    • Deposition of spouse (confront evidence)             │
+│    • Request credit report update (all accounts)          │
+│    • Hire forensic accountant (analyze hidden assets)     │
+│    Estimated cost: $5,000-8,000                          │
+│    Potential gain: +$50,000                              │
+│                                                            │
+│ 3. 🔍 INVESTIGATION:                                      │
+│    • Private investigator (surveillance for assets)       │
+│    • Cell phone records subpoena (trace income source)    │
+│    • Social media analysis (lifestyle vs. income)         │
+│    Estimated cost: $3,000-6,000                          │
+│    Potential gain: +$60,000                              │
+│                                                            │
+│ [Request Attorney Review] [Discuss Cost/Benefit]          │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+
+=== PART 9: COMMUNICATION & SAFE MESSAGING ===
+
+Integrated messaging system designed for legal evidence + child safety.
+
+LAYOUT:
+┌────────────────────────────────────────────────────────────┐
+│ COMMUNICATION & MESSAGING                                  │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│ TABS: [Messages] [Shared Calendar] [Child Exchanges]      │
+│       [Voicemails] [Email Archive]                        │
+│                                                            │
+│ ═══ MESSAGES TAB ═══                                       │
+│                                                            │
+│ CONVERSATION LIST:                                         │
+│ ┌──────────────────────────────────────┐                 │
+│ │ Your Ex-Spouse                   (3) │ ← Unread        │
+│ │ "We need to discuss the holiday      │                 │
+│ │  schedule..." 2 hours ago            │                 │
+│ │                                      │                 │
+│ │ Attorney (Sarah Chen)                │                 │
+│ │ "I received the document violation   │                 │
+│ │  report..." Yesterday                │                 │
+│ │                                      │                 │
+│ │ Co-Parent (Child's School)           │                 │
+│ │ "Johnny's tuition is due..." 3 days  │                 │
+│ └──────────────────────────────────────┘                 │
+│                                                            │
+│ MESSAGE THREAD (Click on conversation):                    │
+│ ┌────────────────────────────────────────────────────┐   │
+│ │                                                    │   │
+│ │ YOUR EX-SPOUSE | Last active: 2 hours ago         │   │
+│ │                                                    │   │
+│ │ [Message window]                                  │   │
+│ │                                                    │   │
+│ │ EX: "We need to discuss the holiday schedule.    │   │
+│ │      I want to take Johnny for Christmas week     │   │
+│ │      instead of August..."                        │   │
+│ │      [2:14 PM] ✓✓ (read)                          │   │
+│ │                                                    │   │
+│ │ YOU: "That works, but I need him for his         │   │
+│ │      birthday (Aug 15). Can we swap those weeks?"│   │
+│ │      [2:18 PM] ✓✓ (read)                          │   │
+│ │                                                    │   │
+│ │ EX: "Sure, that's fine."                         │   │
+│ │      [2:25 PM] ✓✓ (read)                          │   │
+│ │                                                    │   │
+│ │ AI FLAGS: ✅ Professional tone, no red flags     │   │
+│ │           ✅ Agreement reached (archive this)     │   │
+│ │           ✅ Consider adding to parenting plan    │   │
+│ │                                                    │   │
+│ │ TYPE MESSAGE:                                     │   │
+│ │ [Message input field]                            │   │
+│ │ [Emojis] [Attach] [AI Tone Check] [Send]        │   │
+│ │                                                    │   │
+│ │ AI TONE CHECK FEATURE:                            │   │
+│ │ Before sending, AI analyzes tone & suggests edits:│   │
+│ │ "Draft: 'That's ridiculous, you never keep      │   │
+│ │  your promises anyway!'"                         │   │
+│ │ WARNING: ⚠️ Aggressive tone detected             │   │
+│ │ SUGGESTION: "That's disappointing based on      │   │
+│ │  previous experiences. Can we discuss this?"     │   │
+│ │ [Accept Suggestion] [Send as Drafted] [Discard] │   │
+│ │                                                    │   │
+│ └────────────────────────────────────────────────────┘   │
+│                                                            │
+│ MESSAGE FEATURES:                                         │
+│ • All messages automatically saved & searchable           │
+│ • Read receipts ("read at 2:25 PM")                      │
+│ • Timestamps on all messages (important for court)        │
+│ • Export thread as PDF (for legal proceedings)            │
+│ • Flag important messages for attorney review             │
+│ • AI tone analysis (prevent regrettable messages)         │
+│ • Auto-suggest professional responses                     │
+│ • Block threatening messages (don't send, alert attorney) │
+│ • Parenting coordinator integration (neutral party)       │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ ═══ SHARED CALENDAR TAB ═══                               │
+│                                                            │
+│ FAMILY CALENDAR (Synced with Ex-Spouse):                  │
+│                                                            │
+│ ┌────────────────────────────────────────────────────┐   │
+│ │ JANUARY 2025                                       │   │
+│ ├────────────────────────────────────────────────────┤   │
+│ │ S  M  T  W  T  F  S                               │   │
+│ │          1  2  3  4                               │   │
+│ │ 5  6  7  8  9  10 11                              │   │
+│ │       ↑ Holiday concert (your custody week)       │   │
+│ │ 12 13 14 15 16 17 18                              │   │
+│ │            ↑ Johnny's birthday                    │   │
+│ │ 19 20 21 22 23 24 25 (Your week: M-F)             │   │
+│ │                      🎄 Spouse's week: F-Sun       │   │
+│ │ 26 27 28 29 30 31                                 │   │
+│ │                                                    │   │
+│ │ MONTH VIEW DETAILS:                                │   │
+│ │ • Green: Your custody days                         │   │
+│ │ • Blue: Spouse custody days                        │   │
+│ │ • Purple: Shared events                            │   │
+│ │ • Orange: Legal appointments                       │   │
+│ │ • Red: Payment due dates                           │   │
+│ │                                                    │   │
+│ │ [Day View] [Week View] [Month View]               │   │
+│ │ [Import to Google Cal] [Share with Ex] [PDF]      │   │
+│ │                                                    │   │
+│ └────────────────────────────────────────────────────┘   │
+│                                                            │
+│ EVENTS (Searchable & Filterable):                         │
+│ ┌────────────────────────────────────────────────────┐   │
+│ │ CUSTODY EXCHANGES                                  │   │
+│ │ Friday, Jan 10 @ 5:00 PM - Friday, Jan 17 @ 5 PM │   │
+│ │ Exchange location: Starbucks on Main St           │   │
+│ │ Duration: 7 days                                  │   │
+│ │ Child: Johnny (Age 8)                             │   │
+│ │ Notes: "Pick up at Starbucks. Bring medication"  │   │
+│ │ Visibility: Visible to ex-spouse                  │   │
+│ │ [Edit] [Delete] [Send Reminder to Ex]             │   │
+│ │                                                    │   │
+│ │ LEGAL APPOINTMENT                                 │   │
+│ │ Tuesday, Jan 15 @ 2:00 PM - Deposition            │   │
+│ │ Location: Law office - 123 Main St, Suite 400    │   │
+│ │ Participants: You, Your Attorney (Sarah), CPA     │   │
+│ │ Prep time: 1 hour before                          │   │
+│ │ Documents to bring: All financial records         │   │
+│ │ [Video Conference Link]                            │   │
+│ │ [Download prep materials] [Get directions]         │   │
+│ │                                                    │   │
+│ │ CHILD SUPPORT DUE                                 │   │
+│ │ Friday, Jan 1 & 15 (biweekly)                    │   │
+│ │ Amount: $1,200 per payment                        │   │
+│ │ Account: [Chase account]                          │   │
+│ │ [Set Payment Reminder] [Mark as Paid]             │   │
+│ │                                                    │   │
+│ │ SCHOOL EVENT                                      │   │
+│ │ Wednesday, Jan 22 @ 6:00 PM - School Concert    │   │
+│ │ Location: Lincoln Elementary School               │   │
+│ │ Attendees: Both parents attending (neutral)       │   │
+│ │ Notes: Bring camera                               │   │
+│ │ [Add to personal calendar] [Notify ex-spouse]     │   │
+│ │                                                    │   │
+│ └────────────────────────────────────────────────────┘   │
+│                                                            │
+│ CALENDAR SYNCING:                                         │
+│ • Sync to Google Calendar (personal)                     │
+│ • Sync to Apple Calendar (personal)                      │
+│ • Shared calendar (read-only for ex-spouse)             │
+│ • Automatic reminders (24 hours before)                 │
+│ • Payment reminders (5 days before due)                 │
+│ • Exchange location alerts (GPS integration)             │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ ═══ CHILD EXCHANGES TAB ═══                               │
+│                                                            │
+│ CUSTODY EXCHANGE LOG (For safety & proof):                │
+│                                                            │
+│ ┌────────────────────────────────────────────────────┐   │
+│ │ Exchange Date: Friday, Jan 10, 2025                │   │
+│ │ Time: 5:00 PM                                      │   │
+│ │ Location: Starbucks, Main St                       │   │
+│ │ Child Condition:                                  │   │
+│ │ ├─ Mood: 😊 Happy                                 │   │
+│ │ ├─ Health: ✅ Good (no injuries, no illness)      │   │
+│ │ ├─ Clothing/Items: ✅ Appropriate for weather    │   │
+│ │ └─ Notes: "Johnny excited about dad's house"     │   │
+│ │                                                    │   │
+│ │ EXCHANGE PROOF:                                    │   │
+│ │ [📷 Photo of child at exchange]                    │   │
+│ │ [📷 Photo showing location & time stamp]           │   │
+│ │ [🎤 Voice memo: "Smooth exchange, no issues"]     │   │
+│ │                                                    │   │
+│ │ [Confirm Exchange Complete] [Add Issues]          │   │
+│ │                                                    │   │
+│ └────────────────────────────────────────────────────┘   │
+│                                                            │
+│ EXCHANGE ALERTS:                                         │
+│ • 24-hour reminder before exchange                       │
+│ • 1-hour countdown notification                         │
+│ • GPS navigation (directions to exchange point)          │
+│ • Weather alert (if bad weather for child safety)        │
+│ • Traffic alert (show ETA and delays)                    │
+│ • Safety features: Can't disable location until exchange │
+│ • Incident reporting: Document any issues immediately    │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ EMAIL ARCHIVE:                                            │
+│ All emails related to divorce automatically archived     │
+│ Searchable by sender, date, content                      │
+│ Exportable as legal evidence                             │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+
+=== PART 10: LEGAL MODULE (legal.html / Legal.jsx) ===
+
+Agreements, court orders, settlement tracking, key dates.
+
+LAYOUT:
+┌────────────────────────────────────────────────────────────┐
+│ LEGAL & COURT                                              │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│ TABS: [Agreements] [Court Orders] [Settlement] [Key Dates]│
+│       [Court Filings] [Checklist]                         │
+│                                                            │
+│ ═══ AGREEMENTS TAB ═══                                     │
+│                                                            │
+│ MARITAL AGREEMENTS:                                        │
+│ ┌──────────────────────────────────────┐                 │
+│ │ Prenuptial Agreement                 │                 │
+│ │ Date Signed: June 15, 2010           │                 │
+│ │ Last Updated: N/A                    │                 │
+│ │ Status: ✅ Current & Valid           │                 │
+│ │ Key Terms: Separate property defined │                 │
+│ │ [View Document] [Download] [Summary] │                 │
+│ └──────────────────────────────────────┘                 │
+│                                                            │
+│ ┌──────────────────────────────────────┐                 │
+│ │ Marital Settlement Agreement (Draft) │                 │
+│ │ Date Created: Jan 2, 2025            │                 │
+│ │ Status: 🟠 Awaiting Spouse Review    │                 │
+│ │ Revision: 3 (Latest changes: Assets) │                 │
+│ │ [View Draft] [Download] [Comments]   │                 │
+│ │ [Propose Changes] [Share w/ Spouse]  │                 │
+│ └──────────────────────────────────────┘                 │
+│                                                            │
+│ ═══ COURT ORDERS TAB ═══                                   │
+│                                                            │
+│ ACTIVE COURT ORDERS:                                       │
+│ ┌──────────────────────────────────────┐                 │
+│ │ Temporary Custody Order               │                 │
+│ │ Case Number: 2024-CV-012345           │                 │
+│ │ Court: 3rd District Court             │                 │
+│ │ Judge: Hon. Robert Williams           │                 │
+│ │ Date Issued: Oct 15, 2024             │                 │
+│ │ Expiration: Until final settlement    │                 │
+│ │ Status: ✅ Active                     │                 │
+│ │                                       │                 │
+│ │ KEY TERMS:                            │                 │
+│ │ • Custody: Nesting arrangement        │                 │
+│ │   (Child stays in primary home, both  │                 │
+│ │   parents alternate weeks)            │                 │
+│ │ • Exchanges: Fridays 5:00 PM          │                 │
+│ │ • Child Support: $2,400/month         │                 │
+│ │ • Due: 1st & 15th of month            │                 │
+│ │ • Account: Assigned account #         │                 │
+│ │ • Alimony: $3,500/month               │                 │
+│ │ • Duration: 7 years                   │                 │
+│ │                                       │                 │
+│ │ [View Full Order] [Download] [PDF]    │                 │
+│ │ [Discuss Modification] [Alert Attorney]               │                 │ │ [Check Compliance] [Flag Violation]     │                 │
+│ └──────────────────────────────────────┘                 │
+│                                                            │
+│ ┌──────────────────────────────────────┐                 │
+│ │ Financial Discovery Order             │                 │
+│ │ Case Number: 2024-CV-012345           │                 │
+│ │ Date Issued: Dec 1, 2024              │                 │
+│ │ Deadline: Jan 15, 2025                │                 │
+│ │ Status: 🟡 PENDING (Spouse not comply)               │                 │
+│ │ Required Docs:                        │                 │
+│ │ ├─ Bank statements (last 3 years)    │                 │
+│ │ ├─ Tax returns (last 3 years)        │                 │
+│ │ ├─ Investment account statements     │                 │
+│ │ ├─ Property appraisals               │                 │
+│ │ ├─ Loan documents                    │                 │
+│ │ └─ Business financial statements     │                 │
+│ │                                       │                 │
+│ │ SPOUSE STATUS:                        │                 │
+│ │ ⚠️ NOT PROVIDED (10 days overdue)    │                 │
+│ │ Recommend: File motion to compel      │                 │
+│ │                                       │                 │
+│ │ [Email Reminder to Spouse] [File     │                 │
+│ │  Motion to Compel] [Alert Attorney]  │                 │
+│ └──────────────────────────────────────┘                 │
+│                                                            │
+│ ═══ SETTLEMENT TAB ═══                                     │
+│                                                            │
+│ PROPOSED SETTLEMENT DETAILS:                              │
+│                                                            │
+│ [Detailed table showing asset division, child support,   │
+│  alimony, all terms, with ability to propose counter]     │
+│                                                            │
+│ ═══ KEY DATES TAB ═══                                      │
+│                                                            │
+│ CRITICAL DEADLINES:                                        │
+│ ┌────────────────────────────────────────────────────┐   │
+│ │ UPCOMING (Red = Past Due, Orange = <7 days)       │   │
+│ │                                                    │   │
+│ │ 🔴 DUE IMMEDIATELY: Financial Discovery           │   │
+│ │    Court Order requires documents by Jan 15       │   │
+│ │    Deadline: TODAY (Overdue)                       │   │
+│ │    Action: File extension or compile documents    │   │
+│ │                                                    │   │
+│ │ 🟠 DUE IN 3 DAYS: Child Support Payment           │   │
+│ │    Court Order due date: Jan 8                    │   │
+│ │    Amount: $1,200                                 │   │
+│ │    Assigned: Payment by Jan 8                     │   │
+│ │    Status: Not yet paid                           │   │
+│ │                                                    │   │
+│ │ 🟡 DUE IN 10 DAYS: Settlement Response            │   │
+│ │    Spouse must respond to settlement proposal     │   │
+│ │    Date: Jan 15                                   │   │
+│ │                                                    │   │
+│ │ ⚠️ DUE IN 15 DAYS: Deposition (You)               │   │
+│ │    Attorney: Sarah Chen                           │   │
+│ │    Date: Jan 15, 2025 @ 2:00 PM                  │   │
+│ │    Location: Law office                           │   │
+│ │    Prep time: 1 hour (Jan 15, 1:00 PM)           │   │
+│ │    [Download Prep Materials] [Confirm Attendance]│   │
+│ │                                                    │   │
+│ │ 📅 DUE IN 30 DAYS: Settlement Conference          │   │
+│ │    With judge (mediation attempt)                 │   │
+│ │    Date: February 3, 2025                         │   │
+│ │    Location: Court Chambers                       │   │
+│ │    [Add to Calendar] [Attorney Notes]             │   │
+│ │                                                    │   │
+│ │ 📅 DUE IN 60 DAYS: Trial Date                     │   │
+│ │    If settlement fails, trial commences           │   │
+│ │    Date: March 10, 2025                           │   │
+│ │    Estimated duration: 3-5 days                   │   │
+│ │    [View trial checklist] [Prep timeline]         │   │
+│ │                                                    │   │
+│ └────────────────────────────────────────────────────┘   │
+│                                                            │
+│ KEY DATE REMINDERS:                                        │
+│ • Email reminder: 7 days before                          │
+│ • Push notification: 3 days before                       │
+│ • SMS alert: 24 hours before                             │
+│ • Second SMS: 1 hour before (for appointments)           │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ ═══ COURT FILINGS TAB ═══                                  │
+│                                                            │
+│ All court documents, motions, filings stored here        │
+│ Upload, view, organize by date                           │
+│ Track status of each filing                              │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ ═══ CHECKLIST TAB ═══                                      │
+│                                                            │
+│ DIVORCE PROCESS CHECKLIST:                                │
+│ ☐ File for divorce                                       │
+│ ☑️ Serve spouse with papers                              │
+│ ☑️ Discovery requests issued                             │
+│ ☑️ Temporary orders in place                             │
+│ ☐ Financial discovery documents (DUE TODAY)             │
+│ ☐ Complete depositions                                   │
+│ ☐ Attempt settlement                                     │
+│ ☐ Settlement conference with judge                       │
+│ ☐ Trial preparation                                      │
+│ ☐ Trial                                                  │
+│ ☐ Final judgment entered                                 │
+│                                                            │
+│ [Progress: 40% Complete]                                │
+│ [ETA to Final Judgment: ~7-8 weeks]                     │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+
+=== PART 11: ANALYTICS & REPORTING (analytics.html / Analytics.jsx) ===
+
+Advanced forensic analysis, recommendations, settlement optimization.
+
+LAYOUT:
+┌────────────────────────────────────────────────────────────┐
+│ ANALYTICS & FORENSIC INSIGHTS                             │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│ TABS: [Financial Summary] [Trend Analysis] [Recommendations]
+│       [Forensic Alerts] [Settlement Optimizer] [Reports]   │
+│                                                            │
+│ ═══ FINANCIAL SUMMARY TAB ═══                              │
+│                                                            │
+│ DASHBOARD METRICS:                                         │
+│ ┌──────────────────────────────────────────────────────┐  │
+│ │ INCOME ANALYSIS                                     │  │
+│ │                                                      │  │
+│ │ Your Monthly Income: $18,500                        │  │
+│ │ Trend: ↑ +2% vs. last month                        │  │
+│ │ Sources: Salary ($8,500) + Bonus ($4,000) +       │  │
+│ │         Rental ($3,200) + Other ($2,800)           │  │
+│ │                                                      │  │
+│ │ 🚨 SPOUSE INCOME DISCREPANCY DETECTED:             │  │
+│ │ Tax return shows $38,400 rental income             │  │
+│ │ Spouse claims only $18,000 for child support calc. │  │
+│ │ Hidden income: ~$20,400/year                        │  │
+│ │ Impact on child support: +$427/month if disclosed   │  │
+│ │                                                      │  │
+│ │ [Discuss w/ Attorney] [Flag as Violation]          │  │
+│ └──────────────────────────────────────────────────────┘  │
+│                                                            │
+│ ┌──────────────────────────────────────────────────────┐  │
+│ │ EXPENSE ANALYSIS                                    │  │
+│ │                                                      │  │
+│ │ Your Monthly Expenses: $18,500                      │  │
+│ │ Trend: ↓ -3% vs. last month (Good!)               │  │
+│ │ Categories:                                        │  │
+│ │ ├─ Housing: $5,500 (30%)                          │  │
+│ │ ├─ Legal Fees: $3,500 (19%) ← High                │  │
+│ │ ├─ Childcare: $2,400 (13%)                        │  │
+│ │ ├─ Medical: $850 (5%)                             │  │
+│ │ ├─ Food: $950 (5%) ← Over budget by $150          │  │
+│ │ ├─ Transportation: $450 (2%)                       │  │
+│ │ ├─ Insurance: $600 (3%)                           │  │
+│ │ ├─ Utilities: $350 (2%)                           │  │
+│ │ └─ Other: $2,900 (16%)                            │  │
+│ │                                                      │  │
+│ │ AI RECOMMENDATIONS:                                │  │
+│ │ 1. Legal fees are sustainable for 12-18 months    │  │
+│ │    (then should decrease post-settlement)          │  │
+│ │ 2. Reduce "Other" by $500/month (analyze detail)  │  │
+│ │ 3. Cut food budget by $150/month (or reallocate) │  │
+│ │                                                      │  │
+│ │ [Drill into each category] [Budget Adjustment Tool]│  │
+│ └──────────────────────────────────────────────────────┘  │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ ═══ TREND ANALYSIS TAB ═══                                 │
+│                                                            │
+│ INCOME TRENDS (Last 12 months):                            │
+│ [Line chart showing monthly income]                       │
+│ $20k ─┐                                                   │
+│       │     ╱╲     ╱╲                                    │
+│ $18k ─┼───╱  ╲───╱  ╲──────                             │
+│       │                                                   │
+│ $16k ─┼──────────────────────────                       │
+│   Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec       │
+│                                                            │
+│ Bonus months: Apr (+$4k), Oct (+$4k)                     │
+│ Average: $18,450                                         │
+│ Trend: Stable (good for court - predictable)            │
+│                                                            │
+│ EXPENSE TRENDS (Last 12 months):                          │
+│ [Line chart showing monthly expenses]                     │
+│ $22k ─┐                                                   │
+│       │                    Legal Fees (Settlement phase) │
+│ $20k ─┼───────────╱─────────                            │
+│       │          ╱                                        │
+│ $18k ─┤────────╱                                         │
+│       │                                                   │
+│ Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec          │
+│                                                            │
+│ Trend: Started at $16k, now $18.5k due to legal fees    │
+│ Should return to $14-15k post-settlement                │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ ═══ RECOMMENDATIONS TAB ═══                                │
+│                                                            │
+│ AI COACH STRATEGIC RECOMMENDATIONS:                       │
+│                                                            │
+│ 1. 💰 SETTLEMENT OPTIMIZATION                            │
+│                                                            │
+│    Current gap: $125,000 (you're asking for $50k more)  │
+│                                                            │
+│    Options:                                              │
+│    A) Accept spouse's offer + negotiate monthly support │
+│       → Increases child support by $427/month (hidden   │
+│         income) = $3,189/year additional value          │
+│       → Could offset $125k gap over 40 years            │
+│       → BUT: Risky, spouse may hide even more           │
+│                                                            │
+│    B) Continue fighting for asset division              │
+│       → Legal costs: ~$15,000-25,000 more               │
+│       → Potential gain: $125,000 additional assets      │
+│       → ROI: 500%+ (high probability)                   │
+│       → Risks: Trial loss, extended timeline (6 months) │
+│                                                            │
+│    C) RECOMMENDED: Hybrid approach                      │
+│       → Pursue hidden assets discovery (high ROI)       │
+│       → Settle on remaining assets ($125k gap)          │
+│       → Maximize child support based on true income    │
+│       → Expected outcome: +$50k in assets + $2k/year in │
+│         additional support = $125k value                │
+│                                                            │
+│ 2. 📊 FORENSIC PRIORITIES                                 │
+│                                                            │
+│    HIGH PRIORITY (Do immediately):                      │
+│    ├─ Investigate hidden bank account ($50k)           │
+│    │  Cost: $2k-3k | Potential gain: $50k              │
+│    │  ROI: 1667% | Timeline: 2-4 weeks                │
+│    │                                                    │
+│    ├─ Hire forensic accountant (analyze tax returns)   │
+│    │  Cost: $3k-5k | Potential gain: $20k              │
+│    │  ROI: 400-667% | Timeline: 3-6 weeks              │
+│    │                                                    │
+│    └─ Subpoena business bank records (LLC)             │
+│       Cost: $1k-2k | Potential gain: $30k              │
+│       ROI: 1500-3000% | Timeline: 4-8 weeks            │
+│                                                            │
+│    MEDIUM PRIORITY (Next 30 days):                      │
+│    ├─ Request credit report analysis                   │
+│    ├─ Analyze cell phone records (asset tracing)       │
+│    └─ Social media investigation (lifestyle analysis)   │
+│                                                            │
+│    TOTAL POTENTIAL GAIN: $100,000+                     │
+│    TOTAL INVESTIGATIVE COST: $6,000-12,000             │
+│    NET ROI: 833-1667%                                  │
+│                                                            │
+│ 3. ⚖️ LEGAL STRATEGY                                      │
+│                                                            │
+│    Next 60 days:                                        │
+│    Week 1-2: Complete financial discovery              │
+│    Week 3: Begin depositions (spouse's business)       │
+│    Week 4: Forensic analysis results                   │
+│    Week 5: Settlement conference (with new info)       │
+│    Week 6-8: Trial preparation (if no settlement)      │
+│                                                            │
+│    Cost estimate: $12,000-18,000                        │
+│    Expected outcome: +$100,000-150,000 in value       │
+│                                                            │
+│ [Approve Strategy] [Discuss with Attorney] [Document]  │
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ ═══ SETTLEMENT OPTIMIZER TAB ═══                           │
+│                                                            │
+│ INTERACTIVE SETTLEMENT CALCULATOR:                        │
+│                                                            │
+│ Adjust settlement terms & see impact:                    │
+│                                                            │
+│ CURRENT PROPOSAL:                                        │
+│ ├─ Assets to you: $825,000 (33%)                       │
+│ ├─ Debts to you: $236,000 (52%)                        │
+│ ├─ Child support: $2,400/month (you pay)               │
+│ ├─ Alimony: $3,500/month (you pay)                     │
+│ │  Duration: 7 years = $294,000 total                  │
+│ └─ NET POSITION: -$84,500 (you're paying $84.5k)      │
+│                                                            │
+│ TOGGLE SCENARIO 1: "What if I get vacation home?"     │
+│ ├─ Gain: +$450,000                                     │
+│ ├─ Trade: Spouse gets primary home equity              │
+│ ├─ Result: Assets to you: $1,275,000 (52%)            │
+│ └─ NET POSITION: +$365,500 ✅                          │
+│                                                            │
+│ TOGGLE SCENARIO 2: "What if I reduce alimony to 5 yr?"│
+│ ├─ Save: $87,500                                       │
+│ │ (2 fewer years of alimony)                          │
+│ ├─ Trade: Increased child support ($3,000/mo)         │
+│ └─ NET POSITION: -$34,000 (improved by $50.5k)        │
+│                                                            │
+│ [Propose Settlement] [Share w/ Attorney] [Run Scenarios]│
+│                                                            │
+│ ════════════════════════════════════════════════════════  │
+│                                                            │
+│ ═══ REPORTS TAB ═══                                        │
+│                                                            │
+│ GENERATE CUSTOM REPORTS:                                 │
+│ ☐ Financial Summary (All income/expenses/assets/debts)  │
+│ ☐ Forensic Analysis (Hidden asset investigation)        │
+│ ☐ Settlement Comparison (Multiple scenarios)            │
+│ ☐ Timeline (All violations & incidents chronologically) │
+│ ☐ Evidence Summary (All documents organized by category)│
+│ ☐ Legal Status (Court orders, deadlines, compliance)    │
+│ ☐ Monthly Statement (For your records)                  │
+│ ☐ Attorney Briefing (Comprehensive case summary)        │
+│ ☐ Forensic CPA Report (For tax & financial analysis)   │
+│ ☐ Child Support Justification (Based on income)         │
+│                                                            │
+│ [Generate PDF] [Email to Attorney] [Share w/ Spouse]    │
+│ [Print] [Download] [Archive]                            │
+│                                                            │
+│ REPORT DETAILS:                                          │
+│ • Generated: [Date/time]                               │
+│ • Data includes: Last 90 days of activity              │
+│ • Confidence: 98% (based on uploaded documents)         │
+│ • Digital signature: Available (for court use)          │
+│ • Formatting: Court-approved (APA format)               │
+│ • Size: 25-40 pages (depending on complexity)           │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+
+=== PART 12: MOBILE APP (iOS/Android) ===
+
+Most important for real-world use.
+
+MOBILE LAYOUT PRINCIPLES:
+- Bottom tab navigation (5 main sections)
+- One-handed use (all buttons reachable)
+- Camera first (document capture is primary action)
+- Offline support (access data without connection)
+- Push notifications (key alerts)
+- Biometric login (face/fingerprint)
+
+BOTTOM TAB NAVIGATION:
+[📊 Dashboard] [📄 Documents] [🚨 Violations] [📞 Messages] [⚙️ Menu]
+
+TAB 1: DASHBOARD (Quick overview)
+- Assets & Debts summary
+- Monthly expenses vs income
+- Payment due dates (immediate)
+- Upcoming events (calendar)
+- Recent violations/alerts
+- Quick action buttons
+
+TAB 2: DOCUMENTS (Camera-first design)
+┌─────────────────────────────┐
+│ 📄 DOCUMENTS & EVIDENCE     │
+├─────────────────────────────┤
+│                             │
+│ [🎥 TAKE PHOTO] ← Primary   │
+│ [📁 Choose File] ← Secondary│
+│ [📧 Email Forward]          │
+│ [🎤 Voice Note]             │
+│                             │
+│ RECENT UPLOADS:             │
+│ ┌─────────────────────────┐ │
+│ │ 📄 Bank Statement (2h)  │ │
+│ │ 98% - Auto-categorized  │ │
+│ │ [✓ Confirm] [? Reclassify]
+│ └─────────────────────────┘ │
+│                             │
+│ ┌─────────────────────────┐ │
+│ │ 💰 Daycare Invoice (4h) │ │
+│ │ 99% - Perfect match     │ │
+│ │ [✓ Confirmed] [→ Link]  │
+│ └─────────────────────────┘ │
+│                             │
+│ [View All] [Search]         │
+│                             │
+└─────────────────────────────┘
+
+TAB 3: VIOLATIONS (Case builder)
+┌─────────────────────────────┐
+│ 🚨 VIOLATIONS               │
+├─────────────────────────────┤
+│                             │
+│ ┌─────────────────────────┐ │
+│ │ 🔴 Hidden Assets        │ │
+│ │ Status: Active          │ │
+│ │ 3 docs attached         │ │
+│ │ [View] [Add Evidence]   │
+│ └─────────────────────────┘ │
+│                             │
+│ ┌─────────────────────────┐ │
+│ │ 🟠 Missed Payment       │ │
+│ │ Status: Ongoing         │ │
+│ │ $2,400 owed             │ │
+│ │ [View] [Document]       │
+│ └─────────────────────────┘ │
+│                             │
+│ [+ New Violation]           │
+│                             │
+└─────────────────────────────┘
+
+TAB 4: MESSAGES (Safe communication)
+┌─────────────────────────────┐
+│ 📞 MESSAGES                 │
+├─────────────────────────────┤
+│                             │
+│ Ex-Spouse (3) ← Unread      │
+│ Attorney                    │
+│ Child's School              │
+│                             │
+│ [View Message Thread]       │
+│ [Compose New] [Call]        │
+│                             │
+└─────────────────────────────┘
+
+TAB 5: MENU (Settings, profile)
+┌─────────────────────────────┐
+│ ⚙️ SETTINGS                │
+├─────────────────────────────┤
+│                             │
+│ 👤 Profile                  │
+│ 💰 Subscription             │
+│ 🔔 Notifications            │
+│ 🗂️ Categories               │
+│ 🤖 AI Preferences           │
+│ 📱 Mobile Integrations      │
+│ ❓ Help & Support           │
+│ 🔓 Logout                   │
+│                             │
+└─────────────────────────────┘
+
+CRITICAL MOBILE FEATURES:
+
+CAMERA DOCUMENT CAPTURE:
+1. Open camera in app
+2. Frame document (auto-detect edges)
+3. Auto-enhance (lighting, contrast)
+4. Capture (one-tap)
+5. AI processes OCR (2-3 seconds)
+6. Shows extracted data
+7. Prompts for categorization (if confidence <85%)
+8. Saves to cloud
+9. Links to dashboard instantly
+
+OFFLINE SUPPORT:
+- Service Worker caches all essential data
+- Can view documents, messages, dashboard offline
+- Camera capture queues for upload when online
+- Auto-syncs when connection restored
+
+BIOMETRIC LOGIN:
+- Face ID (iOS)
+- Fingerprint (Android)
+- Falls back to password
+- Stored locally on device (not in cloud)
+
+PUSH NOTIFICATIONS:
+- Payment due date reminder (5 days before)
+- Custody exchange reminder (24 hours, 1 hour before)
+- Court deadline alert (7 days, 3 days, 1 day, 1 hour)
+- Violation flagged by AI
+- Message received (silent if muted)
+- Document categorized & ready
+- Settlement update (from attorney)
+
+=== PART 13: DATABASE SCHEMA (PostgreSQL) ===
+
+Create these tables:
+
+1. tenants
+   - id (UUID, primary key)
+   - name (company/firm name)
+   - environment (live or demo)
+   - stripeCustomerId
+   - subscriptionTier (basic, professional, enterprise)
+   - createdAt
+   - updatedAt
+
+2. auth_users
+   - id (UUID)
+   - tenantId (FK)
+   - email
+   - passwordHash
+   - role (client, attorney, cpa, admin)
+   - fullName
+   - phone
+   - profilePhoto
+   - environment (live or demo)
+   - twoFactorEnabled
+   - createdAt
+   - updatedAt
+   - (other fields listed in Part 3)
+
+3. documents
+   - id (UUID)
+   - tenantId (FK)
+   - userId (FK)
+   - fileName
+   - fileUrl (Firebase)
+   - primaryCategory
+   - subcategory
+   - status
+   - aiConfidence
+   - ocrExtractedText
+   - extractedData (JSONB)
+   - flaggedIssues (ARRAY)
+   - createdAt
+   - (other fields listed in Part 7)
+
+4. violations
+   - id (UUID)
+   - tenantId (FK)
+   - userId (FK)
+   - title
+   - category
+   - severity
+   - description
+   - dateDiscovered
+   - status
+   - attachedDocumentIds (ARRAY FK to documents)
+   - witnessTestimony (TEXT)
+   - timeline (JSONB)
+   - aiAssessment (TEXT)
+   - createdAt
+   - updatedAt
+
+5. transactions
+   - id (UUID)
+   - tenantId (FK)
+   - userId (FK)
+   - date
+   - amount
+   - category
+   - subcategory
+   - description
+   - vendor
+   - paymentMethod
+   - linkedDocumentId (FK)
+   - createdAt
+
+6. assets
+   - id (UUID)
+   - tenantId (FK)
+   - userId (FK)
+   - assetType (real_estate, vehicle, investment, etc.)
+   - description
+   - estimatedValue
+   - documentIds (ARRAY FK)
+   - ownershipStatus (individual, joint, disputed)
+   - createdAt
+   - updatedAt
+
+7. debts
+   - id (UUID)
+   - tenantId (FK)
+   - userId (FK)
+   - debtType (mortgage, credit_card, loan, etc.)
+   - creditor
+   - principalAmount
+   - interestRate
+   - monthlyPayment
+   - dueDate
+   - status
+   - createdAt
+   - updatedAt
+
+8. messages
+   - id (UUID)
+   - tenantId (FK)
+   - senderId (FK)
+   - recipientId (FK)
+   - content
+   - timestamp
+   - isRead
+   - toneAnalysis (AI assessment)
+   - createdAt
+
+9. calendar_events
+   - id (UUID)
+   - tenantId (FK)
+   - userId (FK)
+   - title
+   - description
+   - startDate
+   - endDate
+   - eventType (custody_exchange, legal_appointment, payment_due, etc.)
+   - location
+   - isSharedWithExspouse (BOOLEAN)
+   - reminderTimes (ARRAY)
+   - createdAt
+   - updatedAt
+
+10. legal_documents
+    - id (UUID)
+    - tenantId (FK)
+    - documentType (agreement, court_order, settlement, etc.)
+    - caseNumber
+    - courtName
+    - judge
+    - dateIssued
+    - expirationDate
+    - status
+    - keyTerms (JSONB)
+    - fileUrl (Firebase)
+    - createdAt
+    - updatedAt
+
+11. settlement_proposals
+    - id (UUID)
+    - tenantId (FK)
+    - proposedBy (userId FK)
+    - assetDivision (JSONB - detailed breakdown)
+    - childSupport
+    - alimony
+    - status (draft, proposed, counter, accepted, rejected)
+    - createdAt
+    - updatedAt
+
+12. reports
+    - id (UUID)
+    - tenantId (FK)
+    - userId (FK)
+    - reportType (financial_summary, forensic_analysis, etc.)
+    - content (JSONB or TEXT)
+    - generatedAt
+    - dataCoverage (date range)
+    - digitalSignature
+    - createdAt
+
+=== PART 14: API ENDPOINTS (Node.js/Express) ===
+
+Authentication:
+POST /api/auth/login
+POST /api/auth/signup
+POST /api/auth/logout
+POST /api/auth/verify-2fa
+POST /api/auth/forgot-password
+POST /api/auth/reset-password
+
+Documents:
+POST /api/documents/upload (with OCR processing)
+GET /api/documents (list, filtered)
+GET /api/documents/:id (with details)
+PUT /api/documents/:id/categorize
+PUT /api/documents/:id/categorize-manual
+DELETE /api/documents/:id
+POST /api/documents/:id/flag-issue
+GET /api/documents/search (full-text search)
+
+Transactions:
+POST /api/transactions (create)
+GET /api/transactions (list, filtered)
+GET /api/transactions/:id (with drill-down details)
+PUT /api/transactions/:id
+DELETE /api/transactions/:id
+
+Violations:
+POST /api/violations (create)
+GET /api/violations (list)
+GET /api/violations/:id
+PUT /api/violations/:id
+DELETE /api/violations/:id
+POST /api/violations/:id/attach-document
+
+Messages:
+POST /api/messages (send)
+GET /api/messages/:conversationId (thread)
+PUT /api/messages/:id/read
+POST /api/messages/tone-analysis (AI assessment)
+
+Calendar:
+POST /api/calendar/events
+GET /api/calendar/events
+PUT /api/calendar/events/:id
+DELETE /api/calendar/events/:id
+POST /api/calendar/events/:id/share-with-exspouse
+
+Analytics:
+GET /api/analytics/financial-summary
+GET /api/analytics/trends
+GET /api/analytics/recommendations
+GET /api/analytics/forensic-alerts
+GET /api/analytics/settlement-optimizer
+POST /api/reports/generate
+
+=== PART 15: AI/ML SERVICES (Integrations) ===
+
+OCRIMPORT: Google Cloud Vision API (or local Tesseract)
+- Extract text from images/PDFs
+- Detect document type
+- Identify key fields
+- Confidence scores
+
+DOCUMENT CATEGORIZATION: TensorFlow/PyTorch
+- Pre-trained model on 10k+ divorce docs
+- Classify into primary category
+- Classify into subcategory
+- Confidence scoring
+- Continuous learning (user corrections)
+
+TONE ANALYSIS: Hugging Face NLP
+- Analyze message tone (aggressive, professional, threatening)
+- Suggest alternatives
+- Warn before sending hostile messages
+
+VIOLATION DETECTION: Custom ML Model
+- Analyze documents for hidden assets
+- Detect inconsistencies (income discrepancies, etc.)
+- Flag unusual patterns
+- Risk scoring
+
+RECOMMENDATION ENGINE: Custom Algorithm
+- Analyze entire case
+- Suggest investigation priorities
+- Estimate ROI for each investigation
+- Recommend legal strategy
+- Settlement optimization
+
+=== PART 16: SECURITY & COMPLIANCE ===
+
+DATA ENCRYPTION:
+- All data encrypted at rest (AES-256)
+- TLS 1.3 for transmission
+- API keys stored in environment variables
+- Database passwords encrypted
+- Separate encryption keys per tenant
+
+COMPLIANCE:
+- HIPAA-ready (for health/abuse data)
+- GDPR-compliant (data export, deletion)
+- SOC 2 Type II (audit ready)
+- PCI DSS (for payment processing)
+
+AUDIT LOG:
+- All user actions logged (who, what, when, why)
+- Document access tracked
+- Modification history kept
+- Sensitive data access flagged
+
+BACKUP & RECOVERY:
+- Daily automated backups (Firebase + PostgreSQL)
+- 30-day recovery window
+- Disaster recovery plan (RTO: 4 hours, RPO: 1 hour)
+
+=== PART 17: DEPLOYMENT & SCALING ===
+
+DEVELOPMENT:
+- Local development on Replit
+- PostgreSQL local + Firebase emulator
+- Environment variables in .env file
+
+PRODUCTION:
+- Heroku (or AWS) for backend
+- PostgreSQL on AWS RDS
+- Firebase for file storage
+- Cloudflare for CDN
+
+SCALING STRATEGY:
+- Backend: Auto-scaling with load balancer
+- Database: Read replicas for analytics
+- Storage: S3 for archived documents
+- Search: Elasticsearch for full-text search
+
+=== PART 18: PRICING TIERS ===
+
+BASIC PLAN: $49/month
+- Personal use only
+- 100 document uploads/month
+- 1 calendar user
+- Limited analytics
+- Email support
+
+PROFESSIONAL PLAN: $149/month (RECOMMENDED)
+- Up to 3 users (client + attorney)
+- 1,000 document uploads/month
+- Unlimited calendar users
+- Full analytics
+- Real-time collaboration
+- Priority support
+- AI coaches (all 4 agents)
+- Violation case builder
+- Forensic recommendations
+
+ENTERPRISE PLAN: $499/month
+- Unlimited users
+- Unlimited uploads
+- Dedicated support
+- API access
+- Custom integrations
+- White-label option
+- Compliance training
+- Annual contracts
+
+=== PART 19: SUCCESS METRICS ===
+
+TRACK THESE KPIs:
+- Monthly active users (target: 10k+ by Year 2)
+- Document processing accuracy (target: 98%+)
+- Settlement case success rate (target: 75%+ reach settlement)
+- Average time-to-resolution (target: <6 months)
+- User retention (target: 85%+ month-to-month)
+- Net promoter score (target: >50)
+- Customer acquisition cost (target: <$100)
+- Lifetime value per customer (target: $3,000+)
+
+=== PART 20: LAUNCH ROADMAP ===
+
+WEEK 1-2: Setup infrastructure
+- Create GitHub repo
+- Setup Replit project structure
+- Setup PostgreSQL + Firebase
+- Create .env files (dev/prod)
+
+WEEK 3-4: Authentication & Login
+- Build login page (live/demo separation)
+- JWT authentication
+- 2FA implementation
+- Password reset flow
+
+WEEK 5-8: Dashboard & Finances
+- Main dashboard
+- Income/expense tracking
+- Asset/debt management
+- Transaction drill-downs
+
+WEEK 9-14: Documents & OCR
+- Document upload (camera/file)
+- Google Vision OCR integration
+- AI categorization model
+- Advanced document features
+
+WEEK 15-18: Violations & Case Builder
+- Violation creation interface
+- Evidence gallery
+- Timeline builder
+- Legal recommendations
+
+WEEK 19-22: Communication
+- Messaging system
+- Tone analysis AI
+- Shared calendar
+- Custody exchange tracking
+
+WEEK 23-26: Legal Module
+- Agreement management
+- Court order tracking
+- Settlement tracking
+- Key date reminders
+
+WEEK 27-30: Analytics & Reporting
+- Financial analysis
+- Forensic insights
+- Settlement optimizer
+- Report generation
+
+WEEK 31-36: Mobile App (iOS/Android)
+- React Native or Flutter
+- Camera integration
+- Offline support
+- Push notifications
+- PWA version
+
+WEEK 37-40: Advanced Features
+- Enhanced AI models
+- Forensic CPA features
+- Advanced security
+- Compliance certifications
+
+WEEK 41-44: Testing & QA
+- User acceptance testing
+- Security testing
+- Performance testing
+- Bug fixes
+
+WEEK 45-48: Launch Preparation
+- Documentation
+- Video tutorials
+- Marketing site
+- Live demo environment
+- Beta launch (50 users)
+
+WEEK 49-50: Full Production Launch
+- Monitor for issues
+- Customer support setup
+- Optimize based on feedback
+- Start acquisition
+
+=== FINAL DELIVERABLES ===
+
+✅ Dual-database system (LIVE + DEMO, never mixed)
+✅ Multi-tenant SaaS architecture
+✅ Subscription management (Stripe)
+✅ Advanced OCR + AI document analyzer (99% accuracy)
+✅ Auto-categorization (intelligent, always improving)
+✅ Document camera capture (mobile-first)
+✅ Violation case builder (with evidence gallery)
+✅ Forensic financial analysis (hidden assets, discrepancies)
+✅ Safety features (safe messaging, tone analysis)
+✅ Legal compliance (HIPAA, GDPR, SOC2 ready)
+✅ Shared calendar + custody tracking
+✅ Mobile app (iOS/Android + PWA)
+✅ Advanced analytics & reporting (QuickBooks-style)
+✅ Settlement optimizer (scenario planning)
+✅ AI recommendations (investigation priorities, ROI)
+✅ Complete security (encryption, audit logs, backup)
+✅ Scalable architecture (ready for 100k+ users)
+✅ Subscription tiers (3-tier pricing model)
+✅ 50-week launch roadmap
+✅ Production-ready (audit trail, compliance, security)
+
+READY TO BUILD!

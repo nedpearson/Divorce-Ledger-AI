@@ -1,0 +1,64 @@
+import Stripe from 'stripe';
+import { logger } from '../utils/logger'; // Assuming you have a logger utility
+
+export class StripeService {
+  private stripe: Stripe | null = null;
+  private isEnabled: boolean = false;
+  private mode: string = process.env.STRIPE_MODE || 'test';
+
+  async initialize(): Promise<void> {
+    try {
+      const secretKey = process.env.STRIPE_SECRET_KEY;
+
+      if (!secretKey) {
+        logger.warn('⚠️  Stripe is DISABLED: STRIPE_SECRET_KEY environment variable is not set.');
+        this.isEnabled = false;
+        return;
+      }
+
+      // Check if the key type matches the declared mode
+      if (this.mode === 'production' && !secretKey.startsWith('sk_live_')) {
+        const errorMessage = '❌ CRITICAL: STRIPE_MODE is "production" but STRIPE_SECRET_KEY is not a live key (e.g., starts with "sk_live_").';
+        logger.error(errorMessage);
+        throw new Error(errorMessage);
+      } else if (this.mode === 'test' && !secretKey.startsWith('sk_test_')) {
+        logger.warn('⚠️  Stripe is in "test" mode but STRIPE_SECRET_KEY is not a test key. Proceeding but please verify your configuration.');
+        // We allow this to proceed as it might be a temporary test with a live key, but warn loudly.
+      }
+
+      this.stripe = new Stripe(secretKey, {
+        apiVersion: '2023-10-16', // Always specify the API version
+        typescript: true,
+      });
+
+      // Attempt to retrieve balance to verify connection
+      await this.stripe.balance.retrieve(); 
+
+      logger.info(`✅ Stripe initialized successfully in ${this.mode} mode.`);
+      this.isEnabled = true;
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+
+      // If in production mode, this is a critical failure.
+      if (this.mode === 'production') {
+        logger.error(`❌ CRITICAL: Stripe production connection failed. Application cannot start: ${errorMsg}`);
+        throw error; // Re-throw to halt application startup
+      } else {
+        // In test mode, we can log a warning and disable Stripe features.
+        logger.warn(`⚠️  Stripe test mode: Failed to initialize connection. Stripe features will be disabled: ${errorMsg}`);
+        this.isEnabled = false;
+      }
+    }
+  }
+
+  isAvailable(): boolean {
+    return this.isEnabled && this.stripe !== null;
+  }
+
+  getClient(): Stripe | null {
+    return this.stripe;
+  }
+}
+
+export const stripeService = new StripeService();

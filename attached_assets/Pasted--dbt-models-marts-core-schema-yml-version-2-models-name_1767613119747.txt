@@ -1,0 +1,112 @@
+-- dbt/models/marts/core/schema.yml
+
+version: 2
+
+models:
+  - name: fact_transactions
+    description: "Core transaction events (billing, charges, refunds)"
+    columns:
+      - name: transaction_id
+        description: "Unique transaction identifier"
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "Foreign key to dim_users"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_users')
+              field: user_id
+      - name: transaction_date_id
+        description: "Foreign key to dim_date"
+      - name: amount_usd
+        description: "Transaction amount in USD cents (store as integer)"
+        tests:
+          - not_null
+      - name: transaction_type
+        description: "Type: charge, refund, adjustment"
+        tests:
+          - accepted_values:
+              values: ['charge', 'refund', 'adjustment', 'credit']
+
+  - name: fact_violations
+    description: "User violations and usage limit breaches"
+    columns:
+      - name: violation_id
+        description: "Unique violation identifier"
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "Foreign key to dim_users"
+        tests:
+          - not_null
+      - name: violation_date_id
+        description: "Foreign key to dim_date"
+      - name: violation_type
+        description: "Type of violation (rate_limit, quota, etc)"
+      - name: severity
+        description: "Critical, High, Medium, Low"
+        tests:
+          - accepted_values:
+              values: ['critical', 'high', 'medium', 'low']
+
+  - name: dim_users
+    description: "User dimension with tier history and lifecycle"
+    columns:
+      - name: user_id
+        description: "Unique user identifier"
+        tests:
+          - unique
+          - not_null
+      - name: user_name
+        description: "User display name"
+      - name: email
+        description: "User email (masked in reports)"
+        tests:
+          - unique
+      - name: current_tier
+        description: "Current subscription tier"
+      - name: tier_start_date
+        description: "When user moved to current tier"
+      - name: is_active
+        description: "Whether user is currently active"
+      - name: created_date_id
+        description: "Foreign key to dim_date"
+      - name: dbt_valid_from
+        description: "SCD Type 2 valid from date"
+      - name: dbt_valid_to
+        description: "SCD Type 2 valid to date"
+
+  - name: dim_date
+    description: "Date dimension for time-based analysis"
+    columns:
+      - name: date_id
+        description: "YYYYMMDD format"
+        tests:
+          - unique
+          - not_null
+      - name: date_actual
+        description: "Actual date"
+      - name: year
+      - name: quarter
+      - name: month
+      - name: day_of_month
+      - name: day_of_week
+      - name: is_weekend
+      - name: is_holiday
+
+  - name: dim_tier
+    description: "Subscription tier dimension"
+    columns:
+      - name: tier_id
+        description: "Unique tier identifier"
+      - name: tier_name
+        description: "free, individual, pro, team, enterprise"
+      - name: price_usd_monthly
+        description: "Monthly price in USD"
+      - name: api_limit_daily
+        description: "Daily API call limit"
+      - name: storage_gb
+        description: "Storage allocation in GB"

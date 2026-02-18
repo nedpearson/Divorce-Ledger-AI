@@ -1,0 +1,215 @@
+
+---
+
+## 🔄 SCHEDULED DATA OPERATIONS
+
+### Daily: Tier Migration Application (00:15 UTC)
+
+\`\`\`sql
+-- This job runs daily at 00:15 UTC
+-- Purpose: Apply tier changes after grace period expires
+
+SELECT COUNT(*) as pending_migrations
+FROM tier_migrations
+WHERE status = 'pending'
+AND grace_period_end <= NOW();
+
+-- For each pending migration:
+-- 1. Check if grace period has expired
+-- 2. Update users.tier = to_tier
+-- 3. Update tier_migrations.status = 'applied'
+-- 4. Log in usage_audit table
+-- 5. Send user notification (async)
+\`\`\`
+
+### Monthly: Billing Calculation (1st @ 02:00 UTC)
+
+\`\`\`sql
+-- This job runs monthly on the 1st at 02:00 UTC
+-- Purpose: Calculate and create billing records
+
+INSERT INTO billing_records (
+  user_id,
+  period_start,
+  period_end,
+  amount_cents,
+  status,
+  payment_data
+)
+SELECT 
+  u.id,
+  DATE_TRUNC('month', NOW() - INTERVAL '1 month'),
+  DATE_TRUNC('month', NOW()) - INTERVAL '1 day',
+  CASE u.tier
+    WHEN 'free' THEN 0
+    WHEN 'individual' THEN 2999      -- $$29.99
+    WHEN 'pro' THEN 4999              -- $$49.99
+    WHEN 'team' THEN 9999             -- $$99.99
+    WHEN 'enterprise' THEN 29999      -- $$299.99
+  END,
+  'pending',
+  jsonb_build_object(
+    'method', 'stripe',
+    'metadata', jsonb_build_object(
+      'calculation_timestamp', NOW(),
+      'tier', u.tier,
+      'user_metadata', u.metadata
+    )
+  )
+FROM users u
+WHERE u.status = 'active'
+AND u.tier != 'free'
+ON CONFLICT DO NOTHING;
+
+-- Then process payments (async)
+\`\`\`
+
+### Monthly: Quota Reset (1st @ 03:00 UTC)
+
+\`\`\`sql
+-- This job runs monthly on the 1st at 03:00 UTC
+-- Purpose: Reset violation counts for new month
+
+UPDATE users
+SET violations_count_this_month = 0
+WHERE status = 'active';
+
+-- Log the reset in audit table
+INSERT INTO usage_audit (
+  user_id,
+  operation,
+  recorded_at,
+  audit_data
+)
+SELECT 
+  id,
+  'quota_reset',
+  NOW(),
+  jsonb_build_object(
+    'previous_count', violations_count_this_month,
+    'reset_month', TO_CHAR(NOW(), 'YYYY-MM'),
+    'tier', tier
+  )
+FROM users
+WHERE status = 'active';
+\`\`\`
+
+---
+
+## 📊 ANALYTICS DATA STRUCTURE
+
+### Real-Time Analytics Queries
+
+\`\`\`sql
+-- Platform Overview (GET /api/admin/analytics/platform)
+SELECT 
+  COUNT(*) as total_users,
+  COUNT(CASE WHEN status = 'active' THEN 1 END) as active_users,
+  jsonb_object_agg(tier, tier_count) as tier_distribution,
+  COALESCE(SUM(violations_count_this_month), 0) as total_violations_month,
+  jsonb_build_object(
+    'free', COUNT(CASE WHEN tier = 'free' THEN 1 END),
+    'individual', COUNT(CASE WHEN tier = 'individual' THEN 1 END),
+    'pro', COUNT(CASE WHEN tier = 'pro' THEN 1 END),
+    'team', COUNT(CASE WHEN tier = 'team' THEN 1 END),
+    'enterprise', COUNT(CASE WHEN tier = 'enterprise' THEN 1 END)
+  ) as tier_distribution,
+  ROUND(SUM(CASE WHEN status = 'charged' THEN amount_cents END) / 100.0, 2) as revenue_this_month,
+  NOW() as calculated_at
+FROM users u
+LEFT JOIN billing_records b ON u.id = b.user_id;
+
+-- Revenue by Tier (GET /api/admin/analytics/revenue)
+SELECT 
+  u.tier,
+  COUNT(DISTINCT u.id) as user_count,
+  COUNT(b.id) as billing_record_count,
+  ROUND(SUM(CASE WHEN b.status = 'charged' THEN b.amount_cents END) / 100.0, 2) as revenue_usd,
+  ROUND(AVG(CASE WHEN b.status = 'charged' THEN b.amount_cents END) / 100.0, 2) as avg_transaction_usd,
+  DATE(MAX(b.created_at)) as last_billing_date
+FROM users u
+LEFT JOIN billing_records b ON u.id = b.user_id
+GROUP BY u.tier
+ORDER BY revenue_usd DESC;
+
+-- At-Risk Users (GET /api/admin/analytics/at-risk-users)
+SELECT 
+  u.id,
+  u.email,
+  u.tier,
+  u.violations_count_this_month,
+  CASE
+    WHEN u.tier = 'individual' THEN 50
+    WHEN u.tier = 'pro' THEN 50
+    WHEN u.tier = 'team' THEN 150
+    WHEN u.tier = 'enterprise' THEN 9999
+    ELSE 10
+  END as tier_limit,
+  ROUND(100.0 * u.violations_count_this_month / CASE
+    WHEN u.tier = 'individual' THEN 50
+    WHEN u.tier = 'pro' THEN 50
+    WHEN u.tier = 'team' THEN 150
+    WHEN u.tier = 'enterprise' THEN 9999
+    ELSE 10
+  END, 1) as percent_of_limit,
+  u.metadata->>'preferred_language' as preferred_language
+FROM users u
+WHERE u.violations_count_this_month >= CASE
+  WHEN u.tier = 'individual' THEN 45     -- 90% of limit
+  WHEN u.tier = 'pro' THEN 45             -- 90% of limit
+  WHEN u.tier = 'team' THEN 135           -- 90% of limit
+  ELSE 9                                   -- 90% of free tier
+END
+ORDER BY percent_of_limit DESC;
+\`\`\`
+
+---
+
+## 🔐 SEMI-STRUCTURED DATA STRATEGY
+
+### Why JSONB for Flexible Attributes?
+
+Your platform uses JSONB columns to store flexible, semi-structured data:
+
+\`\`\`typescript
+// Example: User metadata in JSONB
+const userMetadata = {
+  // Standard attributes
+  preferred_language: "en-US",
+  timezone: "America/New_York",
+  
+  // Feature flags (can change per release)
+  feature_flags: {
+    beta_ai_classification: true,
+    advanced_analytics: true,
+    api_access: false
+  },
+  
+  // Notification preferences (user-configurable)
+  notification_preferences: {
+    email_on_violation: true,
+    email_on_billing: true,
+    sms_alerts: false,
+    slack_integration_enabled: false
+  },
+  
+  // Custom integration settings
+  integration_settings: {
+    quickbooks_connected: true,
+    quickbooks_realm_id: "12345",
+    zapier_token_hash: "abc123...",
+    custom_webhooks: [
+      { url: "https://...", events: ["violation", "billing"] }
+    ]
+  },
+  
+  // Audit trail of changes
+  migration_history: [
+    {
+      from_tier: "individual",
+      to_tier: "pro",
+      date: "2025-12-15T10:30:00Z",
+      reason: "user_upgrade"
+    }
+  ]
+};

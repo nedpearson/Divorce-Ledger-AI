@@ -1,0 +1,73 @@
+REACT STABILITY HARDENING — ELIMINATE INFINITE LOOPS, RENDER CRASHES, AND STATE BUGS
+
+You are my Principal Frontend Reliability Engineer.
+
+Backend, SQL, Appwrite, and environments have already been hardened by previous prompts.
+Your mission now is to make the React frontend for Divorce Ledger extremely stable:
+NO infinite loops, NO “too many re-renders”, NO crash-on-load pages.
+
+Constraints:
+- Do NOT change core product behavior or UX flows.
+- Do NOT remove major components; fix them.
+
+Tasks:
+
+1) Scan the entire frontend for React anti-patterns:
+   - useEffect with:
+     - no dependency array but calling setState, navigation, or fetch
+     - dependencies that the effect itself changes, causing loops
+   - setState calls inside component render bodies
+   - Derived state that could be computed from props but stored in state incorrectly
+   - useMemo/useCallback missing dependency arrays or with incorrect ones
+   - useLayoutEffect used where useEffect is sufficient
+
+2) For each useEffect:
+   - Ensure it has a correct dependency array.
+   - If it needs to run once on mount, use [] and verify no hidden dependencies.
+   - If it depends on state values:
+     - Ensure changing that state doesn’t re-trigger the effect in a loop.
+   - Where polling or intervals are used:
+     - Use proper cleanup (clearInterval / clearTimeout).
+     - Ensure interval frequency is appropriate.
+
+3) Stabilize async effects:
+   - For data fetching use cases:
+     - Wrap async logic in a robust pattern:
+       - track `isMounted` or use AbortController to avoid state updates after unmount.
+     - Ensure you handle loading, success, error states explicitly.
+   - Catch fetch/axios errors and update UI state accordingly (no unhandled promise rejections).
+
+4) Add error boundaries around critical regions:
+   - At least one top-level ErrorBoundary component around:
+     - main App routes,
+     - key dashboards (documents, violations, finances).
+   - The ErrorBoundary should:
+     - Show a friendly fallback UI.
+     - Log the error and component stack to the backend (or console for dev).
+
+5) Stabilize routing-related logic:
+   - Check any useEffect that calls navigation (e.g., useNavigate).
+   - Ensure there are no redirect loops:
+     - Guard logic must converge: after redirect, conditions become false.
+
+6) Fix any direct DOM manipulation anti-patterns:
+   - remove unsafe document.querySelector manipulations if they conflict with React.
+   - Use refs & React patterns instead.
+
+7) Verification:
+   - Rebuild and run the app.
+   - Exercise all main screens:
+     - Login
+     - Home dashboard
+     - Documents
+     - Violations
+     - Finance
+     - Settings/Profile
+   - Watch React DevTools and console:
+     - Ensure there are no:
+       - “Too many re-renders”
+       - “Maximum update depth exceeded”
+       - Uncaught React errors
+   - Confirm no screens crash when data is missing, slow, or erroring.
+
+Stop when the React app is free of infinite loops, render-depth errors, and fragile state patterns.

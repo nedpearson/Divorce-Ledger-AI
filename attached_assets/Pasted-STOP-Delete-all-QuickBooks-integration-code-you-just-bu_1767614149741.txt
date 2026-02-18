@@ -1,0 +1,60 @@
+STOP. Delete all QuickBooks integration code you just built. Start fresh with proper multi-tenant architecture.
+
+STEP 1: REMOVE EXISTING QB CODE
+Delete these files/code blocks:
+- Any /api/quickbooks/* routes
+- Any QuickBooks-related database migrations
+- Any QB client initialization code
+- Any QB environment variables from .env examples
+- Any QB-related UI components
+
+Keep only:
+- Existing user authentication system
+- Existing database structure (users, cases, violations tables)
+
+STEP 2: BUILD MULTI-TENANT QUICKBOOKS INTEGRATION
+
+ARCHITECTURE PRINCIPLE:
+This is a SaaS product. Each lawyer connects THEIR OWN QuickBooks account. We provide the OAuth app, they authorize access to THEIR data. All QB operations use THEIR tokens, never a shared connection.
+
+DATABASE SCHEMA
+
+1. Alter users table:
+```sql
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_access_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_refresh_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_realm_id VARCHAR(50);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_token_expires_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_connected BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_company_name VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_scopes TEXT[];
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qb_connected_at TIMESTAMP;
+```
+
+2. Create audit log table:
+```sql
+CREATE TABLE IF NOT EXISTS quickbooks_sync_log (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  action VARCHAR(100) NOT NULL,
+  qb_entity_type VARCHAR(50),
+  qb_entity_id VARCHAR(50),
+  request_method VARCHAR(10),
+  request_path TEXT,
+  response_status INTEGER,
+  error_message TEXT,
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_qb_log_user ON quickbooks_sync_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_qb_log_created ON quickbooks_sync_log(created_at);
+```
+
+3. Link cases to QB customers:
+```sql
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS qb_customer_id VARCHAR(50);
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS qb_customer_name VARCHAR(255);
+```
+
+ENVIRONMENT VARIABLES (Replit Secrets)
+Add ONLY these (app-level credentials, NOT user tokens):
