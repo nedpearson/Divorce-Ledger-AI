@@ -40,6 +40,7 @@ const AnalyticsDashboard = lazy(() => import("@/pages/analytics-dashboard"));
 const Settings = lazy(() => import("@/pages/settings"));
 const Governance = lazy(() => import("@/pages/governance"));
 const Mobile = lazy(() => import("@/pages/mobile"));
+const MobileInstall = lazy(() => import("@/pages/mobile-install"));
 const AdminUsers = lazy(() => import("@/pages/admin-users"));
 const Recommendations = lazy(() => import("@/pages/recommendations"));
 const AdminRecommendations = lazy(() => import("@/pages/admin-recommendations"));
@@ -48,6 +49,8 @@ const AdminPanel = lazy(() => import("@/pages/admin"));
 const AppwriteDocuments = lazy(() => import("@/pages/appwrite-documents"));
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { QuickCaptureSheet } from "@/components/quick-capture-sheet";
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
+import { SyncStatusIndicator } from "@/components/sync-status-indicator";
 import { MobileAppHeaderButton } from "@/components/mobile-app-banner";
 import { EnvironmentBadge } from "@/components/environment-badge";
 import { UpdateNotification } from "@/components/update-notification";
@@ -121,6 +124,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
               <Button variant="ghost" size="icon" data-testid="button-notifications">
                 <Bell className="h-4 w-4" />
               </Button>
+              <SyncStatusIndicator />
               <MobileAppHeaderButton />
               <ThemeToggle />
             </div>
@@ -133,6 +137,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
         </div>
         <MobileBottomNav onCaptureClick={() => setCaptureOpen(true)} />
         <QuickCaptureSheet open={captureOpen} onOpenChange={setCaptureOpen} />
+        <PWAInstallPrompt />
       </div>
     </SidebarProvider>
   );
@@ -321,6 +326,7 @@ function Router() {
           <Mobile />
         </RequireAuth>
       </Route>
+      <Route path="/mobile-install" component={MobileInstall} />
       <Route path="/admin/users">
         <RequireAuth>
           <AuthLayout>

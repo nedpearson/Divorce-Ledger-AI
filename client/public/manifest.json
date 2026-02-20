@@ -1,13 +1,14 @@
 {
-  "name": "Divorce Ledger",
+  "name": "Divorce Ledger - Quick Capture",
   "short_name": "Divorce Ledger",
-  "description": "Forensic financial analysis and legal case management for divorce proceedings",
-  "start_url": "/mobile",
+  "description": "Quick capture evidence on-the-go with offline support and WiFi sync",
+  "start_url": "/home?source=pwa",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#2563eb",
   "orientation": "portrait-primary",
-  "id": "/mobile",
+  "id": "/home",
+  "scope": "/",
   "icons": [
     {
       "src": "/favicon.png",
@@ -29,6 +30,30 @@
     }
   ],
   "categories": ["finance", "legal", "productivity"],
-  "scope": "/",
-  "lang": "en-US"
+  "shortcuts": [
+    {
+      "name": "Quick Capture",
+      "short_name": "Capture",
+      "description": "Capture evidence quickly",
+      "url": "/home?action=capture",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Scan Document",
+      "short_name": "Scan",
+      "description": "Scan a document",
+      "url": "/home?action=scan",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Report Violation",
+      "short_name": "Report",
+      "description": "Report a violation",
+      "url": "/home?action=violation",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "lang": "en-US",
+  "dir": "ltr",
+  "prefer_related_applications": false
 }

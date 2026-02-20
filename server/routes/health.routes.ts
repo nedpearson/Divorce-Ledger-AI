@@ -338,4 +338,43 @@ router.post('/loop-watchdog', (req, res) => {
   res.status(204).send();
 });
 
+/**
+ * GET /api/network-info
+ * Returns local network information for WiFi sync
+ */
+router.get('/network-info', async (req: Request, res: Response) => {
+  try {
+    const os = await import('os');
+    const networkInterfaces = os.networkInterfaces();
+    
+    // Find local IP address (IPv4, non-internal)
+    let localIp: string | null = null;
+    
+    for (const name of Object.keys(networkInterfaces)) {
+      const nets = networkInterfaces[name];
+      if (!nets) continue;
+      
+      for (const net of nets) {
+        // Skip internal (loopback) and IPv6 addresses
+        if (net.family === 'IPv4' && !net.internal) {
+          localIp = net.address;
+          break;
+        }
+      }
+      if (localIp) break;
+    }
+    
+    res.json({
+      localIp,
+      hostname: os.hostname(),
+      port: process.env.PORT || 5000,
+    });
+  } catch (error) {
+    console.error('Network info error:', error);
+    res.status(500).json({
+      error: 'Failed to get network info',
+    });
+  }
+});
+
 export default router;

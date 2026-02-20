@@ -289,10 +289,14 @@ function estimateTokens(text: string): number {
 }
 
 export function estimateCost(inputTokens: number, outputTokens: number, model: string): number {
+  // Legacy function - use estimateLLMCost from llmProvider instead
+  // Kept for backward compatibility
   const rates: Record<string, { input: number; output: number }> = {
     'gemini-2.0-flash': { input: 0.00001, output: 0.00004 },
     'gemini-1.5-flash': { input: 0.000075, output: 0.0003 },
     'gpt-4o-mini': { input: 0.00015, output: 0.0006 },
+    'gpt-4o': { input: 0.0025, output: 0.010 },
+    'claude-3-5-sonnet-20241022': { input: 0.003, output: 0.015 },
   };
   const rate = rates[model] || rates['gemini-2.0-flash'];
   return (inputTokens * rate.input) + (outputTokens * rate.output);

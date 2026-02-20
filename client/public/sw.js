@@ -8,6 +8,7 @@
 
 const ASSET_CACHE = "divorce-ledger-assets-v2";
 const API_CACHE   = "divorce-ledger-api-v2";
+const DOCUMENT_CACHE = "divorce-ledger-documents-v1";
 
 const MOBILE_API_PREFIXES = [
   "/api/mobile/documents",
@@ -21,6 +22,8 @@ const MOBILE_API_PREFIXES = [
   "/api/mobile/expenses",
   "/api/mobile/child-support",
   "/api/mobile/document-categories",
+  "/api/documents",
+  "/api/violations",
 ];
 
 // ── Install ────────────────────────────────────────────────────────────────
@@ -40,7 +43,8 @@ self.addEventListener("activate", (event) => {
               (k) =>
                 k.startsWith("divorce-ledger-") &&
                 k !== ASSET_CACHE &&
-                k !== API_CACHE
+                k !== API_CACHE &&
+                k !== DOCUMENT_CACHE
             )
             .map((k) => caches.delete(k))
         )
@@ -49,6 +53,30 @@ self.addEventListener("activate", (event) => {
     ])
   );
 });
+
+// ── Background Sync ────────────────────────────────────────────────────────
+// Triggered when device comes back online or periodically
+self.addEventListener("sync", (event) => {
+  if (event.tag === "sync-offline-data") {
+    event.waitUntil(syncOfflineData());
+  }
+});
+
+async function syncOfflineData() {
+  try {
+    // Notify all clients to start sync
+    const clients = await self.clients.matchAll({ type: "window" });
+    clients.forEach((client) =>
+      client.postMessage({
+        type: "BACKGROUND_SYNC_START",
+      })
+    );
+    
+    console.log("[SW] Background sync triggered");
+  } catch (error) {
+    console.error("[SW] Background sync failed:", error);
+  }
+}
 
 // ── Fetch ──────────────────────────────────────────────────────────────────
 self.addEventListener("fetch", (event) => {

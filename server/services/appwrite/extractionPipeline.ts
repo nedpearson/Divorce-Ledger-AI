@@ -1,4 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
 import {
   ExtractionOutput,
   VerificationReport,
@@ -15,39 +14,23 @@ import {
 } from './extractionTypes';
 
 const CATEGORY_CONFIDENCE_THRESHOLD = 0.90;
-import { estimateCost } from './analysisService';
+import {
+  callLLM,
+  estimateLLMCost,
+  getConfiguredModel,
+  getModelInfo,
+  type ModelName,
+} from './llmProvider';
 import crypto from 'crypto';
 
-const MODEL_VERSION = 'gemini-2.0-flash';
-const MODEL_PROVIDER = 'gemini';
-const PROMPT_VERSION = 'v2.0.0';
+// Get the configured model (defaults to Claude 3.5 Sonnet)
+const CONFIGURED_MODEL = getConfiguredModel();
+const MODEL_INFO = getModelInfo(CONFIGURED_MODEL);
+const MODEL_VERSION = MODEL_INFO.model;
+const MODEL_PROVIDER = MODEL_INFO.provider;
+const PROMPT_VERSION = 'v2.1.0'; // Bumped version for multi-provider support
 
-let genAI: GoogleGenAI | null = null;
-
-function getGenAI(): GoogleGenAI {
-  if (!genAI) {
-    // Use Replit AI Integration environment variables (preferred) or fallback to legacy GEMINI_API_KEY
-    const apiKey = process.env.AI_INTEGRATIONS_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-    const baseUrl = process.env.AI_INTEGRATIONS_GEMINI_BASE_URL;
-    
-    if (!apiKey) {
-      throw new Error(
-        'Gemini API key is not configured. Set AI_INTEGRATIONS_GEMINI_API_KEY (preferred) or GEMINI_API_KEY environment variable. ' +
-        'For Replit AI Integrations, both AI_INTEGRATIONS_GEMINI_API_KEY and AI_INTEGRATIONS_GEMINI_BASE_URL should be set automatically.'
-      );
-    }
-    
-    // If using Replit AI integration, configure with the proxy URL
-    if (baseUrl) {
-      console.log('[Gemini] Using Replit AI Integration proxy');
-      genAI = new GoogleGenAI({ apiKey, httpOptions: { baseUrl } });
-    } else {
-      console.log('[Gemini] Using direct Gemini API');
-      genAI = new GoogleGenAI({ apiKey });
-    }
-  }
-  return genAI;
-}
+console.log(`[Document Analysis] Using ${CONFIGURED_MODEL} (${MODEL_VERSION})`);
 
 const EXTRACTION_PROMPT = `You are a forensic financial document analyzer. Extract structured data from the provided document.
 
@@ -213,36 +196,25 @@ export async function runExtractionPass(
   mimeType?: string,
   imageBase64?: string
 ): Promise<PassResult> {
-  const ai = getGenAI();
   const startTime = Date.now();
   
   try {
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [];
-    
-    if (isImage && imageBase64 && mimeType) {
-      parts.push({
-        inlineData: {
-          mimeType,
-          data: imageBase64,
-        },
-      });
-      parts.push({
-        text: `${EXTRACTION_PROMPT}\n\nFile ID for evidence.source_file_id: ${fileId}\n\nAnalyze this image and extract all financial data.`,
-      });
-    } else {
-      parts.push({
-        text: `${EXTRACTION_PROMPT}\n\nFile ID for evidence.source_file_id: ${fileId}\n\nDocument text to analyze:\n\n${content}`,
-      });
-    }
+    const messageText = isImage && imageBase64
+      ? `${EXTRACTION_PROMPT}\n\nFile ID for evidence.source_file_id: ${fileId}\n\nAnalyze this image and extract all financial data.`
+      : `${EXTRACTION_PROMPT}\n\nFile ID for evidence.source_file_id: ${fileId}\n\nDocument text to analyze:\n\n${content}`;
 
-    const response = await ai.models.generateContent({
-      model: MODEL_VERSION,
-      contents: [{ role: 'user', parts }],
-    });
+    const response = await callLLM(
+      EXTRACTION_PROMPT,
+      {
+        text: messageText,
+        ...(isImage && imageBase64 && mimeType && { imageBase64, mimeType }),
+      },
+      CONFIGURED_MODEL
+    );
 
-    const rawOutput = response.text || '';
-    const inputTokens = response.usageMetadata?.promptTokenCount || 0;
-    const outputTokens = response.usageMetadata?.candidatesTokenCount || 0;
+    const rawOutput = response.text;
+    const inputTokens = response.inputTokens;
+    const outputTokens = response.outputTokens;
 
     const cleanedOutput = rawOutput
       .replace(/```json\s*/gi, '')
@@ -298,8 +270,6 @@ export async function runVerificationPass(
   extraction: ExtractionOutput,
   sourceText: string
 ): Promise<PassResult> {
-  const ai = getGenAI();
-  
   try {
     const prompt = `${VERIFICATION_PROMPT}
 
@@ -311,14 +281,15 @@ ${sourceText}
 
 Verify the extraction accuracy and return your assessment.`;
 
-    const response = await ai.models.generateContent({
-      model: MODEL_VERSION,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    });
+    const response = await callLLM(
+      VERIFICATION_PROMPT,
+      { text: prompt },
+      CONFIGURED_MODEL
+    );
 
-    const rawOutput = response.text || '';
-    const inputTokens = response.usageMetadata?.promptTokenCount || 0;
-    const outputTokens = response.usageMetadata?.candidatesTokenCount || 0;
+    const rawOutput = response.text;
+    const inputTokens = response.inputTokens;
+    const outputTokens = response.outputTokens;
 
     const cleanedOutput = rawOutput
       .replace(/```json\s*/gi, '')
@@ -505,7 +476,7 @@ export async function runTwoPassPipeline(
       verificationPass: null,
       totalInputTokens: extractionResult.inputTokens,
       totalOutputTokens: extractionResult.outputTokens,
-      totalEstimatedCost: estimateCost(extractionResult.inputTokens, extractionResult.outputTokens, MODEL_VERSION),
+      totalEstimatedCost: estimateLLMCost(CONFIGURED_MODEL, extractionResult.inputTokens, extractionResult.outputTokens),
       errors: [extractionResult.error || 'Extraction pass failed'],
     };
   }
@@ -525,7 +496,7 @@ export async function runTwoPassPipeline(
 
   const totalInputTokens = extractionResult.inputTokens + verificationResult.inputTokens;
   const totalOutputTokens = extractionResult.outputTokens + verificationResult.outputTokens;
-  const totalEstimatedCost = estimateCost(totalInputTokens, totalOutputTokens, MODEL_VERSION);
+  const totalEstimatedCost = estimateLLMCost(CONFIGURED_MODEL, totalInputTokens, totalOutputTokens);
 
   const categoryCandidates: CategoryCandidate[] = extraction.category_candidates || [];
   const topScore = categoryCandidates[0]?.score ?? 0;

@@ -11,6 +11,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@eslint/js": "^9.39.2",
     "@google-cloud/storage": "^7.18.0",
     "@google/genai": "^1.35.0",
