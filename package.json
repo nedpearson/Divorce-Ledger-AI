@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx --import dotenv/config server/index.ts",
     "build": "tsx script/build.ts",

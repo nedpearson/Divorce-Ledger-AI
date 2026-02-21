@@ -1,6 +1,7 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import { DashboardService, DashboardMetrics } from './dashboard-service';
+import { getBaseOrigin } from './lib/baseUrl';
 
 export class WebSocketService {
   private io: SocketIOServer;
@@ -15,11 +16,24 @@ export class WebSocketService {
       'https://divorceledger.replit.app',
       'https://divorceledger.live',
     ];
+
+    const baseOrigin = getBaseOrigin();
+    if (baseOrigin && !allowedOrigins.includes(baseOrigin)) {
+      allowedOrigins.push(baseOrigin);
+    }
     
     // Add domains from REPLIT_DOMAINS if available
     if (process.env.REPLIT_DOMAINS) {
       const replitDomains = process.env.REPLIT_DOMAINS.split(',').map(d => `https://${d.trim()}`);
       allowedOrigins.push(...replitDomains);
+    }
+
+    // Add Railway domains if available
+    if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+      allowedOrigins.push(`https://${process.env.RAILWAY_PUBLIC_DOMAIN}`);
+    }
+    if (process.env.RAILWAY_STATIC_URL) {
+      allowedOrigins.push(process.env.RAILWAY_STATIC_URL);
     }
     
     this.io = new SocketIOServer(httpServer, {

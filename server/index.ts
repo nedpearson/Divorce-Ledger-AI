@@ -23,6 +23,7 @@ import { WebSocketService } from "./websocket-service";
 import { logFireflyConfigStatus } from "./config/firefly.config";
 import { isAppwriteConfigured, initializeAppwrite } from "./services/appwrite/client";
 import { startQueueProcessor } from "./services/appwrite/analysisService";
+import { getBaseUrl } from "./lib/baseUrl";
 
 import { createLogger } from "./lib/logger";
 import { globalErrorHandler } from "./lib/errorHandler";
@@ -93,7 +94,7 @@ async function initStripe() {
     const stripeSync = await getStripeSync();
 
     console.log('Setting up managed webhook...');
-    const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+    const webhookBaseUrl = getBaseUrl();
     try {
       const result = await stripeSync.findOrCreateManagedWebhook(
         `${webhookBaseUrl}/api/stripe/webhook`
@@ -215,6 +216,19 @@ app.use((req, res, next) => {
   logFireflyConfigStatus();
 
   const dbConnected = startupService.isHealthy();
+
+  // Run database migrations if database is connected
+  if (dbConnected && db) {
+    try {
+      console.log('[STARTUP] Running database migrations...');
+      const { migrate } = await import('drizzle-orm/node-postgres/migrator');
+      await migrate(db, { migrationsFolder: './migrations' });
+      console.log('✅ [STARTUP] Database migrations completed successfully');
+    } catch (error) {
+      console.error('❌ [STARTUP] Database migration failed:', error);
+      console.error('[STARTUP] Application will continue but database schema may be incomplete');
+    }
+  }
 
   // Initialize Stripe webhook/sync if database is connected
   if (dbConnected && isStripeAvailable()) {

@@ -1,11 +1,24 @@
 // Email service using SendGrid integration
 import sgMail from '@sendgrid/mail';
-
-let connectionSettings: any;
+import { getBaseUrl } from './lib/baseUrl';
 
 const ADMIN_EMAIL = "nedpearson@gmail.com";
+const DEFAULT_FROM_EMAIL = "noreply@divorceledger.live";
 
+/**
+ * Get SendGrid credentials from environment
+ * Supports both direct API key and Replit connectors (for backward compatibility)
+ */
 async function getCredentials() {
+  // Try direct environment variable first (Railway, standard deployment)
+  const directApiKey = process.env.SENDGRID_API_KEY;
+  const directFromEmail = process.env.SENDGRID_FROM_EMAIL || DEFAULT_FROM_EMAIL;
+  
+  if (directApiKey) {
+    return { apiKey: directApiKey, email: directFromEmail };
+  }
+
+  // Fallback to Replit connectors if available (backward compatibility)
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY 
     ? 'repl ' + process.env.REPL_IDENTITY 
@@ -13,24 +26,27 @@ async function getCredentials() {
     ? 'depl ' + process.env.WEB_REPL_RENEWAL 
     : null;
 
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
-  }
+  if (hostname && xReplitToken) {
+    try {
+      const connectionSettings = await fetch(
+        'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=sendgrid',
+        {
+          headers: {
+            'Accept': 'application/json',
+            'X_REPLIT_TOKEN': xReplitToken
+          }
+        }
+      ).then(res => res.json()).then(data => data.items?.[0]);
 
-  connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=sendgrid',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
+      if (connectionSettings?.settings?.api_key && connectionSettings?.settings?.from_email) {
+        return { apiKey: connectionSettings.settings.api_key, email: connectionSettings.settings.from_email };
       }
+    } catch (error) {
+      console.warn('[Email] Replit connector failed:', error);
     }
-  ).then(res => res.json()).then(data => data.items?.[0]);
-
-  if (!connectionSettings || (!connectionSettings.settings.api_key || !connectionSettings.settings.from_email)) {
-    throw new Error('SendGrid not connected');
   }
-  return { apiKey: connectionSettings.settings.api_key, email: connectionSettings.settings.from_email };
+
+  throw new Error('SendGrid not configured. Set SENDGRID_API_KEY environment variable.');
 }
 
 async function getUncachableSendGridClient() {
@@ -40,26 +56,6 @@ async function getUncachableSendGridClient() {
     client: sgMail,
     fromEmail: email
   };
-}
-
-// Helper to get the app base URL based on environment
-function getAppBaseUrl(): string {
-  // Production or Live mode: use divorceledger.live
-  const isProduction = process.env.NODE_ENV === 'production';
-  const isLiveMode = process.env.APP_MODE === 'live';
-  
-  if (isProduction || isLiveMode) {
-    return 'https://divorceledger.live';
-  }
-  // Dev environment: use REPLIT_DOMAINS or fallback
-  if (process.env.REPLIT_DOMAINS) {
-    const primaryDomain = process.env.REPLIT_DOMAINS.split(',')[0].trim();
-    return `https://${primaryDomain}`;
-  }
-  if (process.env.REPLIT_DEV_DOMAIN) {
-    return `https://${process.env.REPLIT_DEV_DOMAIN}`;
-  }
-  return 'http://localhost:5000';
 }
 
 export async function sendWelcomeEmail(userEmail: string, fullName: string): Promise<void> {
@@ -102,7 +98,7 @@ export async function sendPasswordResetEmail(userEmail: string, fullName: string
   try {
     const { client, fromEmail } = await getUncachableSendGridClient();
     
-    const baseUrl = getAppBaseUrl();
+    const baseUrl = getBaseUrl();
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
     
     const msg = {
