@@ -25,7 +25,18 @@ if (pool) {
   });
 }
 
-export const db = pool ? drizzle(pool, { schema }) : null as any;
+// Create a proxy that throws helpful errors when db is accessed without DATABASE_URL
+const dbInstance = pool ? drizzle(pool, { schema }) : null;
+
+export const db = dbInstance ? dbInstance : new Proxy({} as NodePgDatabase<typeof schema>, {
+  get(_target, prop) {
+    if (prop === 'then' || prop === 'catch' || prop === Symbol.toStringTag) {
+      // Don't intercept Promise methods
+      return undefined;
+    }
+    throw new Error(`Database not available: DATABASE_URL environment variable is not set. Cannot access db.${String(prop)}`);
+  }
+}) as NodePgDatabase<typeof schema>;
 
 export async function testDatabaseConnection(): Promise<boolean> {
   if (!pool) {
