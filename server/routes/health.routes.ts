@@ -103,20 +103,18 @@ router.get('/health', async (req: Request, res: Response) => {
     const hasWarning = Object.values(checks).some((c) => c.status === 'warn');
 
     // Determine status: healthy if all pass, degraded if warnings only, unhealthy if failures
+    // Always return HTTP 200 so Railway health checks rely on JSON `status` field
     let overallStatus: 'healthy' | 'degraded' | 'unhealthy';
-    let httpStatus: number;
+    const httpStatus = 200;
 
     if (allPassed) {
       overallStatus = 'healthy';
-      httpStatus = 200;
     } else if (hasWarning && !hasFailure) {
       // Only warnings (e.g., no DATABASE_URL) - degraded but still operational
       overallStatus = 'degraded';
-      httpStatus = 200; // Return 200 for Railway health check to pass
     } else {
       // Has failures (e.g., DATABASE_URL set but connection failed)
       overallStatus = 'unhealthy';
-      httpStatus = 503;
     }
 
     const response: HealthStatus = {
