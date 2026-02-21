@@ -218,10 +218,10 @@ app.use((req, res, next) => {
   // Validate Firefly III configuration (optional global config)
   logFireflyConfigStatus();
 
-  const dbConnected = startupService.isHealthy();
+  const dbConnected = startupService.isDatabaseConnected();
 
   // Run database migrations if database is connected
-  if (dbConnected && db) {
+  if (dbConnected) {
     try {
       console.log('[STARTUP] Running database migrations...');
       const { migrate } = await import('drizzle-orm/node-postgres/migrator');

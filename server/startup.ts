@@ -115,6 +115,11 @@ class StartupService {
   isHealthy(): boolean {
     return !this.hasCriticalErrors();
   }
+
+  isDatabaseConnected(): boolean {
+    const dbResult = this.results.find(r => r.name === 'Database');
+    return dbResult?.status === 'success';
+  }
 }
 
 export const startupService = new StartupService();
