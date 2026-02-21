@@ -3,6 +3,36 @@ import { workspaces, workspaceMembers, matters, subscriptionEntitlements } from 
 import { documents } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { WORKSPACE_TIER_ENTITLEMENTS, type WorkspaceEntitlements, type WorkspaceTier } from '@shared/workspace-schema';
+import {
+  featureFlags,
+  workspaceFeatureOverrides,
+  userEntitlements,
+} from '@shared/platform-admin-schema';
+
+/**
+ * Resolves effective feature flags for a workspace (and optionally a user).
+ * Precedence: global default < workspace override < per-user override
+ */
+export async function resolveFeatures(
+  workspaceId: string,
+  userId?: string
+): Promise<Record<string, boolean>> {
+  const [globals, wsOverrides, userOvrs] = await Promise.all([
+    db.select().from(featureFlags),
+    db.select().from(workspaceFeatureOverrides).where(eq(workspaceFeatureOverrides.workspaceId, workspaceId)),
+    userId
+      ? db.select().from(userEntitlements).where(
+          and(eq(userEntitlements.userId, userId), eq(userEntitlements.workspaceId, workspaceId))
+        )
+      : Promise.resolve([]),
+  ]);
+
+  const effective: Record<string, boolean> = {};
+  for (const f of globals)     { effective[f.key] = f.enabled; }
+  for (const o of wsOverrides) { effective[o.featureKey] = o.enabled; }
+  for (const u of userOvrs)    { if (u.enabled !== null && u.enabled !== undefined) effective[u.featureKey] = u.enabled; }
+  return effective;
+}
 
 /**
  * Resolves current entitlements for a workspace, combining tier limits with overrides
@@ -59,7 +89,11 @@ export async function resolveEntitlements(
       limit: workspace.aiCreditsLimit,
       current: workspace.aiCreditsBalance,
     },
-    features: tierConfig.features,
+    // Merge tier features with live feature-flag overrides
+    features: {
+      ...tierConfig.features,
+      ...(await resolveFeatures(workspaceId)),
+    } as any,
   };
 }
 

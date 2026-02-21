@@ -319,6 +319,8 @@ export const users = pgTable("users", {
   // 2FA settings
   twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   twoFactorMethod: text("two_factor_method").default("sms"), // 'sms' | 'authenticator'
+  // Platform-level role for Super Admin console access
+  platformRole: varchar("platform_role", { length: 20 }), // 'super_admin' | 'support_admin' | null
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -1817,3 +1819,9 @@ export * from "./governance-schema";
 // ============================================
 
 export * from "./workspace-schema";
+
+// ============================================
+// PLATFORM ADMIN - RE-EXPORTS
+// ============================================
+
+export * from "./platform-admin-schema";

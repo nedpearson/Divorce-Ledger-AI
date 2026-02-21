@@ -229,8 +229,32 @@ app.use((req, res, next) => {
       const pg = await import('pg');
       const migrationsDir = path.resolve('./migrations');
 
-      // Use DIRECT_URL for migrations (Supabase pooler doesn't support DDL)
-      const migrationUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
+      // Try DIRECT_URL first (preferred for DDL), fall back to pooler
+      const directUrl = process.env.DIRECT_URL;
+      const poolerUrl = process.env.DATABASE_URL;
+
+      // Pick the best available URL — test direct first, fall back to pooler
+      let migrationUrl: string | undefined;
+      if (directUrl) {
+        const testPool = new pg.default.Pool({
+          connectionString: directUrl.replace(/[?&]sslmode=\w+/g, '').replace(/[?&]ssl=\w+/g, ''),
+          ssl: directUrl.includes('supabase') ? { rejectUnauthorized: false } : undefined,
+          max: 1, connectionTimeoutMillis: 5000,
+        });
+        try {
+          const c = await testPool.connect();
+          await c.query('SELECT 1');
+          c.release();
+          migrationUrl = directUrl;
+          console.log('[STARTUP] Using DIRECT_URL for migrations');
+        } catch {
+          console.log('[STARTUP] DIRECT_URL unreachable, falling back to DATABASE_URL for migrations');
+        } finally {
+          await testPool.end().catch(() => {});
+        }
+      }
+      if (!migrationUrl) migrationUrl = poolerUrl;
+
       const isSupabase = migrationUrl?.includes('supabase');
       const cleanUrl = migrationUrl
         ? migrationUrl.replace(/[?&]sslmode=\w+/g, '').replace(/[?&]ssl=\w+/g, '')

@@ -29,6 +29,7 @@ import governanceRoutes from "./routes/governance.routes";
 import fireflyRoutes from "./routes/firefly";
 import appwriteRoutes from "./routes/appwrite.routes";
 import workspaceBillingRoutes from "./routes/workspace-billing.routes";
+import platformAdminRoutes from "./routes/platform-admin.routes";
 import { 
   canCreateCase, 
   canAddViolation, 
@@ -378,6 +379,9 @@ export async function registerRoutes(
   // Workspace billing & multi-tenant workspace routes
   app.use('/api', workspaceBillingRoutes);
 
+  // Platform Super Admin routes — gated by requirePlatformAdmin middleware
+  app.use('/api/superadmin', platformAdminRoutes);
+
   app.post("/api/admin/demo-reset", async (req, res) => {
     // CRITICAL: Block in live mode
     if (isLiveMode()) {
@@ -544,11 +548,14 @@ export async function registerRoutes(
 
   app.post("/api/auth/login", loginRateLimiter, async (req, res) => {
     try {
-      const { email, password, environment, rememberMe } = req.body;
+      const { email: rawEmail, password, environment, rememberMe } = req.body;
       
-      if (!email || !password) {
+      if (!rawEmail || !password) {
         return res.status(400).json({ error: "Email and password are required" });
       }
+
+      // Normalize email to lower-case so lookup is case-insensitive
+      const email = rawEmail.trim().toLowerCase();
       
       const user = await storage.getUserByEmail(email);
       
@@ -759,6 +766,16 @@ export async function registerRoutes(
         routine: error?.routine,
         traceId,
       });
+      // Distinguish DB-unavailable errors from generic failures
+      const isDbDown = error?.message?.includes('Tenant or user not found')
+        || error?.message?.includes('ENOTFOUND')
+        || error?.message?.includes('ECONNREFUSED')
+        || error?.message?.includes('database not available')
+        || error?.code === 'ECONNREFUSED'
+        || error?.code === 'ENOTFOUND';
+      if (isDbDown) {
+        return res.status(503).json({ error: "Database is temporarily unavailable. Please try again in a moment." });
+      }
       res.status(500).json({ error: "Login failed. Please try again." });
     }
   });

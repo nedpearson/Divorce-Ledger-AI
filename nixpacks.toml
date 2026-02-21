@@ -1,0 +1,11 @@
+# Force Nixpacks to use the Node provider (not Deno)
+providers = ["node"]
+
+# Keep the defaults, but make the intent explicit so Railway/Nixpacks
+# always install Node/npm and run our existing scripts.
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"

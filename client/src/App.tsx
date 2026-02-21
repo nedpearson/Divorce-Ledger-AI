@@ -48,6 +48,7 @@ const Recommendations = lazy(() => import("@/pages/recommendations"));
 const AdminRecommendations = lazy(() => import("@/pages/admin-recommendations"));
 const Changelog = lazy(() => import("@/pages/changelog"));
 const AdminPanel = lazy(() => import("@/pages/admin"));
+const SuperAdmin = lazy(() => import("@/pages/superadmin"));
 const AppwriteDocuments = lazy(() => import("@/pages/appwrite-documents"));
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { QuickCaptureSheet } from "@/components/quick-capture-sheet";
@@ -363,6 +364,13 @@ function Router() {
         <RequireAuth>
           <AuthLayout>
             <Changelog />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/superadmin">
+        <RequireAuth>
+          <AuthLayout>
+            <SuperAdmin />
           </AuthLayout>
         </RequireAuth>
       </Route>

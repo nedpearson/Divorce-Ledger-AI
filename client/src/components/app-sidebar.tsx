@@ -19,6 +19,7 @@ import {
   History,
   Briefcase,
   Shield,
+  ShieldAlert,
   Smartphone,
   ShieldCheck,
   Lightbulb,
@@ -80,6 +81,7 @@ const toolsMenuItems = [
 const adminMenuItems = [
   { title: "Admin Users", url: "/admin/users", icon: ShieldCheck },
   { title: "Manage Feedback", url: "/admin/recommendations", icon: ClipboardList },
+  { title: "Super Admin", url: "/superadmin", icon: ShieldAlert },
 ];
 
 const SUPER_ADMIN_EMAIL = "nedpearson@gmail.com";
