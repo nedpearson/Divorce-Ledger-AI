@@ -44,41 +44,57 @@ router.get('/health', async (req: Request, res: Response) => {
 
     // 1. Database connectivity
     const dbStart = Date.now();
-    try {
-      await db.execute(sql`SELECT 1`);
+    if (!db) {
       checks.database = {
-        status: 'pass',
-        message: 'Connected',
+        status: 'warn',
+        message: 'No database configured (DATABASE_URL not set)',
         responseTime: Date.now() - dbStart,
       };
-    } catch (error) {
-      checks.database = {
-        status: 'fail',
-        message: (error as Error).message,
-        responseTime: Date.now() - dbStart,
-      };
+    } else {
+      try {
+        await db.execute(sql`SELECT 1`);
+        checks.database = {
+          status: 'pass',
+          message: 'Connected',
+          responseTime: Date.now() - dbStart,
+        };
+      } catch (error) {
+        checks.database = {
+          status: 'fail',
+          message: (error as Error).message,
+          responseTime: Date.now() - dbStart,
+        };
+      }
     }
 
     // 2. Core tables check
     const tableStart = Date.now();
-    try {
-      const tableCheckQuery = await db.execute(sql`
-        SELECT COUNT(*) as count FROM information_schema.tables 
-        WHERE table_name IN ('users', 'billing_records', 'usage_audit', 'violations')
-      `);
-      const tableCount = parseInt((tableCheckQuery.rows[0] as any)?.count || '0');
-      
+    if (!db) {
       checks.tables = {
-        status: tableCount >= 4 ? 'pass' : 'fail',
-        message: `${tableCount}/4 core tables found`,
+        status: 'warn',
+        message: 'No database configured',
         responseTime: Date.now() - tableStart,
       };
-    } catch (error) {
-      checks.tables = {
-        status: 'fail',
-        message: (error as Error).message,
-        responseTime: Date.now() - tableStart,
-      };
+    } else {
+      try {
+        const tableCheckQuery = await db.execute(sql`
+          SELECT COUNT(*) as count FROM information_schema.tables 
+          WHERE table_name IN ('users', 'billing_records', 'usage_audit', 'violations')
+        `);
+        const tableCount = parseInt((tableCheckQuery.rows[0] as any)?.count || '0');
+        
+        checks.tables = {
+          status: tableCount >= 4 ? 'pass' : 'fail',
+          message: `${tableCount}/4 core tables found`,
+          responseTime: Date.now() - tableStart,
+        };
+      } catch (error) {
+        checks.tables = {
+          status: 'fail',
+          message: (error as Error).message,
+          responseTime: Date.now() - tableStart,
+        };
+      }
     }
 
     // Overall status
