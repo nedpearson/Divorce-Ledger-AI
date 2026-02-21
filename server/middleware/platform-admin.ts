@@ -14,6 +14,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { isPlatformAdmin, PLATFORM_ROLES } from "@shared/platform-admin-schema";
 import type { PlatformRole } from "@shared/platform-admin-schema";
+import { storage } from "../storage";
 
 // Extend Express Request with platform admin context
 declare global {
@@ -39,11 +40,29 @@ export async function requirePlatformAdmin(
   res: Response,
   next: NextFunction
 ) {
-  if (!req.user?.id) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-
   try {
+    // Bridge newer cookie-based auth into req.user for platform admin checks
+    if (!req.user?.id) {
+      const cookies = (req as any).cookies as Record<string, string> | undefined;
+      const sessionId = cookies?.session_id;
+
+      if (!sessionId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const session = await storage.getSession(sessionId);
+      if (!session || session.revokedAt !== null || new Date(session.expiresAt) <= new Date()) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+
+      // Minimal req.user object so downstream middleware can operate
+      req.user = {
+        id: session.userId,
+        isAdmin: false,
+        environment: "unknown",
+      };
+    }
+
     const user = await db.query.users.findFirst({
       where: eq(users.id, req.user.id as any),
       columns: { id: true, email: true, platformRole: true, status: true },
