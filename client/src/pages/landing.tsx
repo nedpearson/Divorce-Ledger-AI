@@ -11,16 +11,22 @@ import {
   Users,
   CheckCircle2,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Download,
+  Monitor
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/lib/auth";
+import { usePWAInstall } from "@/hooks/use-pwa-install";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LandingPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { canInstall, promptInstall, isInstalled } = usePWAInstall();
+  const { toast } = useToast();
 
   // If already logged in, redirect to home
   useEffect(() => {
@@ -28,6 +34,21 @@ export default function LandingPage() {
       setLocation("/home");
     }
   }, [user, setLocation]);
+
+  const handleInstallApp = async () => {
+    const installed = await promptInstall();
+    if (installed) {
+      toast({
+        title: "App installed successfully!",
+        description: "You can now use Divorce Ledger AI from your desktop.",
+      });
+    } else {
+      toast({
+        title: "Installation cancelled",
+        description: "You can install the app anytime from your browser menu.",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -40,6 +61,12 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
+            {canInstall && !isInstalled && (
+              <Button variant="outline" size="sm" onClick={handleInstallApp}>
+                <Download className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Install App</span>
+              </Button>
+            )}
             <Button asChild size="sm">
               <Link href="/login">
                 Login
@@ -71,11 +98,18 @@ export default function LandingPage() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="text-lg">
-              <Link href="/pricing">
-                View Pricing
-              </Link>
-            </Button>
+            {canInstall && !isInstalled ? (
+              <Button size="lg" variant="outline" onClick={handleInstallApp} className="text-lg">
+                <Download className="mr-2 h-5 w-5" />
+                Install Desktop App
+              </Button>
+            ) : (
+              <Button size="lg" variant="outline" asChild className="text-lg">
+                <Link href="/pricing">
+                  View Pricing
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </section>
@@ -227,6 +261,56 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Desktop App Section */}
+      {canInstall && !isInstalled && (
+        <section className="container max-w-7xl mx-auto px-4 md:px-6 py-12 md:py-16">
+          <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-blue-500/5">
+            <CardHeader className="text-center pb-4">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-primary/10 rounded-full">
+                  <Monitor className="h-10 w-10 text-primary" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl md:text-3xl">Install as Desktop App</CardTitle>
+              <CardDescription className="text-base max-w-2xl mx-auto mt-2">
+                Get the full desktop experience with offline access, faster performance, and native app features.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+                <div className="text-center space-y-2">
+                  <div className="flex justify-center">
+                    <CheckCircle2 className="h-6 w-6 text-green-500" />
+                  </div>
+                  <h3 className="font-semibold">Works Offline</h3>
+                  <p className="text-sm text-muted-foreground">Access your data even without internet</p>
+                </div>
+                <div className="text-center space-y-2">
+                  <div className="flex justify-center">
+                    <CheckCircle2 className="h-6 w-6 text-green-500" />
+                  </div>
+                  <h3 className="font-semibold">Faster Performance</h3>
+                  <p className="text-sm text-muted-foreground">Native app speed and responsiveness</p>
+                </div>
+                <div className="text-center space-y-2">
+                  <div className="flex justify-center">
+                    <CheckCircle2 className="h-6 w-6 text-green-500" />
+                  </div>
+                  <h3 className="font-semibold">Desktop Integration</h3>
+                  <p className="text-sm text-muted-foreground">Launch from your desktop or taskbar</p>
+                </div>
+              </div>
+              <div className="flex justify-center pt-2">
+                <Button size="lg" onClick={handleInstallApp} className="text-lg">
+                  <Download className="mr-2 h-5 w-5" />
+                  Install Desktop App Now
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* CTA Section */}
       <section className="w-full bg-muted/30 py-12 md:py-16">

@@ -1,13 +1,13 @@
 {
-  "name": "Divorce Ledger - Quick Capture",
+  "name": "Divorce Ledger AI",
   "short_name": "Divorce Ledger",
-  "description": "Quick capture evidence on-the-go with offline support and WiFi sync",
-  "start_url": "/home?source=pwa",
+  "description": "Professional case management for family law - capture evidence, track finances, and build court-ready stories",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#2563eb",
-  "orientation": "portrait-primary",
-  "id": "/home",
+  "orientation": "any",
+  "id": "/",
   "scope": "/",
   "icons": [
     {
