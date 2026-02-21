@@ -299,6 +299,40 @@ app.use((req, res, next) => {
       console.error('❌ [STARTUP] Database migration failed:', error);
       console.error('[STARTUP] Application will continue but database schema may be incomplete');
     }
+
+    // Seed admin user if it doesn't exist
+    try {
+      console.log('[STARTUP] Checking for admin user...');
+      const { users } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+      const { hashPassword } = await import('./auth');
+      
+      const adminEmail = 'nedpearson@gmail.com';
+      const result = await db.select().from(users).where(eq(users.email, adminEmail));
+      
+      if (result.length === 0) {
+        console.log('[STARTUP] Creating admin user...');
+        const hashedPassword = await hashPassword('admin123');
+        await db.insert(users).values({
+          id: crypto.randomUUID(),
+          email: adminEmail,
+          password: hashedPassword,
+          fullName: 'Ned Pearson',
+          environment: 'live-prod',
+          status: 'active',
+          platformRole: 'super_admin',
+          createdAt: new Date(),
+        });
+        console.log('✅ [STARTUP] Admin user created successfully');
+        console.log(`  Email: ${adminEmail}`);
+        console.log(`  Password: admin123`);
+        console.log('  ⚠️  CHANGE THIS PASSWORD IMMEDIATELY');
+      } else {
+        console.log('  ✅ Admin user already exists');
+      }
+    } catch (error) {
+      console.error('❌ [STARTUP] Failed to seed admin user:', error);
+    }
   }
 
   // Initialize Stripe webhook/sync if database is connected
