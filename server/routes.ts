@@ -583,8 +583,24 @@ export async function registerRoutes(
       }
       
       // Verify password
-      const { verifyPassword } = await import("./auth");
-      const passwordValid = await verifyPassword(password, user.password);
+      const isDemoUser =
+        process.env.DEMO_MODE === 'true' &&
+        email === (process.env.DEMO_EMAIL || 'demo@example.com').trim().toLowerCase();
+
+      let passwordValid: boolean;
+
+      if (isDemoUser) {
+        const demoPassword = process.env.DEMO_PASSWORD;
+        if (!demoPassword) {
+          console.warn('[AUTH] Demo login attempted but DEMO_PASSWORD is not set');
+          passwordValid = false;
+        } else {
+          passwordValid = password === demoPassword;
+        }
+      } else {
+        const { verifyPassword } = await import("./auth");
+        passwordValid = await verifyPassword(password, user.password);
+      }
       
       if (!passwordValid) {
         console.log(`[AUTH] Password verification failed for ${email}`);
