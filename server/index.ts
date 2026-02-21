@@ -300,19 +300,21 @@ app.use((req, res, next) => {
       console.error('[STARTUP] Application will continue but database schema may be incomplete');
     }
 
-    // Seed admin user if it doesn't exist
+    // Seed/reset admin user password on every startup
     try {
-      console.log('[STARTUP] Checking for admin user...');
+      console.log('[STARTUP] Setting up admin user...');
       const { users } = await import('@shared/schema');
       const { eq } = await import('drizzle-orm');
       const { hashPassword } = await import('./auth');
       
       const adminEmail = 'nedpearson@gmail.com';
+      const adminPassword = 'admin123';
+      const hashedPassword = await hashPassword(adminPassword);
+      
       const result = await db.select().from(users).where(eq(users.email, adminEmail));
       
       if (result.length === 0) {
         console.log('[STARTUP] Creating admin user...');
-        const hashedPassword = await hashPassword('admin123');
         await db.insert(users).values({
           id: crypto.randomUUID(),
           email: adminEmail,
@@ -323,15 +325,47 @@ app.use((req, res, next) => {
           platformRole: 'super_admin',
           createdAt: new Date(),
         });
-        console.log('✅ [STARTUP] Admin user created successfully');
-        console.log(`  Email: ${adminEmail}`);
-        console.log(`  Password: admin123`);
-        console.log('  ⚠️  CHANGE THIS PASSWORD IMMEDIATELY');
+        console.log('✅ [STARTUP] Admin user created');
       } else {
-        console.log('  ✅ Admin user already exists');
+        console.log('[STARTUP] Resetting admin password...');
+        await db.update(users)
+          .set({ 
+            password: hashedPassword,
+            platformRole: 'super_admin',
+            status: 'active',
+          })
+          .where(eq(users.email, adminEmail));
+        console.log('✅ [STARTUP] Admin password reset');
+      }
+      console.log(`  Email: ${adminEmail}`);
+      console.log(`  Password: ${adminPassword}`);
+      console.log('  ⚠️  CHANGE THIS PASSWORD AFTER LOGIN');
+      
+      // Also ensure demo user exists
+      const demoEmail = 'demo@example.com';
+      const demoPassword = 'demo123';
+      const demoHashedPassword = await hashPassword(demoPassword);
+      const demoResult = await db.select().from(users).where(eq(users.email, demoEmail));
+      
+      if (demoResult.length === 0) {
+        await db.insert(users).values({
+          id: crypto.randomUUID(),
+          email: demoEmail,
+          password: demoHashedPassword,
+          fullName: 'Demo User',
+          environment: 'demo',
+          status: 'active',
+          createdAt: new Date(),
+        });
+        console.log('✅ [STARTUP] Demo user created (demo@example.com / demo123)');
+      } else {
+        await db.update(users)
+          .set({ password: demoHashedPassword, status: 'active' })
+          .where(eq(users.email, demoEmail));
+        console.log('✅ [STARTUP] Demo user password reset (demo@example.com / demo123)');
       }
     } catch (error) {
-      console.error('❌ [STARTUP] Failed to seed admin user:', error);
+      console.error('❌ [STARTUP] Failed to setup admin user:', error);
     }
   }
 
