@@ -15,6 +15,7 @@ import { Bell, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import ForgotPassword from "@/pages/forgot-password";
@@ -71,7 +72,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    const loginUrl = `/?redirect=${encodeURIComponent(window.location.pathname)}`;
+    const loginUrl = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
     return <Redirect to={loginUrl} />;
   }
   
@@ -159,8 +160,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    if (location === "/") return null;
-    const redirectUrl = `/?redirect=${encodeURIComponent(location)}`;
+    if (location === "/" || location === "/login") return null;
+    const redirectUrl = `/login?redirect=${encodeURIComponent(location)}`;
     return <Redirect to={redirectUrl} />;
   }
   
@@ -176,7 +177,8 @@ function Router() {
   });
   return (
     <Switch>
-      <Route path="/" component={Login} />
+      <Route path="/" component={Landing} />
+      <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
@@ -304,11 +306,9 @@ function Router() {
         </RequireAuth>
       </Route>
       <Route path="/pricing">
-        <RequireAuth>
-          <AuthLayout>
-            <Pricing />
-          </AuthLayout>
-        </RequireAuth>
+        <Suspense fallback={<PageLoader />}>
+          <Pricing />
+        </Suspense>
       </Route>
       <Route path="/workspace-setup">
         <RequireAuth>
