@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
+import { Coins } from "lucide-react";
 
 const mainMenuItems = [
   { title: "Home", url: "/home", icon: Home },
@@ -76,6 +77,7 @@ const toolsMenuItems = [
   { title: "Mobile App", url: "/mobile", icon: Smartphone },
   { title: "Share Ideas", url: "/recommendations", icon: Lightbulb },
   { title: "What's New", url: "/changelog", icon: Sparkles },
+  { title: "Plans & Pricing", url: "/pricing", icon: Coins },
 ];
 
 const adminMenuItems = [
