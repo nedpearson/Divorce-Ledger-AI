@@ -300,72 +300,20 @@ app.use((req, res, next) => {
       console.error('[STARTUP] Application will continue but database schema may be incomplete');
     }
 
-    // Seed/reset admin user password on every startup
+    // Bootstrap users (admin + demo)
     try {
-      console.log('[STARTUP] Setting up admin user...');
-      const { users } = await import('@shared/schema');
-      const { eq } = await import('drizzle-orm');
-      const { hashPassword } = await import('./auth');
+      const { bootstrapUsers } = await import('./services/bootstrap.service');
       
-      const adminEmail = 'nedpearson@gmail.com';
-      const adminPassword = 'admin123';
-      const hashedPassword = await hashPassword(adminPassword);
+      // In development, force password reset to env values
+      // In production, only create missing users (don't reset existing passwords)
+      const isDev = process.env.NODE_ENV === 'development';
       
-      const result = await db.select().from(users).where(eq(users.email, adminEmail));
-      
-      if (result.length === 0) {
-        console.log('[STARTUP] Creating admin user...');
-        await db.insert(users).values({
-          id: crypto.randomUUID(),
-          email: adminEmail,
-          password: hashedPassword,
-          fullName: 'Ned Pearson',
-          environment: 'live-prod',
-          status: 'active',
-          platformRole: 'super_admin',
-          createdAt: new Date(),
-        });
-        console.log('✅ [STARTUP] Admin user created');
-      } else {
-        console.log('[STARTUP] Resetting admin password...');
-        await db.update(users)
-          .set({ 
-            password: hashedPassword,
-            platformRole: 'super_admin',
-            status: 'active',
-          })
-          .where(eq(users.email, adminEmail));
-        console.log('✅ [STARTUP] Admin password reset');
-      }
-      console.log(`  Email: ${adminEmail}`);
-      console.log(`  Password: ${adminPassword}`);
-      console.log('  ⚠️  CHANGE THIS PASSWORD AFTER LOGIN');
-      
-      // Also ensure demo user exists
-      const demoEmail = 'demo@example.com';
-      const demoPassword = 'demo123';
-      const demoHashedPassword = await hashPassword(demoPassword);
-      const demoResult = await db.select().from(users).where(eq(users.email, demoEmail));
-      
-      if (demoResult.length === 0) {
-        await db.insert(users).values({
-          id: crypto.randomUUID(),
-          email: demoEmail,
-          password: demoHashedPassword,
-          fullName: 'Demo User',
-          environment: 'demo',
-          status: 'active',
-          createdAt: new Date(),
-        });
-        console.log('✅ [STARTUP] Demo user created (demo@example.com / demo123)');
-      } else {
-        await db.update(users)
-          .set({ password: demoHashedPassword, status: 'active' })
-          .where(eq(users.email, demoEmail));
-        console.log('✅ [STARTUP] Demo user password reset (demo@example.com / demo123)');
-      }
+      await bootstrapUsers({ 
+        forcePasswordReset: isDev 
+      });
     } catch (error) {
-      console.error('❌ [STARTUP] Failed to setup admin user:', error);
+      console.error('❌ [STARTUP] User bootstrap failed:', error);
+      console.error('[STARTUP] Application will continue but admin/demo accounts may not be available');
     }
   }
 

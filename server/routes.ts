@@ -550,54 +550,49 @@ export async function registerRoutes(
     try {
       const { email: rawEmail, password, environment, rememberMe } = req.body;
       
+      // Validate input
       if (!rawEmail || !password) {
         return res.status(400).json({ error: "Email and password are required" });
       }
 
-      // Normalize email to lower-case so lookup is case-insensitive
+      // Normalize email consistently (must match bootstrap normalization)
       const email = rawEmail.trim().toLowerCase();
       
       console.log(`[AUTH] Login attempt for: ${email}`);
-      const user = await storage.getUserByEmail(email);
       
-      const { isPasswordHashed: isHashed, hashPassword: getHash, verifyPassword: checkPass } = await import("./auth");
+      // Look up user
+      const user = await storage.getUserByEmail(email);
       
       if (!user) {
         console.log(`[AUTH] User not found: ${email}`);
-        return res.status(401).json({ error: "Invalid credentials" });
+        // Generic error to prevent user enumeration
+        return res.status(401).json({ error: "Incorrect email or password" });
       }
       
-      console.log(`[AUTH] User found: ${email}, checking password (hashed: ${isHashed(user.password)})`);
-      console.log(`[AUTH] Password hash length: ${user.password.length}`)
+      console.log(`[AUTH] User found: ${user.id} (${email})`);
       
       // Check if user is suspended
       if (user.status === 'suspended') {
+        console.log(`[AUTH] Login blocked - user suspended: ${email}`);
         return res.status(403).json({ error: "Your account has been suspended. Please contact support." });
       }
-      
-      // Auto-migrate plaintext passwords to bcrypt hashes
-      
-      if (!isHashed(user.password)) {
-        // Legacy plaintext password - check directly then migrate
-        if (password !== user.password) {
-          return res.status(401).json({ error: "Invalid credentials" });
-        }
-        
-        // Migrate to hashed password
-        const hashedPassword = await getHash(password);
-        await storage.updateUserPassword(user.id, hashedPassword);
-        console.log(`Migrated password for user ${user.id} to bcrypt hash`);
-      } else {
-        // Already hashed - use bcrypt compare
-        console.log(`[AUTH] Verifying hashed password for ${email}`);
-        const passwordValid = await checkPass(password, user.password);
-        console.log(`[AUTH] Password valid: ${passwordValid}`);
-        if (!passwordValid) {
-          console.log(`[AUTH] Password verification failed for ${email}`);
-          return res.status(401).json({ error: "Invalid credentials" });
-        }
-        console.log(`[AUTH] Password verification succeeded for ${email}`);
+
+      if (user.status !== 'active') {
+        console.log(`[AUTH] Login blocked - user status '${user.status}': ${email}`);
+        return res.status(403).json({ error: "Your account is not active. Please contact support." });
       }
+      
+      // Verify password
+      const { verifyPassword } = await import("./auth");
+      const passwordValid = await verifyPassword(password, user.password);
+      
+      if (!passwordValid) {
+        console.log(`[AUTH] Password verification failed for ${email}`);
+        // Generic error to prevent user enumeration
+        return res.status(401).json({ error: "Incorrect email or password" });
+      }
+      
+      console.log(`[AUTH] Password verification succeeded for ${email}`);
       
       // Check if 2FA is required (user has phone number and is in live environment)
       const isLiveUser = user.environment?.startsWith('live-');
@@ -7267,9 +7262,73 @@ export async function registerRoutes(
     }
   });
 
+  // Debug endpoint to check auth configuration
+  app.get("/api/debug/auth", async (req, res) => {
+    try {
+      const { isSuperAdminConfigured } = await import('./services/bootstrap.service');
+      const { eq } = await import('drizzle-orm');
+      
+      const superAdminEmail = (process.env.SUPERADMIN_EMAIL || 'nedpearson@gmail.com').trim().toLowerCase();
+      const demoEmail = (process.env.DEMO_EMAIL || 'demo@example.com').trim().toLowerCase();
+      
+      const superAdminUser = await db.select({
+        id: users.id,
+        email: users.email,
+        fullName: users.fullName,
+        environment: users.environment,
+        status: users.status,
+        platformRole: users.platformRole,
+        passwordLength: sql`LENGTH(${users.password})`,
+        passwordStartsWith: sql`SUBSTRING(${users.password}, 1, 4)`,
+      }).from(users).where(eq(users.email, superAdminEmail));
+      
+      const demoUser = await db.select({
+        id: users.id,
+        email: users.email,
+        fullName: users.fullName,
+        environment: users.environment,
+        status: users.status,
+        platformRole: users.platformRole,
+        passwordLength: sql`LENGTH(${users.password})`,
+      }).from(users).where(eq(users.email, demoEmail));
+      
+      const superAdminConfigured = await isSuperAdminConfigured();
+      
+      res.json({
+        environment: {
+          NODE_ENV: process.env.NODE_ENV,
+          DEMO_MODE: process.env.DEMO_MODE,
+          SUPERADMIN_EMAIL: superAdminEmail,
+          DEMO_EMAIL: demoEmail,
+        },
+        superAdmin: {
+          configured: superAdminConfigured,
+          exists: superAdminUser.length > 0,
+          user: superAdminUser[0] || null,
+        },
+        demo: {
+          enabled: process.env.DEMO_MODE === 'true',
+          exists: demoUser.length > 0,
+          user: demoUser[0] || null,
+        },
+        database: {
+          connected: true,
+          totalUsers: (await db.select({ count: sql`COUNT(*)` }).from(users))[0].count,
+        },
+      });
+    } catch (error) {
+      console.error("[Debug Auth] Error:", error);
+      res.status(500).json({ 
+        error: "Failed to check auth status", 
+        message: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
+
   console.log('🔧 Debug Endpoints:');
   console.log('   GET  /api/debug/finances');
   console.log('   GET  /api/debug/users');
+  console.log('   GET  /api/debug/auth');
 
   // ============================================
   // APP VERSION & UPDATE NOTIFICATIONS
