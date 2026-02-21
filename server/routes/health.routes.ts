@@ -44,7 +44,7 @@ router.get('/health', async (req: Request, res: Response) => {
 
     // 1. Database connectivity
     const dbStart = Date.now();
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       checks.database = {
         status: 'warn',
         message: 'No database configured (DATABASE_URL not set)',
@@ -69,7 +69,7 @@ router.get('/health', async (req: Request, res: Response) => {
 
     // 2. Core tables check
     const tableStart = Date.now();
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       checks.tables = {
         status: 'warn',
         message: 'No database configured',
@@ -99,15 +99,34 @@ router.get('/health', async (req: Request, res: Response) => {
 
     // Overall status
     const allPassed = Object.values(checks).every((c) => c.status === 'pass');
+    const hasFailure = Object.values(checks).some((c) => c.status === 'fail');
+    const hasWarning = Object.values(checks).some((c) => c.status === 'warn');
+
+    // Determine status: healthy if all pass, degraded if warnings only, unhealthy if failures
+    let overallStatus: 'healthy' | 'degraded' | 'unhealthy';
+    let httpStatus: number;
+
+    if (allPassed) {
+      overallStatus = 'healthy';
+      httpStatus = 200;
+    } else if (hasWarning && !hasFailure) {
+      // Only warnings (e.g., no DATABASE_URL) - degraded but still operational
+      overallStatus = 'degraded';
+      httpStatus = 200; // Return 200 for Railway health check to pass
+    } else {
+      // Has failures (e.g., DATABASE_URL set but connection failed)
+      overallStatus = 'unhealthy';
+      httpStatus = 503;
+    }
 
     const response: HealthStatus = {
-      status: allPassed ? 'healthy' : 'degraded',
+      status: overallStatus,
       timestamp: new Date().toISOString(),
       checks,
       uptime: Math.floor((Date.now() - startTime) / 1000),
     };
 
-    res.status(allPassed ? 200 : 503).json(response);
+    res.status(httpStatus).json(response);
   } catch (error) {
     logger.error('Health check failed', { error });
     res.status(500).json({
