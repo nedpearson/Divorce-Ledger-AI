@@ -5,21 +5,22 @@ import { createQueryWrapper, SafeQueryClient } from "./lib/safeQuery";
 
 const { Pool } = pg;
 
-const databaseUrl = process.env.DATABASE_URL;
+// Prefer DIRECT_URL (direct Supabase host) when available, fall back to DATABASE_URL
+const rawDatabaseUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
 
-if (!databaseUrl) {
-  console.error("Missing DATABASE_URL environment variable");
+if (!rawDatabaseUrl) {
+  console.error("Missing DIRECT_URL/DATABASE_URL environment variables");
   console.error("Available env vars:", Object.keys(process.env).filter(k => !k.includes("SECRET") && !k.includes("PASSWORD")).join(", "));
 }
 
-const isSupabase = databaseUrl?.includes('supabase');
+const isSupabase = rawDatabaseUrl?.includes('supabase');
 
 // Strip any conflicting SSL params from URL before passing to pg
-const cleanDatabaseUrl = databaseUrl
-  ? databaseUrl.replace(/[?&]sslmode=\w+/g, '').replace(/[?&]ssl=\w+/g, '')
-  : databaseUrl;
+const cleanDatabaseUrl = rawDatabaseUrl
+  ? rawDatabaseUrl.replace(/[?&]sslmode=\w+/g, '').replace(/[?&]ssl=\w+/g, '')
+  : rawDatabaseUrl;
 
-export const pool = databaseUrl ? new Pool({
+export const pool = rawDatabaseUrl ? new Pool({
   connectionString: cleanDatabaseUrl,
   connectionTimeoutMillis: 30000,
   idleTimeoutMillis: 30000,
@@ -34,7 +35,7 @@ if (pool) {
   });
 }
 
-// Create a proxy that throws helpful errors when db is accessed without DATABASE_URL
+// Create a proxy that throws helpful errors when db is accessed without DATABASE_URL/DIRECT_URL
 const dbInstance = pool ? drizzle(pool, { schema }) : null;
 
 export const db = dbInstance ? dbInstance : new Proxy({} as NodePgDatabase<typeof schema>, {
@@ -43,13 +44,13 @@ export const db = dbInstance ? dbInstance : new Proxy({} as NodePgDatabase<typeo
       // Don't intercept Promise methods
       return undefined;
     }
-    throw new Error(`Database not available: DATABASE_URL environment variable is not set. Cannot access db.${String(prop)}`);
+    throw new Error(`Database not available: DIRECT_URL/DATABASE_URL environment variables are not set. Cannot access db.${String(prop)}`);
   }
 }) as NodePgDatabase<typeof schema>;
 
 export async function testDatabaseConnection(): Promise<boolean> {
   if (!pool) {
-    console.error("Database pool not initialized - DATABASE_URL missing");
+    console.error("Database pool not initialized - DIRECT_URL/DATABASE_URL missing");
     return false;
   }
   
