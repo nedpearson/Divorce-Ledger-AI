@@ -286,7 +286,194 @@ export const TEST_USERS = [
 ];
 
 export async function seedDemoData() {
-  // Demo seeding logic
+  const demoEmail = (process.env.DEMO_EMAIL || "demo@example.com").trim().toLowerCase();
+
+  const demoUser = await db
+    .select({ id: users.id, environment: users.environment })
+    .from(users)
+    .where(eq(users.email, demoEmail));
+
+  if (demoUser.length === 0) {
+    console.warn("[DEMO] seedDemoData: demo user not found, skipping demo seeding.");
+    return;
+  }
+
+  const userId = demoUser[0].id;
+  const environment = "demo";
+
+  // Only seed if user has no existing violations/cases
+  const existingViolations = await db
+    .select({ count: sql`COUNT(*)` })
+    .from(violations)
+    .where(and(eq(violations.userId, userId), eq(violations.environment, environment)));
+
+  if (Number(existingViolations[0]?.count ?? 0) > 0) {
+    console.log("[DEMO] seedDemoData: existing demo data detected, skipping reseed.");
+    return;
+  }
+
+  console.log("[DEMO] Seeding sample demo data for demo@example.com...");
+
+  const now = new Date();
+
+  // Create a few sample cases
+  const case1 = await db
+    .insert(cases)
+    .values({
+      userId,
+      environment,
+      title: "Custody & Parenting Time",
+      status: "open",
+      courtName: "Family Court of East Baton Rouge Parish",
+      caseNumber: "DL-DEMO-2026-001",
+      createdAt: now,
+    })
+    .returning();
+
+  const case2 = await db
+    .insert(cases)
+    .values({
+      userId,
+      environment,
+      title: "Hidden Assets & Financial Misconduct",
+      status: "open",
+      courtName: "19th Judicial District Court",
+      caseNumber: "DL-DEMO-2026-002",
+      createdAt: now,
+    })
+    .returning();
+
+  const [primaryCase] = case1;
+
+  // Seed a few violations tied to the primary case
+  await db.insert(violations).values([
+    {
+      userId,
+      environment,
+      caseId: primaryCase.id,
+      type: "custody",
+      description:
+        "Other parent failed to appear for scheduled custody exchange and did not notify prior to being 45 minutes late.",
+      location: "Exchange point – Target parking lot, Siegen Lane",
+      createdAt: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7),
+      isDraft: false,
+    },
+    {
+      userId,
+      environment,
+      caseId: primaryCase.id,
+      type: "financial_hiding",
+      description:
+        "Unexplained $7,500 transfer from joint checking to new online-only bank account not previously disclosed.",
+      location: "Online banking – joint checking ending 4421",
+      createdAt: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 3),
+      isDraft: false,
+    },
+    {
+      userId,
+      environment,
+      caseId: primaryCase.id,
+      type: "court_order",
+      description:
+        "Missed child support payment for January despite standing order requiring payment by the 5th of each month.",
+      location: "Child support order – Section C, paragraph 4",
+      createdAt: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 14),
+      isDraft: false,
+    },
+  ]);
+
+  // Seed a couple of financial items so dashboards are not empty
+  await db.insert(assets).values([
+    {
+      userId,
+      environment,
+      name: "Joint Checking Account",
+      value: 12500,
+      category: "bank_account",
+      ownership: "joint",
+      verified: true,
+      createdAt: now,
+    },
+    {
+      userId,
+      environment,
+      name: "Primary Residence",
+      value: 425000,
+      category: "real_property",
+      ownership: "marital",
+      verified: false,
+      createdAt: now,
+    },
+  ]);
+
+  await db.insert(debts).values([
+    {
+      userId,
+      environment,
+      name: "Mortgage – Primary Residence",
+      amount: 315000,
+      category: "mortgage",
+      ownership: "marital",
+      monthlyPayment: 2450,
+      createdAt: now,
+    },
+    {
+      userId,
+      environment,
+      name: "Joint Credit Card",
+      amount: 8400,
+      category: "credit_card",
+      ownership: "joint",
+      monthlyPayment: 250,
+      createdAt: now,
+    },
+  ]);
+
+  await db.insert(incomes).values([
+    {
+      userId,
+      environment,
+      source: "W-2 Employment – Software Engineer",
+      amount: 9800,
+      frequency: "monthly",
+      owner: "you",
+      createdAt: now,
+    },
+    {
+      userId,
+      environment,
+      source: "Child Support Received",
+      amount: 1200,
+      frequency: "monthly",
+      owner: "you",
+      createdAt: now,
+    },
+  ]);
+
+  await db.insert(expenses).values([
+    {
+      userId,
+      environment,
+      category: "legal_professional",
+      description: "Retainer payment to family law attorney",
+      amount: 3500,
+      frequency: "one_time",
+      owner: "you",
+      createdAt: now,
+    },
+    {
+      userId,
+      environment,
+      category: "childcare",
+      description: "After-school care and activities",
+      amount: 600,
+      frequency: "monthly",
+      owner: "you",
+      createdAt: now,
+    },
+  ]);
+
+  console.log("[DEMO] Demo data seeded successfully.");
 }
 
 export async function seedTestUsers() {
