@@ -224,9 +224,53 @@ app.use((req, res, next) => {
   if (dbConnected) {
     try {
       console.log('[STARTUP] Running database migrations...');
-      const { migrate } = await import('drizzle-orm/node-postgres/migrator');
-      await migrate(db, { migrationsFolder: './migrations' });
-      console.log('✅ [STARTUP] Database migrations completed successfully');
+      const fs = await import('fs');
+      const path = await import('path');
+      const pg = await import('pg');
+      const migrationsDir = path.resolve('./migrations');
+
+      // Use DIRECT_URL for migrations (Supabase pooler doesn't support DDL)
+      const migrationUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
+      const isSupabase = migrationUrl?.includes('supabase');
+      const cleanUrl = migrationUrl
+        ? migrationUrl.replace(/[?&]sslmode=\w+/g, '').replace(/[?&]ssl=\w+/g, '')
+        : migrationUrl;
+
+      const migPool = new pg.default.Pool({
+        connectionString: cleanUrl,
+        ssl: isSupabase ? { rejectUnauthorized: false } : undefined,
+        max: 1,
+      });
+
+      const client = await migPool.connect();
+      try {
+        // Create tracking table if missing
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS _migrations (
+            id SERIAL PRIMARY KEY,
+            filename TEXT UNIQUE NOT NULL,
+            applied_at TIMESTAMPTZ DEFAULT NOW()
+          )
+        `);
+        const sqlFiles = fs.readdirSync(migrationsDir)
+          .filter((f: string) => f.endsWith('.sql'))
+          .sort();
+        for (const file of sqlFiles) {
+          const { rows } = await client.query(
+            'SELECT id FROM _migrations WHERE filename = $1', [file]
+          );
+          if (rows.length === 0) {
+            const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+            await client.query(sql);
+            await client.query('INSERT INTO _migrations (filename) VALUES ($1)', [file]);
+            console.log(`  ✅ Applied migration: ${file}`);
+          }
+        }
+        console.log('✅ [STARTUP] Database migrations completed successfully');
+      } finally {
+        client.release();
+        await migPool.end();
+      }
     } catch (error) {
       console.error('❌ [STARTUP] Database migration failed:', error);
       console.error('[STARTUP] Application will continue but database schema may be incomplete');

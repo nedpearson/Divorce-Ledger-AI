@@ -13,8 +13,10 @@ if (!databaseUrl) {
 }
 
 const isSupabase = databaseUrl?.includes('supabase');
-const cleanDatabaseUrl = isSupabase
-  ? databaseUrl!.replace(/[?&]sslmode=\w+/g, '').replace(/[?&]ssl=\w+/g, '')
+
+// Strip any conflicting SSL params from URL before passing to pg
+const cleanDatabaseUrl = databaseUrl
+  ? databaseUrl.replace(/[?&]sslmode=\w+/g, '').replace(/[?&]ssl=\w+/g, '')
   : databaseUrl;
 
 export const pool = databaseUrl ? new Pool({
@@ -22,6 +24,7 @@ export const pool = databaseUrl ? new Pool({
   connectionTimeoutMillis: 30000,
   idleTimeoutMillis: 30000,
   max: 10,
+  // Supabase requires SSL; disable cert verification for pooler
   ssl: isSupabase ? { rejectUnauthorized: false } : undefined,
 }) : null;
 
