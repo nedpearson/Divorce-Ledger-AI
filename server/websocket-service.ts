@@ -2,6 +2,9 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import { DashboardService, DashboardMetrics } from './dashboard-service';
 import { getBaseOrigin } from './lib/baseUrl';
+import { createLogger } from './lib/logger';
+
+const logger = createLogger('WebSocket');
 
 export class WebSocketService {
   private io: SocketIOServer;
@@ -48,7 +51,7 @@ export class WebSocketService {
 
   initialize(): void {
     this.io.on('connection', (socket: Socket) => {
-      console.log(`Dashboard client connected: ${socket.id}`);
+      logger.info('Dashboard client connected', { socketId: socket.id });
       this.connectedClients.add(socket.id);
 
       socket.emit('metrics:initial', this.dashboardService.getMetrics());
@@ -58,7 +61,7 @@ export class WebSocketService {
       });
 
       socket.on('disconnect', () => {
-        console.log(`Dashboard client disconnected: ${socket.id}`);
+        logger.info('Dashboard client disconnected', { socketId: socket.id });
         this.connectedClients.delete(socket.id);
       });
 
@@ -72,7 +75,7 @@ export class WebSocketService {
       });
     });
 
-    console.log(`WebSocket server initialized`);
+    logger.info('WebSocket server initialized');
   }
 
   private async getDrillDownData(metric: string): Promise<unknown> {

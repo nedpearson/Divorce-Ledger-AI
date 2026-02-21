@@ -10,6 +10,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenAI } from '@google/genai';
 import OpenAI from 'openai';
+import { createLogger } from '../../lib/logger';
+
+const logger = createLogger('LLMProvider');
 
 export type LLMProvider = 'claude' | 'openai' | 'gemini';
 
@@ -90,7 +93,7 @@ function getClaudeClient(): Anthropic {
       );
     }
     claudeClient = new Anthropic({ apiKey });
-    console.log('[Claude] Client initialized');
+    logger.info('Claude client initialized');
   }
   return claudeClient;
 }
@@ -108,7 +111,7 @@ function getOpenAIClient(): OpenAI {
       apiKey,
       ...(baseURL && { baseURL })
     });
-    console.log('[OpenAI] Client initialized', baseURL ? '(using Replit proxy)' : '');
+    logger.info('OpenAI client initialized', { usingProxy: !!baseURL });
   }
   return openaiClient;
 }
@@ -125,7 +128,7 @@ function getGeminiClient(): GoogleGenAI {
     geminiClient = baseUrl
       ? new GoogleGenAI({ apiKey, httpOptions: { baseUrl } })
       : new GoogleGenAI({ apiKey });
-    console.log('[Gemini] Client initialized', baseUrl ? '(using Replit proxy)' : '');
+    logger.info('Gemini client initialized', { usingProxy: !!baseUrl });
   }
   return geminiClient;
 }
@@ -148,7 +151,7 @@ async function callClaude(
     // PDFs should be converted to images before being passed here
     if (message.mimeType.includes('pdf')) {
       // Skip PDF - it should be converted to image or text extracted beforehand
-      console.warn('[Claude] PDF passed as image - this may not work. Convert to image first.');
+      logger.warn('PDF passed to Claude as image - this may not work', { mimeType: message.mimeType });
     } else {
       // Add image for vision analysis
       const validMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -307,7 +310,7 @@ export async function callLLM(
         throw new Error(`Unknown provider: ${config.provider}`);
     }
   } catch (error) {
-    console.error(`[LLM Error] ${modelName}:`, error);
+    logger.error('LLM call failed', { modelName, error });
     throw error;
   }
 }

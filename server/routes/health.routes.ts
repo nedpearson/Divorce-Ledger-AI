@@ -12,6 +12,9 @@ import { db } from '../db';
 import { users, billingRecords, usageAudit, violations } from '@shared/schema';
 import { sql, count } from 'drizzle-orm';
 import { getFireflyEnvConfig, validateFireflyEnv } from '../config/firefly.config';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('HealthCheck');
 
 const router = Router();
 
@@ -90,7 +93,7 @@ router.get('/health', async (req: Request, res: Response) => {
 
     res.status(allPassed ? 200 : 503).json(response);
   } catch (error) {
-    console.error('Health check failed:', error);
+    logger.error('Health check failed', { error });
     res.status(500).json({
       status: 'unhealthy',
       error: (error as Error).message,
@@ -200,7 +203,7 @@ router.get('/health/detailed', async (req: Request, res: Response) => {
       version: '1.0.0',
     });
   } catch (error) {
-    console.error('Detailed health check failed:', error);
+    logger.error('Detailed health check failed', { error });
     res.status(500).json({
       status: 'unhealthy',
       error: (error as Error).message,
@@ -324,7 +327,7 @@ router.get('/health/firefly', async (req: Request, res: Response) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Firefly health check failed:', error);
+    logger.error('Firefly health check failed', { error });
     res.status(500).json({
       status: 'error',
       error: (error as Error).message,
@@ -334,7 +337,7 @@ router.get('/health/firefly', async (req: Request, res: Response) => {
 
 // Watchdog report endpoint
 router.post('/loop-watchdog', (req, res) => {
-  console.warn('[LoopWatchdog Report]:', req.body);
+  logger.warn('Loop watchdog triggered', { report: req.body });
   res.status(204).send();
 });
 
@@ -370,7 +373,7 @@ router.get('/network-info', async (req: Request, res: Response) => {
       port: process.env.PORT || 5000,
     });
   } catch (error) {
-    console.error('Network info error:', error);
+    logger.error('Network info error', { error });
     res.status(500).json({
       error: 'Failed to get network info',
     });
