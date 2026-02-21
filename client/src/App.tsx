@@ -31,6 +31,8 @@ const Communications = lazy(() => import("@/pages/communications"));
 const Journal = lazy(() => import("@/pages/journal"));
 const CaseBuilder = lazy(() => import("@/pages/case-builder"));
 const Pricing = lazy(() => import("@/pages/pricing"));
+const WorkspaceSetup = lazy(() => import("@/pages/workspace-setup"));
+const WorkspaceSettings = lazy(() => import("@/pages/workspace-settings"));
 const Calendar = lazy(() => import("@/pages/calendar"));
 const Legal = lazy(() => import("@/pages/legal"));
 const ChildSupport = lazy(() => import("@/pages/child-support"));
@@ -304,6 +306,22 @@ function Router() {
         <RequireAuth>
           <AuthLayout>
             <Pricing />
+          </AuthLayout>
+        </RequireAuth>
+      </Route>
+      <Route path="/workspace-setup">
+        <RequireAuth>
+          <Suspense fallback={<PageLoader />}>
+            <WorkspaceSetup />
+          </Suspense>
+        </RequireAuth>
+      </Route>
+      <Route path="/workspace/:workspaceId/settings">
+        <RequireAuth>
+          <AuthLayout>
+            <Suspense fallback={<PageLoader />}>
+              <WorkspaceSettings />
+            </Suspense>
           </AuthLayout>
         </RequireAuth>
       </Route>

@@ -20,7 +20,11 @@ These are required if the corresponding feature is used.
 | Variable | Description |
 |----------|-------------|
 | `STRIPE_SECRET_KEY` | Stripe API Secret Key |
+| `STRIPE_PUBLISHABLE_KEY` | Stripe Publishable Key |
 | `STRIPE_WEBHOOK_SECRET` | Stripe Webhook Signing Secret |
+| `STRIPE_MODE` | Stripe mode: `test` or `production` |
+| `WORKSPACE_BILLING_ENABLED` | Enable workspace billing flows (`true`/`false`) |
+| `AI_CREDITS_DEFAULT_MODE` | Default credits mode: `safe` or `metered` |
 
 ### AI Integrations
 | Variable | Description |

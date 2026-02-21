@@ -28,6 +28,7 @@ import analyticsDashboardRoutes from "./routes/analytics-dashboard.routes";
 import governanceRoutes from "./routes/governance.routes";
 import fireflyRoutes from "./routes/firefly";
 import appwriteRoutes from "./routes/appwrite.routes";
+import workspaceBillingRoutes from "./routes/workspace-billing.routes";
 import { 
   canCreateCase, 
   canAddViolation, 
@@ -52,6 +53,14 @@ import { analyzeDocumentImage, analyzeViolationImage, transcribeVoiceNote } from
 import { processDocumentUploadEvent, executeOrchestratorActions, type DocumentUploadEvent, type OrchestratorResponse } from "./services/intake-orchestrator.service";
 
 import { requireAuth, requireAdmin } from "./middleware/authz";
+
+function resolveWorkspaceId(req: Request): string | undefined {
+  const contextId = (req as any).workspace?.id as string | undefined;
+  const headerId = req.headers["x-workspace-id"] as string | undefined;
+  const queryId = req.query.workspaceId as string | undefined;
+  const bodyId = (req as any).body?.workspaceId as string | undefined;
+  return contextId || headerId || queryId || bodyId;
+}
 
 // Rate limiter for login endpoint - prevents brute force attacks
 // In development/demo mode, the limiter is bypassed entirely
@@ -204,10 +213,21 @@ const updateChildSupportPaymentSchema = z.object({
 });
 
 // AI Helper Functions for Journal and Communication features
-async function transcribeVoiceWithGemini(audioBase64: string, mimeType: string): Promise<string> {
+async function transcribeVoiceWithGemini(
+  audioBase64: string,
+  mimeType: string,
+  workspaceId?: string,
+  userId?: string | number
+): Promise<string> {
   // Use the existing transcribeVoiceNote service
   try {
-    const result = await transcribeVoiceNote(audioBase64, mimeType, "document");
+    const result = await transcribeVoiceNote(
+      audioBase64,
+      mimeType,
+      "document",
+      workspaceId,
+      userId
+    );
     return result.extractedText || "";
   } catch (error) {
     console.error("Gemini voice transcription failed:", error);
@@ -354,6 +374,9 @@ export async function registerRoutes(
   // Register health check routes
   app.use('/api', healthRoutes);
   console.log('✅ Health Check Routes Loaded');
+
+  // Workspace billing & multi-tenant workspace routes
+  app.use('/api', workspaceBillingRoutes);
 
   app.post("/api/admin/demo-reset", async (req, res) => {
     // CRITICAL: Block in live mode
@@ -2397,6 +2420,7 @@ export async function registerRoutes(
     try {
       const userId = ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const workspaceId = resolveWorkspaceId(req);
       const parsed = createDocumentSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
@@ -2430,7 +2454,13 @@ export async function registerRoutes(
               
               // Try preliminary analysis if we have fileName and fileType
               if (doc.fileName && doc.fileType) {
-                const analysis = await analyzeDocument(doc.fileName, doc.fileType, doc.description || "");
+                const analysis = await analyzeDocument(
+                  doc.fileName,
+                  doc.fileType,
+                  doc.description || "",
+                  workspaceId,
+                  userId
+                );
                 if (analysis && analysis.confidence > 0.6) {
                   await storage.updateDocument(doc.id, {
                     category: analysis.category,
@@ -2463,18 +2493,20 @@ export async function registerRoutes(
   app.post("/api/capture/analyze", async (req, res) => {
     try {
       const { base64Data, mimeType, fileName, captureType, source } = req.body;
+      const userId = ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-user";
+      const workspaceId = resolveWorkspaceId(req);
       let result;
       if (captureType === "document") {
         if (source === "voice") {
-          result = await transcribeVoiceNote(base64Data, mimeType, "document");
+          result = await transcribeVoiceNote(base64Data, mimeType, "document", workspaceId, userId);
         } else {
-          result = await analyzeDocumentImage(base64Data, mimeType, fileName);
+          result = await analyzeDocumentImage(base64Data, mimeType, fileName, workspaceId, userId);
         }
       } else {
         if (source === "voice") {
-          result = await transcribeVoiceNote(base64Data, mimeType, "violation");
+          result = await transcribeVoiceNote(base64Data, mimeType, "violation", workspaceId, userId);
         } else {
-          result = await analyzeViolationImage(base64Data, mimeType, fileName);
+          result = await analyzeViolationImage(base64Data, mimeType, fileName, workspaceId, userId);
         }
       }
       res.json({ success: true, data: result });
@@ -2488,6 +2520,8 @@ export async function registerRoutes(
   app.post("/api/capture/extract-financial", async (req, res) => {
     try {
       const { fileName, fileType, base64Data } = req.body;
+      const userId = ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-user";
+      const workspaceId = resolveWorkspaceId(req);
       
       if (!fileName || !fileType) {
         return res.status(400).json({ 
@@ -2501,14 +2535,26 @@ export async function registerRoutes(
       // If base64 data provided, run OCR first to extract text
       if (base64Data) {
         try {
-          const ocrResult = await analyzeDocumentImage(base64Data, fileType, fileName);
+          const ocrResult = await analyzeDocumentImage(
+            base64Data,
+            fileType,
+            fileName,
+            workspaceId,
+            userId
+          );
           ocrText = ocrResult.extractedText || "";
         } catch (ocrError) {
           console.log("OCR extraction failed, using filename only:", ocrError);
         }
       }
       
-      const extraction = await extractFinancialData(fileName, fileType, ocrText);
+      const extraction = await extractFinancialData(
+        fileName,
+        fileType,
+        ocrText,
+        workspaceId,
+        userId
+      );
       
       res.json({ 
         success: true, 
@@ -2558,13 +2604,20 @@ export async function registerRoutes(
       const headerUserId = req.headers["x-user-id"] as string;
       const userId = (headerUserId && headerUserId.trim()) || "demo-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const workspaceId = resolveWorkspaceId(req);
       
       let rawText = "";
       
       // If base64 data provided, run OCR first to extract text
       if (base64Data) {
         try {
-          const ocrResult = await analyzeDocumentImage(base64Data, fileType, fileName);
+          const ocrResult = await analyzeDocumentImage(
+            base64Data,
+            fileType,
+            fileName,
+            workspaceId,
+            userId
+          );
           rawText = ocrResult.extractedText || "";
         } catch (ocrError) {
           console.log("OCR extraction failed, using filename only:", ocrError);
@@ -3050,6 +3103,7 @@ export async function registerRoutes(
       let analysis;
       const userId = doc.userId || "demo-user";
       const environment = doc.environment || "demo";
+      const workspaceId = resolveWorkspaceId(req);
       
       // If we have a fileUrl that's an objectPath (starts with /objects/), fetch from object storage
       if (doc.fileUrl && doc.fileUrl.startsWith('/objects/') && (doc.fileType.includes('image') || doc.fileType.includes('pdf'))) {
@@ -3059,7 +3113,13 @@ export async function registerRoutes(
           const [buffer] = await objectFile.download();
           const base64Data = buffer.toString('base64');
           
-          const ocrResult = await analyzeDocumentImage(base64Data, doc.fileType, doc.fileName);
+          const ocrResult = await analyzeDocumentImage(
+            base64Data,
+            doc.fileType,
+            doc.fileName,
+            workspaceId,
+            userId
+          );
           
           if (ocrResult.confidence > 0.5 || force) {
             // Update document with analysis
@@ -3095,7 +3155,13 @@ export async function registerRoutes(
             const arrayBuffer = await response.arrayBuffer();
             const base64Data = Buffer.from(arrayBuffer).toString('base64');
             
-            const ocrResult = await analyzeDocumentImage(base64Data, doc.fileType, doc.fileName);
+            const ocrResult = await analyzeDocumentImage(
+              base64Data,
+              doc.fileType,
+              doc.fileName,
+              workspaceId,
+              userId
+            );
             
             if (ocrResult.confidence > 0.5 || force) {
               const newDescription = force 
@@ -3126,7 +3192,13 @@ export async function registerRoutes(
       }
 
       // Fallback to text-based analysis using the description
-      analysis = await analyzeDocument(doc.fileName, doc.fileType, doc.description || "");
+      analysis = await analyzeDocument(
+        doc.fileName,
+        doc.fileType,
+        doc.description || "",
+        workspaceId,
+        userId
+      );
       
       if (analysis && (analysis.confidence > 0.5 || force)) {
         await storage.updateDocument(doc.id, {
@@ -5126,6 +5198,7 @@ export async function registerRoutes(
     try {
       const userId = req.headers["x-user-id"] as string || "demo-user";
       const environment = req.headers["x-environment"] as string || req.body.environment || "demo";
+      const workspaceId = resolveWorkspaceId(req);
       const { title, fileName, fileType, fileUrl, fileSize, description } = req.body;
 
       if (!title || !fileName) {
@@ -5139,7 +5212,13 @@ export async function registerRoutes(
       if (isDemoMode) {
         analysisResult = getMockDocumentAnalysis(fileName);
       } else {
-        analysisResult = await analyzeDocument(fileName, fileType || "unknown", description);
+        analysisResult = await analyzeDocument(
+          fileName,
+          fileType || "unknown",
+          description,
+          workspaceId,
+          userId
+        );
       }
 
       const document = await storage.createDocument({
@@ -5241,7 +5320,7 @@ export async function registerRoutes(
   // POST /api/mobile/violations - Create a new violation report from mobile
   app.post("/api/mobile/violations", async (req: Request, res: Response) => {
     try {
-      const userId = "demo-user";
+      const userId = (req.headers["x-user-id"] as string) || "demo-user";
       const { 
         title, 
         violationType, 
@@ -5254,6 +5333,7 @@ export async function registerRoutes(
         environment = "demo",
         useSuggestions = true,
       } = req.body;
+      const workspaceId = resolveWorkspaceId(req);
 
       if (!description) {
         return res.status(400).json({ success: false, error: "Description is required" });
@@ -5262,7 +5342,7 @@ export async function registerRoutes(
       // Get AI classification for the violation
       let aiResult;
       if (environment !== "demo" && useSuggestions) {
-        aiResult = await classifyViolation(description, relatedDocumentIds);
+        aiResult = await classifyViolation(description, relatedDocumentIds, workspaceId, userId);
       } else {
         aiResult = {
           type: violationType || "other",
@@ -6132,13 +6212,20 @@ export async function registerRoutes(
   app.post("/api/journal/transcribe", async (req: Request, res: Response) => {
     try {
       const { audioData, mimeType } = req.body;
+      const userId = ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-user";
+      const workspaceId = resolveWorkspaceId(req);
       
       if (!audioData) {
         return res.status(400).json({ error: "Audio data is required" });
       }
 
       // Use Gemini for voice transcription
-      const transcription = await transcribeVoiceWithGemini(audioData, mimeType || "audio/webm");
+      const transcription = await transcribeVoiceWithGemini(
+        audioData,
+        mimeType || "audio/webm",
+        workspaceId,
+        userId
+      );
       res.json({ transcription });
     } catch (error: any) {
       console.error("Failed to transcribe audio:", error);

@@ -1811,3 +1811,9 @@ export type ScheduledJobRun = typeof scheduledJobRuns.$inferSelect;
 // ============================================
 
 export * from "./governance-schema";
+
+// ============================================
+// WORKSPACE - RE-EXPORTS
+// ============================================
+
+export * from "./workspace-schema";

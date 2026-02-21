@@ -41,6 +41,9 @@ ADMIN_SECRET=your-admin-secret
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_PUBLISHABLE_KEY=pk_live_...
 STRIPE_MODE=production
+STRIPE_WEBHOOK_SECRET=whsec_...
+WORKSPACE_BILLING_ENABLED=true
+AI_CREDITS_DEFAULT_MODE=safe
 ```
 
 ### Object Storage (Optional)
@@ -87,6 +90,8 @@ curl -H "x-admin-secret: YOUR_SECRET" http://localhost:5000/api/admin/cron/statu
 - [ ] Health endpoints returning healthy
 - [ ] Database connection verified
 - [ ] Stripe webhook registered
+- [ ] Stripe products seeded for workspace tiers
+- [ ] Workspace billing enabled in environment
 - [ ] Cron scheduler running
 - [ ] Demo user accessible (demo@divorceledger.live / demo123)
 - [ ] Analytics dashboard populated
@@ -100,6 +105,39 @@ If critical issues found:
 3. **Clear test data**: `DELETE FROM users WHERE email LIKE '%test%'`
 4. **Restore database**: Use backup from before deployment
 5. **Notify users**: Issue statement about temporary pause
+
+## Workspace Billing Setup
+
+### 1. Run workspace migration
+```bash
+psql $DATABASE_URL -f migrations/008-multi-tenant-billing.sql
+```
+
+### 2. Seed Stripe products and prices
+```bash
+STRIPE_SECRET_KEY=sk_live_... npx tsx server/scripts/setup-stripe-products.ts
+```
+
+### 3. Configure Stripe webhook endpoint
+Endpoint URL:
+```
+https://YOUR_DOMAIN/api/webhooks/stripe
+```
+
+Events to enable:
+- checkout.session.completed
+- customer.subscription.created
+- customer.subscription.updated
+- customer.subscription.deleted
+- invoice.payment_succeeded
+- invoice.payment_failed
+
+### 4. Verify workspace billing endpoints
+- POST /api/billing/workspace/checkout
+- POST /api/billing/workspace/portal
+- POST /api/workspaces
+- GET /api/workspaces/:workspaceId
+- GET /api/workspaces/:workspaceId/entitlements
 
 ## Support
 

@@ -1,5 +1,11 @@
 import OpenAI from "openai";
 import { DOCUMENT_CATEGORIES, type DocumentCategory } from "@shared/schema";
+import { AI_CREDIT_COSTS } from "@shared/workspace-schema";
+import {
+  consumeCredits,
+  refundCredits,
+  InsufficientCreditsError,
+} from "./ai-credits.service";
 
 let _openaiClient: OpenAI | null = null;
 
@@ -50,7 +56,9 @@ const CATEGORY_DESCRIPTIONS: Record<DocumentCategory, string> = {
 export async function analyzeDocument(
   fileName: string,
   fileType: string,
-  description?: string
+  description?: string,
+  workspaceId?: string,
+  userId?: string | number
 ): Promise<DocumentAnalysisResult> {
   const categoryList = DOCUMENT_CATEGORIES.map(
     (cat) => `- ${cat}: ${CATEGORY_DESCRIPTIONS[cat]}`
@@ -75,6 +83,25 @@ Please analyze this document and respond with a JSON object containing:
 6. "relevanceScore": A score from 0.0 to 1.0 indicating relevance to divorce proceedings
 
 Respond ONLY with the JSON object, no additional text.`;
+
+  const cost = AI_CREDIT_COSTS.documentClassification;
+  let charged = false;
+
+  if (workspaceId && userId !== undefined) {
+    const chargeResult = await consumeCredits(
+      workspaceId,
+      userId,
+      cost,
+      "document_classification",
+      { fileName, fileType }
+    );
+
+    if (!chargeResult.success) {
+      throw new InsufficientCreditsError(chargeResult.error);
+    }
+
+    charged = true;
+  }
 
   try {
     const response = await openai.chat.completions.create({
@@ -103,6 +130,14 @@ Respond ONLY with the JSON object, no additional text.`;
       relevanceScore: Math.max(0, Math.min(1, parseFloat(result.relevanceScore) || 0.5)),
     };
   } catch (error) {
+    if (charged && workspaceId && userId !== undefined) {
+      await refundCredits(
+        workspaceId,
+        userId,
+        cost,
+        "document_classification_failed"
+      );
+    }
     console.error("AI document analysis failed:", error);
     // Return default values on error
     return {
@@ -118,7 +153,9 @@ Respond ONLY with the JSON object, no additional text.`;
 
 export async function classifyViolation(
   description: string,
-  evidence?: string[]
+  evidence?: string[],
+  workspaceId?: string,
+  userId?: string | number
 ): Promise<{
   type: string;
   severity: "low" | "medium" | "high" | "critical";
@@ -139,6 +176,25 @@ Analyze this potential violation and respond with a JSON object containing:
 4. "legalRelevance": A brief explanation of how this could be legally relevant
 
 Respond ONLY with the JSON object, no additional text.`;
+
+  const cost = AI_CREDIT_COSTS.sentimentAnalysis;
+  let charged = false;
+
+  if (workspaceId && userId !== undefined) {
+    const chargeResult = await consumeCredits(
+      workspaceId,
+      userId,
+      cost,
+      "violation_classification",
+      { evidenceCount: evidence?.length ?? 0 }
+    );
+
+    if (!chargeResult.success) {
+      throw new InsufficientCreditsError(chargeResult.error);
+    }
+
+    charged = true;
+  }
 
   try {
     const response = await openai.get().chat.completions.create({
@@ -163,6 +219,14 @@ Respond ONLY with the JSON object, no additional text.`;
       legalRelevance: result.legalRelevance || "Review required",
     };
   } catch (error) {
+    if (charged && workspaceId && userId !== undefined) {
+      await refundCredits(
+        workspaceId,
+        userId,
+        cost,
+        "violation_classification_failed"
+      );
+    }
     console.error("AI violation classification failed:", error);
     return {
       type: "other",
@@ -188,7 +252,9 @@ export interface FinancialDataExtraction {
 export async function extractFinancialData(
   fileName: string,
   fileType: string,
-  ocrText?: string
+  ocrText?: string,
+  workspaceId?: string,
+  userId?: string | number
 ): Promise<FinancialDataExtraction> {
   const hasContent = ocrText && ocrText.trim().length > 0;
   
@@ -224,6 +290,24 @@ Common patterns:
 
 Respond ONLY with the JSON object.`;
 
+  const cost = AI_CREDIT_COSTS.documentParsing;
+  let charged = false;
+
+  if (workspaceId && userId !== undefined) {
+    const chargeResult = await consumeCredits(
+      workspaceId,
+      userId,
+      cost,
+      "financial_data_extraction"
+    );
+
+    if (!chargeResult.success) {
+      throw new InsufficientCreditsError(chargeResult.error);
+    }
+
+    charged = true;
+  }
+
   try {
     const response = await openai.get().chat.completions.create({
       model: "gpt-4o-mini",
@@ -257,6 +341,14 @@ Respond ONLY with the JSON object.`;
       extractedText: result.extractedText || "Document analyzed",
     };
   } catch (error) {
+    if (charged && workspaceId && userId !== undefined) {
+      await refundCredits(
+        workspaceId,
+        userId,
+        cost,
+        "financial_data_extraction_failed"
+      );
+    }
     console.error("AI financial data extraction failed:", error);
     return {
       recordType: "unknown",

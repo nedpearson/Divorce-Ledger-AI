@@ -60,10 +60,20 @@ export function validateEnv() {
     throw new Error("INVALID_CONFIG: APP_MODE=development cannot run in production environment.");
   }
 
-  // 2. Strict Live Checks
+  // 2. Require DATABASE_URL and SESSION_SECRET in production
+  if (nodeEnv === 'production' || mode === 'live') {
+    if (!process.env.DATABASE_URL) {
+      throw new Error("MISSING_CONFIG: DATABASE_URL is required in production. Set it in Railway environment variables.");
+    }
+    if (!process.env.SESSION_SECRET) {
+      throw new Error("MISSING_CONFIG: SESSION_SECRET is required in production. Set it in Railway environment variables.");
+    }
+  }
+
+  // 3. Strict Live Checks
   if (mode === 'live') {
-    const requiredLive = ['STRIPE_SECRET_KEY', 'SENDGRID_API_KEY'];
-    for (const key of requiredLive) {
+    const optionalLive = ['STRIPE_SECRET_KEY', 'SENDGRID_API_KEY'];
+    for (const key of optionalLive) {
       if (!process.env[key]) {
         console.warn(`⚠️  [Config] Missing ${key} in LIVE mode. Some features will fail.`);
       }

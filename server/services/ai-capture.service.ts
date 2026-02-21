@@ -1,5 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
+import { AI_CREDIT_COSTS } from "@shared/workspace-schema";
 import OpenAI from "openai";
+import {
+  consumeCredits,
+  refundCredits,
+  InsufficientCreditsError,
+} from "./ai-credits.service";
 
 let _geminiClient: GoogleGenAI | null = null;
 let _openaiClient: OpenAI | null = null;
@@ -79,8 +85,29 @@ const VIOLATION_TYPES = [
 export async function analyzeDocumentImage(
   base64Image: string,
   mimeType: string,
-  fileName: string
+  fileName: string,
+  workspaceId?: string,
+  userId?: string | number
 ): Promise<CaptureAnalysisResult> {
+  const cost = AI_CREDIT_COSTS.imageAnalysis;
+  let charged = false;
+
+  if (workspaceId && userId !== undefined) {
+    const chargeResult = await consumeCredits(
+      workspaceId,
+      userId,
+      cost,
+      "image_analysis",
+      { fileName, mimeType }
+    );
+
+    if (!chargeResult.success) {
+      throw new InsufficientCreditsError(chargeResult.error);
+    }
+
+    charged = true;
+  }
+
   try {
     const response = await gemini.get().models.generateContent({
       model: "gemini-2.0-flash", // Reverting to stable or known version
@@ -141,6 +168,14 @@ Respond ONLY with valid JSON, no additional text.`,
       financialData,
     };
   } catch (error) {
+    if (charged && workspaceId && userId !== undefined) {
+      await refundCredits(
+        workspaceId,
+        userId,
+        cost,
+        "image_analysis_failed"
+      );
+    }
     console.error("Document image analysis failed:", error);
     return {
       title: fileName.replace(/\.[^/.]+$/, ""),
@@ -155,8 +190,29 @@ Respond ONLY with valid JSON, no additional text.`,
 export async function analyzeViolationImage(
   base64Image: string,
   mimeType: string,
-  fileName: string
+  fileName: string,
+  workspaceId?: string,
+  userId?: string | number
 ): Promise<CaptureAnalysisResult> {
+  const cost = AI_CREDIT_COSTS.imageAnalysis;
+  let charged = false;
+
+  if (workspaceId && userId !== undefined) {
+    const chargeResult = await consumeCredits(
+      workspaceId,
+      userId,
+      cost,
+      "violation_image_analysis",
+      { fileName, mimeType }
+    );
+
+    if (!chargeResult.success) {
+      throw new InsufficientCreditsError(chargeResult.error);
+    }
+
+    charged = true;
+  }
+
   try {
     const response = await gemini.get().models.generateContent({
       model: "gemini-2.5-flash",
@@ -203,6 +259,14 @@ Respond ONLY with valid JSON, no additional text.`,
       confidence: Math.max(0, Math.min(1, parseFloat(result.confidence) || 0.7)),
     };
   } catch (error) {
+    if (charged && workspaceId && userId !== undefined) {
+      await refundCredits(
+        workspaceId,
+        userId,
+        cost,
+        "violation_image_analysis_failed"
+      );
+    }
     console.error("Violation image analysis failed:", error);
     return {
       title: "Violation Evidence",
@@ -217,11 +281,32 @@ Respond ONLY with valid JSON, no additional text.`,
 export async function transcribeVoiceNote(
   base64Audio: string,
   mimeType: string,
-  type: "document" | "violation"
+  type: "document" | "violation",
+  workspaceId?: string,
+  userId?: string | number
 ): Promise<CaptureAnalysisResult> {
+  const cost = AI_CREDIT_COSTS.voiceTranscription;
+  let charged = false;
+
+  if (workspaceId && userId !== undefined) {
+    const chargeResult = await consumeCredits(
+      workspaceId,
+      userId,
+      cost,
+      "voice_transcription",
+      { mimeType, type }
+    );
+
+    if (!chargeResult.success) {
+      throw new InsufficientCreditsError(chargeResult.error);
+    }
+
+    charged = true;
+  }
+
   try {
     const categories = type === "document" ? DOCUMENT_CATEGORIES : VIOLATION_TYPES;
-    
+
     const response = await gemini.get().models.generateContent({
       model: "gemini-2.5-flash",
       contents: [
@@ -267,6 +352,14 @@ Respond ONLY with valid JSON, no additional text.`,
       confidence: Math.max(0, Math.min(1, parseFloat(result.confidence) || 0.7)),
     };
   } catch (error) {
+    if (charged && workspaceId && userId !== undefined) {
+      await refundCredits(
+        workspaceId,
+        userId,
+        cost,
+        "voice_transcription_failed"
+      );
+    }
     console.error("Voice transcription failed:", error);
     return {
       title: "Voice Note",
@@ -280,8 +373,29 @@ Respond ONLY with valid JSON, no additional text.`,
 
 export async function analyzeDocumentText(
   text: string,
-  fileName: string
+  fileName: string,
+  workspaceId?: string,
+  userId?: string | number
 ): Promise<CaptureAnalysisResult> {
+  const cost = AI_CREDIT_COSTS.documentParsing;
+  let charged = false;
+
+  if (workspaceId && userId !== undefined) {
+    const chargeResult = await consumeCredits(
+      workspaceId,
+      userId,
+      cost,
+      "document_text_analysis",
+      { fileName }
+    );
+
+    if (!chargeResult.success) {
+      throw new InsufficientCreditsError(chargeResult.error);
+    }
+
+    charged = true;
+  }
+
   try {
     const response = await openai.get().chat.completions.create({
       model: "gpt-4o-mini",
@@ -318,6 +432,14 @@ Respond ONLY with valid JSON.`,
       confidence: Math.max(0, Math.min(1, parseFloat(result.confidence) || 0.7)),
     };
   } catch (error) {
+    if (charged && workspaceId && userId !== undefined) {
+      await refundCredits(
+        workspaceId,
+        userId,
+        cost,
+        "document_text_analysis_failed"
+      );
+    }
     console.error("Document text analysis failed:", error);
     return {
       title: fileName.replace(/\.[^/.]+$/, ""),

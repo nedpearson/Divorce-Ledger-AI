@@ -12,11 +12,17 @@ if (!databaseUrl) {
   console.error("Available env vars:", Object.keys(process.env).filter(k => !k.includes("SECRET") && !k.includes("PASSWORD")).join(", "));
 }
 
-export const pool = databaseUrl ? new Pool({ 
-  connectionString: databaseUrl,
+const isSupabase = databaseUrl?.includes('supabase');
+const cleanDatabaseUrl = isSupabase
+  ? databaseUrl!.replace(/[?&]sslmode=\w+/g, '').replace(/[?&]ssl=\w+/g, '')
+  : databaseUrl;
+
+export const pool = databaseUrl ? new Pool({
+  connectionString: cleanDatabaseUrl,
   connectionTimeoutMillis: 30000,
   idleTimeoutMillis: 30000,
   max: 10,
+  ssl: isSupabase ? { rejectUnauthorized: false } : undefined,
 }) : null;
 
 if (pool) {
