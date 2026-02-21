@@ -1,18 +1,42 @@
 import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
 
-const gemini = new GoogleGenAI({
-  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
-  httpOptions: {
-    apiVersion: "",
-    baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
-  },
-});
+let _geminiClient: GoogleGenAI | null = null;
+let _openaiClient: OpenAI | null = null;
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+function getGeminiClient(): GoogleGenAI {
+  if (!_geminiClient) {
+    const apiKey = process.env.AI_INTEGRATIONS_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('Gemini API key not configured for capture service');
+    }
+    _geminiClient = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        apiVersion: "",
+        baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
+      },
+    });
+  }
+  return _geminiClient;
+}
+
+function getOpenAIClient(): OpenAI {
+  if (!_openaiClient) {
+    const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OpenAI API key not configured for capture service');
+    }
+    _openaiClient = new OpenAI({
+      apiKey,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+  }
+  return _openaiClient;
+}
+
+const gemini = { get: () => getGeminiClient() };
+const openai = { get: () => getOpenAIClient() };
 
 export interface FinancialData {
   amount: number;
@@ -58,7 +82,7 @@ export async function analyzeDocumentImage(
   fileName: string
 ): Promise<CaptureAnalysisResult> {
   try {
-    const response = await gemini.models.generateContent({
+    const response = await gemini.get().models.generateContent({
       model: "gemini-2.0-flash", // Reverting to stable or known version
       contents: [
         {
@@ -134,7 +158,7 @@ export async function analyzeViolationImage(
   fileName: string
 ): Promise<CaptureAnalysisResult> {
   try {
-    const response = await gemini.models.generateContent({
+    const response = await gemini.get().models.generateContent({
       model: "gemini-2.5-flash",
       contents: [
         {
@@ -198,7 +222,7 @@ export async function transcribeVoiceNote(
   try {
     const categories = type === "document" ? DOCUMENT_CATEGORIES : VIOLATION_TYPES;
     
-    const response = await gemini.models.generateContent({
+    const response = await gemini.get().models.generateContent({
       model: "gemini-2.5-flash",
       contents: [
         {
@@ -259,7 +283,7 @@ export async function analyzeDocumentText(
   fileName: string
 ): Promise<CaptureAnalysisResult> {
   try {
-    const response = await openai.chat.completions.create({
+    const response = await openai.get().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {

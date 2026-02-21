@@ -1,10 +1,23 @@
 import OpenAI from "openai";
 import { DOCUMENT_CATEGORIES, type DocumentCategory } from "@shared/schema";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+let _openaiClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!_openaiClient) {
+    const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OpenAI API key not configured for AI document service');
+    }
+    _openaiClient = new OpenAI({
+      apiKey,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+  }
+  return _openaiClient;
+}
+
+const openai = { get: () => getOpenAIClient() };
 
 export interface DocumentAnalysisResult {
   category: DocumentCategory;
@@ -128,7 +141,7 @@ Analyze this potential violation and respond with a JSON object containing:
 Respond ONLY with the JSON object, no additional text.`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await openai.get().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
@@ -212,7 +225,7 @@ Common patterns:
 Respond ONLY with the JSON object.`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await openai.get().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },

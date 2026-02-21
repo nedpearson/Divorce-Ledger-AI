@@ -2,10 +2,23 @@ import OpenAI from "openai";
 import { z } from "zod";
 import type { DocumentCategory } from "@shared/schema";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+let _openaiClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!_openaiClient) {
+    const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OpenAI API key not configured for document intake');
+    }
+    _openaiClient = new OpenAI({
+      apiKey,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+  }
+  return _openaiClient;
+}
+
+const openai = { get: () => getOpenAIClient() };
 
 // ==================== CANONICAL ZOD SCHEMAS (Single Source of Truth) ====================
 
@@ -330,7 +343,7 @@ ${JSON.stringify(inputPayload, null, 2)}
 Respond with a complete JSON object following the structured output schema. Include doc_type, summary, parties, amounts, dates, accounts, line_items, classifications, ledger_actions_proposed, source_trace, confidence, approval_request, and errors_or_warnings.`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await openai.get().chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
