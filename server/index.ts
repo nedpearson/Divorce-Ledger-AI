@@ -62,10 +62,10 @@ app.use(hpp());
 app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
-// Initialize monitoring services
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const dashboardService = new DashboardService(pool);
-const wsService = new WebSocketService(httpServer, dashboardService);
+// Initialize monitoring services (only if database is configured)
+const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
+const dashboardService = pool ? new DashboardService(pool) : null;
+const wsService = dashboardService ? new WebSocketService(httpServer, dashboardService) : null;
 
 declare module "http" {
   interface IncomingMessage {
@@ -268,11 +268,15 @@ app.use((req, res, next) => {
     }
     
     // Start monitoring services (both modes)
-    dashboardService.start().catch(err => {
-      console.error('Failed to start dashboard service:', err);
-      // Non-critical - don't crash the app
-    });
-    wsService.initialize();
+    if (dashboardService) {
+      dashboardService.start().catch(err => {
+        console.error('Failed to start dashboard service:', err);
+        // Non-critical - don't crash the app
+      });
+    }
+    if (wsService) {
+      wsService.initialize();
+    }
     
     // APPWRITE AUTO-START: Start queue processor if Appwrite is configured
     // This ensures documents are analyzed even if /api/appwrite/setup wasn't called
