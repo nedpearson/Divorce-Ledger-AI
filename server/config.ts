@@ -11,8 +11,8 @@ export type AppMode = 'demo' | 'live' | 'development' | 'test';
 const envSchema = z.object({
   APP_MODE: z.enum(['demo', 'live', 'development', 'test']).default('development'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  SESSION_SECRET: z.string().min(1, "SESSION_SECRET is required"),
+  DATABASE_URL: z.string().optional(), // Allow server to start without DB
+  SESSION_SECRET: z.string().optional(), // Allow server to start in degraded mode
   CRON_ENABLED: z.string().optional().transform(v => v === 'true'),
 });
 
