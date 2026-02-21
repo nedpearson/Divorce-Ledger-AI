@@ -33,7 +33,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+        <div className="container max-w-7xl mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-2">
             <Scale className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold">Divorce Ledger AI</span>
@@ -50,17 +50,17 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="container px-4 md:px-6 py-16 md:py-24">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
+      <section className="container max-w-7xl mx-auto px-4 md:px-6 py-12 md:py-20 lg:py-24">
+        <div className="max-w-4xl mx-auto text-center space-y-4 md:space-y-6">
           <Badge variant="secondary" className="mb-2">
             <Sparkles className="h-3 w-3 mr-1" />
             Purpose-Built for Family Law Firms
           </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
             Turn Chaos Into
             <span className="block text-primary mt-2">Court-Ready Stories</span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
             Divorce Ledger AI helps law firms make more money with less headache, 
             while giving clients a calmer, more controlled experience in high-conflict divorces.
           </p>
@@ -81,8 +81,8 @@ export default function LandingPage() {
       </section>
 
       {/* Value Props for Law Firms */}
-      <section className="container px-4 md:px-6 py-16 bg-muted/30">
-        <div className="max-w-6xl mx-auto">
+      <section className="w-full bg-muted/30 py-12 md:py-16">
+        <div className="container max-w-7xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Built for Law Firm Profitability
@@ -169,8 +169,8 @@ export default function LandingPage() {
       </section>
 
       {/* Key Features */}
-      <section className="container px-4 md:px-6 py-16">
-        <div className="max-w-6xl mx-auto">
+      <section className="container max-w-7xl mx-auto px-4 md:px-6 py-12 md:py-16">
+        <div className="w-full">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               One Workspace, Everything Organized
@@ -180,7 +180,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-6 md:gap-8">
             <Card className="border-2">
               <CardHeader>
                 <FileText className="h-8 w-8 text-primary mb-2" />
@@ -229,7 +229,8 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="container px-4 md:px-6 py-16 bg-muted/30">
+      <section className="w-full bg-muted/30 py-12 md:py-16">
+        <div className="container max-w-7xl mx-auto px-4 md:px-6">
         <div className="max-w-3xl mx-auto text-center space-y-6">
           <h2 className="text-3xl md:text-4xl font-bold">
             Ready to Transform Your Practice?
@@ -251,11 +252,12 @@ export default function LandingPage() {
             </Button>
           </div>
         </div>
+        </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8">
-        <div className="container px-4 md:px-6">
+      <footer className="border-t py-6 md:py-8">
+        <div className="container max-w-7xl mx-auto px-4 md:px-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <Scale className="h-5 w-5 text-primary" />

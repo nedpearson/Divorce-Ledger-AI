@@ -79,6 +79,42 @@ export async function resetDemoEnvironment(): Promise<void> {
   }
 }
 
+// Superadmin-only reset path for live/production deployments.
+// This is intentionally separate from resetDemoEnvironment() so that
+// the main demo reset contract (APP_MODE === "demo") remains strict.
+//
+// Behavior:
+// - Only allowed when APP_MODE === "live" (primary production mode)
+// - Clears all data in the demo environment BUT preserves the demo user account
+// - Reseeds rich demo data via seedDemoData()
+export async function superadminResetDemoForLive(): Promise<void> {
+  if (process.env.APP_MODE !== "live") {
+    throw new Error("superadminResetDemoForLive can only be called in live mode");
+  }
+
+  console.log("[SUPERADMIN DEMO RESET] Starting live demo reset...");
+
+  try {
+    // Clear demo environment data but keep the demo user record intact
+    await deleteEnvironmentData("demo", false);
+    console.log("[SUPERADMIN DEMO RESET] Demo data cleared (user preserved).");
+
+    // Reseed the curated demo scenario for the demo user
+    await seedDemoData();
+    console.log("[SUPERADMIN DEMO RESET] Demo data reseeded.");
+
+    // Optionally mirror the demo_meta timestamp behavior so we can
+    // observe last reset time from the same table.
+    await updateLastResetTimestamp();
+    console.log("[SUPERADMIN DEMO RESET] Timestamp updated.");
+
+    console.log("[SUPERADMIN DEMO RESET] Completed successfully.");
+  } catch (error) {
+    console.error("[SUPERADMIN DEMO RESET] Failed:", error);
+    throw error;
+  }
+}
+
 async function deleteEnvironmentData(environment: string, deleteUser: boolean = true): Promise<void> {
   // Delete from each table explicitly to avoid TypeScript issues with generic table iteration
   // Tables with environment column - delete by environment

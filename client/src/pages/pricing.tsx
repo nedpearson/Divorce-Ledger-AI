@@ -157,13 +157,14 @@ export default function PricingPage() {
   const plans = workspaceType === "consumer" ? CONSUMER_PLANS : FIRM_PLANS;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      <div className="text-center space-y-4">
+    <div className="min-h-screen w-full">
+    <div className="container max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
+      <div className="text-center space-y-3 md:space-y-4">
         <div className="flex items-center justify-center gap-2">
-          <Crown className="h-8 w-8 text-amber-500" />
-          <h1 className="text-3xl font-bold">Choose Your Plan</h1>
+          <Crown className="h-6 w-6 md:h-8 md:w-8 text-amber-500" />
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Choose Your Plan</h1>
         </div>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto px-4">
           Powerful forensic financial tools for divorce proceedings. AI-powered analysis with flexible credit-based pricing.
         </p>
       </div>
@@ -187,7 +188,7 @@ export default function PricingPage() {
         </Tabs>
       </div>
 
-      <div className={`grid grid-cols-1 md:grid-cols-3 gap-6`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {plans.map((plan) => {
           const isFree = plan.price === 0 && plan.id === "consumer_free";
           const isEnterprise = plan.id === "firm_enterprise";
@@ -302,6 +303,7 @@ export default function PricingPage() {
           </p>
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 }

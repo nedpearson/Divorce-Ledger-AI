@@ -9,6 +9,8 @@ import { Router } from "express";
 import { db } from "../db";
 import { requirePlatformAdmin, requireSuperAdmin } from "../middleware/platform-admin";
 import { logAudit, getClientIp } from "../services/audit-log.service";
+import { resetDemoEnvironment, superadminResetDemoForLive } from "../demo-reset";
+import { getAppMode, isDemoMode } from "../config";
 import {
   auditLog,
   featureFlags,
@@ -51,6 +53,39 @@ const router = Router();
 
 // Apply platform admin gate to every route in this file
 router.use(requirePlatformAdmin);
+
+// ============================================================================
+// 0) DEMO ENVIRONMENT MANAGEMENT (SUPERADMIN ONLY)
+// ============================================================================
+
+// Reset the demo environment for investor/client demos.
+// - In demo mode: performs a full atomic reset via resetDemoEnvironment.
+// - In live mode: only clears the "demo" environment data while preserving
+//   the demo user account, then reseeds curated demo data via superadminResetDemoForLive.
+router.post("/demo/reset", requireSuperAdmin, async (req, res) => {
+  try {
+    if (isDemoMode()) {
+      await resetDemoEnvironment();
+    } else {
+      await superadminResetDemoForLive();
+    }
+
+    await logAudit({
+      actorId:    req.platformAdmin!.id,
+      actorEmail: req.platformAdmin!.email,
+      actionType: "demo.reset" as any,
+      targetType: "environment",
+      targetId:   "demo",
+      details:    { appMode: getAppMode() },
+      ipAddress:  getClientIp(req),
+    });
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error("[/api/superadmin/demo/reset]", err);
+    res.status(500).json({ error: err.message || "Failed to reset demo environment" });
+  }
+});
 
 // ============================================================================
 // A) GLOBAL OVERVIEW

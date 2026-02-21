@@ -57,7 +57,6 @@ import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { SyncStatusIndicator } from "@/components/sync-status-indicator";
 import { MobileAppHeaderButton } from "@/components/mobile-app-banner";
 import { EnvironmentBadge } from "@/components/environment-badge";
-import { UpdateNotification } from "@/components/update-notification";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -417,7 +416,6 @@ function App() {
           <AuthProvider>
             <SubscriptionProvider>
               <TooltipProvider>
-                <UpdateNotification />
                 <Toaster />
                 <Router />
               </TooltipProvider>

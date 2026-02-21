@@ -36,6 +36,42 @@ export default function SuperAdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const demoResetMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/superadmin/demo/reset", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        let message = "Failed to reset demo environment";
+        try {
+          const data = await res.json();
+          if (data?.error) message = data.error;
+        } catch {
+          // ignore JSON parse errors
+        }
+        throw new Error(message);
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Demo environment reset",
+        description: "The demo environment was refreshed with clean sample data.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        variant: "destructive",
+        title: "Demo reset failed",
+        description: err?.message || "An unexpected error occurred while resetting the demo.",
+      });
+    },
+  });
+
   // Server-side verify platform admin status (source of truth)
   const { data: adminMe, isLoading: adminLoading, isError: adminError } = useQuery({
     queryKey: ["/api/superadmin/me"],
@@ -100,6 +136,7 @@ export default function SuperAdminPage() {
           <TabsTrigger value="features">Features</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="demo">Demo Tools</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview"><SuperAdminOverview /></TabsContent>
@@ -110,6 +147,34 @@ export default function SuperAdminPage() {
         <TabsContent value="features"><SuperAdminFeatures adminRole={adminMe?.role} /></TabsContent>
         <TabsContent value="audit"><SuperAdminAuditLog /></TabsContent>
         <TabsContent value="analytics"><SuperAdminAnalytics /></TabsContent>
+        <TabsContent value="demo">
+          <Card className="max-w-xl">
+            <CardHeader>
+              <CardTitle>Demo Environment Tools</CardTitle>
+              <CardDescription>
+                Reset the demo environment for investor or client demos. This clears
+                demo-only data and reseeds a fresh, realistic scenario for the demo user.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <div className="text-sm text-muted-foreground">
+                This operation:
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>Keeps the demo user account intact.</li>
+                  <li>Clears demo environment data.</li>
+                  <li>Re-seeds curated demo cases, violations, and financial data.</li>
+                </ul>
+              </div>
+              <Button
+                variant="destructive"
+                disabled={demoResetMutation.isLoading}
+                onClick={() => demoResetMutation.mutate()}
+              >
+                {demoResetMutation.isLoading ? "Resetting demo environment…" : "Reset Demo Environment"}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
