@@ -17,6 +17,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "../auth";
 import { createLogger } from "../lib/logger";
+import { logAudit } from "./audit-log.service";
 
 const logger = createLogger("Bootstrap");
 
@@ -33,6 +34,7 @@ interface BootstrapResult {
   created: number;
   updated: number;
   skipped: number;
+  error: number;
   errors: string[];
 }
 
@@ -60,8 +62,9 @@ async function provisionUser(config: BootstrapUserConfig): Promise<'created' | '
 
     if (existing.length === 0) {
       // Create new user
+      const newUserId = crypto.randomUUID();
       await db.insert(users).values({
-        id: crypto.randomUUID(),
+        id: newUserId,
         email: normalizedEmail,
         password: hashedPassword,
         fullName: config.fullName,
@@ -71,6 +74,21 @@ async function provisionUser(config: BootstrapUserConfig): Promise<'created' | '
         createdAt: new Date(),
       });
       logger.info(`Created user: ${normalizedEmail}`);
+
+      // Audit bootstrap user creation
+      await logAudit({
+        actorId: "system-bootstrap",
+        actorEmail: "system-bootstrap@internal",
+        actionType: "user.bootstrap_create",
+        targetType: "user",
+        targetId: String(newUserId),
+        details: {
+          email: normalizedEmail,
+          environment: config.environment,
+          platformRole: config.platformRole || null,
+          forcePasswordReset: !!config.forcePasswordReset,
+        },
+      });
       return 'created';
     }
 
@@ -96,6 +114,21 @@ async function provisionUser(config: BootstrapUserConfig): Promise<'created' | '
         .where(eq(users.email, normalizedEmail));
 
       logger.info(`Updated user: ${normalizedEmail} (forceReset=${config.forcePasswordReset})`);
+
+      // Audit bootstrap user update
+      await logAudit({
+        actorId: "system-bootstrap",
+        actorEmail: "system-bootstrap@internal",
+        actionType: "user.bootstrap_update",
+        targetType: "user",
+        targetId: String(user.id),
+        details: {
+          email: normalizedEmail,
+          environment: config.environment,
+          platformRole: config.platformRole || null,
+          forcePasswordReset: !!config.forcePasswordReset,
+        },
+      });
       return 'updated';
     }
 
@@ -119,17 +152,18 @@ export async function bootstrapUsers(options: { forcePasswordReset?: boolean } =
     created: 0,
     updated: 0,
     skipped: 0,
+    error: 0,
     errors: [],
   };
 
   logger.info("Starting user bootstrap...");
 
   // 1. Super Admin
-  const superAdminEmail = process.env.SUPERADMIN_EMAIL || 'nedpearson@gmail.com';
-  const superAdminPassword = process.env.SUPERADMIN_PASSWORD || '1Pearson2';
+  const superAdminEmail = process.env.SUPERADMIN_EMAIL;
+  const superAdminPassword = process.env.SUPERADMIN_PASSWORD;
 
   if (!superAdminEmail || !superAdminPassword) {
-    const error = "SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD must be set";
+    const error = "SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD must be set in environment";
     logger.error(error);
     result.errors.push(error);
     return result;
@@ -143,12 +177,19 @@ export async function bootstrapUsers(options: { forcePasswordReset?: boolean } =
     platformRole: 'super_admin',
     forcePasswordReset: options.forcePasswordReset,
   });
-
-  result[superAdminResult]++;
+  if (superAdminResult === 'created') {
+    result.created++;
+  } else if (superAdminResult === 'updated') {
+    result.updated++;
+  } else if (superAdminResult === 'skipped') {
+    result.skipped++;
+  } else if (superAdminResult === 'error') {
+    result.error++;
+  }
 
   logger.info(`Super Admin (${superAdminEmail}):`, {
     action: superAdminResult,
-    password: superAdminPassword,
+    passwordSet: true,
     warning: process.env.NODE_ENV === 'production' 
       ? '⚠️  CHANGE THIS PASSWORD IMMEDIATELY' 
       : 'Development password',
@@ -158,30 +199,43 @@ export async function bootstrapUsers(options: { forcePasswordReset?: boolean } =
   const demoMode = process.env.DEMO_MODE === 'true';
   
   if (demoMode) {
-    const demoEmail = process.env.DEMO_EMAIL || 'demo@example.com';
-    const demoPassword = process.env.DEMO_PASSWORD || 'demo123';
+    const demoEmail = process.env.DEMO_EMAIL;
+    const demoPassword = process.env.DEMO_PASSWORD;
 
-    const demoResult = await provisionUser({
-      email: demoEmail,
-      password: demoPassword,
-      fullName: 'Demo User',
-      environment: 'demo',
-      platformRole: null,
-      forcePasswordReset: options.forcePasswordReset,
-    });
+    if (!demoEmail || !demoPassword) {
+      const error = "DEMO_EMAIL and DEMO_PASSWORD must be set when DEMO_MODE=true";
+      logger.error(error);
+      result.errors.push(error);
+    } else {
+      const demoResult = await provisionUser({
+        email: demoEmail,
+        password: demoPassword,
+        fullName: 'Demo User',
+        environment: 'demo',
+        platformRole: null,
+        forcePasswordReset: options.forcePasswordReset,
+      });
+      if (demoResult === 'created') {
+        result.created++;
+      } else if (demoResult === 'updated') {
+        result.updated++;
+      } else if (demoResult === 'skipped') {
+        result.skipped++;
+      } else if (demoResult === 'error') {
+        result.error++;
+      }
 
-    result[demoResult]++;
-
-    logger.info(`Demo User (${demoEmail}):`, {
-      action: demoResult,
-      password: demoPassword,
-    });
+      logger.info(`Demo User (${demoEmail}):`, {
+        action: demoResult,
+        passwordSet: true,
+      });
+    }
   } else {
     logger.info("Demo mode disabled (DEMO_MODE != true)");
   }
 
   // 3. Summary
-  logger.info("Bootstrap complete:", result);
+  logger.info("Bootstrap complete", { result });
 
   if (result.errors.length > 0) {
     logger.error("Bootstrap had errors:", result.errors);

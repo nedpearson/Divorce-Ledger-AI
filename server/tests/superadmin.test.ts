@@ -61,7 +61,7 @@ describe("logAudit – resilience", () => {
       logAudit({
         actorId: "user-123",
         actorEmail: "test@example.com",
-        actionType: "test.action",
+        actionType: "user.bootstrap_create",
       })
     ).resolves.toBeUndefined();
   });

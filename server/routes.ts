@@ -7262,6 +7262,30 @@ export async function registerRoutes(
     }
   });
 
+  // Protected bootstrap endpoint for one-off manual provisioning
+  app.post("/api/bootstrap/run", async (req, res) => {
+    try {
+      const configuredSecret = process.env.BOOTSTRAP_SECRET;
+      if (!configuredSecret) {
+        return res.status(500).json({ error: "BOOTSTRAP_SECRET is not configured on the server" });
+      }
+
+      const providedSecret = (req.headers["x-bootstrap-secret"] as string | undefined) || req.body?.secret;
+      if (!providedSecret || providedSecret !== configuredSecret) {
+        return res.status(403).json({ error: "Invalid bootstrap secret" });
+      }
+
+      const forcePasswordReset = req.body?.forcePasswordReset === true;
+      const { bootstrapUsers } = await import("./services/bootstrap.service");
+      const result = await bootstrapUsers({ forcePasswordReset });
+
+      return res.status(200).json({ ok: true, result });
+    } catch (error) {
+      console.error("[Bootstrap Run] Error:", error);
+      return res.status(500).json({ error: "Failed to run bootstrap", message: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   // Debug endpoint to check auth configuration
   app.get("/api/debug/auth", async (req, res) => {
     try {

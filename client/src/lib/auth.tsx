@@ -105,10 +105,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const deviceFingerprint = getDeviceFingerprint();
+      const normalizedEmail = email.trim().toLowerCase();
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, environment: env, rememberMe, deviceFingerprint }),
+        body: JSON.stringify({ email: normalizedEmail, password, environment: env, rememberMe, deviceFingerprint }),
         credentials: 'include'
       });
       

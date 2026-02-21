@@ -19,6 +19,8 @@ export type AuditActionType =
   | "firm.entitlement_override"
   | "firm.feature_override"
   // User actions
+  | "user.bootstrap_create"
+  | "user.bootstrap_update"
   | "user.password_reset"
   | "user.invite_resend"
   | "user.force_signout"
