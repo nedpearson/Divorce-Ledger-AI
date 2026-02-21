@@ -557,13 +557,18 @@ export async function registerRoutes(
       // Normalize email to lower-case so lookup is case-insensitive
       const email = rawEmail.trim().toLowerCase();
       
+      console.log(`[AUTH] Login attempt for: ${email}`);
       const user = await storage.getUserByEmail(email);
       
       const { isPasswordHashed: isHashed, hashPassword: getHash, verifyPassword: checkPass } = await import("./auth");
       
       if (!user) {
+        console.log(`[AUTH] User not found: ${email}`);
         return res.status(401).json({ error: "Invalid credentials" });
       }
+      
+      console.log(`[AUTH] User found: ${email}, checking password (hashed: ${isHashed(user.password)})`);
+      console.log(`[AUTH] Password hash length: ${user.password.length}`)
       
       // Check if user is suspended
       if (user.status === 'suspended') {
@@ -584,10 +589,14 @@ export async function registerRoutes(
         console.log(`Migrated password for user ${user.id} to bcrypt hash`);
       } else {
         // Already hashed - use bcrypt compare
+        console.log(`[AUTH] Verifying hashed password for ${email}`);
         const passwordValid = await checkPass(password, user.password);
+        console.log(`[AUTH] Password valid: ${passwordValid}`);
         if (!passwordValid) {
+          console.log(`[AUTH] Password verification failed for ${email}`);
           return res.status(401).json({ error: "Invalid credentials" });
         }
+        console.log(`[AUTH] Password verification succeeded for ${email}`);
       }
       
       // Check if 2FA is required (user has phone number and is in live environment)
@@ -7236,8 +7245,31 @@ export async function registerRoutes(
     }
   });
 
+  // Debug endpoint to check users in database
+  app.get("/api/debug/users", async (req, res) => {
+    try {
+      const allUsers = await db.select({
+        email: users.email,
+        fullName: users.fullName,
+        environment: users.environment,
+        status: users.status,
+        platformRole: users.platformRole,
+        passwordLength: sql`LENGTH(${users.password})`,
+      }).from(users);
+      
+      res.json({
+        count: allUsers.length,
+        users: allUsers,
+      });
+    } catch (error) {
+      console.error("[Debug Users] Error:", error);
+      res.status(500).json({ error: "Failed to fetch users", message: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   console.log('🔧 Debug Endpoints:');
   console.log('   GET  /api/debug/finances');
+  console.log('   GET  /api/debug/users');
 
   // ============================================
   // APP VERSION & UPDATE NOTIFICATIONS
