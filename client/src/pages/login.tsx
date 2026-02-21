@@ -24,7 +24,7 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { login, completeLogin, setEnvironment, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [email, setEmail] = useState("demo@divorceledger.live");
+  const [email, setEmail] = useState("demo@example.com");
   const [password, setPassword] = useState("demo123");
   const [showPassword, setShowPassword] = useState(false);
   const [environment, setEnv] = useState<Environment>("demo");
@@ -63,7 +63,7 @@ export default function Login() {
     setError("");
     setTwoFactorState(null);
     if (env === "demo") {
-      setEmail("demo@divorceledger.live");
+      setEmail("demo@example.com");
       setPassword("demo123");
     } else {
       setEmail("");
