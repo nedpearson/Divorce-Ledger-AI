@@ -228,6 +228,10 @@ class TransformationService {
       ]
     );
     
+    if (insertResult.rows.length === 0) {
+      throw new Error('Failed to create time dimension record');
+    }
+    
     return insertResult.rows[0].time_key;
   }
 
@@ -253,6 +257,9 @@ class TransformationService {
         [userData.userId, userData.email, userData.name, userData.subscriptionTier, 
          userData.stripeCustomerId, userData.createdAt]
       );
+      if (insertResult.rows.length === 0) {
+        throw new Error('Failed to create user dimension record');
+      }
       return insertResult.rows[0].user_key;
     }
     
@@ -264,6 +271,9 @@ class TransformationService {
        RETURNING user_key`,
       [userId]
     );
+    if (insertResult.rows.length === 0) {
+      throw new Error('Failed to create unknown user dimension record');
+    }
     return insertResult.rows[0].user_key;
   }
 }

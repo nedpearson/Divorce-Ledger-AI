@@ -28,7 +28,7 @@ async function getCredentials() {
 
   if (hostname && xReplitToken) {
     try {
-      const connectionSettings = await fetch(
+      const response = await fetch(
         'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=sendgrid',
         {
           headers: {
@@ -36,7 +36,9 @@ async function getCredentials() {
             'X_REPLIT_TOKEN': xReplitToken
           }
         }
-      ).then(res => res.json()).then(data => data.items?.[0]);
+      );
+      const data = await response.json();
+      const connectionSettings = data.items?.[0];
 
       if (connectionSettings?.settings?.api_key && connectionSettings?.settings?.from_email) {
         return { apiKey: connectionSettings.settings.api_key, email: connectionSettings.settings.from_email };

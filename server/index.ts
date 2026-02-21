@@ -112,7 +112,10 @@ async function initStripe() {
     console.log('Syncing Stripe data...');
     stripeSync.syncBackfill()
       .then(() => console.log('Stripe data synced'))
-      .catch((err: any) => console.error('Error syncing Stripe data:', err));
+      .catch((err: any) => {
+        console.error('Error syncing Stripe data:', err);
+        // Non-critical - don't crash the app
+      });
   } catch (error) {
     console.error('Failed to initialize Stripe:', error);
   }
@@ -260,12 +263,14 @@ app.use((req, res, next) => {
       // Lazy check stale demo on startup
       maybeResetDemo().catch(err => {
         console.error('[DEMO] Initial startup reset check failed:', err);
+        // Non-critical - don't crash the app
       });
     }
     
     // Start monitoring services (both modes)
     dashboardService.start().catch(err => {
       console.error('Failed to start dashboard service:', err);
+      // Non-critical - don't crash the app
     });
     wsService.initialize();
     

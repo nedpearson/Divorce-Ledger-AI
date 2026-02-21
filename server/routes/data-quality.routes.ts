@@ -52,11 +52,14 @@ router.post('/run/full', requireAdminSecret, async (req: Request, res: Response)
       note: 'Check is running in background'
     });
 
-    dataQualityService.runFullQualityCheck().then(result => {
-      console.log('[DQ API] Full check completed:', result.status);
-    }).catch(error => {
-      console.error('[DQ API] Full check failed:', error);
-    });
+    dataQualityService.runFullQualityCheck()
+      .then(result => {
+        console.log('[DQ API] Full check completed:', result.status);
+      })
+      .catch(error => {
+        console.error('[DQ API] Full check failed:', error);
+        // Background job - error logged, don't crash
+      });
   } catch (error: any) {
     handleRouteError(res, error);
   }

@@ -180,6 +180,14 @@ export class DashboardService extends EventEmitter {
         }
       });
 
+      if (result.rows.length === 0) {
+        return {
+          total: 0,
+          active_7d: 0,
+          by_tier: { free: 0, individual: 0, pro: 0, team: 0, enterprise: 0 },
+        };
+      }
+
       const row = result.rows[0];
       const total = parseInt(row.total) || 0;
       return {
@@ -209,6 +217,15 @@ export class DashboardService extends EventEmitter {
           COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_count
         FROM billing_records`
       );
+
+      if (result.rows.length === 0) {
+        return {
+          pending_count: 0,
+          pending_amount_usd: 0,
+          charged_this_month_usd: 0,
+          failed_count: 0,
+        };
+      }
 
       const row = result.rows[0];
       return {

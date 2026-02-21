@@ -70,11 +70,14 @@ router.post('/run/full', checkEtlDisabled, requireAdminSecret, async (req: Reque
       note: 'Pipeline running in background'
     });
 
-    etlPipeline.runFullPipeline(since).then(result => {
-      console.log('[ETL API] Full pipeline completed:', result.status);
-    }).catch(error => {
-      console.error('[ETL API] Full pipeline failed:', error);
-    });
+    etlPipeline.runFullPipeline(since)
+      .then(result => {
+        console.log('[ETL API] Full pipeline completed:', result.status);
+      })
+      .catch(error => {
+        console.error('[ETL API] Full pipeline failed:', error);
+        // Background job - error logged, don't crash
+      });
   } catch (error: any) {
     handleRouteError(res, error);
   }
@@ -87,11 +90,14 @@ router.post('/run/incremental', checkEtlDisabled, requireAdminSecret, async (req
       note: 'Pipeline running in background'
     });
 
-    etlPipeline.runIncrementalPipeline().then(result => {
-      console.log('[ETL API] Incremental pipeline completed:', result.status);
-    }).catch(error => {
-      console.error('[ETL API] Incremental pipeline failed:', error);
-    });
+    etlPipeline.runIncrementalPipeline()
+      .then(result => {
+        console.log('[ETL API] Incremental pipeline completed:', result.status);
+      })
+      .catch(error => {
+        console.error('[ETL API] Incremental pipeline failed:', error);
+        // Background job - error logged, don't crash
+      });
   } catch (error: any) {
     handleRouteError(res, error);
   }
@@ -185,11 +191,14 @@ router.post('/aggregations/run', checkEtlDisabled, requireAdminSecret, async (re
       targetDate: targetDate.toISOString()
     });
 
-    aggregationService.runAllAggregations(targetDate).then(results => {
-      console.log('[ETL API] Aggregations completed:', results.length, 'tables processed');
-    }).catch(error => {
-      console.error('[ETL API] Aggregations failed:', error);
-    });
+    aggregationService.runAllAggregations(targetDate)
+      .then(results => {
+        console.log('[ETL API] Aggregations completed:', results.length, 'tables processed');
+      })
+      .catch(error => {
+        console.error('[ETL API] Aggregations failed:', error);
+        // Background job - error logged, don't crash
+      });
   } catch (error: any) {
     handleRouteError(res, error);
   }
