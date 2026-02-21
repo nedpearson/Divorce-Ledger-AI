@@ -27,6 +27,17 @@ class StartupService {
 
   private async checkDatabase(): Promise<void> {
     try {
+      // Check if database is configured before attempting connection
+      if (!process.env.DATABASE_URL) {
+        this.results.push({
+          name: 'Database',
+          status: 'warning',
+          message: 'DATABASE_URL not configured - running in degraded mode',
+          critical: false,
+        });
+        return;
+      }
+
       await db.execute(sql`SELECT 1`);
       this.results.push({
         name: 'Database',
@@ -39,10 +50,10 @@ class StartupService {
       this.results.push({
         name: 'Database',
         status: 'error',
-        message: `CRITICAL: Database connection failed: ${message}`,
-        critical: true,
+        message: `Database connection failed: ${message}`,
+        critical: false, // Not critical - app can run without DB
       });
-      throw error;
+      // Don't throw - allow server to start in degraded mode
     }
   }
 
