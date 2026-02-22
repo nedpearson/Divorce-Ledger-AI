@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Scale, FileText, Shield, TrendingUp, Users, Smartphone, Calendar, DollarSign } from "lucide-react";
+import { Scale, FileText, Shield, TrendingUp, Users, Smartphone, Calendar, DollarSign, Monitor } from "lucide-react";
 
 export default function DemoPresentationPage() {
   const slides = [
