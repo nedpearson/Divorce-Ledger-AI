@@ -32,11 +32,26 @@ export async function createServer(): Promise<FastifyInstance> {
 
   // CORS
   if (env.ENABLE_CORS) {
+    // Allow production frontend and localhost for dev
+    const allowedOrigins = [
+      env.FRONTEND_URL || 'http://localhost:5000',
+      'http://localhost:3000',
+      'http://localhost:5000',
+      'https://divorceledger.live',
+      'https://divorceledger.replit.app',
+    ];
     await server.register(fastifyCors, {
-      origin: env.FRONTEND_URL ? [env.FRONTEND_URL, 'http://localhost:3000'] : true,
+      origin: (origin, cb) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Not allowed by CORS'), false);
+        }
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+      exposedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
     });
   }
 
