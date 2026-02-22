@@ -1,4 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import { authService } from '../services/AuthService.js';
 import { auditService } from '../services/AuditService.js';
 import { logger } from '../logging/logger.js';
@@ -14,11 +15,24 @@ import {
 import { ValidationError } from '../errors/AppError.js';
 
 export async function authRoutes(fastify: FastifyInstance) {
+  // Register rate limiting plugin if not already registered
+  if (!fastify.hasDecorator('rateLimit')) {
+    await fastify.register(rateLimit, {
+      global: false,
+    });
+  }
   /**
    * POST /auth/signup
    * Register a new user
    */
-  fastify.post('/auth/signup', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/auth/signup', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '15m',
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const result = signupSchema.safeParse(request.body);
 
     if (!result.success) {
@@ -58,7 +72,14 @@ export async function authRoutes(fastify: FastifyInstance) {
    * POST /auth/login
    * Login with email and password
    */
-  fastify.post('/auth/login', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/auth/login', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '15m',
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const result = loginSchema.safeParse(request.body);
 
     if (!result.success) {
@@ -160,7 +181,14 @@ export async function authRoutes(fastify: FastifyInstance) {
    * POST /auth/password/reset-request
    * Request password reset email
    */
-  fastify.post('/auth/password/reset-request', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/auth/password/reset-request', {
+    config: {
+      rateLimit: {
+        max: 5,
+        timeWindow: '1h',
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const result = passwordResetRequestSchema.safeParse(request.body);
 
     if (!result.success) {
@@ -228,7 +256,14 @@ export async function authRoutes(fastify: FastifyInstance) {
    * POST /auth/oauth/callback
    * Handle OAuth callback
    */
-  fastify.post('/auth/oauth/callback', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/auth/oauth/callback', {
+    config: {
+      rateLimit: {
+        max: 20,
+        timeWindow: '15m',
+      },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const result = oauthCallbackSchema.safeParse(request.body);
 
     if (!result.success) {
