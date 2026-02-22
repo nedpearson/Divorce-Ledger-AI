@@ -17,6 +17,9 @@ describe("API Endpoints", () => {
         saveUninitialized: false,
       })
     );
+    // Add CSRF middleware for test coverage
+    const csurf = require('csurf');
+    app.use(csurf({ cookie: false }));
     await registerRoutes(null as any, app);
   });
 
