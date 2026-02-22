@@ -50,8 +50,16 @@ export class ImpersonationService {
       throw new ForbiddenError('Cannot impersonate other super admins');
     }
 
-    // Create impersonation session
-    const sessionId = `imp_${Date.now()}_${typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.floor(Math.random() * 1e9)}`;
+    // Create impersonation session with secure randomness
+    let randomPart: string;
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      randomPart = crypto.randomUUID();
+    } else if (typeof crypto !== 'undefined' && crypto.randomBytes) {
+      randomPart = crypto.randomBytes(16).toString('hex');
+    } else {
+      randomPart = Math.floor(Math.random() * 1e18).toString();
+    }
+    const sessionId = `imp_${Date.now()}_${randomPart}`;
     
     this.activeImpersonations.set(sessionId, {
       adminId: request.user!.id,
