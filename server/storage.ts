@@ -696,8 +696,6 @@ export async function seedDemoData() {
 
   console.log("[DEMO] Seeding sample demo data for demo@example.com...");
 
-  const now = new Date();
-
   // Create a few sample cases
   const case1 = await db
     .insert(cases)
