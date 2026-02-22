@@ -25,11 +25,11 @@ async function tryAll() {
       });
       try {
         await pool.query('SELECT 1');
-        console.log(`✅ SUCCESS [${label}] password: "${pw}"`);
+        console.log(`✅ SUCCESS [${label}] password: [REDACTED]`);
         await pool.end();
         return;
       } catch (e) {
-        console.log(`  [${label}] pw="${pw}": ${e.message}`);
+        console.log(`  [${label}] pw=[REDACTED]: ${e.message}`);
         try { await pool.end(); } catch {}
       }
     }

@@ -51,7 +51,7 @@ export class ImpersonationService {
     }
 
     // Create impersonation session
-    const sessionId = `imp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = `imp_${Date.now()}_${typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.floor(Math.random() * 1e9)}`;
     
     this.activeImpersonations.set(sessionId, {
       adminId: request.user!.id,

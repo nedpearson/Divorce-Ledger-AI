@@ -162,8 +162,12 @@ app.use(
   }),
 );
 
+
+import csurf from 'csurf';
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 app.use(cookieParser());
+// Add CSRF protection for all non-API routes (customize as needed)
+app.use(csurf({ cookie: true }));
 app.use(demoResetMiddleware);
 app.use(adminDemoRouter);
 

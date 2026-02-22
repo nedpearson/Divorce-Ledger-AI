@@ -372,7 +372,6 @@ export class QuickBooksService {
       ? 'https://sandbox-quickbooks.api.intuit.com'
       : 'https://quickbooks.api.intuit.com';
 
-    try {
       const response = await fetch(`${baseUrl}/v3/company/${realmId}/companyinfo/${realmId}`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -398,6 +397,11 @@ export class QuickBooksService {
       return null;
     }
 
+
+    // SSRF mitigation: validate realmId is alphanumeric (QuickBooks realm IDs are numeric strings)
+    if (!/^[0-9]+$/.test(realmId)) {
+      throw new Error('Invalid realmId');
+    }
     return decoded;
   }
 }

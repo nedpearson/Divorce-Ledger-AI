@@ -180,15 +180,13 @@ export default function AdminPanel() {
         throw new Error(data.error || "Login failed");
       }
       
-      // Save credentials if remember is checked
+      // Save only email if remember is checked (never store password)
       if (rememberCredentials) {
         localStorage.setItem("adminRememberCredentials", "true");
         localStorage.setItem("adminSavedEmail", loginEmail);
-        localStorage.setItem("adminSavedPassword", loginPassword);
       } else {
         localStorage.removeItem("adminRememberCredentials");
         localStorage.removeItem("adminSavedEmail");
-        localStorage.removeItem("adminSavedPassword");
       }
       
       // Check if 2FA is required
