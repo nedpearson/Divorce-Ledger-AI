@@ -71,12 +71,14 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const segments = queryKey as unknown[];
+    const url = segments.filter((s): s is string => typeof s === "string").join("/");
     const environment = localStorage.getItem("environment") || "demo";
     const authHeaders = {
       ...getAuthHeaders(),
       "X-Environment": environment,
     };
-    const res = await fetch(queryKey.join("/") as string, {
+    const res = await fetch(url, {
       credentials: "include",
       headers: authHeaders,
     });

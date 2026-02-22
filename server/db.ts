@@ -5,11 +5,11 @@ import { createQueryWrapper, SafeQueryClient } from "./lib/safeQuery";
 
 const { Pool } = pg;
 
-// Prefer DIRECT_URL (direct Supabase host) when available, fall back to DATABASE_URL
-const rawDatabaseUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
+// Use DATABASE_URL (pooler) first as it's more reliable, fall back to DIRECT_URL
+const rawDatabaseUrl = process.env.DATABASE_URL || process.env.DIRECT_URL;
 
 if (!rawDatabaseUrl) {
-  console.error("Missing DIRECT_URL/DATABASE_URL environment variables");
+  console.error("Missing DATABASE_URL/DIRECT_URL environment variables");
   console.error("Available env vars:", Object.keys(process.env).filter(k => !k.includes("SECRET") && !k.includes("PASSWORD")).join(", "));
 }
 

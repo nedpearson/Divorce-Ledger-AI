@@ -210,6 +210,21 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 );
               })}
+
+              {environment === "demo" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === "/demo-presentation"}
+                    data-testid="nav-demo-presentation"
+                  >
+                    <Link href="/demo-presentation">
+                      <Sparkles className="h-4 w-4" />
+                      <span>Demo Tour</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

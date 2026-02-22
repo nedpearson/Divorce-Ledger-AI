@@ -653,8 +653,17 @@ router.get('/analysis/:fileId', async (req: MulterRequest, res: Response) => {
 });
 
 router.get('/categories', async (req: Request, res: Response) => {
+  // In environments without Appwrite configured, return an empty category list
+  if (!isAppwriteConfigured()) {
+    return res.json({ categories: [] });
+  }
+
   try {
-    initializeAppwrite();
+    const initialized = initializeAppwrite();
+    if (!initialized) {
+      return res.status(503).json({ error: 'Appwrite is not configured or failed to initialize' });
+    }
+
     const result = await databases.listDocuments(DATABASE_ID, COLLECTIONS.CATEGORIES, [
       Query.equal('isActive', true),
       Query.orderAsc('sortOrder'),

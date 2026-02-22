@@ -104,11 +104,18 @@ export default function LandingPage() {
                 Install Desktop App
               </Button>
             ) : (
-              <Button size="lg" variant="outline" asChild className="text-lg">
-                <Link href="/pricing">
-                  View Pricing
-                </Link>
-              </Button>
+              <>
+                <Button size="lg" variant="outline" asChild className="text-lg">
+                  <Link href="/pricing">
+                    View Pricing
+                  </Link>
+                </Button>
+                <Button size="lg" variant="ghost" asChild className="text-lg">
+                  <Link href="/demo-presentation">
+                    Watch Demo Tour
+                  </Link>
+                </Button>
+              </>
             )}
           </div>
         </div>

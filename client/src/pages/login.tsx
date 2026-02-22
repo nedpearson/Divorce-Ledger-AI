@@ -11,6 +11,7 @@ import { useAuth, type LoginResult, getDeviceFingerprint } from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { EnvironmentBadge } from "@/components/environment-badge";
 import type { Environment } from "@shared/schema";
 
 interface TwoFactorState {
@@ -166,10 +167,15 @@ export default function Login() {
     setError("");
   };
 
+  const isDemoEnv = environment === "demo";
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="flex items-center justify-end p-4">
-        <ThemeToggle />
+        <div className="flex items-center gap-3">
+          <EnvironmentBadge className="hidden sm:inline-flex" />
+          <ThemeToggle />
+        </div>
       </header>
       
       <div className="flex-1 flex items-center justify-center p-4">
@@ -187,6 +193,10 @@ export default function Login() {
           </CardHeader>
           
           <CardContent className="space-y-6">
+            <div className="sm:hidden flex justify-center mb-2">
+              <EnvironmentBadge />
+            </div>
+
             {twoFactorState ? (
               // 2FA Verification Form
               <div className="space-y-6">
@@ -377,6 +387,23 @@ export default function Login() {
                   {error && (
                     <div className="text-sm text-destructive text-center" data-testid="text-error">
                       {error}
+                    </div>
+                  )}
+
+                  {isDemoEnv && (
+                    <div className="mt-2 rounded-md border border-dashed border-orange-300 bg-orange-50 px-3 py-2 text-xs text-orange-900 space-y-1">
+                      <p className="font-medium text-[11px] uppercase tracking-wide text-orange-700">
+                        Demo accounts
+                      </p>
+                      <p>
+                        <span className="font-semibold">Client portal:</span> client.demo@example.com / demo1234
+                      </p>
+                      <p>
+                        <span className="font-semibold">Firm admin:</span> firm.admin.demo@example.com / demo1234
+                      </p>
+                      <p className="text-[11px] text-orange-700/80">
+                        Use these in demo mode, or your own email/password in live.
+                      </p>
                     </div>
                   )}
 

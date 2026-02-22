@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Smartphone, X, ExternalLink, QrCode, WifiOff } from "lucide-react";
+import { Smartphone, X, ExternalLink, QrCode, WifiOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -8,6 +8,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Card, CardContent } from "@/components/ui/card";
+import { apiRequest } from "@/lib/queryClient";
 
 // The mobile app URL — points to the /mobile route on the same host.
 // In production this works perfectly. On localhost, phones can't reach the
@@ -36,9 +37,45 @@ export function MobileAppHeaderButton() {
   const [open, setOpen] = useState(false);
   const mobileUrl = getMobileUrl();
   const local = isLocalhost();
+  const [deepLinkUrl, setDeepLinkUrl] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+
+  async function generateMobileLink() {
+    try {
+      setIsGenerating(true);
+      setGenerateError(null);
+
+      const res = await apiRequest("POST", "/api/mobile/link");
+      const data = await res.json();
+      const token = data.token as string | undefined;
+      if (!token) {
+        throw new Error("No token returned from /api/mobile/link");
+      }
+
+      const envUrl = import.meta.env.VITE_PUBLIC_URL as string | undefined;
+      const base = envUrl ? envUrl.replace(/\/$/, "") : window.location.origin;
+      const url = `${base}/mobile-link?token=${encodeURIComponent(token)}`;
+      setDeepLinkUrl(url);
+    } catch (error) {
+      console.error("Failed to generate mobile link:", error);
+      setGenerateError("Unable to generate a secure mobile link right now.");
+      setDeepLinkUrl(null);
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen && !local && !deepLinkUrl && !isGenerating) {
+          void generateMobileLink();
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -97,19 +134,34 @@ export function MobileAppHeaderButton() {
           </div>
         ) : (
           <>
+            {isGenerating && (
+              <div className="flex items-center justify-center mb-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Generating your secure mobile link...
+              </div>
+            )}
+            {generateError && (
+              <p className="text-xs text-destructive mb-2">{generateError}</p>
+            )}
             {/* QR Code */}
-            <div className="flex justify-center bg-white rounded-lg p-3 mb-3 border">
+            <div className="flex justify-center bg-white rounded-lg p-3 mb-2 border">
               <QRCodeSVG
-                value={mobileUrl}
+                value={deepLinkUrl || mobileUrl}
                 size={160}
                 level="M"
                 includeMargin={false}
               />
             </div>
 
+            {deepLinkUrl && (
+              <p className="text-[10px] text-muted-foreground mb-1 text-center leading-snug">
+                This QR is unique to your account and expires in about 10 minutes.
+              </p>
+            )}
+
             {/* Direct link */}
             <a
-              href={mobileUrl}
+              href={deepLinkUrl || mobileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-1.5 w-full text-xs text-primary hover:underline"

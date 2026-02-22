@@ -546,6 +546,71 @@ export async function registerRoutes(
     }
   }
 
+  // Helper for short-lived mobile deep-link tokens used to bootstrap
+  // a session on a phone after scanning a QR code from the desktop app.
+  const MOBILE_LINK_SECRET = process.env.MOBILE_LINK_SECRET || process.env.SESSION_SECRET;
+  if (!MOBILE_LINK_SECRET) {
+    console.warn('⚠️ MOBILE_LINK_SECRET not set - using fallback. Set SESSION_SECRET or MOBILE_LINK_SECRET for production.');
+  }
+  const MOBILE_LINK_KEY = MOBILE_LINK_SECRET || 'divorceledger-mobile-dev-secret-not-for-production';
+  const MOBILE_LINK_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+  interface MobileLinkPayload {
+    userId: string;
+    environment: string;
+    issuedAt: number;
+  }
+
+  function base64UrlEncode(input: string): string {
+    return Buffer.from(input, 'utf8')
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/g, '');
+  }
+
+  function base64UrlDecode(input: string): string {
+    let base64 = input.replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4 !== 0) {
+      base64 += '=';
+    }
+    return Buffer.from(base64, 'base64').toString('utf8');
+  }
+
+  function encodeMobileLinkToken(payload: MobileLinkPayload): string {
+    const data = base64UrlEncode(JSON.stringify(payload));
+    const signature = crypto.createHmac('sha256', MOBILE_LINK_KEY).update(data).digest('hex');
+    return `${data}.${signature}`;
+  }
+
+  function decodeMobileLinkToken(token: string): MobileLinkPayload | null {
+    try {
+      const [data, signature] = token.split('.');
+      if (!data || !signature) return null;
+
+      const expectedSig = crypto.createHmac('sha256', MOBILE_LINK_KEY).update(data).digest('hex');
+      const sigBuf = Buffer.from(signature, 'hex');
+      const expBuf = Buffer.from(expectedSig, 'hex');
+      if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+        return null;
+      }
+
+      const payload = JSON.parse(base64UrlDecode(data)) as MobileLinkPayload;
+      if (!payload.userId || !payload.environment || !payload.issuedAt) {
+        return null;
+      }
+
+      // Enforce short time-to-live so links cannot be reused indefinitely
+      if (payload.issuedAt + MOBILE_LINK_TTL_MS < Date.now()) {
+        return null;
+      }
+
+      return payload;
+    } catch {
+      return null;
+    }
+  }
+
   app.post("/api/auth/login", loginRateLimiter, async (req, res) => {
     try {
       const { email: rawEmail, password, environment, rememberMe } = req.body;
@@ -739,7 +804,7 @@ export async function registerRoutes(
       // Set session cookie
       res.cookie('session_id', session.id, {
         httpOnly: true,
-        secure: false, 
+        secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000,
         path: '/'
@@ -765,7 +830,7 @@ export async function registerRoutes(
         const token = generateRememberMeToken(user.id, user.password);
         res.cookie('remember_me', token, {
           httpOnly: true,
-          secure: false,
+          secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
           maxAge: REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
           path: '/'
@@ -946,6 +1011,136 @@ export async function registerRoutes(
     res.clearCookie('remember_me', { path: '/' });
     res.clearCookie('session_id', { path: '/' });
     res.json({ success: true });
+  });
+
+  // ============================================
+  // MOBILE DEEP-LINK AUTH (QR-BASED LOGIN)
+  // ============================================
+
+  // Generate a short-lived mobile link token for the currently authenticated user.
+  // This is called from the desktop app to embed into a QR code.
+  app.post("/api/mobile/link", requireAuth, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const issuedAt = Date.now();
+      const environment = user.environment || 'demo';
+      const token = encodeMobileLinkToken({
+        userId: user.id,
+        environment,
+        issuedAt,
+      });
+
+      const expiresAt = new Date(issuedAt + MOBILE_LINK_TTL_MS).toISOString();
+
+      return res.json({ token, expiresAt });
+    } catch (error) {
+      console.error("Mobile link generation error:", error);
+      return res.status(500).json({ error: "Failed to generate mobile link" });
+    }
+  });
+
+  // Complete mobile authentication from a deep-link token.
+  // This endpoint is called by the mobile browser after scanning the QR.
+  app.get("/api/mobile/auth/complete", async (req, res) => {
+    try {
+      const token = req.query.token as string | undefined;
+      if (!token) {
+        return res.status(400).json({ error: "Token is required" });
+      }
+
+      const payload = decodeMobileLinkToken(token);
+      if (!payload) {
+        return res.status(400).json({ error: "Invalid or expired token" });
+      }
+
+      const user = await storage.getUser(payload.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.status === 'suspended') {
+        return res.status(403).json({ error: "Your account has been suspended. Please contact support." });
+      }
+
+      if (user.status !== 'active') {
+        return res.status(403).json({ error: "Your account is not active. Please contact support." });
+      }
+
+      // Create a normal session for the mobile device, similar to /api/auth/login.
+      const userAgent = req.headers['user-agent'] || 'Unknown';
+      const ipAddress = req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
+      const uaString = typeof userAgent === 'string' ? userAgent : String(userAgent);
+      const isMobile = /mobile|android|iphone|ipad/i.test(uaString);
+      const browserMatch = uaString.match(/(Chrome|Safari|Firefox|Edge|Opera)/i);
+      const browser = browserMatch ? browserMatch[1] : 'Unknown';
+      const platform = isMobile ? 'Mobile' : 'Desktop';
+
+      const fingerprint = `${platform}-${browser}-${ipAddress}`.substring(0, 100);
+
+      let device = await storage.getDeviceByFingerprint(user.id, fingerprint);
+      if (!device) {
+        device = await storage.createDevice({
+          userId: user.id,
+          deviceName: `${platform} - ${browser}`,
+          deviceFingerprint: fingerprint,
+          browser,
+          platform,
+          lastIp: ipAddress,
+          userAgent: uaString,
+        });
+      }
+
+      const refreshTokenHash = crypto.randomBytes(32).toString('hex');
+      const session = await storage.createSession({
+        userId: user.id,
+        deviceId: device?.id || null,
+        refreshTokenHash,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        ipAddress,
+        mfaVerified: true,
+      }).catch(err => {
+        console.error("Mobile link session creation failed:", err);
+        throw err;
+      });
+
+      // Clear any existing session cookie before setting a new one
+      res.clearCookie('session_id', { path: '/' });
+
+      res.cookie('session_id', session.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+
+      await storage.updateUserLastLogin(user.id);
+
+      await storage.logSecurityEvent({
+        userId: user.id,
+        eventType: 'mobile_link_login',
+        eventStatus: 'success',
+        ipAddress,
+        userAgent: uaString,
+        deviceId: device?.id || null,
+        sessionId: session.id,
+      });
+
+      const { password: _pw, ...userWithoutPassword } = user;
+      const environment = user.environment || payload.environment || 'demo';
+
+      return res.json({
+        user: userWithoutPassword,
+        environment,
+      });
+    } catch (error) {
+      console.error("Mobile auth complete error:", error);
+      return res.status(500).json({ error: "Failed to complete mobile login" });
+    }
   });
 
   // ============================================

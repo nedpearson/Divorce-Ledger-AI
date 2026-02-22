@@ -48,3 +48,11 @@ start-silent.vbs
 
 # Claude Code settings (local only)
 .claude/
+.env.*
+*.local
+.supabase/
+supabase/.temp/
+supabase/.branches/
+**/service-role-key*
+**/*secret*
+**/*apikey*

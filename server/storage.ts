@@ -2,6 +2,16 @@ import { eq, and, desc, sql, inArray, isNull } from "drizzle-orm";
 import { db, getDb } from "./db";
 import { hashPassword, isPasswordHashed } from "./auth";
 import {
+  workspaces,
+  workspaceMembers,
+  matters,
+  matterMembers,
+  type InsertWorkspace,
+  type InsertWorkspaceMember,
+  type InsertMatter,
+  type InsertMatterMember,
+} from "@shared/workspace-schema";
+import {
   users, transactions, assets, debts, incomes, expenses, alerts, violations,
   evidenceFiles, chainOfCustody, messages, cases, teams,
   documents, calendarEvents, legalDocuments, childSupportPayments, mobileViolationReports,
@@ -300,6 +310,378 @@ export async function seedDemoData() {
 
   const userId = demoUser[0].id;
   const environment = "demo";
+
+  // ------------------------------------------------------------------------
+  // 1) Ensure demo firm admin + client users exist (demo-only credentials)
+  // ------------------------------------------------------------------------
+
+  const firmAdminEmail = "firm.admin.demo@example.com";
+  const clientEmail = "client.demo@example.com";
+  const demoPassword = process.env.DEMO_FIRM_PASSWORD || "demo1234";
+
+  const hashedDemoPassword = await hashPassword(demoPassword);
+
+  const [existingFirmAdmin] = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.email, firmAdminEmail), eq(users.environment, environment)));
+
+  let firmAdminId: string;
+
+  if (!existingFirmAdmin) {
+    const newId = crypto.randomUUID();
+    const inserted = await db
+      .insert(users)
+      .values({
+        id: newId,
+        email: firmAdminEmail,
+        password: hashedDemoPassword,
+        fullName: "Demo Firm Admin",
+        role: "admin",
+        isAdmin: true,
+        status: "active",
+        environment,
+        subscriptionTier: "firm_starter",
+        subscriptionStatus: "active",
+        createdAt: new Date(),
+      })
+      .returning();
+    firmAdminId = inserted[0].id;
+  } else {
+    firmAdminId = existingFirmAdmin.id;
+  }
+
+  const [existingClient] = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.email, clientEmail), eq(users.environment, environment)));
+
+  let clientId: string;
+
+  if (!existingClient) {
+    const newId = crypto.randomUUID();
+    const inserted = await db
+      .insert(users)
+      .values({
+        id: newId,
+        email: clientEmail,
+        password: hashedDemoPassword,
+        fullName: "Demo Client",
+        role: "client",
+        isAdmin: false,
+        status: "active",
+        environment,
+        subscriptionTier: "free",
+        subscriptionStatus: "active",
+        createdAt: new Date(),
+      })
+      .returning();
+    clientId = inserted[0].id;
+  } else {
+    clientId = existingClient.id;
+  }
+
+  // ------------------------------------------------------------------------
+  // 2) Ensure a sample firm workspace + memberships + matter exist
+  // ------------------------------------------------------------------------
+
+  const workspaceName = "Demo Family Law Firm";
+
+  let workspaceId: string;
+
+  const existingWorkspace = await db
+    .select()
+    .from(workspaces)
+    .where(and(eq(workspaces.name, workspaceName), eq(workspaces.type, "firm" as any)));
+
+  if (existingWorkspace.length === 0) {
+    const insertedWorkspace = await db
+      .insert(workspaces)
+      .values(<InsertWorkspace>{
+        name: workspaceName,
+        type: "firm",
+        ownerId: firmAdminId,
+        subscriptionTier: "firm_starter",
+        subscriptionStatus: "active",
+        aiCreditsBalance: 2500,
+        aiCreditsLimit: 5000,
+        settings: {
+          branding: {
+            primaryColor: "#1f2937",
+            logoText: "Pearson Family Law Group",
+          },
+        },
+      })
+      .returning();
+    workspaceId = insertedWorkspace[0].id;
+  } else {
+    workspaceId = existingWorkspace[0].id;
+  }
+
+  // Workspace members: firm admin (owner), demo user (staff), client (client)
+  const existingMembers = await db
+    .select()
+    .from(workspaceMembers)
+    .where(eq(workspaceMembers.workspaceId, workspaceId));
+
+  const memberUserIds = new Set(existingMembers.map((m) => m.userId));
+
+  const workspaceMemberInserts: InsertWorkspaceMember[] = [];
+
+  if (!memberUserIds.has(firmAdminId)) {
+    workspaceMemberInserts.push({
+      workspaceId,
+      userId: Number(firmAdminId),
+      role: "owner",
+    } as InsertWorkspaceMember);
+  }
+
+  if (!memberUserIds.has(userId)) {
+    workspaceMemberInserts.push({
+      workspaceId,
+      userId: Number(userId),
+      role: "staff",
+    } as InsertWorkspaceMember);
+  }
+
+  if (!memberUserIds.has(clientId)) {
+    workspaceMemberInserts.push({
+      workspaceId,
+      userId: Number(clientId),
+      role: "client",
+    } as InsertWorkspaceMember);
+  }
+
+  if (workspaceMemberInserts.length > 0) {
+    await db.insert(workspaceMembers).values(workspaceMemberInserts);
+  }
+
+  // Ensure at least one active matter tying attorney + client together
+  const existingMatters = await db
+    .select()
+    .from(matters)
+    .where(eq(matters.workspaceId, workspaceId));
+
+  if (existingMatters.length === 0) {
+    const [insertedMatter] = await db
+      .insert(matters)
+      .values(<InsertMatter>{
+        workspaceId,
+        matterNumber: "DL-FIRM-DEMO-001",
+        title: "Pearson v. Pearson – Custody & Support",
+        description:
+          "End-to-end demo matter showing how the firm collaborates with the client, tracks documents, and prepares for court.",
+        status: "active",
+        leadAttorneyId: firmAdminId,
+      })
+      .returning();
+
+    const matterMemberInserts: InsertMatterMember[] = [
+      {
+        matterId: insertedMatter.id,
+        userId: Number(firmAdminId),
+        role: "attorney",
+        permissions: { can_view: true, can_upload: true, can_comment: true, can_edit: true },
+      } as InsertMatterMember,
+      {
+        matterId: insertedMatter.id,
+        userId: Number(clientId),
+        role: "client",
+        permissions: { can_view: true, can_upload: true, can_comment: true },
+      } as InsertMatterMember,
+    ];
+
+    await db.insert(matterMembers).values(matterMemberInserts);
+  }
+
+  // ------------------------------------------------------------------------
+  // 3) Seed rich firm-side artifacts: documents, legal docs, calendar, chat
+  // ------------------------------------------------------------------------
+
+  const now = new Date();
+
+  // Seed a couple of key legal documents for the firm admin
+  const existingLegalDocs = await db
+    .select({ count: sql`COUNT(*)` })
+    .from(legalDocuments)
+    .where(and(eq(legalDocuments.userId, firmAdminId), eq(legalDocuments.environment, environment)));
+
+  if (Number(existingLegalDocs[0]?.count ?? 0) === 0) {
+    await db.insert(legalDocuments).values([
+      {
+        userId: firmAdminId,
+        title: "Proposed Joint Custody Parenting Plan",
+        documentType: "parenting_plan",
+        description: "Draft joint custody schedule including holidays and summer break.",
+        fileName: "DL-Demo-Parenting-Plan.pdf",
+        fileUrl: "https://demo-files.divorce-ledger.local/DL-Demo-Parenting-Plan.pdf",
+        status: "final",
+        courtCase: "Pearson v. Pearson",
+        parties: ["Alex Pearson", "Jordan Pearson"],
+        tags: ["custody", "parenting_time", "court_ready"],
+        environment,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        userId: firmAdminId,
+        title: "Financial Affidavit – Client",
+        documentType: "financial_affidavit",
+        description: "Sworn financial statement prepared from Divorce Ledger data.",
+        fileName: "DL-Demo-Financial-Affidavit.pdf",
+        fileUrl: "https://demo-files.divorce-ledger.local/DL-Demo-Financial-Affidavit.pdf",
+        status: "filed",
+        courtCase: "Pearson v. Pearson",
+        parties: ["Alex Pearson"],
+        tags: ["financials", "court_order", "support"],
+        environment,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
+  }
+
+  // Seed general documents for the client so document dashboards are populated
+  const existingDocs = await db
+    .select({ count: sql`COUNT(*)` })
+    .from(documents)
+    .where(and(eq(documents.userId, clientId), eq(documents.environment, environment)));
+
+  if (Number(existingDocs[0]?.count ?? 0) === 0) {
+    await db.insert(documents).values([
+      {
+        userId: clientId,
+        title: "January Joint Checking Statement",
+        category: "bank_statement",
+        description: "Used to trace hidden transfers and joint expenses.",
+        fileName: "DL-Demo-Joint-Checking-Jan.pdf",
+        fileType: "application/pdf",
+        fileSize: 512000,
+        tags: ["bank", "joint_account", "hidden_assets"],
+        isConfidential: true,
+        aiCategory: "BANK_STATEMENT",
+        aiConfidence: 0.97,
+        aiSummary: "Statement showing regular payroll deposits and a suspicious $7,500 transfer.",
+        aiSuggestedTags: ["potential_hidden_asset", "review_required"],
+        aiAnalysisStatus: "completed",
+        aiAnalyzedAt: now,
+        environment,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        userId: clientId,
+        title: "Childcare & Activities Invoice",
+        category: "evidence_photo",
+        description: "Scanned invoice for after-school care and extracurricular activities.",
+        fileName: "DL-Demo-Childcare-Invoice.png",
+        fileType: "image/png",
+        fileSize: 220000,
+        tags: ["childcare", "expenses", "support"],
+        isConfidential: false,
+        aiCategory: "GENERIC_FINANCIAL_EXPENSE",
+        aiConfidence: 0.94,
+        aiSummary: "Monthly childcare and activities costs totaling $600.",
+        aiSuggestedTags: ["child_support", "special_expenses"],
+        aiAnalysisStatus: "completed",
+        aiAnalyzedAt: now,
+        environment,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
+  }
+
+  // Seed a couple of calendar events for hearings/mediation
+  const existingEvents = await db
+    .select({ count: sql`COUNT(*)` })
+    .from(calendarEvents)
+    .where(and(eq(calendarEvents.userId, clientId), eq(calendarEvents.environment, environment)));
+
+  if (Number(existingEvents[0]?.count ?? 0) === 0) {
+    await db.insert(calendarEvents).values([
+      {
+        userId: clientId,
+        title: "Status Conference – Pearson v. Pearson",
+        description: "Status conference to review temporary orders and upcoming mediation.",
+        eventType: "court_hearing",
+        startDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
+        allDay: false,
+        location: "19th JDC – Division C, Courtroom 3",
+        reminder: true,
+        reminderMinutes: 120,
+        isRecurring: false,
+        status: "scheduled",
+        environment,
+      },
+      {
+        userId: clientId,
+        title: "Mediation Session",
+        description: "First mediation session focusing on custody schedule and holiday time.",
+        eventType: "mediation",
+        startDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000 + 9 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000 + 11 * 60 * 60 * 1000),
+        allDay: false,
+        location: "Baton Rouge Mediation Center – Suite 400",
+        reminder: true,
+        reminderMinutes: 1440,
+        isRecurring: false,
+        status: "scheduled",
+        environment,
+      },
+    ]);
+  }
+
+  // Seed a short conversation in the secure messaging channel
+  const existingMessages = await db
+    .select({ count: sql`COUNT(*)` })
+    .from(messages)
+    .where(and(eq(messages.environment, environment), eq(messages.senderId, firmAdminId)));
+
+  if (Number(existingMessages[0]?.count ?? 0) === 0) {
+    await db.insert(messages).values([
+      {
+        senderId: firmAdminId,
+        senderRole: "attorney",
+        senderName: "Demo Firm Admin",
+        content: "Hi Alex – I’ve reviewed your latest financial uploads. I’ll use these to update your affidavit and prepare for our status conference.",
+        isRead: false,
+        environment,
+      },
+      {
+        senderId: clientId,
+        senderRole: "client",
+        senderName: "Demo Client",
+        content: "Thank you. I just uploaded the January bank statement and childcare invoice from my phone.",
+        isRead: false,
+        environment,
+      },
+    ]);
+  }
+
+  // Seed a sample mobile violation report to showcase phone capture
+  const existingMobileReports = await db
+    .select({ count: sql`COUNT(*)` })
+    .from(mobileViolationReports)
+    .where(and(eq(mobileViolationReports.userId, clientId), eq(mobileViolationReports.environment, environment)));
+
+  if (Number(existingMobileReports[0]?.count ?? 0) === 0) {
+    await db.insert(mobileViolationReports).values({
+      userId: clientId,
+      title: "Missed custody exchange (mobile report)",
+      violationType: "custody",
+      description:
+        "Other parent did not arrive at the agreed exchange location. I started this report from my phone while waiting.",
+      severity: "high",
+      location: "Target on Siegen Lane – parking lot",
+      relatedDocumentIds: [],
+      witnesses: ["Store security camera", "Neighbor Jessica"],
+      status: "submitted",
+      environment,
+      submittedAt: now,
+    });
+  }
 
   // Only seed if user has no existing violations/cases
   const existingViolations = await db

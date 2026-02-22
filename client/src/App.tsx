@@ -32,6 +32,7 @@ const Communications = lazy(() => import("@/pages/communications"));
 const Journal = lazy(() => import("@/pages/journal"));
 const CaseBuilder = lazy(() => import("@/pages/case-builder"));
 const Pricing = lazy(() => import("@/pages/pricing"));
+const DemoPresentation = lazy(() => import("@/pages/demo-presentation"));
 const WorkspaceSetup = lazy(() => import("@/pages/workspace-setup"));
 const WorkspaceSettings = lazy(() => import("@/pages/workspace-settings"));
 const Calendar = lazy(() => import("@/pages/calendar"));
@@ -44,6 +45,7 @@ const Settings = lazy(() => import("@/pages/settings"));
 const Governance = lazy(() => import("@/pages/governance"));
 const Mobile = lazy(() => import("@/pages/mobile"));
 const MobileInstall = lazy(() => import("@/pages/mobile-install"));
+const MobileLink = lazy(() => import("@/pages/mobile-link"));
 const AdminUsers = lazy(() => import("@/pages/admin-users"));
 const Recommendations = lazy(() => import("@/pages/recommendations"));
 const AdminRecommendations = lazy(() => import("@/pages/admin-recommendations"));
@@ -58,6 +60,7 @@ import { SyncStatusIndicator } from "@/components/sync-status-indicator";
 import { MobileAppHeaderButton } from "@/components/mobile-app-banner";
 import { EnvironmentBadge } from "@/components/environment-badge";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { GlobalBackButton } from "@/components/global-back-button";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -304,6 +307,11 @@ function Router() {
           </AuthLayout>
         </RequireAuth>
       </Route>
+      <Route path="/demo-presentation">
+        <Suspense fallback={<PageLoader />}>
+          <DemoPresentation />
+        </Suspense>
+      </Route>
       <Route path="/pricing">
         <Suspense fallback={<PageLoader />}>
           <Pricing />
@@ -344,6 +352,7 @@ function Router() {
           <Mobile />
         </RequireAuth>
       </Route>
+      <Route path="/mobile-link" component={MobileLink} />
       <Route path="/mobile-install" component={MobileInstall} />
       <Route path="/admin/users">
         <RequireAuth>
@@ -417,6 +426,7 @@ function App() {
             <SubscriptionProvider>
               <TooltipProvider>
                 <Toaster />
+                <GlobalBackButton />
                 <Router />
               </TooltipProvider>
             </SubscriptionProvider>
