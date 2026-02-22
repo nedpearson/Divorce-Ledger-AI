@@ -1,4 +1,22 @@
+
 name: CI - Continuous Integration
+
+# Explicit permissions: only read access to contents and metadata
+permissions:
+  contents: read
+  id-token: none
+  issues: none
+  pull-requests: none
+  deployments: none
+  statuses: none
+  checks: none
+  packages: none
+  actions: none
+  security-events: none
+  discussions: none
+  repository-projects: none
+  pages: none
+  attestations: none
 
 on:
   pull_request:
