@@ -1,4 +1,5 @@
 import { type Express } from "express";
+import rateLimit from "express-rate-limit";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
@@ -29,9 +30,18 @@ export async function setupVite(server: Server, app: Express) {
     appType: "custom",
   });
 
+  // Add rate limiting to Vite dev server routes
+  const viteLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 100, // 100 requests per minute per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many requests, please try again later." },
+  });
+  app.use(viteLimiter);
   app.use(vite.middlewares);
 
-  app.use("*", async (req, res, next) => {
+  app.use("*", viteLimiter, async (req, res, next) => {
     const url = req.originalUrl;
 
     try {
