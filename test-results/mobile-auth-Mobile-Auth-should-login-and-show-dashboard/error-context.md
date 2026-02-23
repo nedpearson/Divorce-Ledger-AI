@@ -1,0 +1,51 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - generic [active]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - navigation [ref=e6]:
+          - button "previous" [disabled] [ref=e7]:
+            - img "previous" [ref=e8]
+          - generic [ref=e10]:
+            - generic [ref=e11]: 1/
+            - text: "1"
+          - button "next" [disabled] [ref=e12]:
+            - img "next" [ref=e13]
+        - generic [ref=e16]:
+          - img [ref=e17]
+          - generic "Latest available version is detected (16.1.6)." [ref=e19]: Next.js 16.1.6
+          - generic [ref=e20]: Turbopack
+      - dialog "Build Error" [ref=e22]:
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]:
+              - generic [ref=e29]: Build Error
+              - generic [ref=e30]:
+                - button "Copy Error Info" [ref=e31] [cursor=pointer]:
+                  - img [ref=e32]
+                - button "No related documentation found" [disabled] [ref=e34]:
+                  - img [ref=e35]
+                - button "Attach Node.js inspector" [ref=e37] [cursor=pointer]:
+                  - img [ref=e38]
+            - generic [ref=e47]: Error evaluating Node.js code
+          - generic [ref=e49]:
+            - generic [ref=e51]:
+              - img [ref=e53]
+              - generic [ref=e55]: ./Desktop/Divorce-Ledger-AI/frontend/src/styles/globals.css
+              - button "Open in editor" [ref=e56] [cursor=pointer]:
+                - img [ref=e58]
+            - generic [ref=e62]: "Error evaluating Node.js code ReferenceError: module is not defined [at file:///C:/Users/nedpe/Desktop/Divorce-Ledger-AI/frontend/tailwind.config.js:2:1] [at ModuleJobSync.runSync (node:internal/modules/esm/module_job:395:35)] [at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:329:47)] [at loadESMFromCJS (node:internal/modules/cjs/loader:1414:24)] [at Module._compile (node:internal/modules/cjs/loader:1547:5)] [at Object..js (node:internal/modules/cjs/loader:1677:16)] [at Module.load (node:internal/modules/cjs/loader:1318:32)] [at Function._load (node:internal/modules/cjs/loader:1128:12)] [at TracingChannel.traceSync (node:diagnostics_channel:322:14)] [at wrapModuleLoad (node:internal/modules/cjs/loader:219:24)] Import trace: Browser: ./Desktop/Divorce-Ledger-AI/frontend/src/styles/globals.css ./Desktop/Divorce-Ledger-AI/frontend/src/pages/_app.tsx"
+        - generic [ref=e63]: "1"
+        - generic [ref=e64]: "2"
+    - generic [ref=e69] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e70]:
+        - img [ref=e71]
+      - button "Open issues overlay" [ref=e75]:
+        - generic [ref=e76]:
+          - generic [ref=e77]: "0"
+          - generic [ref=e78]: "1"
+        - generic [ref=e79]: Issue
+  - alert [ref=e80]
+```

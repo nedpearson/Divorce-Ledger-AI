@@ -16,9 +16,9 @@ import { apiRequest } from "@/lib/queryClient";
 const LOCAL_HOSTNAMES = ["localhost", "127.0.0.1", "0.0.0.0", "::1"];
 
 function getMobileUrl(): string {
-  // Allow an explicit public URL override via env var (e.g. ngrok / Replit URL)
-  const envUrl = import.meta.env.VITE_PUBLIC_URL as string | undefined;
-  if (envUrl) return `${envUrl.replace(/\/$/, "")}/mobile`;
+  // Use Supabase public URL if available
+  const supabaseUrl = import.meta.env.VITE_PUBLIC_URL || process.env.NEXT_PUBLIC_SUPABASE_API_URL;
+  if (supabaseUrl) return `${supabaseUrl.replace(/\/$/, "")}/mobile`;
 
   const { protocol, hostname, port } = window.location;
   const portPart = port ? `:${port}` : "";
@@ -81,10 +81,11 @@ export function MobileAppHeaderButton() {
           variant="ghost"
           size="icon"
           title="Open mobile app"
+          aria-label="Open mobile app"
           data-testid="button-mobile-app"
           className="relative"
         >
-          <Smartphone className="h-4 w-4" />
+          <Smartphone className="h-4 w-4" aria-hidden="true" />
         </Button>
       </PopoverTrigger>
 
@@ -105,8 +106,9 @@ export function MobileAppHeaderButton() {
             size="icon"
             className="h-6 w-6 -mr-1 -mt-1"
             onClick={() => setOpen(false)}
+            aria-label="Close mobile app popover"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3 w-3" aria-hidden="true" />
           </Button>
         </div>
 
@@ -165,8 +167,9 @@ export function MobileAppHeaderButton() {
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-1.5 w-full text-xs text-primary hover:underline"
+              aria-label="Open mobile view"
             >
-              <ExternalLink className="h-3 w-3" />
+              <ExternalLink className="h-3 w-3" aria-hidden="true" />
               Open mobile view
             </a>
 

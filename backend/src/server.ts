@@ -40,6 +40,11 @@ export async function createServer(): Promise<FastifyInstance> {
       'https://divorceledger.live',
       'https://divorceledger.replit.app',
     ];
+    // Patch: Add Supabase public URL to allowedOrigins
+    const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_API_URL || env.VITE_PUBLIC_URL || env.FRONTEND_URL;
+    if (supabaseUrl && !allowedOrigins.includes(supabaseUrl)) {
+      allowedOrigins.push(supabaseUrl);
+    }
     await server.register(fastifyCors, {
       origin: (origin, cb) => {
         if (!origin || allowedOrigins.includes(origin)) {
@@ -50,8 +55,8 @@ export async function createServer(): Promise<FastifyInstance> {
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
-      exposedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID', 'X-User-Id', 'X-Environment'],
+      exposedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID', 'X-User-Id', 'X-Environment'],
     });
   }
 

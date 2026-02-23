@@ -61,6 +61,7 @@ import { MobileAppHeaderButton } from "@/components/mobile-app-banner";
 import { EnvironmentBadge } from "@/components/environment-badge";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { GlobalBackButton } from "@/components/global-back-button";
+import './lib/sentry'; // Initialize Sentry for error logging
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();

@@ -31,6 +31,8 @@ const envSchema = z.object({
   
   // Frontend URL (for CORS)
   FRONTEND_URL: z.string().url().optional(),
+  NEXT_PUBLIC_SUPABASE_API_URL: z.string().url().optional(),
+  VITE_PUBLIC_URL: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

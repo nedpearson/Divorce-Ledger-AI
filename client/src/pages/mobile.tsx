@@ -1,22 +1,16 @@
-import { useState, useRef, useEffect } from "react";
+// Supabase URL logic for all mobile API endpoints
+const SUPABASE_API = process.env.NEXT_PUBLIC_SUPABASE_API_URL || "";
+const apiUrl = (endpoint: string) => SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint;
+import React, { useState, useRef, useEffect, lazy, Suspense } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { useAuth } from "@/lib/auth";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { useToast } from "@/hooks/use-toast";
-import { useOfflineSync } from "@/hooks/use-offline-sync";
+// ...existing code...
+const MobileAppBanner = lazy(() => import("@/components/mobile-app-banner"));
+const DocumentDetailDialog = lazy(() => import("./DocumentDetailDialog"));
+const CreateViolationDialog = lazy(() => import("./CreateViolationDialog"));
+const CreateReimbursementDialog = lazy(() => import("./CreateReimbursementDialog"));
+const W2DetailDialog = lazy(() => import("./W2DetailDialog"));
+const CreateW2Dialog = lazy(() => import("./CreateW2Dialog"));
 import {
   ArrowLeft,
   FileText,
@@ -179,7 +173,7 @@ function FinancialDrillDown({
   const { data: assets, isLoading: assetsLoading } = useQuery<Asset[]>({
     queryKey: ["/api/mobile/assets", environment],
     queryFn: async () => {
-      const res = await fetch("/api/mobile/assets", {
+      const res = await fetch(apiUrl("/api/mobile/assets"), {
         headers: getMobileHeaders(environment),
         credentials: "include",
       });
@@ -192,7 +186,7 @@ function FinancialDrillDown({
   const { data: debts, isLoading: debtsLoading } = useQuery<Debt[]>({
     queryKey: ["/api/mobile/debts", environment],
     queryFn: async () => {
-      const res = await fetch("/api/mobile/debts", {
+      const res = await fetch(apiUrl("/api/mobile/debts"), {
         headers: getMobileHeaders(environment),
         credentials: "include",
       });
@@ -205,7 +199,7 @@ function FinancialDrillDown({
   const { data: incomes, isLoading: incomesLoading } = useQuery<Income[]>({
     queryKey: ["/api/mobile/incomes", environment],
     queryFn: async () => {
-      const res = await fetch("/api/mobile/incomes", {
+      const res = await fetch(apiUrl("/api/mobile/incomes"), {
         headers: getMobileHeaders(environment),
         credentials: "include",
       });
@@ -218,7 +212,7 @@ function FinancialDrillDown({
   const { data: expenses, isLoading: expensesLoading } = useQuery<Expense[]>({
     queryKey: ["/api/mobile/expenses", environment],
     queryFn: async () => {
-      const res = await fetch("/api/mobile/expenses", {
+      const res = await fetch(apiUrl("/api/mobile/expenses"), {
         headers: getMobileHeaders(environment),
         credentials: "include",
       });
@@ -231,7 +225,7 @@ function FinancialDrillDown({
   const { data: childSupport, isLoading: childSupportLoading } = useQuery<ChildSupportPayment[]>({
     queryKey: ["/api/mobile/child-support", environment],
     queryFn: async () => {
-      const res = await fetch("/api/mobile/child-support", {
+      const res = await fetch(apiUrl("/api/mobile/child-support"), {
         headers: getMobileHeaders(environment),
         credentials: "include",
       });
@@ -621,7 +615,7 @@ function FinancialSummaryBar({ isDemoMode, environment }: { isDemoMode: boolean;
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/mobile/financial-summary", environment],
     queryFn: async () => {
-      const res = await fetch("/api/mobile/financial-summary", {
+      const res = await fetch(apiUrl("/api/mobile/financial-summary"), {
         headers: getMobileHeaders(environment),
         credentials: "include",
       });
@@ -1216,15 +1210,26 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
       formData.append("environment", environment || "live");
       formData.append("analyzeWithAI", "true");
 
-      const response = await fetch("/api/mobile/documents", {
+      // Use Supabase deployment URL
+      const SUPABASE_API = process.env.NEXT_PUBLIC_SUPABASE_API_URL || "";
+      const apiUrl = (endpoint: string) => SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint;
+
+      const response = await fetch(apiUrl("/api/mobile/documents"), {
         method: "POST",
         body: formData,
         credentials: "include",
+        headers: getMobileHeaders(environment),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Upload failed");
+        let errorMsg = "Upload failed";
+        try {
+          const error = await response.json();
+          errorMsg = error.message || errorMsg;
+        } catch (e) {
+          // fallback
+        }
+        throw new Error(errorMsg);
       }
       return response.json();
     },
@@ -1407,10 +1412,14 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
         });
         return { queued: true };
       }
-      return apiRequest("POST", "/api/mobile/violations", {
-        ...data,
-        environment: environment || "live",
-      });
+      try {
+        return await apiRequest("POST", "/api/mobile/violations", {
+          ...data,
+          environment: environment || "live",
+        });
+      } catch (error: any) {
+        throw new Error(error?.message || "Failed to save violation report");
+      }
     },
     onSuccess: (result: any) => {
       if (result?.queued) {
@@ -1437,7 +1446,11 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
         });
         return { queued: true };
       }
-      return apiRequest("PATCH", `/api/mobile/violations/${id}`, data);
+      try {
+        return await apiRequest("PATCH", `/api/mobile/violations/${id}`, data);
+      } catch (error: any) {
+        throw new Error(error?.message || "Failed to update violation report");
+      }
     },
     onSuccess: (result: any) => {
       if (result?.queued) {
@@ -1462,13 +1475,16 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
           url: `/api/mobile/violations/${id}`,
           description: `Delete violation ${id}`,
         });
-        // Optimistically remove from local cache
         queryClient.setQueryData(["/api/mobile/violations"], (old: MobileViolationReport[] = []) =>
           old.filter((r) => r.id !== id)
         );
         return { queued: true };
       }
-      return apiRequest("DELETE", `/api/mobile/violations/${id}`);
+      try {
+        return await apiRequest("DELETE", `/api/mobile/violations/${id}`);
+      } catch (error: any) {
+        throw new Error(error?.message || "Failed to delete violation report");
+      }
     },
     onSuccess: (result: any) => {
       if (!result?.queued) {
@@ -1483,7 +1499,11 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
 
   const submitMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("POST", `/api/mobile/violations/${id}/submit`);
+      try {
+        return await apiRequest("POST", `/api/mobile/violations/${id}/submit`);
+      } catch (error: any) {
+        throw new Error(error?.message || "Failed to submit violation report");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/mobile/violations"] });
@@ -1554,8 +1574,9 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
             setShowCreateDialog(true);
           }}
           data-testid="button-create-violation"
+          aria-label="Create new violation report"
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
           New Violation Report
         </Button>
       </div>
@@ -2962,6 +2983,9 @@ export default function MobileView() {
       <OfflineBanner isOnline={isOnline} pendingCount={pendingCount} />
 
       <FinancialSummaryBar isDemoMode={isDemoMode} environment={environment} />
+      <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
+        <MobileAppBanner />
+      </Suspense>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <TabsList className="grid grid-cols-2 mx-4 mt-2" data-testid="tabs-mobile-navigation">

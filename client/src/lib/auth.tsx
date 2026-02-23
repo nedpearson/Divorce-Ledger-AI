@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { User, Environment } from "@shared/schema";
+import { supabase } from "./supabase";
 
 // Generate a stable device fingerprint for trusted device tracking
 function getDeviceFingerprint(): string {
@@ -66,26 +67,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = user !== null;
 
   const checkSession = useCallback(async () => {
-    try {
-      const response = await fetch("/api/auth/session", {
-        credentials: 'include'
-      });
-      
-      if (response.status === 401) {
-        setUser(null);
-        return;
-      }
-
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-        setEnvironmentState(data.environment);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("environment", data.environment);
-      } else {
-        setUser(null);
-      }
-    } catch {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      setUser(session.user as User);
+      setEnvironmentState(getInitialEnvironment());
+      localStorage.setItem("user", JSON.stringify(session.user));
+    } else {
       setUser(null);
     }
   }, []);
@@ -93,12 +80,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true;
     checkSession().then(() => {
-      if (isMounted) {
-        // Only set loading to false after session check completes
-        setIsLoading(false);
+      if (isMounted) setIsLoading(false);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user as User);
+        localStorage.setItem("user", JSON.stringify(session.user));
+      } else {
+        setUser(null);
+        localStorage.removeItem("user");
       }
     });
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+      listener.subscription.unsubscribe();
+    };
   }, [checkSession]);
 
   const login = useCallback(async (email: string, password: string, env: Environment, rememberMe = false): Promise<LoginResult> => {

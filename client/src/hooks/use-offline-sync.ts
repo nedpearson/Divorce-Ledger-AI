@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { addToSyncQueue, getSyncQueueCount } from "@/lib/offline-db";
 import { syncOfflineChanges, type SyncResult } from "@/lib/sync";
+import { subscribeMobileRealtime } from '@/lib/sync';
 
 // Captured once — the beforeinstallprompt event fires only once per session
 let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
@@ -162,6 +163,14 @@ export function useOfflineSync(): UseOfflineSyncReturn {
     },
     [refreshPendingCount]
   );
+
+  // ── Subscribe to live changes for mobile data ─────────────────────────────
+  useEffect(() => {
+    subscribeMobileRealtime(() => {
+      // Invalidate all mobile query keys for fresh data
+      MOBILE_QUERY_KEYS.forEach(key => queryClient.invalidateQueries({ queryKey: [key] }));
+    });
+  }, []);
 
   return {
     isOnline,
