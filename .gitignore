@@ -1,12 +1,34 @@
+# deps/build
 node_modules/
-.next/
 dist/
 build/
+.next/
+out/
+frontend/.next/
+
+# env (never commit)
 .env
-.env.local
+.env.*
+!.env.example
+!.env.railway.example
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# playwright
 test-results/
 playwright-report/
 
-# Windows reserved device names (prevent accidental commits)
-nul
-NUL
+# local tooling
+.claude/settings.local.json
+
+# backups
+*.sql
+
+# OS/editor
+.DS_Store
+Thumbs.db
