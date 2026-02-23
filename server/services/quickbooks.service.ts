@@ -383,7 +383,7 @@ export class QuickBooksService {
 
       const data = await response.json();
       return { companyName: data.CompanyInfo?.CompanyName || 'Unknown Company' };
-    } catch {
+    } catch (error) {
       return null;
     }
   }
