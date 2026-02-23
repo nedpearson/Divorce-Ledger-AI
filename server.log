@@ -1,0 +1,242 @@
+
+> rest-express@1.0.0 dev
+> cross-env NODE_ENV=development tsx --import dotenv/config server/index.ts
+
+🔍 [Config] Mode: DEVELOPMENT, NodeEnv: DEVELOPMENT
+✅ [Config] Environment sanity check passed.
+(node:19076) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Stripe connector environment not available - checking manual keys
+
+=== Startup Health Check ===
+[OK] Database: PostgreSQL connection successful
+[WARN] Stripe: Not configured (optional in test mode)
+============================
+
+[Firefly Config] Startup validation:
+  ℹ Global config: Not set (per-user connections will be used)
+  ⚠ Global Firefly III environment variables not configured. Users can connect their own Firefly III instances via Settings > Integrations.
+✅ Health Check Routes Loaded
+   GET /health (simple)
+   GET /api/health (quick)
+   GET /api/health/detailed (comprehensive)
+   GET /api/health/firefly (Firefly III status)
+Analytics Routes Loaded
+   GET /api/analytics/platform-metrics
+   GET /api/analytics/cohorts
+   GET /api/analytics/usage-trends
+   GET /api/analytics/revenue
+   POST /api/admin/billing/process-monthly
+   POST /api/admin/quotas/reset-monthly
+   POST /api/admin/migrations/apply-pending
+QuickBooks Multi-Tenant Routes Loaded
+   GET /api/quickbooks/status
+   GET /api/quickbooks/auth-url
+   GET /api/quickbooks/callback
+   POST /api/quickbooks/disconnect
+🔥 Firefly III Integration Routes Loaded
+   GET  /api/firefly/status
+   POST /api/firefly/connect
+   POST /api/firefly/disconnect
+   POST /api/firefly/sync/expense/:expenseId
+   POST /api/firefly/sync/income/:incomeId
+   POST /api/firefly/sync/all
+   GET  /api/firefly/sync-logs
+   GET  /api/firefly/accounts
+   POST /api/firefly/transactions/from-document
+   GET  /api/firefly/categories
+📦 Appwrite Integration Routes Loaded
+   GET  /api/appwrite/status
+   POST /api/appwrite/setup
+   POST /api/appwrite/files/upload
+   GET  /api/appwrite/files
+   GET  /api/appwrite/files/:id
+   POST /api/appwrite/files/:id/approve
+   POST /api/appwrite/files/:id/retry
+   DELETE /api/appwrite/files/:id
+   GET  /api/appwrite/categories
+✅ API Documentation Routes Loaded
+   GET /api/docs - Swagger UI
+   GET /api/docs/openapi.yaml - OpenAPI spec (YAML)
+   GET /api/docs/openapi.json - OpenAPI spec (JSON)
+   GET /api/docs/version - API version info
+✅ ETL Pipeline Routes Loaded
+   GET /api/etl/status
+   GET /api/etl/history
+   POST /api/etl/run/full
+🔐 Security Endpoints:
+   POST /api/auth/2fa/send
+   POST /api/auth/2fa/verify
+   GET  /api/security/devices
+   POST /api/security/devices/:id/block
+   GET  /api/security/sessions
+   POST /api/security/sessions/:id/revoke
+   POST /api/security/sessions/revoke-all
+   GET  /api/security/events
+   POST /api/security/phone
+   POST /api/security/2fa/settings
+Media & Analytics Routes Loaded:
+   POST /api/violations/:violationId/media
+   POST /api/violations/:violationId/transcript
+   POST /api/violations/:violationId/classify
+   GET  /api/violations/:violationId/media
+   GET  /api/users/violations-this-month
+   GET  /api/cases/:caseId/violations-count
+   POST /api/users/:userId/update-tier
+   GET  /api/users/:userId/tier-stats
+   GET  /api/users/:userId/usage-metrics
+   POST /api/users/:userId/check-upload
+   GET  /api/users/:userId/tier-recommendation
+   POST /api/users/:userId/log-usage
+   GET  /api/users/:userId/billing
+   GET  /api/users/:userId/billing/history
+   POST /api/users/:userId/billing/save
+   GET  /api/tier-pricing
+   POST /api/users/:userId/migrate-tier
+   GET  /api/users/:userId/migration
+   GET  /api/users/:userId/migration/history
+   POST /api/migrations/:migrationId/cancel
+   GET  /api/users/:userId/quota-status
+   POST /api/users/:userId/reset-quota
+   GET  /api/users/:userId/quota-history
+   POST /api/admin/reset-all-quotas
+   GET  /api/admin/analytics/platform
+   GET  /api/admin/analytics/tiers
+   GET  /api/admin/analytics/trends
+   GET  /api/admin/analytics/revenue
+   GET  /api/admin/analytics/top-users
+   GET  /api/admin/analytics/cohorts
+   POST /api/admin/billing/process-monthly
+
+📱 Mobile App Endpoints:
+   GET  /api/mobile/documents
+   POST /api/mobile/documents
+   POST /api/mobile/documents/:id/reanalyze
+   PATCH /api/mobile/documents/:id/category
+   GET  /api/mobile/violations
+   POST /api/mobile/violations
+   PATCH /api/mobile/violations/:id
+   POST /api/mobile/violations/:id/submit
+   DELETE /api/mobile/violations/:id
+
+💰 Reimbursements Endpoints:
+   GET  /api/mobile/reimbursements
+   POST /api/mobile/reimbursements
+   PATCH /api/mobile/reimbursements/:id
+   DELETE /api/mobile/reimbursements/:id
+   GET  /api/mobile/w2-records
+   POST /api/mobile/w2-records
+   PATCH /api/mobile/w2-records/:id
+   DELETE /api/mobile/w2-records/:id
+   GET  /api/mobile/financial-summary
+   GET  /api/mobile/assets
+   GET  /api/mobile/debts
+   GET  /api/mobile/incomes
+   GET  /api/mobile/expenses
+   GET  /api/mobile/child-support
+   GET  /api/mobile/document-categories
+   GET  /api/recommendations
+   GET  /api/admin/recommendations
+   GET  /api/admin/recommendations/:id
+   POST /api/recommendations
+   PATCH /api/admin/recommendations/:id
+   POST /api/admin/recommendations/:id/send-to-test
+   POST /api/recommendations/:id/test-feedback
+   POST /api/admin/recommendations/:id/implement
+   GET  /api/changelog
+   DELETE /api/recommendations/:id
+📓 Journal Endpoints:
+   GET  /api/journal
+   GET  /api/journal/:id
+   POST /api/journal
+   PATCH /api/journal/:id
+   DELETE /api/journal/:id
+   POST /api/journal/transcribe
+💬 Communication Endpoints:
+   GET  /api/conversations
+   GET  /api/conversations/:id
+   POST /api/conversations
+   POST /api/conversations/:id/participants
+   DELETE /api/conversations/:id/participants/:participantId
+   GET  /api/conversations/:id/messages
+   POST /api/conversations/:id/messages
+   GET  /api/conversations/:id/reports
+   POST /api/conversations/:id/reports
+   GET  /api/reports/:id
+[WARN] ADMIN_EMAIL and ADMIN_PASSWORD env vars not set - admin panel disabled
+🔐 Admin Panel Endpoints:
+   POST /api/admin/login
+   GET  /api/admin/test-users
+   PUT  /api/admin/test-users/:id
+   POST /api/admin/test-users/:id/quick-login
+   POST /api/admin/test-users/:id/seed-data
+   POST /api/admin/test-users/:id/erase
+   POST /api/auth/quick-login
+👤 Live User Management Endpoints:
+   GET    /api/admin/live-users
+   POST   /api/admin/live-users
+   PUT    /api/admin/live-users/:id
+   DELETE /api/admin/live-users/:id
+   POST   /api/admin/live-users/:id/quick-login
+🔐 Admin Security Endpoints:
+   GET  /api/admin/security/events
+   POST /api/admin/security/users/:userId/revoke-sessions
+🔧 Debug Endpoints:
+   GET  /api/debug/finances
+📢 Version Endpoints:
+   GET  /api/version
+📋 Frontend Logging Endpoints:
+   POST /api/log/frontend-error
+[STARTUP] Application mode: DEVELOPMENT
+Dashboard Service starting...
+WebSocket server initialized
+Dashboard Service ready
+11:27:34 PM [express] serving on port 5000
+11:27:53 PM [express] GET /api/mobile/financial-summary 200 in 65ms :: {"totalAssets":0,"maritalAssets":0,"totalDebts":0,"monthlyIncome":0,"monthlyExpenses":0,"violationsCount":0,"casesCount":0,"childSupportOwed":0,"alimonyOwed":0,"netPosition":0}
+11:27:56 PM [express] GET /api/version 200 in 3ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:28:01 PM [express] GET /api/mobile/financial-summary 401 in 1ms :: {"success":false,"error":"Authentication required"}
+11:28:08 PM [express] GET /api/mobile/financial-summary 401 in 0ms :: {"success":false,"error":"Authentication required"}
+11:28:57 PM [express] GET /api/version 304 in 2ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:29:58 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:30:59 PM [express] GET /api/version 304 in 0ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:32:00 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:33:01 PM [express] GET /api/version 304 in 2ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:34:02 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:35:03 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:36:04 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:37:05 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:38:06 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:39:07 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:40:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:41:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:42:08 PM [express] GET /api/version 304 in 0ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:43:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:44:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:45:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:46:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:47:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:48:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:49:08 PM [express] GET /api/version 304 in 2ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:50:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:51:08 PM [express] GET /api/version 304 in 0ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:52:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:53:08 PM [express] GET /api/version 304 in 0ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:54:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:55:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:56:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:57:08 PM [express] GET /api/version 304 in 0ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:58:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+11:59:08 PM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:00:08 AM [express] GET /api/version 304 in 2ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:01:08 AM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:02:08 AM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:03:08 AM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:04:08 AM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:05:08 AM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:06:08 AM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:07:08 AM [express] GET /api/version 304 in 0ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:08:08 AM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:09:08 AM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:10:08 AM [express] GET /api/version 304 in 2ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:11:08 AM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}
+12:12:08 AM [express] GET /api/version 304 in 1ms :: {"version":"v1771392454329","buildTime":"2026-02-18T05:27:34.330Z","features":[{"title":"AI Document Analysis","description":"Automatic OCR and categorization for uploaded documents"},{"title":"Batch Re-analysis","description":"Re-analyze all your historical documents with AI"},{"title":"Smart Categorization","description":"AI suggests document categories for faster organization"}]}

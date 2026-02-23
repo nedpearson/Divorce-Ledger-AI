@@ -1,58 +1,12 @@
-# Node
 node_modules/
+.next/
 dist/
 build/
-*.log
-logs/
-
-# Environment
 .env
 .env.local
-.env.*.local
+test-results/
+playwright-report/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Replit
-.replit.nix
-.upm
-.config
-
-# Testing
-coverage/
-.nyc_output/
-
-# Temporary
-tmp/
-temp/
-
-# Project specific
-server/public
-vite.config.ts.*
-*.tar.gz
-
-# Stray / junk files
+# Windows reserved device names (prevent accidental commits)
 nul
-et --hard [commit-hash]
-send_to_gemini.py
-database-backup.sql
-start-silent.vbs
-
-# Claude Code settings (local only)
-.claude/
-.env.*
-*.local
-.supabase/
-supabase/.temp/
-supabase/.branches/
-**/service-role-key*
-**/*secret*
-**/*apikey*
+NUL
