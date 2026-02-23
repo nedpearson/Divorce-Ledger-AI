@@ -32,11 +32,11 @@
     "@types/node": "20.11.5",
     "@types/react": "18.2.48",
     "@types/react-dom": "18.2.18",
-    "@typescript-eslint/eslint-plugin": "^6.15.0",
-    "@typescript-eslint/parser": "^6.15.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/parser": "^8.56.0",
     "autoprefixer": "10.4.17",
-    "eslint": "^4.0.0",
-    "eslint-config-next": "^0.2.4",
+    "eslint": "^9.39.3",
+    "eslint-config-next": "^16.1.6",
     "postcss": "8.4.33",
     "tailwindcss": "3.4.1",
     "typescript": "5.3.3"
@@ -45,5 +45,8 @@
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
   },
-  "nextConfig": "next.config.cjs"
+  "nextConfig": "next.config.cjs",
+  "overrides": {
+    "cookie": "^0.7.0"
+  }
 }
