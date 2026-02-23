@@ -7,7 +7,7 @@ import { queryClient } from "./queryClient";
 import { supabase } from '@/lib/supabase';
 
 // All mobile GET endpoints — invalidated after a successful sync
-const MOBILE_QUERY_KEYS = [
+export const MOBILE_QUERY_KEYS = [
   "/api/mobile/documents",
   "/api/mobile/violations",
   "/api/mobile/reimbursements",

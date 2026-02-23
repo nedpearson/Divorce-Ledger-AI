@@ -172,7 +172,7 @@ try {
   // Add CSRF protection for all non-API routes (customize as needed)
   app.use(csurf({ cookie: true }));
 } catch (err) {
-  console.warn('CSRF protection is not enabled: csurf module not found or failed to load.', err?.message || err);
+  console.warn('CSRF protection is not enabled: csurf module not found or failed to load.', (err as Error)?.message || err);
 }
 app.use(demoResetMiddleware);
 app.use(adminDemoRouter);

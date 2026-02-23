@@ -24,7 +24,7 @@ export const STRIPE_PRICE_IDS = {
  * Creates a Stripe Checkout session for workspace subscription
  */
 export async function createCheckoutSession(
-  userId: number,
+  userId: string,
   planId: WorkspaceTier,
   workspaceType: 'consumer' | 'firm'
 ): Promise<{ checkoutUrl: string; workspaceId: string }> {
@@ -48,8 +48,8 @@ export async function createCheckoutSession(
       .insert(workspaces)
       .values({
         name: workspaceType === 'consumer'
-          ? `${user.username}'s Workspace`
-          : `${user.username}'s Law Firm`,
+          ? `${user.fullName}'s Workspace`
+          : `${user.fullName}'s Law Firm`,
         type: workspaceType,
         ownerId: userId,
         subscriptionTier: 'free',
@@ -75,7 +75,7 @@ export async function createCheckoutSession(
   if (!stripeCustomerId) {
     const customer = await stripe.customers.create({
       email: user.email,
-      name: user.username,
+      name: user.fullName,
       metadata: {
         userId: userId.toString(),
         workspaceId: workspace.id,
@@ -126,7 +126,7 @@ export async function createCheckoutSession(
  * Creates a Stripe Customer Portal session for subscription management
  */
 export async function createCustomerPortalSession(
-  userId: number,
+  userId: string,
   workspaceId: string
 ): Promise<{ portalUrl: string }> {
   const stripe = await getUncachableStripeClient();
@@ -176,15 +176,12 @@ export async function handleCheckoutCompleted(
       stripeSubscriptionId: subscriptionId,
       subscriptionTier: planId as WorkspaceTier,
       subscriptionStatus: subscription.status,
-      billingCycleStart: new Date(subscription.current_period_start * 1000),
+      billingCycleStart: new Date(subscription.billing_cycle_anchor * 1000),
       updatedAt: new Date(),
     })
     .where(eq(workspaces.id, workspaceId));
 
   // Sync entitlements and grant initial AI credits
-  await syncEntitlements(workspaceId, planId as WorkspaceTier);
-
-  // Grant initial AI credits
   const tierConfig = WORKSPACE_TIER_ENTITLEMENTS[planId as WorkspaceTier];
   if (tierConfig) {
     await grantAICredits(workspaceId, tierConfig.aiCreditsMonthly, 'subscription_started');
@@ -221,7 +218,7 @@ export async function handleSubscriptionUpdated(
     .set({
       subscriptionStatus: subscription.status,
       subscriptionTier: (planId as WorkspaceTier) || workspace.subscriptionTier,
-      billingCycleStart: new Date(subscription.current_period_start * 1000),
+      billingCycleStart: new Date(subscription.billing_cycle_anchor * 1000),
       updatedAt: new Date(),
     })
     .where(eq(workspaces.id, workspaceId));
@@ -270,12 +267,13 @@ export async function handleSubscriptionDeleted(
 export async function handleInvoicePaymentSucceeded(
   invoice: Stripe.Invoice
 ): Promise<void> {
-  if (!invoice.subscription) {
+  const subscriptionId = invoice.parent?.subscription_details?.subscription;
+  if (!subscriptionId) {
     return;
   }
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.stripeSubscriptionId, invoice.subscription as string),
+    where: eq(workspaces.stripeSubscriptionId, subscriptionId as string),
   });
 
   if (!workspace) {
@@ -295,12 +293,13 @@ export async function handleInvoicePaymentSucceeded(
 export async function handleInvoicePaymentFailed(
   invoice: Stripe.Invoice
 ): Promise<void> {
-  if (!invoice.subscription) {
+  const subscriptionId = invoice.parent?.subscription_details?.subscription;
+  if (!subscriptionId) {
     return;
   }
 
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.stripeSubscriptionId, invoice.subscription as string),
+    where: eq(workspaces.stripeSubscriptionId, subscriptionId as string),
   });
 
   if (!workspace) {
@@ -338,7 +337,7 @@ export async function getWorkspaceBillingSummary(workspaceId: string) {
   if (workspace.stripeSubscriptionId) {
     try {
       const stripe = await getUncachableStripeClient();
-      upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+      upcomingInvoice = await stripe.invoices.createPreview({
         subscription: workspace.stripeSubscriptionId,
       });
     } catch (error) {

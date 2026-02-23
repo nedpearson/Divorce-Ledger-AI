@@ -104,7 +104,7 @@ Respond ONLY with the JSON object, no additional text.`;
   }
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await openai.get().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },

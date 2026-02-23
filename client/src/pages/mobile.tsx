@@ -1,10 +1,22 @@
-// Supabase URL logic for all mobile API endpoints
-const SUPABASE_API = process.env.NEXT_PUBLIC_SUPABASE_API_URL || "";
-const apiUrl = (endpoint: string) => SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint;
 import React, { useState, useRef, useEffect, lazy, Suspense } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-// ...existing code...
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
+import { useOfflineSync } from "@/hooks/use-offline-sync";
+import { useToast } from "@/hooks/use-toast";
 const MobileAppBanner = lazy(() => import("@/components/mobile-app-banner"));
 import {
   ArrowLeft,
@@ -57,6 +69,10 @@ import {
   Download,
 } from "lucide-react";
 import type { Document, MobileViolationReport, Reimbursement, W2Record, Asset, Debt, Income, Expense, ChildSupportPayment, DashboardStats } from "@shared/schema";
+
+// Supabase URL logic for all mobile API endpoints
+const SUPABASE_API = process.env.NEXT_PUBLIC_SUPABASE_API_URL || "";
+const apiUrl = (endpoint: string) => SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint;
 
 // Build auth headers (X-User-Id + X-Environment) for inline fetch() calls on the mobile page.
 // Mirrors getAuthHeaders() in queryClient.ts so that API routes requiring X-User-Id work

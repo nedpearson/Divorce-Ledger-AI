@@ -397,9 +397,9 @@ export async function seedDemoData() {
   if (existingWorkspace.length === 0) {
     const insertedWorkspace = await db
       .insert(workspaces)
-      .values(<InsertWorkspace>{
+      .values({
         name: workspaceName,
-        type: "firm",
+        type: "firm" as const,
         ownerId: firmAdminId,
         subscriptionTier: "firm_starter",
         subscriptionStatus: "active",
@@ -431,7 +431,7 @@ export async function seedDemoData() {
   if (!memberUserIds.has(firmAdminId)) {
     workspaceMemberInserts.push({
       workspaceId,
-      userId: Number(firmAdminId),
+      userId: firmAdminId,
       role: "owner",
     } as InsertWorkspaceMember);
   }
@@ -439,7 +439,7 @@ export async function seedDemoData() {
   if (!memberUserIds.has(userId)) {
     workspaceMemberInserts.push({
       workspaceId,
-      userId: Number(userId),
+      userId: userId,
       role: "staff",
     } as InsertWorkspaceMember);
   }
@@ -447,13 +447,13 @@ export async function seedDemoData() {
   if (!memberUserIds.has(clientId)) {
     workspaceMemberInserts.push({
       workspaceId,
-      userId: Number(clientId),
+      userId: clientId,
       role: "client",
     } as InsertWorkspaceMember);
   }
 
   if (workspaceMemberInserts.length > 0) {
-    await db.insert(workspaceMembers).values(workspaceMemberInserts);
+    await db.insert(workspaceMembers).values(workspaceMemberInserts as any);
   }
 
   // Ensure at least one active matter tying attorney + client together
@@ -465,13 +465,13 @@ export async function seedDemoData() {
   if (existingMatters.length === 0) {
     const [insertedMatter] = await db
       .insert(matters)
-      .values(<InsertMatter>{
+      .values({
         workspaceId,
         matterNumber: "DL-FIRM-DEMO-001",
         title: "Pearson v. Pearson – Custody & Support",
         description:
           "End-to-end demo matter showing how the firm collaborates with the client, tracks documents, and prepares for court.",
-        status: "active",
+        status: "active" as const,
         leadAttorneyId: firmAdminId,
       })
       .returning();
@@ -479,19 +479,19 @@ export async function seedDemoData() {
     const matterMemberInserts: InsertMatterMember[] = [
       {
         matterId: insertedMatter.id,
-        userId: Number(firmAdminId),
+        userId: firmAdminId,
         role: "attorney",
         permissions: { can_view: true, can_upload: true, can_comment: true, can_edit: true },
       } as InsertMatterMember,
       {
         matterId: insertedMatter.id,
-        userId: Number(clientId),
+        userId: clientId,
         role: "client",
         permissions: { can_view: true, can_upload: true, can_comment: true },
       } as InsertMatterMember,
     ];
 
-    await db.insert(matterMembers).values(matterMemberInserts);
+    await db.insert(matterMembers).values(matterMemberInserts as any);
   }
 
   // ------------------------------------------------------------------------
@@ -704,7 +704,7 @@ export async function seedDemoData() {
       environment,
       title: "Custody & Parenting Time",
       status: "open",
-      courtName: "Family Court of East Baton Rouge Parish",
+      court: "Family Court of East Baton Rouge Parish",
       caseNumber: "DL-DEMO-2026-001",
       createdAt: now,
     })
@@ -717,7 +717,7 @@ export async function seedDemoData() {
       environment,
       title: "Hidden Assets & Financial Misconduct",
       status: "open",
-      courtName: "19th Judicial District Court",
+      court: "19th Judicial District Court",
       caseNumber: "DL-DEMO-2026-002",
       createdAt: now,
     })
@@ -735,7 +735,7 @@ export async function seedDemoData() {
       description:
         "Other parent failed to appear for scheduled custody exchange and did not notify prior to being 45 minutes late.",
       location: "Exchange point – Target parking lot, Siegen Lane",
-      createdAt: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7),
+
       isDraft: false,
     },
     {
@@ -746,7 +746,7 @@ export async function seedDemoData() {
       description:
         "Unexplained $7,500 transfer from joint checking to new online-only bank account not previously disclosed.",
       location: "Online banking – joint checking ending 4421",
-      createdAt: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 3),
+
       isDraft: false,
     },
     {
@@ -757,7 +757,7 @@ export async function seedDemoData() {
       description:
         "Missed child support payment for January despite standing order requiring payment by the 5th of each month.",
       location: "Child support order – Section C, paragraph 4",
-      createdAt: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 14),
+
       isDraft: false,
     },
   ]);
@@ -772,7 +772,6 @@ export async function seedDemoData() {
       category: "bank_account",
       ownership: "joint",
       verified: true,
-      createdAt: now,
     },
     {
       userId,
@@ -782,7 +781,6 @@ export async function seedDemoData() {
       category: "real_property",
       ownership: "marital",
       verified: false,
-      createdAt: now,
     },
   ]);
 
@@ -795,7 +793,6 @@ export async function seedDemoData() {
       category: "mortgage",
       ownership: "marital",
       monthlyPayment: 2450,
-      createdAt: now,
     },
     {
       userId,
@@ -805,7 +802,6 @@ export async function seedDemoData() {
       category: "credit_card",
       ownership: "joint",
       monthlyPayment: 250,
-      createdAt: now,
     },
   ]);
 
@@ -817,7 +813,6 @@ export async function seedDemoData() {
       amount: 9800,
       frequency: "monthly",
       owner: "you",
-      createdAt: now,
     },
     {
       userId,
@@ -826,7 +821,6 @@ export async function seedDemoData() {
       amount: 1200,
       frequency: "monthly",
       owner: "you",
-      createdAt: now,
     },
   ]);
 
@@ -839,7 +833,6 @@ export async function seedDemoData() {
       amount: 3500,
       frequency: "one_time",
       owner: "you",
-      createdAt: now,
     },
     {
       userId,
@@ -849,7 +842,6 @@ export async function seedDemoData() {
       amount: 600,
       frequency: "monthly",
       owner: "you",
-      createdAt: now,
     },
   ]);
 
