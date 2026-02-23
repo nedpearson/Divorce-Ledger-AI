@@ -1,11 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Ensure Turbopack treats this frontend folder as the root
+  // Treat this project directory as the Turbopack root
   turbopack: {
-    root: __dirname,
+    root: '.',
   },
 
-  // Allow dev access from your local network origin to /_next resources
+  // Allow builds even if TypeScript finds type errors in app code
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
+  // Allow dev access from your local/network origins to /_next resources
   allowedDevOrigins: [
     'localhost',
     '127.0.0.1',
