@@ -163,11 +163,17 @@ app.use(
 );
 
 
-import csurf from 'csurf';
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
-app.use(cookieParser());
-// Add CSRF protection for all non-API routes (customize as needed)
-app.use(csurf({ cookie: true }));
+try {
+  // Dynamically require csurf to handle missing dependency in some environments
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const csurf = require('csurf');
+  app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+  app.use(cookieParser());
+  // Add CSRF protection for all non-API routes (customize as needed)
+  app.use(csurf({ cookie: true }));
+} catch (err) {
+  console.warn('CSRF protection is not enabled: csurf module not found or failed to load.', err?.message || err);
+}
 app.use(demoResetMiddleware);
 app.use(adminDemoRouter);
 
