@@ -312,8 +312,8 @@ router.post('/files/:id/analyze', async (req: MulterRequest, res: Response) => {
         }
       }
       
-      const needsReview = normalizedOutput?.needs_user_review ?? 
-        (updatedFile?.status === FILE_STATUS.SUGGESTED) ?? true;
+      const needsReview = normalizedOutput?.needs_user_review 
+        ?? (updatedFile === undefined || updatedFile?.status === FILE_STATUS.SUGGESTED);
       
       const verification = normalizedOutput?.verification ?? {};
       const fieldsMissingEvidence = normalizedOutput?.fields_missing_evidence ?? [];

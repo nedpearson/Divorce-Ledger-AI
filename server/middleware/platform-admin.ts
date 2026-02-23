@@ -18,6 +18,7 @@ import { storage } from "../storage";
 
 // Extend Express Request with platform admin context
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       platformAdmin?: {

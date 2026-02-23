@@ -21,6 +21,7 @@ describe("Platform Admin – API gating", () => {
       })
     );
     // Add CSRF middleware for test coverage
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const csurf = require('csurf');
     app.use(csurf({ cookie: false }));
     await registerRoutes(null as any, app);
