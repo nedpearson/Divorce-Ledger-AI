@@ -6,11 +6,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 // ...existing code...
 const MobileAppBanner = lazy(() => import("@/components/mobile-app-banner"));
-const DocumentDetailDialog = lazy(() => import("./DocumentDetailDialog"));
-const CreateViolationDialog = lazy(() => import("./CreateViolationDialog"));
-const CreateReimbursementDialog = lazy(() => import("./CreateReimbursementDialog"));
-const W2DetailDialog = lazy(() => import("./W2DetailDialog"));
-const CreateW2Dialog = lazy(() => import("./CreateW2Dialog"));
 import {
   ArrowLeft,
   FileText,
