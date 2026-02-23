@@ -426,34 +426,34 @@ export async function seedDemoData() {
 
   const memberUserIds = new Set(existingMembers.map((m) => m.userId));
 
-  const workspaceMemberInserts: InsertWorkspaceMember[] = [];
+  const workspaceMemberInserts: typeof workspaceMembers.$inferInsert[] = [];
 
   if (!memberUserIds.has(firmAdminId)) {
     workspaceMemberInserts.push({
       workspaceId,
       userId: firmAdminId,
-      role: "owner",
-    } as InsertWorkspaceMember);
+      role: "owner" as const,
+    });
   }
 
   if (!memberUserIds.has(userId)) {
     workspaceMemberInserts.push({
       workspaceId,
       userId: userId,
-      role: "staff",
-    } as InsertWorkspaceMember);
+      role: "staff" as const,
+    });
   }
 
   if (!memberUserIds.has(clientId)) {
     workspaceMemberInserts.push({
       workspaceId,
       userId: clientId,
-      role: "client",
-    } as InsertWorkspaceMember);
+      role: "client" as const,
+    });
   }
 
   if (workspaceMemberInserts.length > 0) {
-    await db.insert(workspaceMembers).values(workspaceMemberInserts as any);
+    await db.insert(workspaceMembers).values(workspaceMemberInserts);
   }
 
   // Ensure at least one active matter tying attorney + client together
@@ -476,22 +476,20 @@ export async function seedDemoData() {
       })
       .returning();
 
-    const matterMemberInserts: InsertMatterMember[] = [
+    const matterMemberInserts: typeof matterMembers.$inferInsert[] = [
       {
         matterId: insertedMatter.id,
         userId: firmAdminId,
-        role: "attorney",
         permissions: { can_view: true, can_upload: true, can_comment: true, can_edit: true },
-      } as InsertMatterMember,
+      },
       {
         matterId: insertedMatter.id,
         userId: clientId,
-        role: "client",
         permissions: { can_view: true, can_upload: true, can_comment: true },
-      } as InsertMatterMember,
+      },
     ];
 
-    await db.insert(matterMembers).values(matterMemberInserts as any);
+    await db.insert(matterMembers).values(matterMemberInserts);
   }
 
   // ------------------------------------------------------------------------
@@ -735,7 +733,6 @@ export async function seedDemoData() {
       description:
         "Other parent failed to appear for scheduled custody exchange and did not notify prior to being 45 minutes late.",
       location: "Exchange point – Target parking lot, Siegen Lane",
-
       isDraft: false,
     },
     {
@@ -746,7 +743,6 @@ export async function seedDemoData() {
       description:
         "Unexplained $7,500 transfer from joint checking to new online-only bank account not previously disclosed.",
       location: "Online banking – joint checking ending 4421",
-
       isDraft: false,
     },
     {
@@ -757,7 +753,6 @@ export async function seedDemoData() {
       description:
         "Missed child support payment for January despite standing order requiring payment by the 5th of each month.",
       location: "Child support order – Section C, paragraph 4",
-
       isDraft: false,
     },
   ]);
