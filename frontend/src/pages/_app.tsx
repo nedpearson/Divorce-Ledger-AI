@@ -3,6 +3,7 @@ import type { AppProps } from 'next/app';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
+import { Analytics } from '@vercel/analytics/next';
 
 export default function App({ Component, pageProps }: AppProps) {
   const { initialize: initializeAuth, user } = useAuthStore();
@@ -22,5 +23,10 @@ export default function App({ Component, pageProps }: AppProps) {
     }
   }, [user, workspaceInitialized, initializeWorkspace]);
 
-  return <Component {...pageProps} />;
+  return (
+    <>
+      <Component {...pageProps} />
+      <Analytics />
+    </>
+  );
 }
