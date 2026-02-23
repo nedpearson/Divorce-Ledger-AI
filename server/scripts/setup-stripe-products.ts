@@ -20,7 +20,7 @@ if (!STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-11-17.clover',
 });
 
 interface PlanConfig {
@@ -151,7 +151,6 @@ async function setupProducts() {
       recurring: {
         interval: 'month',
         usage_type: 'metered',
-        aggregate_usage: 'sum',
       },
       metadata: {
         plan_id: 'ai_credits_overage',

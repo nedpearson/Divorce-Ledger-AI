@@ -284,3 +284,5 @@ export function MobileAppSignupCard({ onDismiss }: { onDismiss?: () => void }) {
     </Card>
   );
 }
+
+export default MobileAppSignupCard;

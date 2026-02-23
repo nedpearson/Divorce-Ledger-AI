@@ -19,7 +19,7 @@ const logger = createLogger('HealthCheck');
 const router = Router();
 
 interface HealthCheck {
-  status: 'pass' | 'fail';
+  status: 'pass' | 'fail' | 'warn';
   message: string;
   responseTime: number;
   [key: string]: any;

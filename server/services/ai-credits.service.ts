@@ -12,17 +12,11 @@ export interface ConsumeCreditsResult {
 
 export type UserIdInput = number | string | undefined;
 
-function resolveUserId(userId: UserIdInput, fallback: number): number {
-  if (typeof userId === 'number') {
-    return userId;
+function resolveUserId(userId: UserIdInput, fallback: string): string {
+  if (userId === undefined || userId === null) {
+    return fallback;
   }
-
-  if (typeof userId === 'string') {
-    const parsed = Number(userId);
-    return Number.isNaN(parsed) ? fallback : parsed;
-  }
-
-  return fallback;
+  return String(userId);
 }
 
 /**

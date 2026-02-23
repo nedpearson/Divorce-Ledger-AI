@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/authz';
 import {
   loadWorkspaceContext,
@@ -127,13 +127,19 @@ router.get('/workspaces', requireAuth, async (req, res) => {
   try {
     const userWorkspaces = await db.query.workspaceMembers.findMany({
       where: eq(workspaceMembers.userId, req.user!.id),
-      with: {
-        workspace: true,
-      },
     });
 
+    const workspaceIds = userWorkspaces.map(m => m.workspaceId);
+    const workspaceList = workspaceIds.length > 0
+      ? await db.query.workspaces.findMany({
+          where: (t, { inArray }) => inArray(t.id, workspaceIds),
+        })
+      : [];
+
+    const workspaceMap = Object.fromEntries(workspaceList.map(w => [w.id, w]));
+
     res.json(userWorkspaces.map(m => ({
-      ...m.workspace,
+      ...(workspaceMap[m.workspaceId] || {}),
       role: m.role,
       joinedAt: m.joinedAt,
     })));
@@ -260,7 +266,7 @@ router.delete('/workspaces/:workspaceId/members/:userId', ...requireWorkspaceAdm
       .where(
         and(
           eq(workspaceMembers.workspaceId, req.workspace!.id),
-          eq(workspaceMembers.userId, parseInt(userId))
+          eq(workspaceMembers.userId, userId)
         )
       );
 
@@ -305,7 +311,7 @@ router.post(
   ...requireFirmWorkspace,
   requireWorkspaceStaff,
   checkEntitlement('create_matter'),
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const { matterNumber, title, description, leadAttorneyId } = req.body;
 

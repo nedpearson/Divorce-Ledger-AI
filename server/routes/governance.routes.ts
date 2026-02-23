@@ -388,12 +388,11 @@ async function anonymizeUserData(userId: string): Promise<void> {
     .set({
       email: anonymizedEmail,
       password: '[ANONYMIZED]',
-      firstName: anonymizedName,
-      lastName: anonymizedName,
-      phone: null,
-      profileImageUrl: null,
-      qbAccessToken: null,
-      qbRefreshToken: null,
+      fullName: anonymizedName,
+      phoneNumber: null,
+      profilePhoto: null,
+      qbAccessTokenEncrypted: null,
+      qbRefreshTokenEncrypted: null,
       qbRealmId: null,
       qbConnected: false,
     })

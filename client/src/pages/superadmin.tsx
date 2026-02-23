@@ -167,10 +167,10 @@ export default function SuperAdminPage() {
               </div>
               <Button
                 variant="destructive"
-                disabled={demoResetMutation.isLoading}
+                disabled={demoResetMutation.isPending}
                 onClick={() => demoResetMutation.mutate()}
               >
-                {demoResetMutation.isLoading ? "Resetting demo environment…" : "Reset Demo Environment"}
+                {demoResetMutation.isPending ? "Resetting demo environment…" : "Reset Demo Environment"}
               </Button>
             </CardContent>
           </Card>

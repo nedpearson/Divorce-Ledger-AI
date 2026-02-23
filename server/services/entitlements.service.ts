@@ -241,10 +241,17 @@ async function getCurrentMattersCount(workspaceId: string): Promise<number> {
  * Helper: Get current storage usage in MB
  */
 async function getCurrentStorageUsage(workspaceId: string): Promise<number> {
+  // Get all workspace member user IDs to query their documents
+  const members = await db.query.workspaceMembers.findMany({
+    where: eq(workspaceMembers.workspaceId, workspaceId),
+  });
+  const userIds = members.map(m => m.userId);
+  if (userIds.length === 0) return 0;
+
   const result = await db
     .select({ total: sql<number>`COALESCE(SUM(${documents.fileSize}), 0) / 1048576.0` })
     .from(documents)
-    .where(eq(documents.workspaceId, workspaceId));
+    .where(sql`${documents.userId} = ANY(${userIds})`);
 
   return Math.round(result[0]?.total || 0);
 }
@@ -253,7 +260,7 @@ async function getCurrentStorageUsage(workspaceId: string): Promise<number> {
  * Check if user has required workspace role
  */
 export async function hasWorkspaceRole(
-  userId: number,
+  userId: string,
   workspaceId: string,
   allowedRoles: string[]
 ): Promise<boolean> {
@@ -275,7 +282,7 @@ export async function hasWorkspaceRole(
  * Check if user can access a matter
  */
 export async function hasMatterAccess(
-  userId: number,
+  userId: string,
   matterId: string
 ): Promise<boolean> {
   // Check if user is a matter member

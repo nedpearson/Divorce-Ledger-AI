@@ -338,7 +338,7 @@ router.get("/users/:userId", async (req, res) => {
     })
     .from(workspaceMembers)
     .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
-    .where(eq(workspaceMembers.userId, Number(userId)));
+    .where(eq(workspaceMembers.userId, userId));
 
     const userEntries = await db.select().from(userEntitlements).where(eq(userEntitlements.userId, userId));
 
@@ -384,7 +384,7 @@ router.post("/users/:userId/action", async (req, res) => {
       await db.update(workspaceMembers)
         .set({ role: body.newRole as any })
         .where(and(
-          eq(workspaceMembers.userId, Number(userId)),
+          eq(workspaceMembers.userId, userId),
           eq(workspaceMembers.workspaceId, body.workspaceId)
         ));
       resultDetail = { workspaceId: body.workspaceId, newRole: body.newRole };

@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../db';
-import { workspaces, workspaceMembers, matterMembers } from '@shared/workspace-schema';
+import { workspaces, workspaceMembers, matterMembers, matters } from '@shared/workspace-schema';
 import { eq, and } from 'drizzle-orm';
-import type { WorkspaceContext, MatterContext } from '@shared/workspace-schema';
+import type { WorkspaceContext, MatterContext, MatterRole } from '@shared/workspace-schema';
 
 // Extend Express Request type to include workspace context
 declare global {
@@ -41,21 +41,26 @@ export const loadWorkspaceContext = async (
         eq(workspaceMembers.workspaceId, workspaceId as string),
         eq(workspaceMembers.userId, req.user.id)
       ),
-      with: {
-        workspace: true,
-      },
     });
 
     if (!member) {
       return res.status(403).json({ error: 'Access denied to workspace' });
     }
 
+    const workspace = await db.query.workspaces.findFirst({
+      where: eq(workspaces.id, workspaceId as string),
+    });
+
+    if (!workspace) {
+      return res.status(404).json({ error: 'Workspace not found' });
+    }
+
     // Attach workspace context to request
     req.workspace = {
       id: workspaceId as string,
       role: member.role,
-      type: member.workspace.type,
-      subscriptionTier: member.workspace.subscriptionTier,
+      type: workspace.type,
+      subscriptionTier: workspace.subscriptionTier,
     };
 
     next();
@@ -130,17 +135,21 @@ export const loadMatterContext = async (
         eq(matterMembers.matterId, matterId as string),
         eq(matterMembers.userId, req.user.id)
       ),
-      with: {
-        matter: true,
-      },
     });
 
     if (member) {
+      // User is a direct matter member - look up the matter separately
+      const memberMatter = await db.query.matters.findFirst({
+        where: eq(matters.id, matterId as string),
+      });
+      if (!memberMatter) {
+        return res.status(404).json({ error: 'Matter not found' });
+      }
       // User is a direct matter member
       req.matter = {
         id: matterId as string,
-        workspaceId: member.matter.workspaceId,
-        role: member.role,
+        workspaceId: memberMatter.workspaceId,
+        role: (member.permissions?.can_edit ? 'attorney' : 'client') as MatterRole,
         permissions: member.permissions,
       };
       next();

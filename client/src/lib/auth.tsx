@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
-      setUser(session.user as User);
+      setUser(session.user as unknown as User);
       setEnvironmentState(getInitialEnvironment());
       localStorage.setItem("user", JSON.stringify(session.user));
     } else {
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser(session.user as User);
+        setUser(session.user as unknown as User);
         localStorage.setItem("user", JSON.stringify(session.user));
       } else {
         setUser(null);
