@@ -367,7 +367,7 @@ export class GeminiProvider implements LLMProvider {
 export function normalizeAmount(amountText: string): number | null {
   if (!amountText) return null;
 
-  let cleaned = amountText.replace(/[^0-9.,\-]/g, "");
+  let cleaned = amountText.replace(/[^0-9.,-]/g, "");
   
   if (cleaned.includes(",") && cleaned.includes(".")) {
     if (cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")) {

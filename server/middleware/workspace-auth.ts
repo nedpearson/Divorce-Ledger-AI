@@ -6,6 +6,7 @@ import type { WorkspaceContext, MatterContext } from '@shared/workspace-schema';
 
 // Extend Express Request type to include workspace context
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       workspace?: WorkspaceContext;

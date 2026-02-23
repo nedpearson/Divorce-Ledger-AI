@@ -306,7 +306,7 @@ async function downloadExternalFile(
     case 'google_drive':
       downloadUrl = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
       break;
-    case 'dropbox':
+    case 'dropbox': {
       // Dropbox uses a different endpoint
       const dropboxResponse = await fetch('https://content.dropboxapi.com/2/files/download', {
         method: 'POST',
@@ -316,6 +316,7 @@ async function downloadExternalFile(
         },
       });
       return await dropboxResponse.blob();
+    }
     case 'onedrive':
       downloadUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${file.id}/content`;
       break;

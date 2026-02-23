@@ -163,7 +163,8 @@ class DataProfiler {
             p99: parseFloat(numericStats.rows[0].p99)
           };
         }
-      } catch (e) {
+      } catch (_e) {
+        // numeric stats unavailable for this column; continue without them
       }
     } else if (this.isStringType(dataType)) {
       try {
@@ -179,7 +180,8 @@ class DataProfiler {
           profile.minValue = minMaxResult.rows[0].min_val;
           profile.maxValue = minMaxResult.rows[0].max_val;
         }
-      } catch (e) {
+      } catch (_e) {
+        // string min/max unavailable for this column; continue without them
       }
     }
 
@@ -199,7 +201,8 @@ class DataProfiler {
         value: String(r.value),
         count: parseInt(r.cnt)
       }));
-    } catch (e) {
+    } catch (_e) {
+      // top values unavailable for this column; continue without them
     }
 
     return profile;

@@ -474,8 +474,7 @@ async function executeRetentionPolicy(policy: RetentionPolicy, jobId: string): P
   let recordsArchived = 0;
   let recordsDeleted = 0;
 
-  try {
-    const safeTableName = validateTableName(policy.tableName);
+  const safeTableName = validateTableName(policy.tableName);
     
     if (policy.purgeMode === 'archive' || policy.purgeMode === 'soft_delete') {
       recordsArchived = recordsProcessed;
@@ -505,10 +504,6 @@ async function executeRetentionPolicy(policy: RetentionPolicy, jobId: string): P
     await db.update(retentionPolicies)
       .set({ lastExecutedAt: new Date() })
       .where(eq(retentionPolicies.id, policy.id));
-
-  } catch (error: any) {
-    throw error;
-  }
 }
 
 router.get('/retention/jobs', async (req: Request, res: Response) => {

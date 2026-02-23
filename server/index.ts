@@ -165,7 +165,7 @@ app.use(
 
 try {
   // Dynamically require csurf to handle missing dependency in some environments
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const csurf = require('csurf');
   app.use(express.urlencoded({ extended: false, limit: '50mb' }));
   app.use(cookieParser());

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { ReactNode } from 'react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { ExclamationTriangleIcon, ClockIcon } from '@heroicons/react/24/outline';
