@@ -1,0 +1,733 @@
+
+> rest-express@1.0.0 check
+> tsc
+
+client/src/hooks/use-offline-sync.ts(171,7): error TS2304: Cannot find name 'MOBILE_QUERY_KEYS'.
+client/src/hooks/use-offline-sync.ts(171,33): error TS7006: Parameter 'key' implicitly has an 'any' type.
+client/src/hooks/use-offline-sync.ts(171,40): error TS2304: Cannot find name 'queryClient'.
+client/src/lib/auth.tsx(72,15): error TS2352: Conversion of type 'User' to type '{ environment: string; id: string; role: string; status: string; email: string; createdAt: Date | null; password: string; fullName: string; isAdmin: boolean; profilePhoto: string | null; ... 32 more ...; platformRole: string | null; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'User' is missing the following properties from type '{ environment: string; id: string; role: string; status: string; email: string; createdAt: Date | null; password: string; fullName: string; isAdmin: boolean; profilePhoto: string | null; ... 32 more ...; platformRole: string | null; }': environment, status, createdAt, password, and 36 more.
+client/src/lib/auth.tsx(87,17): error TS2352: Conversion of type 'User' to type '{ environment: string; id: string; role: string; status: string; email: string; createdAt: Date | null; password: string; fullName: string; isAdmin: boolean; profilePhoto: string | null; ... 32 more ...; platformRole: string | null; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'User' is missing the following properties from type '{ environment: string; id: string; role: string; status: string; email: string; createdAt: Date | null; password: string; fullName: string; isAdmin: boolean; profilePhoto: string | null; ... 32 more ...; platformRole: string | null; }': environment, status, createdAt, password, and 36 more.
+client/src/pages/mobile.tsx(8,36): error TS2322: Type 'Promise<typeof import("C:/dev/github/business/Divorce-Ledger-AI/client/src/components/mobile-app-banner")>' is not assignable to type 'Promise<{ default: ComponentType<any>; }>'.
+  Property 'default' is missing in type 'typeof import("C:/dev/github/business/Divorce-Ledger-AI/client/src/components/mobile-app-banner")' but required in type '{ default: ComponentType<any>; }'.
+client/src/pages/mobile.tsx(250,14): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(274,22): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(275,24): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(284,34): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(284,96): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(285,34): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(287,35): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(300,25): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(301,23): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(332,22): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(333,24): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(342,34): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(342,95): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(343,34): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(345,35): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(360,25): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(361,23): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(390,20): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(391,22): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(400,32): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(400,96): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(401,32): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(403,33): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(417,23): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(418,21): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(456,22): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(457,24): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(466,34): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(466,98): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(467,34): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(467,99): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(478,25): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(479,23): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(516,20): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(517,22): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(540,32): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(548,33): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(561,23): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(562,21): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(585,6): error TS2304: Cannot find name 'Sheet'.
+client/src/pages/mobile.tsx(585,41): error TS7006: Parameter 'open' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(586,8): error TS2304: Cannot find name 'SheetContent'.
+client/src/pages/mobile.tsx(587,10): error TS2304: Cannot find name 'SheetHeader'.
+client/src/pages/mobile.tsx(593,16): error TS2304: Cannot find name 'SheetTitle'.
+client/src/pages/mobile.tsx(593,47): error TS2304: Cannot find name 'SheetTitle'.
+client/src/pages/mobile.tsx(594,16): error TS2304: Cannot find name 'SheetDescription'.
+client/src/pages/mobile.tsx(594,79): error TS2304: Cannot find name 'SheetDescription'.
+client/src/pages/mobile.tsx(597,11): error TS2304: Cannot find name 'SheetHeader'.
+client/src/pages/mobile.tsx(598,10): error TS2304: Cannot find name 'ScrollArea'.
+client/src/pages/mobile.tsx(600,11): error TS2304: Cannot find name 'ScrollArea'.
+client/src/pages/mobile.tsx(601,9): error TS2304: Cannot find name 'SheetContent'.
+client/src/pages/mobile.tsx(602,7): error TS2304: Cannot find name 'Sheet'.
+client/src/pages/mobile.tsx(626,12): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(627,12): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(630,12): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(631,12): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(632,12): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(760,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(762,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(777,10): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(798,11): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(802,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(810,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(813,10): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(815,11): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(852,12): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(855,13): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(859,12): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(862,13): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(866,12): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(869,13): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(873,12): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(876,13): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(882,6): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(883,8): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(905,16): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(908,17): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(911,16): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(911,95): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(915,9): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(916,7): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(931,6): error TS2304: Cannot find name 'Dialog'.
+client/src/pages/mobile.tsx(931,42): error TS7006: Parameter 'open' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(932,8): error TS2304: Cannot find name 'DialogContent'.
+client/src/pages/mobile.tsx(933,10): error TS2304: Cannot find name 'DialogHeader'.
+client/src/pages/mobile.tsx(934,12): error TS2304: Cannot find name 'DialogTitle'.
+client/src/pages/mobile.tsx(937,13): error TS2304: Cannot find name 'DialogTitle'.
+client/src/pages/mobile.tsx(938,12): error TS2304: Cannot find name 'DialogDescription'.
+client/src/pages/mobile.tsx(938,59): error TS2304: Cannot find name 'DialogDescription'.
+client/src/pages/mobile.tsx(939,11): error TS2304: Cannot find name 'DialogHeader'.
+client/src/pages/mobile.tsx(942,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(942,72): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(944,16): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(944,64): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(954,16): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(954,73): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(960,16): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(960,80): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(963,20): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(966,21): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(976,10): error TS2304: Cannot find name 'DialogFooter'.
+client/src/pages/mobile.tsx(977,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(979,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(980,11): error TS2304: Cannot find name 'DialogFooter'.
+client/src/pages/mobile.tsx(981,9): error TS2304: Cannot find name 'DialogContent'.
+client/src/pages/mobile.tsx(982,7): error TS2304: Cannot find name 'Dialog'.
+client/src/pages/mobile.tsx(996,12): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(999,13): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1003,12): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1006,13): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1009,17): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1009,58): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1014,6): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1015,8): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1037,14): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1040,15): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1041,14): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1044,15): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1045,14): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1047,15): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1059,9): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1060,7): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1108,6): error TS2304: Cannot find name 'Dialog'.
+client/src/pages/mobile.tsx(1108,42): error TS7006: Parameter 'open' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(1109,8): error TS2304: Cannot find name 'DialogContent'.
+client/src/pages/mobile.tsx(1110,10): error TS2304: Cannot find name 'DialogHeader'.
+client/src/pages/mobile.tsx(1111,12): error TS2304: Cannot find name 'DialogTitle'.
+client/src/pages/mobile.tsx(1111,95): error TS2304: Cannot find name 'DialogTitle'.
+client/src/pages/mobile.tsx(1112,12): error TS2304: Cannot find name 'DialogDescription'.
+client/src/pages/mobile.tsx(1116,13): error TS2304: Cannot find name 'DialogDescription'.
+client/src/pages/mobile.tsx(1117,11): error TS2304: Cannot find name 'DialogHeader'.
+client/src/pages/mobile.tsx(1120,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1120,53): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1121,14): error TS2304: Cannot find name 'Input'.
+client/src/pages/mobile.tsx(1125,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(1130,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1130,61): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1131,14): error TS2304: Cannot find name 'Select'.
+client/src/pages/mobile.tsx(1132,16): error TS2304: Cannot find name 'SelectTrigger'.
+client/src/pages/mobile.tsx(1133,18): error TS2304: Cannot find name 'SelectValue'.
+client/src/pages/mobile.tsx(1134,17): error TS2304: Cannot find name 'SelectTrigger'.
+client/src/pages/mobile.tsx(1135,16): error TS2304: Cannot find name 'SelectContent'.
+client/src/pages/mobile.tsx(1137,20): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1137,63): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1139,17): error TS2304: Cannot find name 'SelectContent'.
+client/src/pages/mobile.tsx(1140,15): error TS2304: Cannot find name 'Select'.
+client/src/pages/mobile.tsx(1143,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1143,60): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1144,14): error TS2304: Cannot find name 'Input'.
+client/src/pages/mobile.tsx(1148,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(1153,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1153,70): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1154,14): error TS2304: Cannot find name 'Input'.
+client/src/pages/mobile.tsx(1158,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(1163,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1163,65): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1164,14): error TS2304: Cannot find name 'Textarea'.
+client/src/pages/mobile.tsx(1168,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(1174,10): error TS2304: Cannot find name 'DialogFooter'.
+client/src/pages/mobile.tsx(1175,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1177,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1178,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1180,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1181,11): error TS2304: Cannot find name 'DialogFooter'.
+client/src/pages/mobile.tsx(1182,9): error TS2304: Cannot find name 'DialogContent'.
+client/src/pages/mobile.tsx(1183,7): error TS2304: Cannot find name 'Dialog'.
+client/src/pages/mobile.tsx(1188,33): error TS2304: Cannot find name 'useAuth'.
+client/src/pages/mobile.tsx(1189,21): error TS2304: Cannot find name 'useToast'.
+client/src/pages/mobile.tsx(1232,7): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(1265,10): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1266,12): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1286,14): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1288,15): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1289,13): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1290,11): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1306,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1318,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1319,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1321,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1325,8): error TS2304: Cannot find name 'ScrollArea'.
+client/src/pages/mobile.tsx(1330,18): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1331,20): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1333,24): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(1335,26): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(1336,26): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(1338,24): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(1340,21): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1341,19): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1345,14): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1346,16): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1352,17): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1353,15): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1364,22): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1364,83): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1376,9): error TS2304: Cannot find name 'ScrollArea'.
+client/src/pages/mobile.tsx(1388,27): error TS2304: Cannot find name 'useAuth'.
+client/src/pages/mobile.tsx(1389,21): error TS2304: Cannot find name 'useToast'.
+client/src/pages/mobile.tsx(1390,43): error TS2304: Cannot find name 'useOfflineSync'.
+client/src/pages/mobile.tsx(1411,22): error TS2552: Cannot find name 'apiRequest'. Did you mean 'Request'?
+client/src/pages/mobile.tsx(1423,9): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(1445,22): error TS2552: Cannot find name 'apiRequest'. Did you mean 'Request'?
+client/src/pages/mobile.tsx(1454,9): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(1473,9): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(1479,22): error TS2552: Cannot find name 'apiRequest'. Did you mean 'Request'?
+client/src/pages/mobile.tsx(1486,9): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(1498,22): error TS2304: Cannot find name 'apiRequest'.
+client/src/pages/mobile.tsx(1504,7): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(1505,7): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(1532,10): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1533,12): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1553,14): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1555,15): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1556,13): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1557,11): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1565,10): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1576,11): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1579,8): error TS2304: Cannot find name 'ScrollArea'.
+client/src/pages/mobile.tsx(1584,18): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1585,20): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1587,24): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(1589,26): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(1590,26): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(1592,24): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(1594,21): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1595,19): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1599,14): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1600,16): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1606,17): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1607,15): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1615,22): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1615,91): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1635,22): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1635,95): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1653,9): error TS2304: Cannot find name 'ScrollArea'.
+client/src/pages/mobile.tsx(1749,17): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1749,110): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1751,17): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1751,55): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1753,17): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1753,52): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(1758,6): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1759,8): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1785,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1788,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1789,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1791,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1793,9): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(1794,7): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(1837,6): error TS2304: Cannot find name 'Dialog'.
+client/src/pages/mobile.tsx(1837,42): error TS7006: Parameter 'open' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(1838,8): error TS2304: Cannot find name 'DialogContent'.
+client/src/pages/mobile.tsx(1839,10): error TS2304: Cannot find name 'DialogHeader'.
+client/src/pages/mobile.tsx(1840,12): error TS2304: Cannot find name 'DialogTitle'.
+client/src/pages/mobile.tsx(1840,93): error TS2304: Cannot find name 'DialogTitle'.
+client/src/pages/mobile.tsx(1841,12): error TS2304: Cannot find name 'DialogDescription'.
+client/src/pages/mobile.tsx(1843,13): error TS2304: Cannot find name 'DialogDescription'.
+client/src/pages/mobile.tsx(1844,11): error TS2304: Cannot find name 'DialogHeader'.
+client/src/pages/mobile.tsx(1847,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1847,59): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1848,14): error TS2304: Cannot find name 'Select'.
+client/src/pages/mobile.tsx(1849,16): error TS2304: Cannot find name 'SelectTrigger'.
+client/src/pages/mobile.tsx(1850,18): error TS2304: Cannot find name 'SelectValue'.
+client/src/pages/mobile.tsx(1851,17): error TS2304: Cannot find name 'SelectTrigger'.
+client/src/pages/mobile.tsx(1852,16): error TS2304: Cannot find name 'SelectContent'.
+client/src/pages/mobile.tsx(1854,20): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1854,78): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1856,17): error TS2304: Cannot find name 'SelectContent'.
+client/src/pages/mobile.tsx(1857,15): error TS2304: Cannot find name 'Select'.
+client/src/pages/mobile.tsx(1860,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1860,65): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1861,14): error TS2304: Cannot find name 'Input'.
+client/src/pages/mobile.tsx(1865,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(1870,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1870,59): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1871,14): error TS2304: Cannot find name 'Input'.
+client/src/pages/mobile.tsx(1877,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(1882,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1882,56): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1883,14): error TS2304: Cannot find name 'Select'.
+client/src/pages/mobile.tsx(1884,16): error TS2304: Cannot find name 'SelectTrigger'.
+client/src/pages/mobile.tsx(1885,18): error TS2304: Cannot find name 'SelectValue'.
+client/src/pages/mobile.tsx(1886,17): error TS2304: Cannot find name 'SelectTrigger'.
+client/src/pages/mobile.tsx(1887,16): error TS2304: Cannot find name 'SelectContent'.
+client/src/pages/mobile.tsx(1888,18): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1888,58): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1889,18): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1889,58): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1890,18): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1890,50): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1891,17): error TS2304: Cannot find name 'SelectContent'.
+client/src/pages/mobile.tsx(1892,15): error TS2304: Cannot find name 'Select'.
+client/src/pages/mobile.tsx(1895,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1895,55): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1896,14): error TS2304: Cannot find name 'Select'.
+client/src/pages/mobile.tsx(1897,16): error TS2304: Cannot find name 'SelectTrigger'.
+client/src/pages/mobile.tsx(1898,18): error TS2304: Cannot find name 'SelectValue'.
+client/src/pages/mobile.tsx(1899,17): error TS2304: Cannot find name 'SelectTrigger'.
+client/src/pages/mobile.tsx(1900,16): error TS2304: Cannot find name 'SelectContent'.
+client/src/pages/mobile.tsx(1901,18): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1901,54): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1902,18): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1902,48): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1903,18): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1903,56): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(1904,17): error TS2304: Cannot find name 'SelectContent'.
+client/src/pages/mobile.tsx(1905,15): error TS2304: Cannot find name 'Select'.
+client/src/pages/mobile.tsx(1908,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1908,65): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1909,14): error TS2304: Cannot find name 'Input'.
+client/src/pages/mobile.tsx(1913,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(1918,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1918,64): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(1919,14): error TS2304: Cannot find name 'Textarea'.
+client/src/pages/mobile.tsx(1923,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(1929,10): error TS2304: Cannot find name 'DialogFooter'.
+client/src/pages/mobile.tsx(1930,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1932,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1933,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1935,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(1936,11): error TS2304: Cannot find name 'DialogFooter'.
+client/src/pages/mobile.tsx(1937,9): error TS2304: Cannot find name 'DialogContent'.
+client/src/pages/mobile.tsx(1938,7): error TS2304: Cannot find name 'Dialog'.
+client/src/pages/mobile.tsx(1943,21): error TS2304: Cannot find name 'useToast'.
+client/src/pages/mobile.tsx(1944,43): error TS2304: Cannot find name 'useOfflineSync'.
+client/src/pages/mobile.tsx(1964,14): error TS2304: Cannot find name 'apiRequest'.
+client/src/pages/mobile.tsx(1970,9): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(1991,14): error TS2304: Cannot find name 'apiRequest'.
+client/src/pages/mobile.tsx(1997,9): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(2016,9): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(2021,14): error TS2304: Cannot find name 'apiRequest'.
+client/src/pages/mobile.tsx(2025,9): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(2065,10): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2066,12): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2086,14): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2088,15): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2089,13): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2090,11): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2104,35): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2104,85): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2105,36): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2105,90): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2108,10): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2118,11): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2121,8): error TS2304: Cannot find name 'ScrollArea'.
+client/src/pages/mobile.tsx(2126,18): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2127,20): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2129,24): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(2131,26): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(2132,26): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(2134,24): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(2136,21): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2137,19): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2141,14): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2142,16): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2148,17): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2149,15): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2155,20): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2155,82): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2174,9): error TS2304: Cannot find name 'ScrollArea'.
+client/src/pages/mobile.tsx(2207,6): error TS2304: Cannot find name 'Dialog'.
+client/src/pages/mobile.tsx(2207,42): error TS7006: Parameter 'open' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(2208,8): error TS2304: Cannot find name 'DialogContent'.
+client/src/pages/mobile.tsx(2209,10): error TS2304: Cannot find name 'DialogHeader'.
+client/src/pages/mobile.tsx(2210,12): error TS2304: Cannot find name 'DialogTitle'.
+client/src/pages/mobile.tsx(2213,13): error TS2304: Cannot find name 'DialogTitle'.
+client/src/pages/mobile.tsx(2214,12): error TS2304: Cannot find name 'DialogDescription'.
+client/src/pages/mobile.tsx(2216,13): error TS2304: Cannot find name 'DialogDescription'.
+client/src/pages/mobile.tsx(2217,11): error TS2304: Cannot find name 'DialogHeader'.
+client/src/pages/mobile.tsx(2220,14): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2222,15): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2224,16): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2227,17): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2231,12): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2232,14): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2267,15): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2268,13): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2290,16): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2291,18): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2302,26): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2305,27): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2308,22): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2312,23): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2314,19): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2315,17): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2317,16): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2318,18): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2321,19): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2322,17): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2326,10): error TS2304: Cannot find name 'DialogFooter'.
+client/src/pages/mobile.tsx(2327,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2329,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2330,11): error TS2304: Cannot find name 'DialogFooter'.
+client/src/pages/mobile.tsx(2331,9): error TS2304: Cannot find name 'DialogContent'.
+client/src/pages/mobile.tsx(2332,7): error TS2304: Cannot find name 'Dialog'.
+client/src/pages/mobile.tsx(2349,6): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2350,8): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2363,16): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2365,17): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2387,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2390,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2391,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2393,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2395,9): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2396,7): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2447,6): error TS2304: Cannot find name 'Dialog'.
+client/src/pages/mobile.tsx(2447,42): error TS7006: Parameter 'open' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(2448,8): error TS2304: Cannot find name 'DialogContent'.
+client/src/pages/mobile.tsx(2449,10): error TS2304: Cannot find name 'DialogHeader'.
+client/src/pages/mobile.tsx(2450,12): error TS2304: Cannot find name 'DialogTitle'.
+client/src/pages/mobile.tsx(2450,73): error TS2304: Cannot find name 'DialogTitle'.
+client/src/pages/mobile.tsx(2451,12): error TS2304: Cannot find name 'DialogDescription'.
+client/src/pages/mobile.tsx(2453,13): error TS2304: Cannot find name 'DialogDescription'.
+client/src/pages/mobile.tsx(2454,11): error TS2304: Cannot find name 'DialogHeader'.
+client/src/pages/mobile.tsx(2457,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2457,40): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2458,14): error TS2304: Cannot find name 'Select'.
+client/src/pages/mobile.tsx(2459,16): error TS2304: Cannot find name 'SelectTrigger'.
+client/src/pages/mobile.tsx(2460,18): error TS2304: Cannot find name 'SelectValue'.
+client/src/pages/mobile.tsx(2461,17): error TS2304: Cannot find name 'SelectTrigger'.
+client/src/pages/mobile.tsx(2462,16): error TS2304: Cannot find name 'SelectContent'.
+client/src/pages/mobile.tsx(2463,18): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(2463,50): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(2464,18): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(2464,58): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(2465,17): error TS2304: Cannot find name 'SelectContent'.
+client/src/pages/mobile.tsx(2466,15): error TS2304: Cannot find name 'Select'.
+client/src/pages/mobile.tsx(2470,16): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2470,50): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2471,16): error TS2304: Cannot find name 'Input'.
+client/src/pages/mobile.tsx(2475,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(2480,16): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2480,59): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2481,16): error TS2304: Cannot find name 'Input'.
+client/src/pages/mobile.tsx(2485,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(2491,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2491,61): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2492,14): error TS2304: Cannot find name 'Input'.
+client/src/pages/mobile.tsx(2498,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(2504,16): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2504,61): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2505,16): error TS2304: Cannot find name 'Input'.
+client/src/pages/mobile.tsx(2511,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(2516,16): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2516,62): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2517,16): error TS2304: Cannot find name 'Input'.
+client/src/pages/mobile.tsx(2523,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(2529,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2529,53): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2530,14): error TS2304: Cannot find name 'Select'.
+client/src/pages/mobile.tsx(2531,16): error TS2304: Cannot find name 'SelectTrigger'.
+client/src/pages/mobile.tsx(2532,18): error TS2304: Cannot find name 'SelectValue'.
+client/src/pages/mobile.tsx(2533,17): error TS2304: Cannot find name 'SelectTrigger'.
+client/src/pages/mobile.tsx(2534,16): error TS2304: Cannot find name 'SelectContent'.
+client/src/pages/mobile.tsx(2535,18): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(2535,51): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(2537,20): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(2539,21): error TS2304: Cannot find name 'SelectItem'.
+client/src/pages/mobile.tsx(2541,17): error TS2304: Cannot find name 'SelectContent'.
+client/src/pages/mobile.tsx(2542,15): error TS2304: Cannot find name 'Select'.
+client/src/pages/mobile.tsx(2548,14): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2548,57): error TS2304: Cannot find name 'Label'.
+client/src/pages/mobile.tsx(2549,14): error TS2304: Cannot find name 'Textarea'.
+client/src/pages/mobile.tsx(2553,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+client/src/pages/mobile.tsx(2559,10): error TS2304: Cannot find name 'DialogFooter'.
+client/src/pages/mobile.tsx(2560,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2562,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2563,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2565,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2566,11): error TS2304: Cannot find name 'DialogFooter'.
+client/src/pages/mobile.tsx(2567,9): error TS2304: Cannot find name 'DialogContent'.
+client/src/pages/mobile.tsx(2568,7): error TS2304: Cannot find name 'Dialog'.
+client/src/pages/mobile.tsx(2573,21): error TS2304: Cannot find name 'useToast'.
+client/src/pages/mobile.tsx(2574,43): error TS2304: Cannot find name 'useOfflineSync'.
+client/src/pages/mobile.tsx(2607,14): error TS2304: Cannot find name 'apiRequest'.
+client/src/pages/mobile.tsx(2613,9): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(2634,14): error TS2304: Cannot find name 'apiRequest'.
+client/src/pages/mobile.tsx(2640,9): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(2659,9): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(2664,14): error TS2304: Cannot find name 'apiRequest'.
+client/src/pages/mobile.tsx(2668,9): error TS2304: Cannot find name 'queryClient'.
+client/src/pages/mobile.tsx(2708,10): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2709,12): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2729,14): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2731,15): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2732,13): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2733,11): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2761,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2771,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2772,12): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2778,13): error TS2304: Cannot find name 'Button'.
+client/src/pages/mobile.tsx(2782,8): error TS2304: Cannot find name 'ScrollArea'.
+client/src/pages/mobile.tsx(2785,14): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2786,16): error TS2304: Cannot find name 'CardHeader'.
+client/src/pages/mobile.tsx(2787,18): error TS2304: Cannot find name 'CardTitle'.
+client/src/pages/mobile.tsx(2790,19): error TS2304: Cannot find name 'CardTitle'.
+client/src/pages/mobile.tsx(2791,18): error TS2304: Cannot find name 'CardDescription'.
+client/src/pages/mobile.tsx(2793,19): error TS2304: Cannot find name 'CardDescription'.
+client/src/pages/mobile.tsx(2794,17): error TS2304: Cannot find name 'CardHeader'.
+client/src/pages/mobile.tsx(2795,16): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2824,17): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2825,15): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2831,18): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2832,20): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2834,24): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(2836,26): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(2837,26): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(2839,24): error TS2304: Cannot find name 'Skeleton'.
+client/src/pages/mobile.tsx(2841,21): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2842,19): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2846,14): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2847,16): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2853,17): error TS2304: Cannot find name 'CardContent'.
+client/src/pages/mobile.tsx(2854,15): error TS2304: Cannot find name 'Card'.
+client/src/pages/mobile.tsx(2861,22): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2861,88): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2881,22): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2881,92): error TS2304: Cannot find name 'Badge'.
+client/src/pages/mobile.tsx(2900,9): error TS2304: Cannot find name 'ScrollArea'.
+client/src/pages/mobile.tsx(2928,27): error TS2304: Cannot find name 'useAuth'.
+client/src/pages/mobile.tsx(2929,21): error TS2304: Cannot find name 'useToast'.
+client/src/pages/mobile.tsx(2939,7): error TS2304: Cannot find name 'useOfflineSync'.
+client/src/pages/mobile.tsx(2985,8): error TS2304: Cannot find name 'Tabs'.
+client/src/pages/mobile.tsx(2986,10): error TS2304: Cannot find name 'TabsList'.
+client/src/pages/mobile.tsx(2987,12): error TS2304: Cannot find name 'TabsTrigger'.
+client/src/pages/mobile.tsx(2990,13): error TS2304: Cannot find name 'TabsTrigger'.
+client/src/pages/mobile.tsx(2991,12): error TS2304: Cannot find name 'TabsTrigger'.
+client/src/pages/mobile.tsx(2994,13): error TS2304: Cannot find name 'TabsTrigger'.
+client/src/pages/mobile.tsx(2995,11): error TS2304: Cannot find name 'TabsList'.
+client/src/pages/mobile.tsx(2997,10): error TS2304: Cannot find name 'TabsContent'.
+client/src/pages/mobile.tsx(2999,11): error TS2304: Cannot find name 'TabsContent'.
+client/src/pages/mobile.tsx(3001,10): error TS2304: Cannot find name 'TabsContent'.
+client/src/pages/mobile.tsx(3003,11): error TS2304: Cannot find name 'TabsContent'.
+client/src/pages/mobile.tsx(3004,9): error TS2304: Cannot find name 'Tabs'.
+client/src/pages/superadmin.tsx(170,45): error TS2339: Property 'isLoading' does not exist on type 'UseMutationResult<void, any, void, unknown>'.
+  Property 'isLoading' does not exist on type 'Override<MutationObserverIdleResult<void, any, void, unknown>, { mutate: UseMutateFunction<void, any, void, unknown>; }> & { ...; }'.
+client/src/pages/superadmin.tsx(173,36): error TS2339: Property 'isLoading' does not exist on type 'UseMutationResult<void, any, void, unknown>'.
+  Property 'isLoading' does not exist on type 'Override<MutationObserverIdleResult<void, any, void, unknown>, { mutate: UseMutateFunction<void, any, void, unknown>; }> & { ...; }'.
+server/index.ts(175,98): error TS2339: Property 'message' does not exist on type '{}'.
+server/middleware/workspace-auth.ts(42,9): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: number | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'number | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<string>, right: string | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<string>'.
+      Type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<string>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+server/middleware/workspace-auth.ts(57,30): error TS2339: Property 'type' does not exist on type 'never'.
+server/middleware/workspace-auth.ts(58,42): error TS2339: Property 'subscriptionTier' does not exist on type 'never'.
+server/middleware/workspace-auth.ts(131,9): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "user_id"; tableName: "matter_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: number | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'number | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<string>, right: string | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "matter_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<string>'.
+      Type 'PgColumn<{ name: "user_id"; tableName: "matter_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<string>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "matter_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+server/middleware/workspace-auth.ts(142,36): error TS2339: Property 'workspaceId' does not exist on type 'never'.
+server/middleware/workspace-auth.ts(152,17): error TS2304: Cannot find name 'matters'.
+server/middleware/workspace-auth.ts(162,9): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: number | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'number | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<string>, right: string | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<string>'.
+      Type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<string>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+server/replit_integrations/image/routes.ts(13,37): error TS2339: Property 'images' does not exist on type '{ get: () => OpenAI; }'.
+server/routes/governance.routes.ts(391,7): error TS2353: Object literal may only specify known properties, and 'firstName' does not exist in type '{ email?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; password?: string | SQL<unknown> | PgColumn<...> | undefined; ... 40 more ...; platformRole?: string | ... 3 more ... | undefined; }'.
+server/routes/health.routes.ts(49,9): error TS2322: Type '"warn"' is not assignable to type '"pass" | "fail"'.
+server/routes/health.routes.ts(74,9): error TS2322: Type '"warn"' is not assignable to type '"pass" | "fail"'.
+server/routes/health.routes.ts(103,58): error TS2367: This comparison appears to be unintentional because the types '"pass" | "fail"' and '"warn"' have no overlap.
+server/routes/workspace-billing.routes.ts(42,7): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+server/routes/workspace-billing.routes.ts(63,7): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+server/routes/workspace-billing.routes.ts(129,14): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: number | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'number | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<string>, right: string | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<string>'.
+      Type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<string>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+server/routes/workspace-billing.routes.ts(136,7): error TS2698: Spread types may only be created from object types.
+server/routes/workspace-billing.routes.ts(171,39): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { role: SQL<unknown> | "owner" | "admin" | "staff" | "client" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; ... 4 more ...; joinedAt?: SQL<...> | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'string' is not assignable to type 'number | SQL<unknown> | Placeholder<string, any>'.
+  Overload 2 of 2, '(values: { role: SQL<unknown> | "owner" | "admin" | "staff" | "client" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; ... 4 more ...; joinedAt?: SQL<...> | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'workspaceId' does not exist in type '{ role: SQL<unknown> | "owner" | "admin" | "staff" | "client" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; workspaceId: string | ... 1 more ... | Placeholder<...>; id?: string | ... 2 more ... | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; invitedBy?: string ...'.
+server/routes/workspace-billing.routes.ts(308,10): error TS7006: Parameter 'req' implicitly has an 'any' type.
+server/routes/workspace-billing.routes.ts(308,15): error TS7006: Parameter 'res' implicitly has an 'any' type.
+server/routes/workspace-billing.routes.ts(361,9): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: number | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'number | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<string>, right: string | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<string>'.
+      Type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<string>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+server/routes/workspace-billing.routes.ts(376,8): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { role: string | SQL<unknown> | Placeholder<string, any>; email: string | SQL<unknown> | Placeholder<string, any>; expiresAt: SQL<unknown> | Date | Placeholder<...>; ... 7 more ...; acceptedAt?: SQL<...> | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'string' is not assignable to type 'number | SQL<unknown> | Placeholder<string, any>'.
+  Overload 2 of 2, '(values: { role: string | SQL<unknown> | Placeholder<string, any>; email: string | SQL<unknown> | Placeholder<string, any>; expiresAt: SQL<unknown> | Date | Placeholder<...>; ... 7 more ...; acceptedAt?: SQL<...> | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'workspaceId' does not exist in type '{ role: string | SQL<unknown> | Placeholder<string, any>; email: string | SQL<unknown> | Placeholder<string, any>; expiresAt: SQL<unknown> | Date | Placeholder<...>; ... 7 more ...; acceptedAt?: SQL<...> | ... 3 more ... | undefined; }[]'.
+server/scripts/setup-stripe-products.ts(23,3): error TS2322: Type '"2024-12-18.acacia"' is not assignable to type '"2025-11-17.clover"'.
+server/scripts/setup-stripe-products.ts(154,9): error TS2353: Object literal may only specify known properties, and 'aggregate_usage' does not exist in type 'Recurring'.
+server/services/ai-credits.service.ts(61,48): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+server/services/ai-credits.service.ts(112,48): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+server/services/ai-credits.service.ts(159,43): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { userId: number | SQL<unknown> | Placeholder<string, any>; workspaceId: string | SQL<unknown> | Placeholder<string, any>; amount: number | SQL<unknown> | Placeholder<...>; ... 4 more ...; createdAt?: SQL<...> | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'string' is not assignable to type 'number | SQL<unknown> | Placeholder<string, any>'.
+  Overload 2 of 2, '(values: { userId: number | SQL<unknown> | Placeholder<string, any>; workspaceId: string | SQL<unknown> | Placeholder<string, any>; amount: number | SQL<unknown> | Placeholder<...>; ... 4 more ...; createdAt?: SQL<...> | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'workspaceId' does not exist in type '{ userId: number | SQL<unknown> | Placeholder<string, any>; workspaceId: string | SQL<unknown> | Placeholder<string, any>; amount: number | SQL<unknown> | Placeholder<...>; ... 4 more ...; createdAt?: SQL<...> | ... 2 more ... | undefined; }[]'.
+server/services/ai-document.service.ts(107,35): error TS2339: Property 'chat' does not exist on type '{ get: () => OpenAI; }'.
+server/services/entitlements.service.ts(247,25): error TS2339: Property 'workspaceId' does not exist on type 'PgTableWithColumns<{ name: "documents"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "documents"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, { ...; }>; ... 20 more ...; aiExtracte...'.
+server/services/workspace-billing.service.ts(33,12): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "id"; tableName: "users"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'number' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<number>, right: number | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "id"; tableName: "users"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is not assignable to parameter of type 'Aliased<number>'.
+      Type 'PgColumn<{ name: "id"; tableName: "users"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is missing the following properties from type 'Aliased<number>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "id"; tableName: "users"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is not assignable to parameter of type 'never'.
+server/services/workspace-billing.service.ts(42,12): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "owner_id"; tableName: "workspaces"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'number' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<number>, right: number | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "owner_id"; tableName: "workspaces"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is not assignable to parameter of type 'Aliased<number>'.
+      Type 'PgColumn<{ name: "owner_id"; tableName: "workspaces"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is missing the following properties from type 'Aliased<number>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "owner_id"; tableName: "workspaces"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is not assignable to parameter of type 'never'.
+server/services/workspace-billing.service.ts(49,8): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { type: SQL<unknown> | "consumer" | "firm" | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ownerId: string | SQL<...> | Placeholder<...>; ... 10 more ...; settings?: SQL<...> | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'number' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any>'.
+  Overload 2 of 2, '(values: { type: SQL<unknown> | "consumer" | "firm" | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ownerId: string | SQL<...> | Placeholder<...>; ... 10 more ...; settings?: SQL<...> | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'name' does not exist in type '{ type: SQL<unknown> | "consumer" | "firm" | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ownerId: string | SQL<unknown> | Placeholder<...>; ... 10 more ...; settings?: SQL<...> | ... 2 more ... | undefined; }[]'.
+server/services/workspace-billing.service.ts(51,21): error TS2339: Property 'username' does not exist on type '{ environment: string; id: string; role: string; status: string; email: string; createdAt: Date | null; password: string; fullName: string; isAdmin: boolean; profilePhoto: string | null; ... 32 more ...; platformRole: string | null; }'.
+server/services/workspace-billing.service.ts(52,21): error TS2339: Property 'username' does not exist on type '{ environment: string; id: string; role: string; status: string; email: string; createdAt: Date | null; password: string; fullName: string; isAdmin: boolean; profilePhoto: string | null; ... 32 more ...; platformRole: string | null; }'.
+server/services/workspace-billing.service.ts(78,18): error TS2339: Property 'username' does not exist on type '{ environment: string; id: string; role: string; status: string; email: string; createdAt: Date | null; password: string; fullName: string; isAdmin: boolean; profilePhoto: string | null; ... 32 more ...; platformRole: string | null; }'.
+server/services/workspace-billing.service.ts(136,7): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "owner_id"; tableName: "workspaces"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'number' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<number>, right: number | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "owner_id"; tableName: "workspaces"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is not assignable to parameter of type 'Aliased<number>'.
+      Type 'PgColumn<{ name: "owner_id"; tableName: "workspaces"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is missing the following properties from type 'Aliased<number>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "owner_id"; tableName: "workspaces"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is not assignable to parameter of type 'never'.
+server/services/workspace-billing.service.ts(179,48): error TS2339: Property 'current_period_start' does not exist on type 'Response<Subscription>'.
+server/services/workspace-billing.service.ts(224,48): error TS2339: Property 'current_period_start' does not exist on type 'Subscription'.
+server/services/workspace-billing.service.ts(273,16): error TS2339: Property 'subscription' does not exist on type 'Invoice'.
+server/services/workspace-billing.service.ts(278,56): error TS2339: Property 'subscription' does not exist on type 'Invoice'.
+server/services/workspace-billing.service.ts(298,16): error TS2339: Property 'subscription' does not exist on type 'Invoice'.
+server/services/workspace-billing.service.ts(303,56): error TS2339: Property 'subscription' does not exist on type 'Invoice'.
+server/services/workspace-billing.service.ts(341,47): error TS2339: Property 'retrieveUpcoming' does not exist on type 'InvoicesResource'.
+server/storage.ts(400,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { type: SQL<unknown> | "consumer" | "firm" | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ownerId: string | SQL<...> | Placeholder<...>; ... 10 more ...; settings?: SQL<...> | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ type: string; name: string; ownerId: string; id?: string | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; subscriptionTier?: string | undefined; stripeCustomerId?: string | ... 1 more ... | undefined; ... 5 more ...; settings?: { ...; } | undefined; }' is not assignable to parameter of type '{ type: SQL<unknown> | "consumer" | "firm" | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ownerId: string | SQL<unknown> | Placeholder<...>; ... 10 more ...; settings?: SQL<...> | ... 2 more ... | undefined; }'.
+      Types of property 'type' are incompatible.
+        Type 'string' is not assignable to type 'SQL<unknown> | "consumer" | "firm" | Placeholder<string, any>'.
+  Overload 2 of 2, '(values: { type: SQL<unknown> | "consumer" | "firm" | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ownerId: string | SQL<...> | Placeholder<...>; ... 10 more ...; settings?: SQL<...> | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Argument of type '{ type: string; name: string; ownerId: string; id?: string | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; subscriptionTier?: string | undefined; stripeCustomerId?: string | ... 1 more ... | undefined; ... 5 more ...; settings?: { ...; } | undefined; }' is not assignable to parameter of type '{ type: SQL<unknown> | "consumer" | "firm" | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ownerId: string | SQL<unknown> | Placeholder<...>; ... 10 more ...; settings?: SQL<...> | ... 2 more ... | undefined; }[]'.
+      Type '{ type: string; name: string; ownerId: string; id?: string | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; subscriptionTier?: string | undefined; stripeCustomerId?: string | ... 1 more ... | undefined; ... 5 more ...; settings?: { ...; } | undefined; }' is missing the following properties from type '{ type: SQL<unknown> | "consumer" | "firm" | Placeholder<string, any>; name: string | SQL<unknown> | Placeholder<string, any>; ownerId: string | SQL<unknown> | Placeholder<...>; ... 10 more ...; settings?: SQL<...> | ... 2 more ... | undefined; }[]': length, pop, push, concat, and 35 more.
+server/storage.ts(431,26): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+server/storage.ts(439,26): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+server/storage.ts(447,26): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+server/storage.ts(456,46): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { role: SQL<unknown> | "owner" | "admin" | "staff" | "client" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; ... 4 more ...; joinedAt?: SQL<...> | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ role: string; userId: number; workspaceId: string; id?: string | undefined; createdAt?: Date | undefined; invitedBy?: string | null | undefined; joinedAt?: Date | undefined; }[]' is not assignable to parameter of type '{ role: SQL<unknown> | "owner" | "admin" | "staff" | "client" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; workspaceId: string | ... 1 more ... | Placeholder<...>; id?: string | ... 2 more ... | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; invitedBy?: string ...'.
+      Type '{ role: string; userId: number; workspaceId: string; id?: string | undefined; createdAt?: Date | undefined; invitedBy?: string | null | undefined; joinedAt?: Date | undefined; }[]' is missing the following properties from type '{ role: SQL<unknown> | "owner" | "admin" | "staff" | "client" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; workspaceId: string | ... 1 more ... | Placeholder<...>; id?: string | ... 2 more ... | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; invitedBy?: string ...': role, userId, workspaceId
+  Overload 2 of 2, '(values: { role: SQL<unknown> | "owner" | "admin" | "staff" | "client" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; ... 4 more ...; joinedAt?: SQL<...> | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Argument of type '{ role: string; userId: number; workspaceId: string; id?: string | undefined; createdAt?: Date | undefined; invitedBy?: string | null | undefined; joinedAt?: Date | undefined; }[]' is not assignable to parameter of type '{ role: SQL<unknown> | "owner" | "admin" | "staff" | "client" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; workspaceId: string | ... 1 more ... | Placeholder<...>; id?: string | ... 2 more ... | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; invitedBy?: string ...'.
+      Type '{ role: string; userId: number; workspaceId: string; id?: string | undefined; createdAt?: Date | undefined; invitedBy?: string | null | undefined; joinedAt?: Date | undefined; }' is not assignable to type '{ role: SQL<unknown> | "owner" | "admin" | "staff" | "client" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; workspaceId: string | ... 1 more ... | Placeholder<...>; id?: string | ... 2 more ... | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; invitedBy?: string ...'.
+        Types of property 'role' are incompatible.
+          Type 'string' is not assignable to type 'SQL<unknown> | "owner" | "admin" | "staff" | "client" | Placeholder<string, any>'.
+server/storage.ts(468,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { title: string | SQL<unknown> | Placeholder<string, any>; workspaceId: string | SQL<unknown> | Placeholder<string, any>; matterNumber: string | SQL<...> | Placeholder<...>; ... 6 more ...; closedAt?: SQL<...> | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ title: string; workspaceId: string; matterNumber: string; id?: string | undefined; status?: string | undefined; description?: string | null | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; leadAttorneyId?: string | ... 1 more ... | undefined; closedAt?: Date | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ title: string | SQL<unknown> | Placeholder<string, any>; workspaceId: string | SQL<unknown> | Placeholder<string, any>; matterNumber: string | SQL<unknown> | Placeholder<...>; ... 6 more ...; closedAt?: SQL<...> | ... 3 more ... | undefined; }'.
+      Types of property 'status' are incompatible.
+        Type 'string | undefined' is not assignable to type 'SQL<unknown> | "active" | "closed" | "archived" | Placeholder<string, any> | undefined'.
+          Type 'string' is not assignable to type 'SQL<unknown> | "active" | "closed" | "archived" | Placeholder<string, any> | undefined'.
+  Overload 2 of 2, '(values: { title: string | SQL<unknown> | Placeholder<string, any>; workspaceId: string | SQL<unknown> | Placeholder<string, any>; matterNumber: string | SQL<...> | Placeholder<...>; ... 6 more ...; closedAt?: SQL<...> | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Argument of type '{ title: string; workspaceId: string; matterNumber: string; id?: string | undefined; status?: string | undefined; description?: string | null | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; leadAttorneyId?: string | ... 1 more ... | undefined; closedAt?: Date | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ title: string | SQL<unknown> | Placeholder<string, any>; workspaceId: string | SQL<unknown> | Placeholder<string, any>; matterNumber: string | SQL<unknown> | Placeholder<...>; ... 6 more ...; closedAt?: SQL<...> | ... 3 more ... | undefined; }[]'.
+      Type '{ title: string; workspaceId: string; matterNumber: string; id?: string | undefined; status?: string | undefined; description?: string | null | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; leadAttorneyId?: string | ... 1 more ... | undefined; closedAt?: Date | ... 1 more ... | undefined; }' is missing the following properties from type '{ title: string | SQL<unknown> | Placeholder<string, any>; workspaceId: string | SQL<unknown> | Placeholder<string, any>; matterNumber: string | SQL<unknown> | Placeholder<...>; ... 6 more ...; closedAt?: SQL<...> | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 35 more.
+server/storage.ts(494,43): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { role: SQL<unknown> | "client" | "attorney" | "paralegal" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; matterId: string | ... 1 more ... | Placeholder<...>; id?: string | ... 2 more ... | undefined; permissions?: SQL<...> | ... 2 more ... | undefined; addedAt?: SQL<...> | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ role: string; userId: number; matterId: string; id?: string | undefined; permissions?: { can_view: boolean; can_upload: boolean; can_comment: boolean; can_edit?: boolean | undefined; } | undefined; addedAt?: Date | undefined; }[]' is not assignable to parameter of type '{ role: SQL<unknown> | "client" | "attorney" | "paralegal" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; matterId: string | ... 1 more ... | Placeholder<...>; id?: string | ... 2 more ... | undefined; permissions?: SQL<...> | ... 2 more ... | undefined; addedAt?: SQL<...> | .....'.
+      Type '{ role: string; userId: number; matterId: string; id?: string | undefined; permissions?: { can_view: boolean; can_upload: boolean; can_comment: boolean; can_edit?: boolean | undefined; } | undefined; addedAt?: Date | undefined; }[]' is missing the following properties from type '{ role: SQL<unknown> | "client" | "attorney" | "paralegal" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; matterId: string | ... 1 more ... | Placeholder<...>; id?: string | ... 2 more ... | undefined; permissions?: SQL<...> | ... 2 more ... | undefined; addedAt?: SQL<...> | .....': role, userId, matterId
+  Overload 2 of 2, '(values: { role: SQL<unknown> | "client" | "attorney" | "paralegal" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; matterId: string | ... 1 more ... | Placeholder<...>; id?: string | ... 2 more ... | undefined; permissions?: SQL<...> | ... 2 more ... | undefined; addedAt?: SQL<...> | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Argument of type '{ role: string; userId: number; matterId: string; id?: string | undefined; permissions?: { can_view: boolean; can_upload: boolean; can_comment: boolean; can_edit?: boolean | undefined; } | undefined; addedAt?: Date | undefined; }[]' is not assignable to parameter of type '{ role: SQL<unknown> | "client" | "attorney" | "paralegal" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; matterId: string | ... 1 more ... | Placeholder<...>; id?: string | ... 2 more ... | undefined; permissions?: SQL<...> | ... 2 more ... | undefined; addedAt?: SQL<...> | .....'.
+      Type '{ role: string; userId: number; matterId: string; id?: string | undefined; permissions?: { can_view: boolean; can_upload: boolean; can_comment: boolean; can_edit?: boolean | undefined; } | undefined; addedAt?: Date | undefined; }' is not assignable to type '{ role: SQL<unknown> | "client" | "attorney" | "paralegal" | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; matterId: string | ... 1 more ... | Placeholder<...>; id?: string | ... 2 more ... | undefined; permissions?: SQL<...> | ... 2 more ... | undefined; addedAt?: SQL<...> | .....'.
+        Types of property 'role' are incompatible.
+          Type 'string' is not assignable to type 'SQL<unknown> | "client" | "attorney" | "paralegal" | Placeholder<string, any>'.
+server/storage.ts(702,6): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { title: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; environment?: string | SQL<unknown> | Placeholder<...> | undefined; ... 5 more ...; opposingParty?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'courtName' does not exist in type '{ title: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; environment?: string | SQL<unknown> | Placeholder<...> | undefined; ... 5 more ...; opposingParty?: string | ... 3 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { title: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; environment?: string | SQL<unknown> | Placeholder<...> | undefined; ... 5 more ...; opposingParty?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'userId' does not exist in type '{ title: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; environment?: string | SQL<unknown> | Placeholder<...> | undefined; ... 5 more ...; opposingParty?: string | ... 3 more ... | undefined; }[]'.
+server/storage.ts(715,6): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { title: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; environment?: string | SQL<unknown> | Placeholder<...> | undefined; ... 5 more ...; opposingParty?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'courtName' does not exist in type '{ title: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; environment?: string | SQL<unknown> | Placeholder<...> | undefined; ... 5 more ...; opposingParty?: string | ... 3 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { title: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; environment?: string | SQL<unknown> | Placeholder<...> | undefined; ... 5 more ...; opposingParty?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'userId' does not exist in type '{ title: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; environment?: string | SQL<unknown> | Placeholder<...> | undefined; ... 5 more ...; opposingParty?: string | ... 3 more ... | undefined; }[]'.
+server/storage.ts(729,38): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { type: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<...>; ... 17 more ...; mediaDescriptions?: unknown; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ userId: string; environment: string; caseId: string; type: string; description: string; location: string; createdAt: Date; isDraft: boolean; }[]' is not assignable to parameter of type '{ type: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<...>; ... 17 more ...; mediaDescriptions?: unknown; }'.
+      Type '{ userId: string; environment: string; caseId: string; type: string; description: string; location: string; createdAt: Date; isDraft: boolean; }[]' is missing the following properties from type '{ type: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<...>; ... 17 more ...; mediaDescriptions?: unknown; }': type, description, userId
+server/storage.ts(766,34): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; value: number | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<...>; ... 7 more ...; acquiredDate?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ userId: string; environment: string; name: string; value: number; category: string; ownership: string; verified: boolean; createdAt: Date; }[]' is not assignable to parameter of type '{ name: string | SQL<unknown> | Placeholder<string, any>; value: number | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; ... 7 more ...; acquiredDate?: string | ... 3 more ... | undefined; }'.
+      Type '{ userId: string; environment: string; name: string; value: number; category: string; ownership: string; verified: boolean; createdAt: Date; }[]' is missing the following properties from type '{ name: string | SQL<unknown> | Placeholder<string, any>; value: number | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; ... 7 more ...; acquiredDate?: string | ... 3 more ... | undefined; }': name, value, userId, category, ownership
+server/storage.ts(789,33): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<...>; ... 7 more ...; openedDate?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ userId: string; environment: string; name: string; amount: number; category: string; ownership: string; monthlyPayment: number; createdAt: Date; }[]' is not assignable to parameter of type '{ name: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<...>; ... 7 more ...; openedDate?: string | ... 3 more ... | undefined; }'.
+      Type '{ userId: string; environment: string; name: string; amount: number; category: string; ownership: string; monthlyPayment: number; createdAt: Date; }[]' is missing the following properties from type '{ name: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<...>; ... 7 more ...; openedDate?: string | ... 3 more ... | undefined; }': name, userId, category, amount, ownership
+server/storage.ts(812,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { source: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; owner: string | SQL<unknown> | Placeholder<...>; ... 7 more ...; startDate?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ userId: string; environment: string; source: string; amount: number; frequency: string; owner: string; createdAt: Date; }[]' is not assignable to parameter of type '{ source: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; owner: string | SQL<unknown> | Placeholder<string, any>; ... 7 more ...; startDate?: string | ... 3 more ... | undefined; }'.
+      Type '{ userId: string; environment: string; source: string; amount: number; frequency: string; owner: string; createdAt: Date; }[]' is missing the following properties from type '{ source: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; owner: string | SQL<unknown> | Placeholder<string, any>; ... 7 more ...; startDate?: string | ... 3 more ... | undefined; }': source, userId, owner, amount, frequency
+server/storage.ts(833,36): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { description: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<...>; ... 7 more ...; startDate?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ userId: string; environment: string; category: string; description: string; amount: number; frequency: string; owner: string; createdAt: Date; }[]' is not assignable to parameter of type '{ description: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<...>; ... 7 more ...; startDate?: string | ... 3 more ... | undefined; }'.
+      Type '{ userId: string; environment: string; category: string; description: string; amount: number; frequency: string; owner: string; createdAt: Date; }[]' is missing the following properties from type '{ description: string | SQL<unknown> | Placeholder<string, any>; userId: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<...>; ... 7 more ...; startDate?: string | ... 3 more ... | undefined; }': description, userId, category, owner, and 2 more.

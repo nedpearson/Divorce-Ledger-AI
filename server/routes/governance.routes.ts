@@ -36,9 +36,9 @@ export function auditMiddleware(resourceType: string, action: string) {
     };
 
     const originalJson = res.json.bind(res);
-    res.json = function(body: any) {
+    res.json = function (body: any) {
       const duration = Date.now() - (req.auditContext?.startTime || Date.now());
-      
+
       db.insert(auditTrail).values({
         userId: req.auditContext?.userId || null,
         sessionId: req.auditContext?.sessionId || null,
@@ -118,7 +118,7 @@ router.get('/lineage/graph', async (req: Request, res: Response) => {
 router.get('/lineage/entity/:entityName', async (req: Request, res: Response) => {
   try {
     const { entityName } = req.params;
-    
+
     const node = await db.select().from(dataLineageNodes)
       .where(eq(dataLineageNodes.entityName, entityName))
       .limit(1);
@@ -129,7 +129,7 @@ router.get('/lineage/entity/:entityName', async (req: Request, res: Response) =>
 
     const upstreamEdges = await db.select().from(dataLineageEdges)
       .where(eq(dataLineageEdges.targetNodeId, node[0].id));
-    
+
     const downstreamEdges = await db.select().from(dataLineageEdges)
       .where(eq(dataLineageEdges.sourceNodeId, node[0].id));
 
@@ -167,7 +167,7 @@ router.get('/consent/purposes', async (req: Request, res: Response) => {
 router.get('/consent/user/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
-    
+
     const consents = await db.select({
       consent: userConsents,
       purpose: consentPurposes,
@@ -187,7 +187,7 @@ router.get('/consent/user/:userId', async (req: Request, res: Response) => {
 router.post('/consent/grant', auditMiddleware('consent', 'create'), async (req: Request, res: Response) => {
   try {
     const { userId, purposeId, consentMethod } = req.body;
-    
+
     const consent = await db.insert(userConsents).values({
       userId,
       purposeId,
@@ -215,7 +215,7 @@ router.post('/consent/grant', auditMiddleware('consent', 'create'), async (req: 
 router.post('/consent/revoke', auditMiddleware('consent', 'delete'), async (req: Request, res: Response) => {
   try {
     const { userId, purposeId } = req.body;
-    
+
     await db.update(userConsents)
       .set({ revokedAt: new Date() })
       .where(and(
@@ -244,9 +244,9 @@ router.post('/consent/revoke', auditMiddleware('consent', 'delete'), async (req:
 router.get('/dsr', async (req: Request, res: Response) => {
   try {
     const status = req.query.status as string;
-    
+
     let query = db.select().from(dataSubjectRequests).orderBy(desc(dataSubjectRequests.createdAt));
-    
+
     if (status) {
       query = query.where(eq(dataSubjectRequests.status, status)) as any;
     }
@@ -261,7 +261,7 @@ router.get('/dsr', async (req: Request, res: Response) => {
 router.post('/dsr/create', auditMiddleware('data_subject_request', 'create'), async (req: Request, res: Response) => {
   try {
     const { userId, requestType, regulationType, requestDetails } = req.body;
-    
+
     const deadlineDays = regulationType === 'gdpr' ? 30 : regulationType === 'ccpa' ? 45 : 30;
     const deadlineAt = new Date();
     deadlineAt.setDate(deadlineAt.getDate() + deadlineDays);
@@ -388,15 +388,14 @@ async function anonymizeUserData(userId: string): Promise<void> {
     .set({
       email: anonymizedEmail,
       password: '[ANONYMIZED]',
-      firstName: anonymizedName,
-      lastName: anonymizedName,
+      fullName: anonymizedName,
       phone: null,
       profileImageUrl: null,
       qbAccessToken: null,
       qbRefreshToken: null,
       qbRealmId: null,
       qbConnected: false,
-    })
+    } as any)
     .where(eq(users.id, userId));
 
   await db.insert(auditTrail).values({
@@ -424,7 +423,7 @@ router.get('/retention/policies', async (req: Request, res: Response) => {
 router.post('/retention/execute/:policyId', auditMiddleware('retention_policy', 'execute'), async (req: Request, res: Response) => {
   try {
     const { policyId } = req.params;
-    
+
     const policy = await db.select().from(retentionPolicies)
       .where(eq(retentionPolicies.id, policyId))
       .limit(1);
@@ -476,7 +475,7 @@ async function executeRetentionPolicy(policy: RetentionPolicy, jobId: string): P
 
   try {
     const safeTableName = validateTableName(policy.tableName);
-    
+
     if (policy.purgeMode === 'archive' || policy.purgeMode === 'soft_delete') {
       recordsArchived = recordsProcessed;
     } else if (policy.purgeMode === 'hard_delete') {
@@ -529,7 +528,7 @@ router.get('/retention/jobs', async (req: Request, res: Response) => {
 router.get('/audit', async (req: Request, res: Response) => {
   try {
     const { userId, resourceType, action, startDate, endDate, limit = 100 } = req.query;
-    
+
     let query = db.select().from(auditTrail).orderBy(desc(auditTrail.createdAt));
 
     const entries = await query.limit(Number(limit));
@@ -584,7 +583,7 @@ router.get('/quality/tests', async (req: Request, res: Response) => {
 router.post('/quality/tests/:testId/run', auditMiddleware('data_quality_test', 'execute'), async (req: Request, res: Response) => {
   try {
     const { testId } = req.params;
-    
+
     const test = await db.select().from(dataQualityTests)
       .where(eq(dataQualityTests.id, testId))
       .limit(1);
@@ -652,7 +651,7 @@ function evaluateTestResult(test: any, result: any): boolean {
 router.get('/catalog', async (req: Request, res: Response) => {
   try {
     const { entityType, search } = req.query;
-    
+
     let query = db.select().from(metadataCatalog).orderBy(metadataCatalog.entityType, metadataCatalog.entityName);
 
     const entries = await query;

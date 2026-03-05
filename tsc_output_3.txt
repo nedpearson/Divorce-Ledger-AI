@@ -1,0 +1,6 @@
+
+> rest-express@1.0.0 check
+> tsc
+
+client/src/pages/mobile.tsx(78,1): error TS1109: Expression expected.
+client/src/pages/mobile.tsx(78,3): error TS1434: Unexpected keyword or identifier.

@@ -5,7 +5,7 @@ import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyMultipart from '@fastify/multipart';
 import { env } from './config/env.js';
 import { logger } from './logging/logger.js';
-import { errorHandler, notFoundHandler, setupProcessHandlers } from './errors/errorHandler.js';
+import { setupErrorHandler, setupProcessHandlers } from './errors/errorHandler.js';
 import { authMiddleware } from './middleware/auth.js';
 
 // Import routes
@@ -109,11 +109,10 @@ export async function createServer(): Promise<FastifyInstance> {
   await server.register(webhookRoutes);
 
   // Setup error handler
-  server.setErrorHandler(errorHandler);
-  server.setNotFoundHandler(notFoundHandler);
+  setupErrorHandler(server);
 
   // Setup process handlers (uncaught exceptions, etc.)
-  setupProcessHandlers();
+  setupProcessHandlers(server);
 
   return server;
 }
@@ -154,6 +153,3 @@ export async function startServer(): Promise<void> {
 if (import.meta.url === `file://${process.argv[1]}`) {
   startServer();
 }
-
-
-

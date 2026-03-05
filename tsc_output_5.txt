@@ -1,0 +1,54 @@
+
+> rest-express@1.0.0 check
+> tsc
+
+server/middleware/workspace-auth.ts(57,30): error TS2339: Property 'type' does not exist on type 'never'.
+server/middleware/workspace-auth.ts(58,42): error TS2339: Property 'subscriptionTier' does not exist on type 'never'.
+server/middleware/workspace-auth.ts(142,36): error TS2339: Property 'workspaceId' does not exist on type 'never'.
+server/replit_integrations/image/routes.ts(13,37): error TS2339: Property 'images' does not exist on type '{ get: () => OpenAI; }'.
+server/routes/governance.routes.ts(391,7): error TS2353: Object literal may only specify known properties, and 'firstName' does not exist in type '{ email?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; password?: string | SQL<unknown> | PgColumn<...> | undefined; ... 40 more ...; platformRole?: string | ... 3 more ... | undefined; }'.
+server/routes/platform-admin.routes.ts(341,12): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, { ...; }>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'number' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<number>, right: number | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is not assignable to parameter of type 'Aliased<number>'.
+      Type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is missing the following properties from type 'Aliased<number>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is not assignable to parameter of type 'never'.
+server/routes/platform-admin.routes.ts(387,11): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, { ...; }>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'number' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<number>, right: number | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is not assignable to parameter of type 'Aliased<number>'.
+      Type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is missing the following properties from type 'Aliased<number>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is not assignable to parameter of type 'never'.
+server/routes/workspace-billing.routes.ts(136,7): error TS2698: Spread types may only be created from object types.
+server/routes/workspace-billing.routes.ts(308,10): error TS7006: Parameter 'req' implicitly has an 'any' type.
+server/routes/workspace-billing.routes.ts(308,15): error TS7006: Parameter 'res' implicitly has an 'any' type.
+server/scripts/setup-stripe-products.ts(23,3): error TS2322: Type '"2024-12-18.acacia"' is not assignable to type '"2025-11-17.clover"'.
+server/scripts/setup-stripe-products.ts(154,9): error TS2353: Object literal may only specify known properties, and 'aggregate_usage' does not exist in type 'Recurring'.
+server/services/ai-document.service.ts(107,35): error TS2339: Property 'chat' does not exist on type '{ get: () => OpenAI; }'.
+server/services/entitlements.service.ts(247,25): error TS2339: Property 'workspaceId' does not exist on type 'PgTableWithColumns<{ name: "documents"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "documents"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, { ...; }>; ... 20 more ...; aiExtracte...'.
+server/services/entitlements.service.ts(263,7): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, { ...; }>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'number' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<number>, right: number | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is not assignable to parameter of type 'Aliased<number>'.
+      Type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is missing the following properties from type 'Aliased<number>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "user_id"; tableName: "workspace_members"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, { ...; }>' is not assignable to parameter of type 'never'.
+server/services/workspace-billing.service.ts(51,21): error TS2339: Property 'username' does not exist on type '{ id: string; email: string; password: string; fullName: string; role: string; isAdmin: boolean; status: string; environment: string; profilePhoto: string | null; createdAt: Date | null; ... 32 more ...; platformRole: string | null; }'.
+server/services/workspace-billing.service.ts(52,21): error TS2339: Property 'username' does not exist on type '{ id: string; email: string; password: string; fullName: string; role: string; isAdmin: boolean; status: string; environment: string; profilePhoto: string | null; createdAt: Date | null; ... 32 more ...; platformRole: string | null; }'.
+server/services/workspace-billing.service.ts(78,18): error TS2339: Property 'username' does not exist on type '{ id: string; email: string; password: string; fullName: string; role: string; isAdmin: boolean; status: string; environment: string; profilePhoto: string | null; createdAt: Date | null; ... 32 more ...; platformRole: string | null; }'.
+server/services/workspace-billing.service.ts(179,48): error TS2339: Property 'current_period_start' does not exist on type 'Response<Subscription>'.
+server/services/workspace-billing.service.ts(224,48): error TS2339: Property 'current_period_start' does not exist on type 'Subscription'.
+server/services/workspace-billing.service.ts(273,16): error TS2339: Property 'subscription' does not exist on type 'Invoice'.
+server/services/workspace-billing.service.ts(278,56): error TS2339: Property 'subscription' does not exist on type 'Invoice'.
+server/services/workspace-billing.service.ts(298,16): error TS2339: Property 'subscription' does not exist on type 'Invoice'.
+server/services/workspace-billing.service.ts(303,56): error TS2339: Property 'subscription' does not exist on type 'Invoice'.
+server/services/workspace-billing.service.ts(341,47): error TS2339: Property 'retrieveUpcoming' does not exist on type 'InvoicesResource'.
+server/storage.ts(833,36): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { userId: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; amount: number | SQL<unknown> | Placeholder<...>; ... 7 more ...; startDate?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ userId: string; environment: string; category: string; description: string; amount: number; frequency: string; owner: string; createdAt: Date; }[]' is not assignable to parameter of type '{ userId: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; amount: number | SQL<unknown> | Placeholder<...>; ... 7 more ...; startDate?: string | ... 3 more ... | undefined; }'.
+      Type '{ userId: string; environment: string; category: string; description: string; amount: number; frequency: string; owner: string; createdAt: Date; }[]' is missing the following properties from type '{ userId: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; amount: number | SQL<unknown> | Placeholder<...>; ... 7 more ...; startDate?: string | ... 3 more ... | undefined; }': userId, category, amount, frequency, and 2 more.

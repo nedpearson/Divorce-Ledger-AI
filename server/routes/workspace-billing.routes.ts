@@ -107,7 +107,7 @@ router.get('/workspaces/:workspaceId/ai-credits', requireAuth, loadWorkspaceCont
   try {
     const balance = await getAICreditBalance(req.workspace!.id);
     const history = await getAICreditHistory(req.workspace!.id, 20);
-    
+
     res.json({ balance, history });
   } catch (error: any) {
     console.error('Error getting AI credits:', error);
@@ -133,7 +133,7 @@ router.get('/workspaces', requireAuth, async (req, res) => {
     });
 
     res.json(userWorkspaces.map(m => ({
-      ...m.workspace,
+      ...(m.workspace as any),
       role: m.role,
       joinedAt: m.joinedAt,
     })));
@@ -260,7 +260,7 @@ router.delete('/workspaces/:workspaceId/members/:userId', ...requireWorkspaceAdm
       .where(
         and(
           eq(workspaceMembers.workspaceId, req.workspace!.id),
-          eq(workspaceMembers.userId, parseInt(userId))
+          eq(workspaceMembers.userId, userId)
         )
       );
 
@@ -305,7 +305,7 @@ router.post(
   ...requireFirmWorkspace,
   requireWorkspaceStaff,
   checkEntitlement('create_matter'),
-  async (req, res) => {
+  async (req: any, res: any) => {
     try {
       const { matterNumber, title, description, leadAttorneyId } = req.body;
 

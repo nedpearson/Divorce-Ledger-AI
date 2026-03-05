@@ -1,0 +1,9 @@
+
+> rest-express@1.0.0 check
+> tsc
+
+server/routes/governance.routes.ts(392,7): error TS2353: Object literal may only specify known properties, and 'phone' does not exist in type '{ email?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; password?: string | SQL<unknown> | PgColumn<...> | undefined; ... 40 more ...; platformRole?: string | ... 3 more ... | undefined; }'.
+server/storage.ts(833,36): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { userId: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; amount: number | SQL<unknown> | Placeholder<...>; ... 7 more ...; startDate?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ userId: string; environment: string; category: string; description: string; amount: number; frequency: string; owner: string; createdAt: Date; }[]' is not assignable to parameter of type '{ userId: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; amount: number | SQL<unknown> | Placeholder<...>; ... 7 more ...; startDate?: string | ... 3 more ... | undefined; }'.
+      Type '{ userId: string; environment: string; category: string; description: string; amount: number; frequency: string; owner: string; createdAt: Date; }[]' is missing the following properties from type '{ userId: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; amount: number | SQL<unknown> | Placeholder<...>; ... 7 more ...; startDate?: string | ... 3 more ... | undefined; }': userId, description, amount, category, and 2 more.

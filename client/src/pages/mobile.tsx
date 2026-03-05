@@ -1,11 +1,26 @@
-// Supabase URL logic for all mobile API endpoints
-const SUPABASE_API = process.env.NEXT_PUBLIC_SUPABASE_API_URL || "";
-const apiUrl = (endpoint: string) => SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint;
 import React, { useState, useRef, useEffect, lazy, Suspense } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-// ...existing code...
-const MobileAppBanner = lazy(() => import("@/components/mobile-app-banner"));
+
+// UI Components
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardTitle, CardDescription, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
+// Hooks and Utilities
+import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
+import { useOfflineSync } from "@/hooks/use-offline-sync";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import {
   ArrowLeft,
   FileText,
@@ -57,6 +72,12 @@ import {
   Download,
 } from "lucide-react";
 import type { Document, MobileViolationReport, Reimbursement, W2Record, Asset, Debt, Income, Expense, ChildSupportPayment, DashboardStats } from "@shared/schema";
+
+// Supabase URL logic for all mobile API endpoints
+const SUPABASE_API = process.env.NEXT_PUBLIC_SUPABASE_API_URL || "";
+const apiUrl = (endpoint: string) => SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint;
+
+const MobileAppBanner = lazy(() => import("@/components/mobile-app-banner").then(m => ({ default: m.MobileAppHeaderButton })));
 
 // Build auth headers (X-User-Id + X-Environment) for inline fetch() calls on the mobile page.
 // Mirrors getAuthHeaders() in queryClient.ts so that API routes requiring X-User-Id work
@@ -146,15 +167,15 @@ function getCategoryIcon(category: string) {
 
 type DrillDownType = "assets" | "debts" | "income" | "expenses" | "childSupport" | null;
 
-function FinancialDrillDown({ 
-  type, 
-  isOpen, 
-  onClose, 
-  environment 
-}: { 
-  type: DrillDownType; 
-  isOpen: boolean; 
-  onClose: () => void; 
+function FinancialDrillDown({
+  type,
+  isOpen,
+  onClose,
+  environment
+}: {
+  type: DrillDownType;
+  isOpen: boolean;
+  onClose: () => void;
   environment: string;
 }) {
   const headers: Record<string, { icon: typeof DollarSign; title: string; description: string }> = {
@@ -235,7 +256,7 @@ function FinancialDrillDown({
   const headerInfo = headers[type];
   const HeaderIcon = headerInfo.icon;
 
-  const isLoading = 
+  const isLoading =
     (type === "assets" && assetsLoading) ||
     (type === "debts" && debtsLoading) ||
     (type === "income" && incomesLoading) ||
@@ -517,31 +538,29 @@ function FinancialDrillDown({
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={`p-2 rounded-lg ${
-                            payment.status === "paid" 
-                              ? "bg-green-100 dark:bg-green-900/30" 
-                              : payment.status === "overdue"
+                          <div className={`p-2 rounded-lg ${payment.status === "paid"
+                            ? "bg-green-100 dark:bg-green-900/30"
+                            : payment.status === "overdue"
                               ? "bg-red-100 dark:bg-red-900/30"
                               : "bg-yellow-100 dark:bg-yellow-900/30"
-                          }`}>
-                            <Baby className={`h-4 w-4 ${
-                              payment.status === "paid" 
-                                ? "text-green-600 dark:text-green-400" 
-                                : payment.status === "overdue"
+                            }`}>
+                            <Baby className={`h-4 w-4 ${payment.status === "paid"
+                              ? "text-green-600 dark:text-green-400"
+                              : payment.status === "overdue"
                                 ? "text-red-600 dark:text-red-400"
                                 : "text-yellow-600 dark:text-yellow-400"
-                            }`} />
+                              }`} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">
                               {payment.childName || payment.paymentType}
                             </p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <Badge 
+                              <Badge
                                 variant={
-                                  payment.status === "paid" ? "default" : 
-                                  payment.status === "overdue" ? "destructive" : "secondary"
-                                } 
+                                  payment.status === "paid" ? "default" :
+                                    payment.status === "overdue" ? "destructive" : "secondary"
+                                }
                                 className="text-xs"
                               >
                                 {payment.status}
@@ -636,42 +655,42 @@ function FinancialSummaryBar({ isDemoMode, environment }: { isDemoMode: boolean;
   }
 
   const metrics = [
-    { 
-      key: "assets" as DrillDownType, 
-      label: "Assets", 
-      value: stats?.totalAssets || 0, 
+    {
+      key: "assets" as DrillDownType,
+      label: "Assets",
+      value: stats?.totalAssets || 0,
       icon: Building,
       color: "text-green-600 dark:text-green-400",
       bgColor: "bg-green-100 dark:bg-green-900/30"
     },
-    { 
-      key: "debts" as DrillDownType, 
-      label: "Debts", 
-      value: stats?.totalDebts || 0, 
+    {
+      key: "debts" as DrillDownType,
+      label: "Debts",
+      value: stats?.totalDebts || 0,
       icon: CreditCard,
       color: "text-red-600 dark:text-red-400",
       bgColor: "bg-red-100 dark:bg-red-900/30"
     },
-    { 
-      key: "income" as DrillDownType, 
-      label: "Income", 
-      value: stats?.monthlyIncome || 0, 
+    {
+      key: "income" as DrillDownType,
+      label: "Income",
+      value: stats?.monthlyIncome || 0,
       icon: TrendingUp,
       color: "text-blue-600 dark:text-blue-400",
       bgColor: "bg-blue-100 dark:bg-blue-900/30"
     },
-    { 
-      key: "expenses" as DrillDownType, 
-      label: "Expenses", 
-      value: stats?.monthlyExpenses || 0, 
+    {
+      key: "expenses" as DrillDownType,
+      label: "Expenses",
+      value: stats?.monthlyExpenses || 0,
       icon: Receipt,
       color: "text-orange-600 dark:text-orange-400",
       bgColor: "bg-orange-100 dark:bg-orange-900/30"
     },
-    { 
-      key: "childSupport" as DrillDownType, 
-      label: "Child Support", 
-      value: stats?.childSupportOwed || 0, 
+    {
+      key: "childSupport" as DrillDownType,
+      label: "Child Support",
+      value: stats?.childSupportOwed || 0,
       icon: Baby,
       color: "text-purple-600 dark:text-purple-400",
       bgColor: "bg-purple-100 dark:bg-purple-900/30"
@@ -684,7 +703,7 @@ function FinancialSummaryBar({ isDemoMode, environment }: { isDemoMode: boolean;
     <>
       <div className="border-b bg-muted/30" data-testid="financial-summary-bar">
         <div className="px-4 py-2">
-          <button 
+          <button
             className="flex items-center justify-between w-full text-sm font-medium text-muted-foreground"
             onClick={() => setExpanded(!expanded)}
             data-testid="button-toggle-financial-summary"
@@ -696,7 +715,7 @@ function FinancialSummaryBar({ isDemoMode, environment }: { isDemoMode: boolean;
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
         </div>
-        
+
         <div className={`grid gap-2 px-4 pb-3 ${expanded ? 'grid-cols-2' : 'grid-cols-3'}`}>
           {visibleMetrics.map((metric) => {
             const MetricIcon = metric.icon;
@@ -722,10 +741,10 @@ function FinancialSummaryBar({ isDemoMode, environment }: { isDemoMode: boolean;
         </div>
       </div>
 
-      <FinancialDrillDown 
-        type={drillDownType} 
-        isOpen={drillDownType !== null} 
-        onClose={() => setDrillDownType(null)} 
+      <FinancialDrillDown
+        type={drillDownType}
+        isOpen={drillDownType !== null}
+        onClose={() => setDrillDownType(null)}
         environment={environment}
       />
     </>
@@ -783,8 +802,8 @@ function MobileHeader({
             !isOnline
               ? "Cannot sync while offline"
               : pendingCount > 0
-              ? `Sync ${pendingCount} pending change${pendingCount !== 1 ? "s" : ""}`
-              : "Sync data"
+                ? `Sync ${pendingCount} pending change${pendingCount !== 1 ? "s" : ""}`
+                : "Sync data"
           }
           data-testid="button-sync"
           className="relative"
@@ -1072,7 +1091,7 @@ function CreateViolationDialog({ isOpen, onClose, onSave, editingReport }: {
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [occurredDate, setOccurredDate] = useState(new Date().toISOString().split("T")[0]);
-  
+
   // Reset form state when dialog opens or editingReport changes
   useEffect(() => {
     if (isOpen) {
@@ -1678,11 +1697,10 @@ function ViolationsAndReimbursementsTab({ isDemoMode }: { isDemoMode: boolean })
         <div className="flex bg-muted rounded-lg p-1" data-testid="toggle-violations-reimbursements">
           <button
             onClick={() => setView("violations")}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-md text-xs font-medium transition-colors ${
-              view === "violations"
-                ? "bg-background shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-md text-xs font-medium transition-colors ${view === "violations"
+              ? "bg-background shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+              }`}
             data-testid="toggle-violations"
           >
             <AlertTriangle className="h-3 w-3" />
@@ -1690,11 +1708,10 @@ function ViolationsAndReimbursementsTab({ isDemoMode }: { isDemoMode: boolean })
           </button>
           <button
             onClick={() => setView("reimbursements")}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-md text-xs font-medium transition-colors ${
-              view === "reimbursements"
-                ? "bg-background shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-md text-xs font-medium transition-colors ${view === "reimbursements"
+              ? "bg-background shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+              }`}
             data-testid="toggle-reimbursements"
           >
             <DollarSign className="h-3 w-3" />
@@ -1702,11 +1719,10 @@ function ViolationsAndReimbursementsTab({ isDemoMode }: { isDemoMode: boolean })
           </button>
           <button
             onClick={() => setView("income")}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-md text-xs font-medium transition-colors ${
-              view === "income"
-                ? "bg-background shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-md text-xs font-medium transition-colors ${view === "income"
+              ? "bg-background shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+              }`}
             data-testid="toggle-income"
           >
             <Briefcase className="h-3 w-3" />
@@ -2349,9 +2365,8 @@ function W2Card({ record, onEdit, onDelete, onViewDetail, linkedDocument }: {
     <Card className="hover-elevate" data-testid={`card-w2-${record.id}`}>
       <CardContent className="p-3">
         <div className="flex items-start gap-3">
-          <div className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            record.party === "self" ? "bg-primary/10" : "bg-orange-100 dark:bg-orange-900/30"
-          }`}>
+          <div className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${record.party === "self" ? "bg-primary/10" : "bg-orange-100 dark:bg-orange-900/30"
+            }`}>
             <Briefcase className={`h-5 w-5 ${record.party === "self" ? "text-primary" : "text-orange-600"}`} />
           </div>
           <div className="flex-1 min-w-0">
@@ -2439,7 +2454,7 @@ function CreateW2Dialog({ isOpen, onClose, onSave, editingRecord, documents }: {
     });
   };
 
-  const taxDocs = documents.filter(d => 
+  const taxDocs = documents.filter(d =>
     d.category === "tax_return" || d.category === "employment_record" || d.category === "financial_statement"
   );
 

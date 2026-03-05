@@ -3,6 +3,20 @@ import { addToSyncQueue, getSyncQueueCount } from "@/lib/offline-db";
 import { syncOfflineChanges, type SyncResult } from "@/lib/sync";
 import { subscribeMobileRealtime } from '@/lib/sync';
 
+import { queryClient } from "@/lib/queryClient";
+
+const MOBILE_QUERY_KEYS = [
+  "/api/mobile/assets",
+  "/api/mobile/debts",
+  "/api/mobile/incomes",
+  "/api/mobile/expenses",
+  "/api/mobile/child-support",
+  "/api/mobile/financial-summary",
+  "/api/mobile/documents",
+  "/api/mobile/violations",
+  "/api/mobile/calendar",
+];
+
 // Captured once — the beforeinstallprompt event fires only once per session
 let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
 
@@ -168,7 +182,7 @@ export function useOfflineSync(): UseOfflineSyncReturn {
   useEffect(() => {
     subscribeMobileRealtime(() => {
       // Invalidate all mobile query keys for fresh data
-      MOBILE_QUERY_KEYS.forEach(key => queryClient.invalidateQueries({ queryKey: [key] }));
+      MOBILE_QUERY_KEYS.forEach((key: string) => queryClient.invalidateQueries({ queryKey: [key] }));
     });
   }, []);
 

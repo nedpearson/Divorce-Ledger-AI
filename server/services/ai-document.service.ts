@@ -104,7 +104,7 @@ Respond ONLY with the JSON object, no additional text.`;
   }
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await openai.get().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
@@ -257,7 +257,7 @@ export async function extractFinancialData(
   userId?: string | number
 ): Promise<FinancialDataExtraction> {
   const hasContent = ocrText && ocrText.trim().length > 0;
-  
+
   const prompt = `You are an expert financial document analyst. Analyze this document and extract financial information for divorce proceedings.
 
 Document Information:
@@ -367,7 +367,7 @@ Respond ONLY with the JSON object.`;
 // Demo mode mock data for when AI is not available
 export function getMockDocumentAnalysis(fileName: string): DocumentAnalysisResult {
   const extension = fileName.split(".").pop()?.toLowerCase() || "";
-  
+
   const categoryByExtension: Record<string, DocumentCategory> = {
     pdf: "legal_filing",
     doc: "correspondence",

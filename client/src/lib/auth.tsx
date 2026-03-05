@@ -9,7 +9,7 @@ function getDeviceFingerprint(): string {
   if (storedFingerprint) {
     return storedFingerprint;
   }
-  
+
   // Generate a new fingerprint based on browser characteristics
   const components = [
     navigator.userAgent,
@@ -20,14 +20,14 @@ function getDeviceFingerprint(): string {
     navigator.hardwareConcurrency || 'unknown',
     navigator.platform || 'unknown',
   ];
-  
+
   // Create a simple hash of the components
   const fingerprint = components.join('|');
   const hash = fingerprint.split('').reduce((a, b) => {
     a = ((a << 5) - a) + b.charCodeAt(0);
     return a & a;
   }, 0).toString(36) + '-' + Date.now().toString(36);
-  
+
   localStorage.setItem('deviceFingerprint', hash);
   return hash;
 }
@@ -35,7 +35,7 @@ function getDeviceFingerprint(): string {
 // Export for use in login page 2FA verification
 export { getDeviceFingerprint };
 
-export type LoginResult = 
+export type LoginResult =
   | { success: true }
   | { success: false; error: string }
   | { requires2fa: true; userId: string; maskedPhone: string; environment: string; rememberMe: boolean };
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkSession = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
-      setUser(session.user as User);
+      setUser(session.user as unknown as User);
       setEnvironmentState(getInitialEnvironment());
       localStorage.setItem("user", JSON.stringify(session.user));
     } else {
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser(session.user as User);
+        setUser(session.user as unknown as User);
         localStorage.setItem("user", JSON.stringify(session.user));
       } else {
         setUser(null);
@@ -108,14 +108,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email: normalizedEmail, password, environment: env, rememberMe, deviceFingerprint }),
         credentials: 'include'
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         setIsLoading(false);
         return { success: false, error: data.error || "Login failed" };
       }
-      
+
       // Check if 2FA is required
       if (data.requires2fa) {
         setIsLoading(false);
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           rememberMe: data.rememberMe,
         };
       }
-      
+
       // Direct login success
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("environment", data.environment || env);
@@ -140,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: "Login failed" };
     }
   }, []);
-  
+
   const completeLogin = useCallback((user: User, env: Environment) => {
     localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("environment", env);
@@ -150,11 +150,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await fetch("/api/auth/logout", { 
+      await fetch("/api/auth/logout", {
         method: "POST",
         credentials: 'include'
       });
-    } catch {}
+    } catch { }
     localStorage.removeItem("user");
     localStorage.removeItem("environment");
     setUser(null);
@@ -168,14 +168,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      environment, 
-      isAuthenticated, 
+    <AuthContext.Provider value={{
+      user,
+      environment,
+      isAuthenticated,
       isLoading,
       login,
       completeLogin,
-      logout, 
+      logout,
       setEnvironment,
       checkSession
     }}>

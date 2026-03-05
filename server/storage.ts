@@ -70,58 +70,58 @@ export interface IStorage {
   updateUserStatus(id: string, status: string): Promise<void>;
   updateUserTierAndRole(id: string, updates: { subscriptionTier?: string; role?: string; isAdmin?: boolean; status?: string }): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
-  
+
   getTransactions(userId: string, environment: string): Promise<Transaction[]>;
   getRecentTransactions(userId: string, environment: string, limit: number): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
-  
+
   getAssets(userId: string, environment: string): Promise<Asset[]>;
   createAsset(asset: InsertAsset): Promise<Asset>;
   deleteAsset(id: string, userId: string, environment: string): Promise<void>;
-  
+
   getDebts(userId: string, environment: string): Promise<Debt[]>;
   createDebt(debt: InsertDebt): Promise<Debt>;
   deleteDebt(id: string, userId: string, environment: string): Promise<void>;
-  
+
   getIncomes(userId: string, environment: string): Promise<Income[]>;
   createIncome(income: InsertIncome): Promise<Income>;
   deleteIncome(id: string, userId: string, environment: string): Promise<void>;
-  
+
   getExpenses(userId: string, environment: string): Promise<Expense[]>;
   createExpense(expense: InsertExpense): Promise<Expense>;
   deleteExpense(id: string, userId: string, environment: string): Promise<void>;
-  
+
   getAlerts(userId: string, environment: string): Promise<Alert[]>;
   createAlert(alert: InsertAlert): Promise<Alert>;
   markAlertRead(id: string): Promise<void>;
-  
+
   getViolations(userId: string, environment: string): Promise<Violation[]>;
   createViolation(violation: InsertViolation): Promise<Violation>;
   updateViolationStatus(id: string, userId: string, environment: string, status: string): Promise<Violation | undefined>;
   deleteViolation(id: string, userId: string, environment: string): Promise<void>;
-  
+
   getEvidenceFiles(violationId: string, userId: string, environment: string): Promise<EvidenceFile[]>;
   createEvidenceFile(evidenceFile: InsertEvidenceFile): Promise<EvidenceFile>;
-  
+
   getChainOfCustody(evidenceId: string, environment: string): Promise<ChainOfCustody[]>;
   addChainOfCustodyEntry(entry: InsertChainOfCustody): Promise<ChainOfCustody>;
-  
+
   getMessages(environment: string): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
-  
+
   getDashboardStats(userId: string, environment: string): Promise<DashboardStats>;
-  
+
   // Case management
   getCases(userId: string, environment: string): Promise<Case[]>;
   getCase(id: string, userId: string, environment: string): Promise<Case | undefined>;
   createCase(caseData: InsertCase): Promise<Case>;
   deleteCase(id: string, userId: string, environment: string): Promise<void>;
-  
+
   // Team management
   getTeam(id: string): Promise<Team | undefined>;
   createTeam(team: InsertTeam): Promise<Team>;
   getTeamMembers(teamId: string): Promise<User[]>;
-  
+
   // User subscription management
   updateUserTier(userId: string, tier: string, stripeCustomerId?: string, stripeSubscriptionId?: string): Promise<User | undefined>;
   updateUserStripeInfo(userId: string, info: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<User | undefined>;
@@ -129,54 +129,54 @@ export interface IStorage {
   incrementCaseCount(userId: string): Promise<void>;
   decrementCaseCount(userId: string): Promise<void>;
   resetMonthlyViolationCount(userId: string): Promise<void>;
-  
+
   // Voice & Media usage tracking
   incrementVoiceTranscriptionCount(userId: string): Promise<void>;
   incrementMediaUploadCount(userId: string, count?: number): Promise<void>;
   resetMonthlyUsageCounts(userId: string): Promise<void>;
-  
+
   // Documents management
   getDocuments(userId: string, environment: string): Promise<Document[]>;
   getDocument(id: string): Promise<Document | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocument(id: string, updates: Partial<Document>): Promise<Document | undefined>;
   deleteDocument(id: string, userId: string, environment: string): Promise<void>;
-  
+
   // Mobile violation reports
   getMobileViolationReports(userId: string, environment: string): Promise<MobileViolationReport[]>;
   getMobileViolationReport(id: string): Promise<MobileViolationReport | undefined>;
   createMobileViolationReport(report: InsertMobileViolationReport): Promise<MobileViolationReport>;
   updateMobileViolationReport(id: string, updates: Partial<MobileViolationReport>): Promise<MobileViolationReport | undefined>;
   deleteMobileViolationReport(id: string): Promise<void>;
-  
+
   // Reimbursements management
   getReimbursements(userId: string, environment: string): Promise<Reimbursement[]>;
   getReimbursement(id: string): Promise<Reimbursement | undefined>;
   createReimbursement(reimbursement: InsertReimbursement): Promise<Reimbursement>;
   updateReimbursement(id: string, updates: Partial<Reimbursement>): Promise<Reimbursement | undefined>;
   deleteReimbursement(id: string): Promise<void>;
-  
+
   // Calendar events management
   getCalendarEvents(userId: string, environment: string): Promise<CalendarEvent[]>;
   createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent>;
   deleteCalendarEvent(id: string, userId: string, environment: string): Promise<void>;
-  
+
   // Legal documents management
   getLegalDocuments(userId: string, environment: string): Promise<LegalDocument[]>;
   createLegalDocument(document: InsertLegalDocument): Promise<LegalDocument>;
   deleteLegalDocument(id: string, userId: string, environment: string): Promise<void>;
-  
+
   // Child support payments management
   getChildSupportPayments(userId: string, environment: string): Promise<ChildSupportPayment[]>;
   createChildSupportPayment(payment: InsertChildSupportPayment): Promise<ChildSupportPayment>;
   updateChildSupportPayment(id: string, userId: string, environment: string, update: Partial<ChildSupportPayment>): Promise<ChildSupportPayment | undefined>;
   deleteChildSupportPayment(id: string, userId: string, environment: string): Promise<void>;
-  
+
   // Password reset
   setPasswordResetToken(userId: string, token: string, expires: Date): Promise<void>;
   getUserByPasswordResetToken(token: string): Promise<User | undefined>;
   clearPasswordResetToken(userId: string): Promise<void>;
-  
+
   // Improvement recommendations (demo testing)
   getImprovementRecommendations(environment: string, status?: string): Promise<ImprovementRecommendation[]>;
   getAllImprovementRecommendations(): Promise<ImprovementRecommendation[]>;
@@ -193,7 +193,7 @@ export interface IStorage {
   createJournalEntry(entry: InsertJournalEntry): Promise<JournalEntry>;
   updateJournalEntry(id: string, updates: Partial<JournalEntry>): Promise<JournalEntry | undefined>;
   deleteJournalEntry(id: string): Promise<void>;
-  
+
   // Journal attachments
   getJournalAttachments(journalEntryId: string): Promise<JournalAttachment[]>;
   createJournalAttachment(attachment: InsertJournalAttachment): Promise<JournalAttachment>;
@@ -204,7 +204,7 @@ export interface IStorage {
   getConversation(id: string): Promise<Conversation | undefined>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   updateConversation(id: string, updates: Partial<Conversation>): Promise<Conversation | undefined>;
-  
+
   // Conversation participants
   getConversationParticipants(conversationId: string): Promise<ConversationParticipant[]>;
   addConversationParticipant(participant: InsertConversationParticipant): Promise<ConversationParticipant>;
@@ -220,15 +220,15 @@ export interface IStorage {
   getSentimentReport(id: string): Promise<SentimentReport | undefined>;
   createSentimentReport(report: InsertSentimentReport): Promise<SentimentReport>;
   updateSentimentReport(id: string, updates: Partial<SentimentReport>): Promise<SentimentReport | undefined>;
-  
+
   // Sentiment report items
   getSentimentReportItems(reportId: string): Promise<SentimentReportItem[]>;
   createSentimentReportItem(item: InsertSentimentReportItem): Promise<SentimentReportItem>;
-  
+
   // ============================================
   // SECURITY - DEVICE & SESSION MANAGEMENT
   // ============================================
-  
+
   // User devices
   getUserDevices(userId: string): Promise<UserDevice[]>;
   getDeviceByFingerprint(userId: string, fingerprint: string): Promise<UserDevice | undefined>;
@@ -236,7 +236,7 @@ export interface IStorage {
   updateDevice(id: string, updates: Partial<UserDevice>): Promise<UserDevice | undefined>;
   blockDevice(id: string): Promise<void>;
   unblockDevice(id: string): Promise<void>;
-  
+
   // Auth sessions
   getSession(id: string): Promise<AuthSession | undefined>;
   getSessionByToken(tokenHash: string): Promise<AuthSession | undefined>;
@@ -246,24 +246,24 @@ export interface IStorage {
   updateSession(id: string, updates: Partial<AuthSession>): Promise<AuthSession | undefined>;
   revokeSession(id: string, reason: string): Promise<void>;
   revokeAllUserSessions(userId: string, reason: string, exceptSessionId?: string): Promise<void>;
-  
+
   // MFA challenges
   createMfaChallenge(challenge: InsertMfaChallenge): Promise<MfaChallenge>;
   getMfaChallenge(id: string): Promise<MfaChallenge | undefined>;
   getActiveMfaChallenge(userId: string): Promise<MfaChallenge | undefined>;
   updateMfaChallenge(id: string, updates: Partial<MfaChallenge>): Promise<MfaChallenge | undefined>;
   incrementMfaAttempts(id: string): Promise<void>;
-  
+
   // Security events
   logSecurityEvent(event: InsertSecurityEvent): Promise<SecurityEvent>;
   getSecurityEvents(userId: string, limit?: number): Promise<SecurityEvent[]>;
   getAllSecurityEvents(limit?: number): Promise<SecurityEvent[]>;
-  
+
   // SMS deliveries
   createSmsDelivery(delivery: InsertSmsDelivery): Promise<SmsDelivery>;
   updateSmsDeliveryStatus(id: string, status: string, errorCode?: string, errorMessage?: string): Promise<void>;
   getSmsDeliveries(userId: string, limit?: number): Promise<SmsDelivery[]>;
-  
+
   // User phone management
   updateUserPhone(userId: string, phoneNumber: string): Promise<void>;
   verifyUserPhone(userId: string): Promise<void>;
@@ -272,11 +272,11 @@ export interface IStorage {
 
   // Demo reset
   resetDemoEnvironment(): Promise<void>;
-  
+
   // ============================================
   // FIREFLY III INTEGRATION
   // ============================================
-  
+
   getFireflyConnection(userId: string, environment: string): Promise<FireflyConnection | undefined>;
   createFireflyConnection(connection: InsertFireflyConnection): Promise<FireflyConnection>;
   updateFireflyConnection(id: string, updates: Partial<FireflyConnection>): Promise<FireflyConnection | undefined>;
@@ -397,7 +397,7 @@ export async function seedDemoData() {
   if (existingWorkspace.length === 0) {
     const insertedWorkspace = await db
       .insert(workspaces)
-      .values(<InsertWorkspace>{
+      .values({
         name: workspaceName,
         type: "firm",
         ownerId: firmAdminId,
@@ -411,7 +411,7 @@ export async function seedDemoData() {
             logoText: "Pearson Family Law Group",
           },
         },
-      })
+      } as any)
       .returning();
     workspaceId = insertedWorkspace[0].id;
   } else {
@@ -431,29 +431,29 @@ export async function seedDemoData() {
   if (!memberUserIds.has(firmAdminId)) {
     workspaceMemberInserts.push({
       workspaceId,
-      userId: Number(firmAdminId),
+      userId: firmAdminId,
       role: "owner",
-    } as InsertWorkspaceMember);
+    } as any);
   }
 
   if (!memberUserIds.has(userId)) {
     workspaceMemberInserts.push({
       workspaceId,
-      userId: Number(userId),
+      userId: userId,
       role: "staff",
-    } as InsertWorkspaceMember);
+    } as any);
   }
 
   if (!memberUserIds.has(clientId)) {
     workspaceMemberInserts.push({
       workspaceId,
-      userId: Number(clientId),
+      userId: clientId,
       role: "client",
-    } as InsertWorkspaceMember);
+    } as any);
   }
 
   if (workspaceMemberInserts.length > 0) {
-    await db.insert(workspaceMembers).values(workspaceMemberInserts);
+    await db.insert(workspaceMembers).values(workspaceMemberInserts as any);
   }
 
   // Ensure at least one active matter tying attorney + client together
@@ -465,7 +465,7 @@ export async function seedDemoData() {
   if (existingMatters.length === 0) {
     const [insertedMatter] = await db
       .insert(matters)
-      .values(<InsertMatter>{
+      .values({
         workspaceId,
         matterNumber: "DL-FIRM-DEMO-001",
         title: "Pearson v. Pearson – Custody & Support",
@@ -473,25 +473,25 @@ export async function seedDemoData() {
           "End-to-end demo matter showing how the firm collaborates with the client, tracks documents, and prepares for court.",
         status: "active",
         leadAttorneyId: firmAdminId,
-      })
+      } as any)
       .returning();
 
     const matterMemberInserts: InsertMatterMember[] = [
       {
         matterId: insertedMatter.id,
-        userId: Number(firmAdminId),
+        userId: firmAdminId,
         role: "attorney",
         permissions: { can_view: true, can_upload: true, can_comment: true, can_edit: true },
-      } as InsertMatterMember,
+      } as any,
       {
         matterId: insertedMatter.id,
-        userId: Number(clientId),
+        userId: clientId,
         role: "client",
         permissions: { can_view: true, can_upload: true, can_comment: true },
-      } as InsertMatterMember,
+      } as any,
     ];
 
-    await db.insert(matterMembers).values(matterMemberInserts);
+    await db.insert(matterMembers).values(matterMemberInserts as any);
   }
 
   // ------------------------------------------------------------------------
@@ -680,7 +680,7 @@ export async function seedDemoData() {
       status: "submitted",
       environment,
       submittedAt: now,
-    });
+    } as any);
   }
 
   // Only seed if user has no existing violations/cases
@@ -707,7 +707,7 @@ export async function seedDemoData() {
       courtName: "Family Court of East Baton Rouge Parish",
       caseNumber: "DL-DEMO-2026-001",
       createdAt: now,
-    })
+    } as any)
     .returning();
 
   const case2 = await db
@@ -720,7 +720,7 @@ export async function seedDemoData() {
       courtName: "19th Judicial District Court",
       caseNumber: "DL-DEMO-2026-002",
       createdAt: now,
-    })
+    } as any)
     .returning();
 
   const [primaryCase] = case1;
@@ -760,7 +760,7 @@ export async function seedDemoData() {
       createdAt: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 14),
       isDraft: false,
     },
-  ]);
+  ] as any);
 
   // Seed a couple of financial items so dashboards are not empty
   await db.insert(assets).values([
@@ -784,7 +784,7 @@ export async function seedDemoData() {
       verified: false,
       createdAt: now,
     },
-  ]);
+  ] as any);
 
   await db.insert(debts).values([
     {
@@ -807,7 +807,7 @@ export async function seedDemoData() {
       monthlyPayment: 250,
       createdAt: now,
     },
-  ]);
+  ] as any);
 
   await db.insert(incomes).values([
     {
@@ -828,7 +828,7 @@ export async function seedDemoData() {
       owner: "you",
       createdAt: now,
     },
-  ]);
+  ] as any);
 
   await db.insert(expenses).values([
     {
@@ -851,7 +851,7 @@ export async function seedDemoData() {
       owner: "you",
       createdAt: now,
     },
-  ]);
+  ] as any);
 
   console.log("[DEMO] Demo data seeded successfully.");
 }
@@ -888,7 +888,7 @@ export class DatabaseStorage implements IStorage {
     if (profile.fullName !== undefined) updateData.fullName = profile.fullName;
     if (profile.email !== undefined) updateData.email = profile.email;
     if (profile.profilePhoto !== undefined) updateData.profilePhoto = profile.profilePhoto;
-    
+
     const result = await db.update(users)
       .set(updateData)
       .where(eq(users.id, id))
@@ -914,7 +914,7 @@ export class DatabaseStorage implements IStorage {
     if (updates.role !== undefined) updateData.role = updates.role;
     if (updates.isAdmin !== undefined) updateData.isAdmin = updates.isAdmin;
     if (updates.status !== undefined) updateData.status = updates.status;
-    
+
     const result = await db.update(users)
       .set(updateData)
       .where(eq(users.id, id))
@@ -1096,7 +1096,7 @@ export class DatabaseStorage implements IStorage {
 
   async getDashboardStats(userId: string, environment: string): Promise<DashboardStats> {
     const currentDb = getDb(environment);
-    
+
     // Optimized: Execute counting queries in parallel
     const [
       assetsRes,
@@ -1193,7 +1193,7 @@ export class DatabaseStorage implements IStorage {
     const updateData: any = { subscriptionTier: tier };
     if (stripeCustomerId) updateData.stripeCustomerId = stripeCustomerId;
     if (stripeSubscriptionId) updateData.stripeSubscriptionId = stripeSubscriptionId;
-    
+
     const result = await db.update(users).set(updateData).where(eq(users.id, userId)).returning();
     return result[0];
   }
@@ -1241,7 +1241,7 @@ export class DatabaseStorage implements IStorage {
 
   async resetMonthlyUsageCounts(userId: string): Promise<void> {
     await db.update(users)
-      .set({ 
+      .set({
         violationsCountThisMonth: 0,
         voiceTranscriptionsThisMonth: 0,
         mediaUploadsThisMonth: 0
@@ -1491,10 +1491,10 @@ export class DatabaseStorage implements IStorage {
     const result = await currentDb.select({
       conversation: conversations
     })
-    .from(conversations)
-    .innerJoin(conversationParticipants, eq(conversations.id, conversationParticipants.conversationId))
-    .where(and(eq(conversationParticipants.userId, userId), eq(conversations.environment, environment)))
-    .orderBy(desc(conversations.updatedAt));
+      .from(conversations)
+      .innerJoin(conversationParticipants, eq(conversations.id, conversationParticipants.conversationId))
+      .where(and(eq(conversationParticipants.userId, userId), eq(conversations.environment, environment)))
+      .orderBy(desc(conversations.updatedAt));
 
     return result.map(r => r.conversation);
   }

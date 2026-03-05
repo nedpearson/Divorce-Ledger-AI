@@ -22,15 +22,15 @@ export async function resolveFeatures(
     db.select().from(workspaceFeatureOverrides).where(eq(workspaceFeatureOverrides.workspaceId, workspaceId)),
     userId
       ? db.select().from(userEntitlements).where(
-          and(eq(userEntitlements.userId, userId), eq(userEntitlements.workspaceId, workspaceId))
-        )
+        and(eq(userEntitlements.userId, userId), eq(userEntitlements.workspaceId, workspaceId))
+      )
       : Promise.resolve([]),
   ]);
 
   const effective: Record<string, boolean> = {};
-  for (const f of globals)     { effective[f.key] = f.enabled; }
+  for (const f of globals) { effective[f.key] = f.enabled; }
   for (const o of wsOverrides) { effective[o.featureKey] = o.enabled; }
-  for (const u of userOvrs)    { if (u.enabled !== null && u.enabled !== undefined) effective[u.featureKey] = u.enabled; }
+  for (const u of userOvrs) { if (u.enabled !== null && u.enabled !== undefined) effective[u.featureKey] = u.enabled; }
   return effective;
 }
 
@@ -50,7 +50,7 @@ export async function resolveEntitlements(
 
   // Get base entitlements from tier
   const tierConfig = WORKSPACE_TIER_ENTITLEMENTS[workspace.subscriptionTier];
-  
+
   if (!tierConfig) {
     throw new Error(`Invalid subscription tier: ${workspace.subscriptionTier}`);
   }
@@ -244,7 +244,7 @@ async function getCurrentStorageUsage(workspaceId: string): Promise<number> {
   const result = await db
     .select({ total: sql<number>`COALESCE(SUM(${documents.fileSize}), 0) / 1048576.0` })
     .from(documents)
-    .where(eq(documents.workspaceId, workspaceId));
+    .where(sql`${documents.userId} IN (SELECT user_id FROM workspace_members WHERE workspace_id = ${workspaceId})`);
 
   return Math.round(result[0]?.total || 0);
 }
@@ -253,7 +253,7 @@ async function getCurrentStorageUsage(workspaceId: string): Promise<number> {
  * Check if user has required workspace role
  */
 export async function hasWorkspaceRole(
-  userId: number,
+  userId: string,
   workspaceId: string,
   allowedRoles: string[]
 ): Promise<boolean> {
@@ -275,7 +275,7 @@ export async function hasWorkspaceRole(
  * Check if user can access a matter
  */
 export async function hasMatterAccess(
-  userId: number,
+  userId: string,
   matterId: string
 ): Promise<boolean> {
   // Check if user is a matter member

@@ -19,7 +19,7 @@ const logger = createLogger('HealthCheck');
 const router = Router();
 
 interface HealthCheck {
-  status: 'pass' | 'fail';
+  status: 'pass' | 'fail' | 'warn';
   message: string;
   responseTime: number;
   [key: string]: any;
@@ -82,7 +82,7 @@ router.get('/health', async (req: Request, res: Response) => {
           WHERE table_name IN ('users', 'billing_records', 'usage_audit', 'violations')
         `);
         const tableCount = parseInt((tableCheckQuery.rows[0] as any)?.count || '0');
-        
+
         checks.tables = {
           status: tableCount >= 4 ? 'pass' : 'fail',
           message: `${tableCount}/4 core tables found`,
@@ -258,7 +258,7 @@ router.get('/routes', async (req: Request, res: Response) => {
       { method: 'GET', path: '/api/health/detailed', description: 'Detailed health with record counts' },
       { method: 'GET', path: '/api/health/firefly', description: 'Firefly III integration status' },
       { method: 'GET', path: '/api/routes', description: 'This route listing' },
-      
+
       // Auth
       { method: 'POST', path: '/api/auth/login', description: 'User login' },
       { method: 'POST', path: '/api/auth/signup', description: 'User registration' },
@@ -267,7 +267,7 @@ router.get('/routes', async (req: Request, res: Response) => {
       { method: 'GET', path: '/api/auth/me', description: 'Current user profile' },
       { method: 'POST', path: '/api/auth/2fa/send', description: 'Send 2FA code' },
       { method: 'POST', path: '/api/auth/2fa/verify', description: 'Verify 2FA code' },
-      
+
       // Appwrite Document Intake
       { method: 'GET', path: '/api/appwrite/status', description: 'Appwrite connection status' },
       { method: 'POST', path: '/api/appwrite/setup', description: 'Initialize Appwrite resources' },
@@ -280,14 +280,14 @@ router.get('/routes', async (req: Request, res: Response) => {
       { method: 'DELETE', path: '/api/appwrite/files/:id', description: 'Delete file' },
       { method: 'GET', path: '/api/appwrite/categories', description: 'Document categories' },
       { method: 'GET', path: '/api/appwrite/dev/selftest', description: 'Run document intake selftest' },
-      
+
       // Documents (PostgreSQL pipeline)
       { method: 'GET', path: '/api/documents', description: 'List documents' },
       { method: 'POST', path: '/api/documents', description: 'Create document record' },
       { method: 'GET', path: '/api/documents/:id', description: 'Get document' },
       { method: 'POST', path: '/api/documents/:id/analyze', description: 'Analyze document' },
       { method: 'DELETE', path: '/api/documents/:id', description: 'Delete document' },
-      
+
       // Finances
       { method: 'GET', path: '/api/transactions', description: 'List transactions' },
       { method: 'POST', path: '/api/transactions', description: 'Create transaction' },
@@ -299,11 +299,11 @@ router.get('/routes', async (req: Request, res: Response) => {
       { method: 'POST', path: '/api/incomes', description: 'Create income' },
       { method: 'GET', path: '/api/expenses', description: 'List expenses' },
       { method: 'POST', path: '/api/expenses', description: 'Create expense' },
-      
+
       // Integrations
       { method: 'GET', path: '/api/quickbooks/*', description: 'QuickBooks integration' },
       { method: 'GET', path: '/api/firefly/*', description: 'Firefly III integration' },
-      
+
       // Admin/ETL
       { method: 'GET', path: '/api/etl/*', description: 'ETL pipeline management' },
       { method: 'GET', path: '/api/events/*', description: 'Event streaming' },
@@ -315,7 +315,7 @@ router.get('/routes', async (req: Request, res: Response) => {
     totalRoutes: 197,
     routeModules: [
       'health.routes.ts',
-      'appwrite.routes.ts', 
+      'appwrite.routes.ts',
       'analytics.routes.ts',
       'quickbooks.routes.ts',
       'firefly.ts',
@@ -327,7 +327,7 @@ router.get('/routes', async (req: Request, res: Response) => {
       'docs.routes.ts',
     ],
   };
-  
+
   res.json(routes);
 });
 
@@ -382,14 +382,14 @@ router.get('/network-info', async (req: Request, res: Response) => {
   try {
     const os = await import('os');
     const networkInterfaces = os.networkInterfaces();
-    
+
     // Find local IP address (IPv4, non-internal)
     let localIp: string | null = null;
-    
+
     for (const name of Object.keys(networkInterfaces)) {
       const nets = networkInterfaces[name];
       if (!nets) continue;
-      
+
       for (const net of nets) {
         // Skip internal (loopback) and IPv6 addresses
         if (net.family === 'IPv4' && !net.internal) {
@@ -399,7 +399,7 @@ router.get('/network-info', async (req: Request, res: Response) => {
       }
       if (localIp) break;
     }
-    
+
     res.json({
       localIp,
       hostname: os.hostname(),

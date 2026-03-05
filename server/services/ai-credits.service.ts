@@ -12,14 +12,13 @@ export interface ConsumeCreditsResult {
 
 export type UserIdInput = number | string | undefined;
 
-function resolveUserId(userId: UserIdInput, fallback: number): number {
-  if (typeof userId === 'number') {
+function resolveUserId(userId: UserIdInput, fallback: string): string {
+  if (typeof userId === 'string') {
     return userId;
   }
 
-  if (typeof userId === 'string') {
-    const parsed = Number(userId);
-    return Number.isNaN(parsed) ? fallback : parsed;
+  if (typeof userId === 'number') {
+    return userId.toString();
   }
 
   return fallback;

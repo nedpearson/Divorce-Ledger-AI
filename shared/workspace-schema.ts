@@ -1,5 +1,5 @@
 import { pgTable, text, varchar, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./schema";
@@ -29,16 +29,16 @@ export const AI_CREDIT_COSTS = {
   documentClassification: 10,
   documentParsing: 25,
   receiptItemExtraction: 15,
-  
+
   // Voice/Image analysis
   voiceTranscription: 5,        // per minute
   imageAnalysis: 20,
-  
+
   // Advanced features
   sentimentAnalysis: 30,
   caseBuilderAssistant: 50,
   courtFilingReview: 75,
-  
+
   // Queries
   chatbotQuery: 2,
   searchQuery: 1,
@@ -92,7 +92,7 @@ export const WORKSPACE_TIER_ENTITLEMENTS = {
       prioritySupport: false,
     }
   },
-  
+
   // Firm tiers
   firm_starter: {
     type: 'firm' as const,
@@ -186,7 +186,7 @@ export type InsertWorkspace = z.infer<typeof insertWorkspaceSchema>;
 export const workspaceMembers = pgTable("workspace_members", {
   id: varchar("id", { length: 100 }).primaryKey().default(sql`gen_random_uuid()::text`),
   workspaceId: varchar("workspace_id", { length: 100 }).notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id", { length: 100 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: varchar("role", { length: 20 }).notNull().$type<WorkspaceRole>(),
   invitedBy: varchar("invited_by", { length: 100 }).references(() => users.id),
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
@@ -227,7 +227,7 @@ export type InsertMatter = z.infer<typeof insertMatterSchema>;
 export const matterMembers = pgTable("matter_members", {
   id: varchar("id", { length: 100 }).primaryKey().default(sql`gen_random_uuid()::text`),
   matterId: varchar("matter_id", { length: 100 }).notNull().references(() => matters.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id", { length: 100 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: varchar("role", { length: 20 }).notNull().$type<MatterRole>(),
   permissions: jsonb("permissions").default({ can_view: true, can_upload: false, can_comment: true }).notNull().$type<{
     can_view: boolean;
@@ -253,7 +253,7 @@ export const invitations = pgTable("invitations", {
   matterId: varchar("matter_id", { length: 100 }).references(() => matters.id, { onDelete: 'cascade' }),
   email: varchar("email", { length: 255 }).notNull(),
   role: varchar("role", { length: 20 }).notNull(),
-  invitedBy: integer("invited_by").notNull().references(() => users.id),
+  invitedBy: varchar("invited_by", { length: 100 }).notNull().references(() => users.id),
   token: varchar("token", { length: 100 }).notNull().unique(),
   status: varchar("status", { length: 20 }).notNull().default('pending').$type<InvitationStatus>(),
   expiresAt: timestamp("expires_at").notNull(),
@@ -273,7 +273,7 @@ export type InsertInvitation = z.infer<typeof insertInvitationSchema>;
 export const aiCreditTransactions = pgTable("ai_credit_transactions", {
   id: varchar("id", { length: 100 }).primaryKey().default(sql`gen_random_uuid()::text`),
   workspaceId: varchar("workspace_id", { length: 100 }).notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id", { length: 100 }).notNull().references(() => users.id),
   amount: integer("amount").notNull(), // Negative for consumption, positive for grants
   balanceAfter: integer("balance_after").notNull(),
   reason: varchar("reason", { length: 100 }).notNull(),
@@ -359,3 +359,46 @@ export interface MatterContext {
     can_edit?: boolean;
   };
 }
+
+export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [workspaces.ownerId],
+    references: [users.id],
+  }),
+  members: many(workspaceMembers),
+  matters: many(matters),
+}));
+
+export const workspaceMembersRelations = relations(workspaceMembers, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [workspaceMembers.workspaceId],
+    references: [workspaces.id],
+  }),
+  user: one(users, {
+    fields: [workspaceMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const mattersRelations = relations(matters, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [matters.workspaceId],
+    references: [workspaces.id],
+  }),
+  leadAttorney: one(users, {
+    fields: [matters.leadAttorneyId],
+    references: [users.id],
+  }),
+  members: many(matterMembers),
+}));
+
+export const matterMembersRelations = relations(matterMembers, ({ one }) => ({
+  matter: one(matters, {
+    fields: [matterMembers.matterId],
+    references: [matters.id],
+  }),
+  user: one(users, {
+    fields: [matterMembers.userId],
+    references: [users.id],
+  }),
+}));

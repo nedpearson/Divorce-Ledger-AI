@@ -71,13 +71,13 @@ router.post("/demo/reset", requireSuperAdmin, async (req, res) => {
     }
 
     await logAudit({
-      actorId:    req.platformAdmin!.id,
+      actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
       actionType: "demo.reset" as any,
       targetType: "environment",
-      targetId:   "demo",
-      details:    { appMode: getAppMode() },
-      ipAddress:  getClientIp(req),
+      targetId: "demo",
+      details: { appMode: getAppMode() },
+      ipAddress: getClientIp(req),
     });
 
     res.json({ success: true });
@@ -131,13 +131,13 @@ router.get("/overview", async (req, res) => {
     const mrrEstimate = mrrRows.reduce((acc, r) => acc + (priceMap[r.tier] ?? 0) * Number(r.cnt), 0);
 
     res.json({
-      users:              Number(totalUsers[0]?.c ?? 0),
-      firms:              Number(totalFirms[0]?.c ?? 0),
-      consumers:          Number(totalConsumers[0]?.c ?? 0),
-      activeMatters:      Number(activeMatters[0]?.c ?? 0),
-      activeSubscriptions:Number(activeSubscriptions[0]?.c ?? 0),
-      delinquentCount:    Number(delinquentCount[0]?.c ?? 0),
-      mrrCents:           mrrEstimate,
+      users: Number(totalUsers[0]?.c ?? 0),
+      firms: Number(totalFirms[0]?.c ?? 0),
+      consumers: Number(totalConsumers[0]?.c ?? 0),
+      activeMatters: Number(activeMatters[0]?.c ?? 0),
+      activeSubscriptions: Number(activeSubscriptions[0]?.c ?? 0),
+      delinquentCount: Number(delinquentCount[0]?.c ?? 0),
+      mrrCents: mrrEstimate,
       creditsConsumed30d: Number(creditsConsumed30d[0]?.total ?? 0),
     });
   } catch (err: any) {
@@ -153,15 +153,15 @@ router.get("/overview", async (req, res) => {
 // List all workspaces (firms + consumers) with pagination/filter
 router.get("/workspaces", async (req, res) => {
   try {
-    const page    = Math.max(1, Number(req.query.page  ?? 1));
-    const limit   = Math.min(100, Number(req.query.limit ?? 25));
-    const offset  = (page - 1) * limit;
-    const type    = req.query.type as string | undefined;
-    const status  = req.query.status as string | undefined;
-    const search  = req.query.search as string | undefined;
+    const page = Math.max(1, Number(req.query.page ?? 1));
+    const limit = Math.min(100, Number(req.query.limit ?? 25));
+    const offset = (page - 1) * limit;
+    const type = req.query.type as string | undefined;
+    const status = req.query.status as string | undefined;
+    const search = req.query.search as string | undefined;
 
     const conditions: any[] = [];
-    if (type)   conditions.push(eq(workspaces.type, type as any));
+    if (type) conditions.push(eq(workspaces.type, type as any));
     if (status) conditions.push(eq(workspaces.subscriptionStatus, status));
     if (search) conditions.push(ilike(workspaces.name, `%${search}%`));
 
@@ -207,13 +207,13 @@ router.get("/workspaces/:workspaceId", async (req, res) => {
 router.post("/workspaces/:workspaceId/status", async (req, res) => {
   try {
     const { workspaceId } = req.params;
-    const schema = z.object({ action: z.enum(["approve","reject","suspend","unsuspend"]), reason: z.string().optional() });
+    const schema = z.object({ action: z.enum(["approve", "reject", "suspend", "unsuspend"]), reason: z.string().optional() });
     const { action, reason } = schema.parse(req.body);
 
     const statusMap: Record<string, string> = {
-      approve:   "active",
-      reject:    "canceled",
-      suspend:   "suspended",
+      approve: "active",
+      reject: "canceled",
+      suspend: "suspended",
       unsuspend: "active",
     };
 
@@ -222,13 +222,13 @@ router.post("/workspaces/:workspaceId/status", async (req, res) => {
       .where(eq(workspaces.id, workspaceId));
 
     await logAudit({
-      actorId:    req.platformAdmin!.id,
+      actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
       actionType: `firm.${action}` as any,
       targetType: "workspace",
-      targetId:   workspaceId,
-      details:    { reason },
-      ipAddress:  getClientIp(req),
+      targetId: workspaceId,
+      details: { reason },
+      ipAddress: getClientIp(req),
     });
 
     res.json({ success: true });
@@ -242,10 +242,10 @@ router.post("/workspaces/:workspaceId/plan", async (req, res) => {
   try {
     const { workspaceId } = req.params;
     const schema = z.object({
-      planName:           z.string(),
-      aiCreditsOverride:  z.number().int().optional(),
-      mattersOverride:    z.number().int().optional(),
-      seatsOverride:      z.number().int().optional(),
+      planName: z.string(),
+      aiCreditsOverride: z.number().int().optional(),
+      mattersOverride: z.number().int().optional(),
+      seatsOverride: z.number().int().optional(),
     });
     const body = schema.parse(req.body);
 
@@ -257,19 +257,19 @@ router.post("/workspaces/:workspaceId/plan", async (req, res) => {
     await db.update(workspaces)
       .set({
         subscriptionTier: body.planName as any,
-        aiCreditsLimit:   body.aiCreditsOverride ?? plan.aiCreditsMonthly,
-        updatedAt:        new Date(),
+        aiCreditsLimit: body.aiCreditsOverride ?? plan.aiCreditsMonthly,
+        updatedAt: new Date(),
       })
       .where(eq(workspaces.id, workspaceId));
 
     await logAudit({
-      actorId:    req.platformAdmin!.id,
+      actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
       actionType: "firm.plan_assign",
       targetType: "workspace",
-      targetId:   workspaceId,
-      details:    { planName: body.planName, overrides: body },
-      ipAddress:  getClientIp(req),
+      targetId: workspaceId,
+      details: { planName: body.planName, overrides: body },
+      ipAddress: getClientIp(req),
     });
 
     res.json({ success: true });
@@ -285,8 +285,8 @@ router.post("/workspaces/:workspaceId/plan", async (req, res) => {
 // Global user search
 router.get("/users", async (req, res) => {
   try {
-    const page   = Math.max(1, Number(req.query.page  ?? 1));
-    const limit  = Math.min(100, Number(req.query.limit ?? 25));
+    const page = Math.max(1, Number(req.query.page ?? 1));
+    const limit = Math.min(100, Number(req.query.limit ?? 25));
     const offset = (page - 1) * limit;
     const search = req.query.search as string | undefined;
 
@@ -336,9 +336,9 @@ router.get("/users/:userId", async (req, res) => {
       workspaceName: workspaces.name,
       workspaceType: workspaces.type,
     })
-    .from(workspaceMembers)
-    .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
-    .where(eq(workspaceMembers.userId, Number(userId)));
+      .from(workspaceMembers)
+      .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
+      .where(eq(workspaceMembers.userId, userId));
 
     const userEntries = await db.select().from(userEntitlements).where(eq(userEntitlements.userId, userId));
 
@@ -353,10 +353,10 @@ router.post("/users/:userId/action", async (req, res) => {
   try {
     const { userId } = req.params;
     const schema = z.object({
-      action: z.enum(["password_reset","invite_resend","force_signout","suspend","unsuspend","role_adjust"]),
+      action: z.enum(["password_reset", "invite_resend", "force_signout", "suspend", "unsuspend", "role_adjust"]),
       workspaceId: z.string().optional(),
-      newRole:     z.string().optional(),
-      reason:      z.string().optional(),
+      newRole: z.string().optional(),
+      reason: z.string().optional(),
     });
     const body = schema.parse(req.body);
 
@@ -384,20 +384,20 @@ router.post("/users/:userId/action", async (req, res) => {
       await db.update(workspaceMembers)
         .set({ role: body.newRole as any })
         .where(and(
-          eq(workspaceMembers.userId, Number(userId)),
+          eq(workspaceMembers.userId, userId),
           eq(workspaceMembers.workspaceId, body.workspaceId)
         ));
       resultDetail = { workspaceId: body.workspaceId, newRole: body.newRole };
     }
 
     await logAudit({
-      actorId:    req.platformAdmin!.id,
+      actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
       actionType: `user.${body.action}` as any,
       targetType: "user",
-      targetId:   userId,
-      details:    { ...resultDetail, reason: body.reason },
-      ipAddress:  getClientIp(req),
+      targetId: userId,
+      details: { ...resultDetail, reason: body.reason },
+      ipAddress: getClientIp(req),
     });
 
     res.json({ success: true, detail: resultDetail });
@@ -412,9 +412,9 @@ router.post("/users/:userId/entitlements", async (req, res) => {
     const { userId } = req.params;
     const schema = z.object({
       workspaceId: z.string().optional(),
-      featureKey:  z.string(),
-      enabled:     z.boolean().nullable(),
-      limitValue:  z.number().int().nullable().optional(),
+      featureKey: z.string(),
+      enabled: z.boolean().nullable(),
+      limitValue: z.number().int().nullable().optional(),
     });
     const body = schema.parse(req.body);
 
@@ -423,10 +423,10 @@ router.post("/users/:userId/entitlements", async (req, res) => {
       .values({
         userId,
         workspaceId: body.workspaceId ?? null,
-        featureKey:  body.featureKey,
-        enabled:     body.enabled ?? undefined,
-        limitValue:  body.limitValue ?? undefined,
-        setBy:       req.platformAdmin!.email,
+        featureKey: body.featureKey,
+        enabled: body.enabled ?? undefined,
+        limitValue: body.limitValue ?? undefined,
+        setBy: req.platformAdmin!.email,
       })
       .onConflictDoUpdate({
         target: [userEntitlements.userId, userEntitlements.workspaceId, userEntitlements.featureKey],
@@ -434,13 +434,13 @@ router.post("/users/:userId/entitlements", async (req, res) => {
       });
 
     await logAudit({
-      actorId:    req.platformAdmin!.id,
+      actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
       actionType: "user.feature_override",
       targetType: "user",
-      targetId:   userId,
-      details:    body,
-      ipAddress:  getClientIp(req),
+      targetId: userId,
+      details: body,
+      ipAddress: getClientIp(req),
     });
 
     res.json({ success: true });
@@ -466,15 +466,15 @@ router.put("/plans/:planId", requireSuperAdmin, async (req, res) => {
   try {
     const { planId } = req.params;
     const schema = z.object({
-      displayName:       z.string().optional(),
-      priceCents:        z.number().int().optional(),
-      stripePriceId:     z.string().optional(),
-      mattersLimit:      z.number().int().nullable().optional(),
-      seatsLimit:        z.number().int().nullable().optional(),
-      storageMb:         z.number().int().optional(),
-      aiCreditsMonthly:  z.number().int().optional(),
-      features:          z.record(z.boolean()).optional(),
-      isActive:          z.boolean().optional(),
+      displayName: z.string().optional(),
+      priceCents: z.number().int().optional(),
+      stripePriceId: z.string().optional(),
+      mattersLimit: z.number().int().nullable().optional(),
+      seatsLimit: z.number().int().nullable().optional(),
+      storageMb: z.number().int().optional(),
+      aiCreditsMonthly: z.number().int().optional(),
+      features: z.record(z.boolean()).optional(),
+      isActive: z.boolean().optional(),
     });
     const body = schema.parse(req.body);
 
@@ -483,13 +483,13 @@ router.put("/plans/:planId", requireSuperAdmin, async (req, res) => {
       .where(eq(planDefinitions.id, planId));
 
     await logAudit({
-      actorId:    req.platformAdmin!.id,
+      actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
       actionType: "plan.update",
       targetType: "plan",
-      targetId:   planId,
-      details:    body,
-      ipAddress:  getClientIp(req),
+      targetId: planId,
+      details: body,
+      ipAddress: getClientIp(req),
     });
 
     res.json({ success: true });
@@ -516,7 +516,7 @@ router.get("/plans/preview/:workspaceId", async (req, res) => {
 
     const userOvrs = userId
       ? await db.select().from(userEntitlements)
-          .where(and(eq(userEntitlements.userId, userId), eq(userEntitlements.workspaceId, workspaceId)))
+        .where(and(eq(userEntitlements.userId, userId), eq(userEntitlements.workspaceId, workspaceId)))
       : [];
 
     const globalFlags = await db.select().from(featureFlags);
@@ -553,17 +553,17 @@ router.get("/billing", async (req, res) => {
     const where = conditions.length ? and(...conditions) : undefined;
 
     const rows = await db.select({
-      id:                 workspaces.id,
-      name:               workspaces.name,
-      type:               workspaces.type,
-      subscriptionTier:   workspaces.subscriptionTier,
+      id: workspaces.id,
+      name: workspaces.name,
+      type: workspaces.type,
+      subscriptionTier: workspaces.subscriptionTier,
       subscriptionStatus: workspaces.subscriptionStatus,
-      stripeCustomerId:   workspaces.stripeCustomerId,
+      stripeCustomerId: workspaces.stripeCustomerId,
       stripeSubscriptionId: workspaces.stripeSubscriptionId,
-      billingCycleStart:  workspaces.billingCycleStart,
-      aiCreditsBalance:   workspaces.aiCreditsBalance,
-      aiCreditsLimit:     workspaces.aiCreditsLimit,
-      updatedAt:          workspaces.updatedAt,
+      billingCycleStart: workspaces.billingCycleStart,
+      aiCreditsBalance: workspaces.aiCreditsBalance,
+      aiCreditsLimit: workspaces.aiCreditsLimit,
+      updatedAt: workspaces.updatedAt,
     }).from(workspaces).where(where).orderBy(desc(workspaces.updatedAt)).limit(200);
 
     res.json(rows);
@@ -585,13 +585,13 @@ router.post("/billing/:workspaceId/grace", async (req, res) => {
       .where(eq(workspaces.id, workspaceId));
 
     await logAudit({
-      actorId:    req.platformAdmin!.id,
+      actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
       actionType: "billing.grace_period",
       targetType: "workspace",
-      targetId:   workspaceId,
-      details:    { days, graceTo: graceTo.toISOString(), reason },
-      ipAddress:  getClientIp(req),
+      targetId: workspaceId,
+      details: { days, graceTo: graceTo.toISOString(), reason },
+      ipAddress: getClientIp(req),
     });
 
     res.json({ success: true, graceTo });
@@ -624,13 +624,13 @@ router.patch("/features/:key", requireSuperAdmin, async (req, res) => {
       .where(eq(featureFlags.key, key));
 
     await logAudit({
-      actorId:    req.platformAdmin!.id,
+      actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
       actionType: "feature.global_toggle",
       targetType: "feature",
-      targetId:   key,
-      details:    { enabled },
-      ipAddress:  getClientIp(req),
+      targetId: key,
+      details: { enabled },
+      ipAddress: getClientIp(req),
     });
 
     res.json({ success: true });
@@ -654,13 +654,13 @@ router.post("/features/:key/workspace/:workspaceId", async (req, res) => {
       });
 
     await logAudit({
-      actorId:    req.platformAdmin!.id,
+      actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
       actionType: "feature.workspace_toggle",
       targetType: "workspace",
-      targetId:   workspaceId,
-      details:    { featureKey: key, enabled },
-      ipAddress:  getClientIp(req),
+      targetId: workspaceId,
+      details: { featureKey: key, enabled },
+      ipAddress: getClientIp(req),
     });
 
     res.json({ success: true });
@@ -675,21 +675,21 @@ router.post("/features/:key/workspace/:workspaceId", async (req, res) => {
 
 router.get("/audit-log", async (req, res) => {
   try {
-    const page       = Math.max(1, Number(req.query.page  ?? 1));
-    const limit      = Math.min(200, Number(req.query.limit ?? 50));
-    const offset     = (page - 1) * limit;
-    const userId     = req.query.userId as string | undefined;
-    const workspaceId= req.query.workspaceId as string | undefined;
+    const page = Math.max(1, Number(req.query.page ?? 1));
+    const limit = Math.min(200, Number(req.query.limit ?? 50));
+    const offset = (page - 1) * limit;
+    const userId = req.query.userId as string | undefined;
+    const workspaceId = req.query.workspaceId as string | undefined;
     const actionType = req.query.actionType as string | undefined;
-    const from       = req.query.from ? new Date(req.query.from as string) : undefined;
-    const to         = req.query.to   ? new Date(req.query.to   as string) : undefined;
+    const from = req.query.from ? new Date(req.query.from as string) : undefined;
+    const to = req.query.to ? new Date(req.query.to as string) : undefined;
 
     const conditions: any[] = [];
-    if (userId)      conditions.push(eq(auditLog.actorId, userId));
+    if (userId) conditions.push(eq(auditLog.actorId, userId));
     if (workspaceId) conditions.push(and(eq(auditLog.targetType, "workspace"), eq(auditLog.targetId, workspaceId)));
-    if (actionType)  conditions.push(ilike(auditLog.actionType, `%${actionType}%`));
-    if (from)        conditions.push(gte(auditLog.createdAt, from));
-    if (to)          conditions.push(lte(auditLog.createdAt, to));
+    if (actionType) conditions.push(ilike(auditLog.actionType, `%${actionType}%`));
+    if (from) conditions.push(gte(auditLog.createdAt, from));
+    if (to) conditions.push(lte(auditLog.createdAt, to));
 
     const where = conditions.length ? and(...conditions) : undefined;
 
@@ -701,7 +701,7 @@ router.get("/audit-log", async (req, res) => {
     // Export as CSV if requested
     if (req.query.format === "csv") {
       const csv = [
-        ["id","actor_email","action_type","target_type","target_id","ip_address","created_at","details"].join(","),
+        ["id", "actor_email", "action_type", "target_type", "target_id", "ip_address", "created_at", "details"].join(","),
         ...rows.map(r => [
           r.id, r.actorEmail, r.actionType, r.targetType ?? "", r.targetId ?? "",
           r.ipAddress ?? "", r.createdAt?.toISOString() ?? "",
@@ -730,10 +730,10 @@ router.get("/analytics/usage", async (req, res) => {
 
     const byAction = await db
       .select({
-        actionType:   usageEvents.actionType,
+        actionType: usageEvents.actionType,
         totalCredits: sum(usageEvents.credits),
-        totalUnits:   sum(usageEvents.units),
-        eventCount:   count(),
+        totalUnits: sum(usageEvents.units),
+        eventCount: count(),
       })
       .from(usageEvents)
       .where(gte(usageEvents.createdAt, since))
@@ -742,10 +742,10 @@ router.get("/analytics/usage", async (req, res) => {
 
     const byWorkspace = await db
       .select({
-        workspaceId:  usageEvents.workspaceId,
-        workspaceName:workspaces.name,
+        workspaceId: usageEvents.workspaceId,
+        workspaceName: workspaces.name,
         totalCredits: sum(usageEvents.credits),
-        eventCount:   count(),
+        eventCount: count(),
       })
       .from(usageEvents)
       .innerJoin(workspaces, eq(workspaces.id, usageEvents.workspaceId))
@@ -768,12 +768,12 @@ router.get("/analytics/profitability", async (req, res) => {
       const monthly = plan.aiCreditsMonthly;
       const revenueCents = plan.priceCents;
 
-      const scenarios = (["light","typical","heavy"] as const).map(scenario => {
+      const scenarios = (["light", "typical", "heavy"] as const).map(scenario => {
         const multiplier = CREDIT_COST_MODEL.scenarioMultiplier[scenario];
         const creditsUsed = Math.round(monthly * multiplier);
-        const costCents   = Math.round(creditsUsed * CREDIT_COST_MODEL.costPerCreditCents[scenario] * 100);
+        const costCents = Math.round(creditsUsed * CREDIT_COST_MODEL.costPerCreditCents[scenario] * 100);
         const grossMarginCents = revenueCents - costCents;
-        const grossMarginPct   = revenueCents > 0 ? Math.round((grossMarginCents / revenueCents) * 100) : 0;
+        const grossMarginPct = revenueCents > 0 ? Math.round((grossMarginCents / revenueCents) * 100) : 0;
         // Break-even: how many credits can we afford to include?
         const breakEvenCredits = revenueCents > 0
           ? Math.floor(revenueCents / (CREDIT_COST_MODEL.costPerCreditCents[scenario] * 100))
@@ -789,9 +789,9 @@ router.get("/analytics/profitability", async (req, res) => {
       });
 
       return {
-        plan:         plan.name,
-        displayName:  plan.displayName,
-        priceCents:   revenueCents,
+        plan: plan.name,
+        displayName: plan.displayName,
+        priceCents: revenueCents,
         creditsIncluded: monthly,
         scenarios,
       };
@@ -809,9 +809,9 @@ router.get("/analytics/profitability", async (req, res) => {
 
 router.get("/me", (req, res) => {
   res.json({
-    id:    req.platformAdmin!.id,
+    id: req.platformAdmin!.id,
     email: req.platformAdmin!.email,
-    role:  req.platformAdmin!.role,
+    role: req.platformAdmin!.role,
   });
 });
 

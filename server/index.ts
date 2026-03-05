@@ -36,8 +36,8 @@ process.on("uncaughtException", (err) => {
 });
 
 process.on("unhandledRejection", (reason, promise) => {
-  startupLogger.error("Unhandled Promise Rejection", reason as Error, { 
-    promiseInfo: String(promise) 
+  startupLogger.error("Unhandled Promise Rejection", reason as Error, {
+    promiseInfo: String(promise)
   });
 });
 
@@ -171,7 +171,7 @@ try {
   app.use(cookieParser());
   // Add CSRF protection for all non-API routes (customize as needed)
   app.use(csurf({ cookie: true }));
-} catch (err) {
+} catch (err: any) {
   console.warn('CSRF protection is not enabled: csurf module not found or failed to load.', err?.message || err);
 }
 app.use(demoResetMiddleware);
@@ -260,7 +260,7 @@ app.use((req, res, next) => {
         } catch {
           console.log('[STARTUP] DIRECT_URL unreachable, falling back to DATABASE_URL for migrations');
         } finally {
-          await testPool.end().catch(() => {});
+          await testPool.end().catch(() => { });
         }
       }
       if (!migrationUrl) migrationUrl = poolerUrl;
@@ -313,13 +313,13 @@ app.use((req, res, next) => {
     // Bootstrap users (admin + demo)
     try {
       const { bootstrapUsers } = await import('./services/bootstrap.service');
-      
+
       // In development, force password reset to env values
       // In production, only create missing users (don't reset existing passwords)
       const isDev = process.env.NODE_ENV === 'development';
-      
-      await bootstrapUsers({ 
-        forcePasswordReset: isDev 
+
+      await bootstrapUsers({
+        forcePasswordReset: isDev
       });
     } catch (error) {
       console.error('❌ [STARTUP] User bootstrap failed:', error);
@@ -348,7 +348,7 @@ app.use((req, res, next) => {
     if (isDemoMode()) {
       console.log('[STARTUP] Demo mode detected - initializing demo reset scheduler...');
       startDemoResetScheduler();
-      
+
       // Legacy cron scheduler for demo mode (if needed)
       if (process.env.CRON_ENABLED === 'true') {
         cronScheduler.start();
@@ -360,7 +360,7 @@ app.use((req, res, next) => {
         // Non-critical - don't crash the app
       });
     }
-    
+
     // Start monitoring services (both modes)
     if (dashboardService) {
       dashboardService.start().catch(err => {
@@ -371,7 +371,7 @@ app.use((req, res, next) => {
     if (wsService) {
       wsService.initialize();
     }
-    
+
     // APPWRITE AUTO-START: Start queue processor if Appwrite is configured
     // This ensures documents are analyzed even if /api/appwrite/setup wasn't called
     if (isAppwriteConfigured()) {

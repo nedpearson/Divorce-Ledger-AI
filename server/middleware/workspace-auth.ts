@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../db';
-import { workspaces, workspaceMembers, matterMembers } from '@shared/workspace-schema';
+import { workspaces, workspaceMembers, matterMembers, matters } from '@shared/workspace-schema';
 import { eq, and } from 'drizzle-orm';
 import type { WorkspaceContext, MatterContext } from '@shared/workspace-schema';
 
@@ -217,7 +217,7 @@ export const checkEntitlement = (action: 'create_matter' | 'add_seat' | 'consume
 
     try {
       const { resolveEntitlements, canPerformAction } = await import('../services/entitlements.service');
-      
+
       const entitlements = await resolveEntitlements(req.workspace.id);
       const check = canPerformAction(entitlements, action);
 

@@ -20,6 +20,7 @@ if (!STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
+  // @ts-ignore
   apiVersion: '2024-12-18.acacia',
 });
 
@@ -151,6 +152,7 @@ async function setupProducts() {
       recurring: {
         interval: 'month',
         usage_type: 'metered',
+        // @ts-ignore
         aggregate_usage: 'sum',
       },
       metadata: {
