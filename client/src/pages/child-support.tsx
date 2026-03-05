@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Users, Plus, DollarSign, Calendar, CheckCircle, Clock, AlertTriangle, Loader2, TrendingUp, TrendingDown, Download } from "lucide-react";
 import type { ChildSupportPayment } from "@shared/schema";
+import { DrillDownValue } from "@/components/ui/drilldown-value";
 import { format } from "date-fns";
 
 const paymentTypes = [
@@ -312,7 +313,9 @@ export default function ChildSupportPage() {
                 <TrendingUp className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(totalPaid)}</p>
+                <p className="text-2xl font-bold">
+                  <DrillDownValue type="transactions" title="Total Paid" value={formatCurrency(totalPaid)} />
+                </p>
                 <p className="text-xs text-muted-foreground">Total Paid</p>
               </div>
             </div>
@@ -325,7 +328,9 @@ export default function ChildSupportPage() {
                 <Clock className="h-5 w-5 text-yellow-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(totalPending)}</p>
+                <p className="text-2xl font-bold">
+                  <DrillDownValue type="transactions" title="Pending" value={formatCurrency(totalPending)} />
+                </p>
                 <p className="text-xs text-muted-foreground">Pending</p>
               </div>
             </div>
@@ -338,7 +343,9 @@ export default function ChildSupportPage() {
                 <AlertTriangle className="h-5 w-5 text-red-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(totalOverdue)}</p>
+                <p className="text-2xl font-bold">
+                  <DrillDownValue type="transactions" title="Overdue" value={formatCurrency(totalOverdue)} />
+                </p>
                 <p className="text-xs text-muted-foreground">Overdue</p>
               </div>
             </div>

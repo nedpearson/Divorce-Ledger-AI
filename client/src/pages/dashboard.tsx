@@ -208,6 +208,7 @@ const PaymentCard = memo(function PaymentCard({
   dueDate: string;
   isPaid: boolean;
   icon: React.ElementType;
+  drilldownType?: DrilldownType;
 }) {
   return (
     <Card className="hover-elevate cursor-pointer" data-testid={`card-payment-${title.toLowerCase().replace(/\s+/g, "-")}`}>
@@ -230,7 +231,13 @@ const PaymentCard = memo(function PaymentCard({
             </Badge>
           )}
         </div>
-        <p className="text-2xl font-semibold tabular-nums">{formatCurrency(amount)}/mo</p>
+        <p className="text-2xl font-semibold tabular-nums">
+          {drilldownType ? (
+            <DrillDownValue type={drilldownType} title={title} value={`${formatCurrency(amount)}/mo`} />
+          ) : (
+            `${formatCurrency(amount)}/mo`
+          )}
+        </p>
         <p className="text-xs text-muted-foreground mt-1">
           {isPaid ? `Paid: ${dueDate}` : `Due: ${dueDate}`}
         </p>
@@ -493,6 +500,7 @@ export default function Dashboard() {
               dueDate="Jan 5"
               isPaid={false}
               icon={Users}
+              drilldownType="transactions"
             />
             <PaymentCard
               title="Alimony"
@@ -500,6 +508,7 @@ export default function Dashboard() {
               dueDate="Jan 3"
               isPaid={true}
               icon={Heart}
+              drilldownType="expenses"
             />
           </div>
 
