@@ -593,6 +593,38 @@ export async function registerRoutes(
     }
   }
 
+  app.get("/api/auth/demo-auto-login", async (req, res) => {
+    try {
+      if (process.env.DEMO_MODE !== 'true') return res.redirect("/login");
+      const email = (process.env.DEMO_EMAIL || 'demo@example.com').trim().toLowerCase();
+      const user = await storage.getUserByEmail(email);
+      if (!user) return res.redirect("/login");
+
+      const refreshTokenHash = crypto.randomBytes(32).toString('hex');
+      const session = await storage.createSession({
+        userId: user.id,
+        deviceId: null,
+        refreshTokenHash,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        mfaVerified: false,
+      });
+
+      res.clearCookie('session_id', { path: '/' });
+      res.cookie('session_id', session.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        path: '/'
+      });
+      res.redirect("/");
+    } catch (e) {
+      console.error(e);
+      res.redirect("/login");
+    }
+  });
+
   app.post("/api/auth/login", loginRateLimiter, async (req, res) => {
     try {
       const { email: rawEmail, password, environment, rememberMe } = req.body;
