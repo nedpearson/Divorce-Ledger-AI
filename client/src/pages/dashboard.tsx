@@ -99,7 +99,13 @@ const StatCard = memo(function StatCard({
         {subtitle && (
           <div className="flex items-center justify-between mt-2 pt-2 border-t text-xs">
             <span className="text-muted-foreground">{subtitle}</span>
-            <span className="font-medium">{subtitleValue}</span>
+            <span className="font-medium">
+              {drilldownType ? (
+                <DrillDownValue type={drilldownType} title={subtitle} value={subtitleValue} asBadge={true} />
+              ) : (
+                subtitleValue
+              )}
+            </span>
           </div>
         )}
       </CardContent>
@@ -338,6 +344,7 @@ export default function Dashboard() {
               subtitle="Pending Court Dates"
               subtitleValue="3"
               icon={Briefcase}
+              drilldownType="assets"
             />
             <StatCard
               title="Recent Uploads"
@@ -347,6 +354,7 @@ export default function Dashboard() {
               trend="up"
               trendValue="8%"
               icon={FileText}
+              drilldownType="debts"
             />
             <StatCard
               title="Unbilled Time"
@@ -354,6 +362,7 @@ export default function Dashboard() {
               subtitle="WIP Hours"
               subtitleValue="32.5"
               icon={Clock}
+              drilldownType="income"
             />
             <StatCard
               title="Trust Balance"
@@ -363,6 +372,7 @@ export default function Dashboard() {
               trend="down"
               trendValue="1%"
               icon={Landmark}
+              drilldownType="assets"
             />
           </div>
 

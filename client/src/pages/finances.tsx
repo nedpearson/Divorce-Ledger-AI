@@ -845,7 +845,7 @@ function AssetsTab({ onRecordClick }: TabProps) {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Separate Assets</p>
             <p className="text-2xl font-semibold tabular-nums">
-              {formatCurrency(assets?.filter((a) => a.ownership !== "joint").reduce((s, a) => s + a.value, 0) || 0)}
+              <DrillDownValue type="assets" title="Separate Assets" value={formatCurrency(assets?.filter((a) => a.ownership !== "joint").reduce((s, a) => s + a.value, 0) || 0)} />
             </p>
           </CardContent>
         </Card>

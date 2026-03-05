@@ -284,12 +284,14 @@ export default function PropertyPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Joint Debts</span>
-                    <span className="font-medium text-red-600">{formatCurrency(jointDebtValue)}</span>
+                    <span className="font-medium text-red-600">
+                      <DrillDownValue type="debts" title="Joint Debts" value={formatCurrency(jointDebtValue)} />
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Separate Debts</span>
                     <span className="font-medium text-red-600">
-                      {formatCurrency(separateDebts.reduce((s, d) => s + d.amount, 0))}
+                      <DrillDownValue type="debts" title="Separate Debts" value={formatCurrency(separateDebts.reduce((s, d) => s + d.amount, 0))} />
                     </span>
                   </div>
                 </div>
