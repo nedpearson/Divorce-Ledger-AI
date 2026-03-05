@@ -129,11 +129,7 @@ export default function PropertyPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6" data-testid="page-property">
-      {environment === "demo" && (
-        <div className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-sm rounded-md text-center">
-          DEMO MODE - Data resets nightly
-        </div>
-      )}
+      
 
       <div>
         <h1 className="text-2xl font-semibold" data-testid="text-page-title">Property Settlement</h1>

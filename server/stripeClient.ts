@@ -23,11 +23,11 @@ function validateKeyPrefix(secretKey: string): boolean {
     console.error('CRITICAL: STRIPE_MODE is "production" but STRIPE_SECRET_KEY is not a live key (must start with "sk_live_")');
     throw new Error('Production mode requires a live Stripe key (sk_live_...)');
   }
-  
+
   if (STRIPE_MODE === 'test' && !secretKey.startsWith('sk_test_')) {
     console.warn('Stripe is in "test" mode but STRIPE_SECRET_KEY is not a test key. Proceeding but please verify your configuration.');
   }
-  
+
   return true;
 }
 
@@ -36,17 +36,17 @@ async function validateStripeConnection(secretKey: string): Promise<boolean> {
   try {
     // First validate key prefix matches mode
     validateKeyPrefix(secretKey);
-    
+
     const stripe = new Stripe(secretKey, {
       apiVersion: '2025-11-17.clover' as const,
     });
-    
+
     // Lightweight validation call
     await stripe.balance.retrieve();
     return true;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    
+
     if (STRIPE_MODE === 'production') {
       console.error(`Stripe validation failed (production mode): ${errorMsg}`);
       throw new Error(`Stripe production connection failed: ${errorMsg}`);
@@ -62,7 +62,7 @@ async function tryManualCredentials(): Promise<boolean> {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   // Accept both STRIPE_PUBLISHABLE_KEY and STRIPE_PUBLIC_KEY for flexibility
   const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLIC_KEY;
-  
+
   if (secretKey && publishableKey) {
     // Validate the connection before marking as available
     const isValid = await validateStripeConnection(secretKey);
@@ -83,8 +83,13 @@ async function initializeStripeCredentials(): Promise<boolean> {
   if (stripeInitialized) {
     return stripeAvailable;
   }
-  
+
   stripeInitialized = true;
+
+  if (process.env.ENABLE_OPTIONAL_INTEGRATIONS !== 'true') {
+    stripeAvailable = false;
+    return validateStripeConfig();
+  }
 
   // First, try manual credentials from environment variables
   if (await tryManualCredentials()) {
@@ -123,7 +128,7 @@ async function initializeStripeCredentials(): Promise<boolean> {
     });
 
     const data = await response.json();
-    
+
     connectionSettings = data.items?.[0];
 
     if (!connectionSettings || (!connectionSettings.settings?.publishable || !connectionSettings.settings?.secret)) {
@@ -138,7 +143,7 @@ async function initializeStripeCredentials(): Promise<boolean> {
     // Validate the Replit connector credentials
     const secretKey = connectionSettings.settings.secret;
     const isValid = await validateStripeConnection(secretKey);
-    
+
     if (!isValid) {
       console.log(`Stripe ${targetEnvironment} credentials invalid - trying manual keys`);
       if (await tryManualCredentials()) {
@@ -169,11 +174,11 @@ async function initializeStripeCredentials(): Promise<boolean> {
 
 async function getCredentials() {
   await initializeStripeCredentials();
-  
+
   if (!cachedCredentials) {
     throw new Error('Stripe credentials not available');
   }
-  
+
   return cachedCredentials;
 }
 

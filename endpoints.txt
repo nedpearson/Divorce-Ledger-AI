@@ -1,0 +1,10 @@
+The string is missing the 
+terminator: ".
+    + CategoryInfo           
+   : ParserError: (:) [], P  
+  arentContainsErrorRecord   
+ Exception
+    + FullyQualifiedErrorId  
+   : TerminatorExpectedAtEn  
+  dOfString
+ 

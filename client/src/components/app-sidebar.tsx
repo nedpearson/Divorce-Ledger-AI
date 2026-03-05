@@ -126,11 +126,6 @@ export function AppSidebar() {
           </div>
           <span className="font-semibold text-sm">Divorce Ledger</span>
         </div>
-        {environment === "demo" && (
-          <Badge variant="outline" className="mt-2 text-xs justify-center">
-            DEMO MODE
-          </Badge>
-        )}
       </SidebarHeader>
 
       <SidebarContent>

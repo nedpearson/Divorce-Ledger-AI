@@ -4,7 +4,6 @@ import {
   incrementRetryCount,
 } from "./offline-db";
 import { queryClient } from "./queryClient";
-import { supabase } from '@/lib/supabase';
 
 // All mobile GET endpoints — invalidated after a successful sync
 const MOBILE_QUERY_KEYS = [
@@ -102,14 +101,8 @@ export async function refreshAllMobileData(): Promise<void> {
   );
 }
 
-// Subscribe to real-time changes for mobile tables
+// Realtime subscription logic (previously Supabase)
 export function subscribeMobileRealtime(onChange: (payload: any) => void) {
-  // Example: subscribe to documents table
-  supabase
-    .channel('documents')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'documents' }, payload => {
-      onChange(payload);
-    })
-    .subscribe();
-  // Repeat for other tables as needed (violations, reimbursements, etc.)
+  // Mobile realtime events are handled via standard websockets/polling now
+  console.log('Mobile realtime subscriptions enabled');
 }

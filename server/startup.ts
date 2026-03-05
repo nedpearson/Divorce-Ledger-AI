@@ -15,12 +15,12 @@ class StartupService {
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
-    
+
     this.results = [];
-    
+
     await this.checkDatabase();
     await this.checkStripe();
-    
+
     this.initialized = true;
     this.logResults();
   }
@@ -51,15 +51,16 @@ class StartupService {
         name: 'Database',
         status: 'error',
         message: `Database connection failed: ${message}`,
-        critical: false, // Not critical - app can run without DB
+        critical: true, // Core requirement for local workflow
       });
-      // Don't throw - allow server to start in degraded mode
+      // Do not suppress critical failures if DB explicitly configured
+      throw error;
     }
   }
 
   private async checkStripe(): Promise<void> {
     const mode = getStripeMode();
-    
+
     try {
       await initStripe();
 
@@ -71,10 +72,13 @@ class StartupService {
           critical: mode === 'production',
         });
       } else {
+        const isDisabledLocally = process.env.ENABLE_OPTIONAL_INTEGRATIONS !== 'true';
         this.results.push({
           name: 'Stripe',
-          status: 'warning',
-          message: `Not configured (optional in ${mode} mode)`,
+          status: isDisabledLocally ? 'success' : 'warning',
+          message: isDisabledLocally
+            ? 'Disabled by feature flag (ENABLE_OPTIONAL_INTEGRATIONS)'
+            : `Not configured (optional in ${mode} mode)`,
           critical: false,
         });
       }

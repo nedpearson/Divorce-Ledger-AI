@@ -1,6 +1,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { SUBSCRIPTION_TIERS, type SubscriptionTier } from "@shared/schema";
+import { useAuth } from "./auth";
 
 interface SubscriptionData {
   tier: string;
@@ -33,22 +34,25 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType | null>(null);
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
+  const { environment } = useAuth();
   const { data, isLoading, refetch } = useQuery<SubscriptionData>({
     queryKey: ["/api/subscription"],
     staleTime: 1000 * 60 * 5,
   });
 
+  const isDemo = environment === "demo";
   const tier = data?.tier || "free";
-  const isPro = ["pro", "team", "enterprise"].includes(tier);
-  const isTeam = ["team", "enterprise"].includes(tier);
-  const isEnterprise = tier === "enterprise";
-  const canUseAI = isPro;
-  const hasWatermark = tier === "free";
+
+  const isPro = ["pro", "team", "enterprise", "firm_starter", "firm_pro"].includes(tier) || isDemo;
+  const isTeam = ["team", "enterprise", "firm_starter", "firm_pro"].includes(tier) || isDemo;
+  const isEnterprise = ["enterprise", "firm_pro"].includes(tier) || isDemo;
+  const canUseAI = isPro || isDemo;
+  const hasWatermark = tier === "free" && !isDemo;
 
   return (
-    <SubscriptionContext.Provider value={{ 
-      data, 
-      isLoading, 
+    <SubscriptionContext.Provider value={{
+      data,
+      isLoading,
       refetch,
       isPro,
       isTeam,

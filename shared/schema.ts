@@ -122,7 +122,7 @@ export type SubscriptionTier = keyof typeof SUBSCRIPTION_TIERS;
 // Core Ledger Buckets - Simple, stable internal model
 export const CORE_LEDGER_BUCKETS = [
   "INCOME",
-  "EXPENSE", 
+  "EXPENSE",
   "ASSET",
   "LIABILITY",
   "UNKNOWN",
@@ -1177,7 +1177,7 @@ export type ViolationStatus = "pending" | "reviewed" | "approved";
 // DATA WAREHOUSE - DIMENSION TABLES
 // ============================================
 
-export const dimDate = pgTable("dim_date", {
+export const dimDate = pgTable("drizzle_dim_date", {
   dateId: integer("date_id").primaryKey(),
   dateActual: date("date_actual").notNull(),
   year: integer("year").notNull(),
@@ -1194,7 +1194,7 @@ export const dimDate = pgTable("dim_date", {
 
 export type DimDate = typeof dimDate.$inferSelect;
 
-export const dimTier = pgTable("dim_tier", {
+export const dimTier = pgTable("drizzle_dim_tier", {
   tierId: varchar("tier_id").primaryKey(),
   tierName: varchar("tier_name", { length: 50 }).notNull(),
   priceUsdMonthly: integer("price_usd_monthly").notNull(),
@@ -1210,7 +1210,7 @@ export const dimTier = pgTable("dim_tier", {
 
 export type DimTier = typeof dimTier.$inferSelect;
 
-export const dimUsers = pgTable("dim_users", {
+export const dimUsers = pgTable("drizzle_dim_users", {
   userId: varchar("user_id").primaryKey(),
   userName: varchar("user_name", { length: 200 }),
   email: varchar("email", { length: 255 }),
@@ -1225,7 +1225,7 @@ export const dimUsers = pgTable("dim_users", {
 
 export type DimUsers = typeof dimUsers.$inferSelect;
 
-export const dimSubscription = pgTable("dim_subscription", {
+export const dimSubscription = pgTable("drizzle_dim_subscription", {
   subscriptionId: varchar("subscription_id").primaryKey(),
   userId: varchar("user_id").notNull(),
   tierId: varchar("tier_id").notNull(),
@@ -1245,7 +1245,7 @@ export type DimSubscription = typeof dimSubscription.$inferSelect;
 // DATA WAREHOUSE - FACT TABLES
 // ============================================
 
-export const factTransactions = pgTable("fact_transactions", {
+export const factTransactions = pgTable("drizzle_fact_transactions", {
   transactionId: varchar("transaction_id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   transactionDateId: integer("transaction_date_id").notNull(),
@@ -1266,7 +1266,7 @@ export const insertFactTransactionSchema = createInsertSchema(factTransactions).
 export type InsertFactTransaction = z.infer<typeof insertFactTransactionSchema>;
 export type FactTransaction = typeof factTransactions.$inferSelect;
 
-export const factViolations = pgTable("fact_violations", {
+export const factViolations = pgTable("drizzle_fact_violations", {
   violationId: varchar("violation_id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   violationDateId: integer("violation_date_id").notNull(),
@@ -1285,7 +1285,7 @@ export const insertFactViolationSchema = createInsertSchema(factViolations).omit
 export type InsertFactViolation = z.infer<typeof insertFactViolationSchema>;
 export type FactViolation = typeof factViolations.$inferSelect;
 
-export const factUsageMetrics = pgTable("fact_usage_metrics", {
+export const factUsageMetrics = pgTable("drizzle_fact_usage_metrics", {
   metricId: varchar("metric_id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   metricDateId: integer("metric_date_id").notNull(),
@@ -1371,10 +1371,10 @@ export const RECOMMENDATION_STATUSES = {
 
 export type RecommendationStatus = keyof typeof RECOMMENDATION_STATUSES;
 
-export const insertImprovementRecommendationSchema = createInsertSchema(improvementRecommendations).omit({ 
-  id: true, 
+export const insertImprovementRecommendationSchema = createInsertSchema(improvementRecommendations).omit({
+  id: true,
   createdAt: true,
-  updatedAt: true 
+  updatedAt: true
 });
 export type InsertImprovementRecommendation = z.infer<typeof insertImprovementRecommendationSchema>;
 export type ImprovementRecommendation = typeof improvementRecommendations.$inferSelect;
@@ -1398,10 +1398,10 @@ export const journalEntries = pgTable("journal_entries", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit({ 
-  id: true, 
+export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit({
+  id: true,
   createdAt: true,
-  updatedAt: true 
+  updatedAt: true
 });
 export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
 export type JournalEntry = typeof journalEntries.$inferSelect;
@@ -1418,9 +1418,9 @@ export const journalAttachments = pgTable("journal_attachments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertJournalAttachmentSchema = createInsertSchema(journalAttachments).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertJournalAttachmentSchema = createInsertSchema(journalAttachments).omit({
+  id: true,
+  createdAt: true
 });
 export type InsertJournalAttachment = z.infer<typeof insertJournalAttachmentSchema>;
 export type JournalAttachment = typeof journalAttachments.$inferSelect;
@@ -1440,10 +1440,10 @@ export const conversations = pgTable("conversations", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertConversationSchema = createInsertSchema(conversations).omit({ 
-  id: true, 
+export const insertConversationSchema = createInsertSchema(conversations).omit({
+  id: true,
   createdAt: true,
-  updatedAt: true 
+  updatedAt: true
 });
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Conversation = typeof conversations.$inferSelect;
@@ -1460,9 +1460,9 @@ export const conversationParticipants = pgTable("conversation_participants", {
   leftAt: timestamp("left_at"),
 });
 
-export const insertConversationParticipantSchema = createInsertSchema(conversationParticipants).omit({ 
-  id: true, 
-  joinedAt: true 
+export const insertConversationParticipantSchema = createInsertSchema(conversationParticipants).omit({
+  id: true,
+  joinedAt: true
 });
 export type InsertConversationParticipant = z.infer<typeof insertConversationParticipantSchema>;
 export type ConversationParticipant = typeof conversationParticipants.$inferSelect;
@@ -1488,9 +1488,9 @@ export const conversationMessages = pgTable("conversation_messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertConversationMessageSchema = createInsertSchema(conversationMessages).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertConversationMessageSchema = createInsertSchema(conversationMessages).omit({
+  id: true,
+  createdAt: true
 });
 export type InsertConversationMessage = z.infer<typeof insertConversationMessageSchema>;
 export type ConversationMessage = typeof conversationMessages.$inferSelect;
@@ -1505,9 +1505,9 @@ export const messageAttachments = pgTable("message_attachments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertMessageAttachmentSchema = createInsertSchema(messageAttachments).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertMessageAttachmentSchema = createInsertSchema(messageAttachments).omit({
+  id: true,
+  createdAt: true
 });
 export type InsertMessageAttachment = z.infer<typeof insertMessageAttachmentSchema>;
 export type MessageAttachment = typeof messageAttachments.$inferSelect;
@@ -1539,9 +1539,9 @@ export const sentimentReports = pgTable("sentiment_reports", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertSentimentReportSchema = createInsertSchema(sentimentReports).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertSentimentReportSchema = createInsertSchema(sentimentReports).omit({
+  id: true,
+  createdAt: true
 });
 export type InsertSentimentReport = z.infer<typeof insertSentimentReportSchema>;
 export type SentimentReport = typeof sentimentReports.$inferSelect;
@@ -1562,9 +1562,9 @@ export const sentimentReportItems = pgTable("sentiment_report_items", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertSentimentReportItemSchema = createInsertSchema(sentimentReportItems).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertSentimentReportItemSchema = createInsertSchema(sentimentReportItems).omit({
+  id: true,
+  createdAt: true
 });
 export type InsertSentimentReportItem = z.infer<typeof insertSentimentReportItemSchema>;
 export type SentimentReportItem = typeof sentimentReportItems.$inferSelect;
@@ -1593,10 +1593,10 @@ export const userDevices = pgTable("user_devices", {
   lastLocation: text("last_location"), // Approximate location from IP
 });
 
-export const insertUserDeviceSchema = createInsertSchema(userDevices).omit({ 
-  id: true, 
-  firstSeenAt: true, 
-  lastSeenAt: true 
+export const insertUserDeviceSchema = createInsertSchema(userDevices).omit({
+  id: true,
+  firstSeenAt: true,
+  lastSeenAt: true
 });
 export type InsertUserDevice = z.infer<typeof insertUserDeviceSchema>;
 export type UserDevice = typeof userDevices.$inferSelect;
@@ -1624,8 +1624,8 @@ export const authSessions = pgTable("auth_sessions", {
   revokedReason: text("revoked_reason"), // 'logout', 'password_change', 'admin_revoke', 'suspicious'
 });
 
-export const insertAuthSessionSchema = createInsertSchema(authSessions).omit({ 
-  id: true, 
+export const insertAuthSessionSchema = createInsertSchema(authSessions).omit({
+  id: true,
   createdAt: true,
   lastActivityAt: true
 });
@@ -1653,8 +1653,8 @@ export const mfaChallenges = pgTable("mfa_challenges", {
   resendCount: integer("resend_count").notNull().default(0),
 });
 
-export const insertMfaChallengeSchema = createInsertSchema(mfaChallenges).omit({ 
-  id: true, 
+export const insertMfaChallengeSchema = createInsertSchema(mfaChallenges).omit({
+  id: true,
   createdAt: true,
   attemptCount: true,
   resendCount: true
@@ -1684,9 +1684,9 @@ export const securityEvents = pgTable("security_events", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertSecurityEventSchema = createInsertSchema(securityEvents).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertSecurityEventSchema = createInsertSchema(securityEvents).omit({
+  id: true,
+  createdAt: true
 });
 export type InsertSecurityEvent = z.infer<typeof insertSecurityEventSchema>;
 export type SecurityEvent = typeof securityEvents.$inferSelect;
@@ -1709,9 +1709,9 @@ export const smsDeliveries = pgTable("sms_deliveries", {
   deliveredAt: timestamp("delivered_at"),
 });
 
-export const insertSmsDeliverySchema = createInsertSchema(smsDeliveries).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertSmsDeliverySchema = createInsertSchema(smsDeliveries).omit({
+  id: true,
+  createdAt: true
 });
 export type InsertSmsDelivery = z.infer<typeof insertSmsDeliverySchema>;
 export type SmsDelivery = typeof smsDeliveries.$inferSelect;
@@ -1728,8 +1728,8 @@ export const adminMfaChallenges = pgTable("admin_mfa_challenges", {
   verifiedAt: timestamp("verified_at"),
 });
 
-export const insertAdminMfaChallengeSchema = createInsertSchema(adminMfaChallenges).omit({ 
-  id: true, 
+export const insertAdminMfaChallengeSchema = createInsertSchema(adminMfaChallenges).omit({
+  id: true,
   createdAt: true,
   attemptCount: true,
   verifiedAt: true

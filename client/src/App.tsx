@@ -11,9 +11,23 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SubscriptionBadge } from "@/components/upgrade-prompt";
-import { Bell, Loader2, RefreshCw } from "lucide-react";
+import { Bell, Loader2, RefreshCw, TestTube2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+function GlobalDemoBanner() {
+  const { environment, isAuthenticated } = useAuth();
+  if (environment !== "demo" || !isAuthenticated) return null;
+
+  return (
+    <div className="bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400 border-b border-red-200 dark:border-red-900/50 text-xs py-2 px-4 text-center font-medium flex items-center justify-center shadow-sm w-full shrink-0 z-[100]">
+      <span className="flex items-center gap-2">
+        <TestTube2 className="h-4 w-4" />
+        DEMO ENVIRONMENT — Any changes made here are isolated and will reset automatically.
+      </span>
+    </div>
+  );
+}
 
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
@@ -65,7 +79,7 @@ import './lib/sentry'; // Initialize Sentry for error logging
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -78,7 +92,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const loginUrl = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
     return <Redirect to={loginUrl} />;
   }
-  
+
   return <>{children}</>;
 }
 
@@ -100,7 +114,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
+      <div className="flex h-full w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0">
           <header className="flex items-center justify-between gap-2 p-2 border-b h-14 shrink-0">
@@ -110,9 +124,9 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex items-center gap-2">
               <SubscriptionBadge />
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => {
                   queryClient.invalidateQueries();
                   // Avoid direct window.location.reload() in a tight loop
@@ -153,7 +167,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -167,7 +181,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     const redirectUrl = `/login?redirect=${encodeURIComponent(location)}`;
     return <Redirect to={redirectUrl} />;
   }
-  
+
   return <>{children}</>;
 }
 
@@ -350,11 +364,21 @@ function Router() {
       </Route>
       <Route path="/mobile">
         <RequireAuth>
-          <Mobile />
+          <Suspense fallback={<PageLoader />}>
+            <Mobile />
+          </Suspense>
         </RequireAuth>
       </Route>
-      <Route path="/mobile-link" component={MobileLink} />
-      <Route path="/mobile-install" component={MobileInstall} />
+      <Route path="/mobile-link">
+        <Suspense fallback={<PageLoader />}>
+          <MobileLink />
+        </Suspense>
+      </Route>
+      <Route path="/mobile-install">
+        <Suspense fallback={<PageLoader />}>
+          <MobileInstall />
+        </Suspense>
+      </Route>
       <Route path="/admin/users">
         <RequireAuth>
           <AuthLayout>
@@ -397,7 +421,7 @@ function CacheClearer() {
         const data = await res.json();
         const serverVersion = data.version;
         const cachedVersion = localStorage.getItem("appVersion");
-        
+
         if (cachedVersion && cachedVersion !== serverVersion) {
           queryClient.clear();
           if (import.meta.env.DEV) {
@@ -410,10 +434,10 @@ function CacheClearer() {
         // Ignore version check errors
       }
     };
-    
+
     checkVersionAndClearCache();
   }, []);
-  
+
   return null;
 }
 
@@ -426,9 +450,14 @@ function App() {
           <AuthProvider>
             <SubscriptionProvider>
               <TooltipProvider>
-                <Toaster />
-                <GlobalBackButton />
-                <Router />
+                <div className="flex flex-col h-[100dvh] w-full overflow-hidden">
+                  <GlobalDemoBanner />
+                  <div className="flex-1 w-full min-h-0 relative overflow-y-auto">
+                    <Toaster />
+                    <GlobalBackButton />
+                    <Router />
+                  </div>
+                </div>
               </TooltipProvider>
             </SubscriptionProvider>
           </AuthProvider>

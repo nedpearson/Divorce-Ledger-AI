@@ -296,20 +296,45 @@ export const TEST_USERS = [
 ];
 
 export async function seedDemoData() {
+  const environment = "demo";
   const demoEmail = (process.env.DEMO_EMAIL || "demo@example.com").trim().toLowerCase();
 
-  const demoUser = await db
-    .select({ id: users.id, environment: users.environment })
-    .from(users)
-    .where(eq(users.email, demoEmail));
+  // ------------------------------------------------------------------------
+  // 0) Ensure legacy fallback demo user exists for structural links
+  // ------------------------------------------------------------------------
+  const demoPasswordOriginal = process.env.DEMO_PASSWORD || "demo1234";
+  const hashedDemoPasswordOriginal = await hashPassword(demoPasswordOriginal);
 
-  if (demoUser.length === 0) {
-    console.warn("[DEMO] seedDemoData: demo user not found, skipping demo seeding.");
-    return;
+  const [existingDemo] = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.email, demoEmail), eq(users.environment, environment)));
+
+  let userId: string;
+
+  if (!existingDemo) {
+    const newId = "demo-user";
+    const inserted = await db
+      .insert(users)
+      .values({
+        id: newId,
+        email: demoEmail,
+        password: hashedDemoPasswordOriginal,
+        fullName: "Demo User",
+        role: "staff",
+        isAdmin: false,
+        status: "active",
+        environment,
+        subscriptionTier: "free",
+        subscriptionStatus: "active",
+        createdAt: new Date(),
+      })
+      .returning();
+    userId = inserted[0].id;
+  } else {
+    userId = existingDemo.id;
   }
 
-  const userId = demoUser[0].id;
-  const environment = "demo";
 
   // ------------------------------------------------------------------------
   // 1) Ensure demo firm admin + client users exist (demo-only credentials)
@@ -497,6 +522,11 @@ export async function seedDemoData() {
   // ------------------------------------------------------------------------
   // 3) Seed rich firm-side artifacts: documents, legal docs, calendar, chat
   // ------------------------------------------------------------------------
+
+  // OVERRIDE: Collapse data generation explicitly back to the single generic demo user !!
+  // This honors the single-login, single-password credential flow requested by the user.
+  clientId = userId;
+  firmAdminId = userId;
 
   const now = new Date();
 
@@ -687,20 +717,20 @@ export async function seedDemoData() {
   const existingViolations = await db
     .select({ count: sql`COUNT(*)` })
     .from(violations)
-    .where(and(eq(violations.userId, userId), eq(violations.environment, environment)));
+    .where(and(eq(violations.userId, clientId), eq(violations.environment, environment)));
 
   if (Number(existingViolations[0]?.count ?? 0) > 0) {
     console.log("[DEMO] seedDemoData: existing demo data detected, skipping reseed.");
     return;
   }
 
-  console.log("[DEMO] Seeding sample demo data for demo@example.com...");
+  console.log("[DEMO] Seeding sample demo data for the client user...");
 
   // Create a few sample cases
   const case1 = await db
     .insert(cases)
     .values({
-      userId,
+      userId: clientId,
       environment,
       title: "Custody & Parenting Time",
       status: "open",
@@ -713,7 +743,7 @@ export async function seedDemoData() {
   const case2 = await db
     .insert(cases)
     .values({
-      userId,
+      userId: clientId,
       environment,
       title: "Hidden Assets & Financial Misconduct",
       status: "open",
@@ -728,7 +758,7 @@ export async function seedDemoData() {
   // Seed a few violations tied to the primary case
   await db.insert(violations).values([
     {
-      userId,
+      userId: clientId,
       environment,
       caseId: primaryCase.id,
       type: "custody",
@@ -739,7 +769,7 @@ export async function seedDemoData() {
       isDraft: false,
     },
     {
-      userId,
+      userId: clientId,
       environment,
       caseId: primaryCase.id,
       type: "financial_hiding",
@@ -750,7 +780,7 @@ export async function seedDemoData() {
       isDraft: false,
     },
     {
-      userId,
+      userId: clientId,
       environment,
       caseId: primaryCase.id,
       type: "court_order",
@@ -765,7 +795,7 @@ export async function seedDemoData() {
   // Seed a couple of financial items so dashboards are not empty
   await db.insert(assets).values([
     {
-      userId,
+      userId: clientId,
       environment,
       name: "Joint Checking Account",
       value: 12500,
@@ -775,7 +805,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId,
+      userId: clientId,
       environment,
       name: "Primary Residence",
       value: 425000,
@@ -788,7 +818,7 @@ export async function seedDemoData() {
 
   await db.insert(debts).values([
     {
-      userId,
+      userId: clientId,
       environment,
       name: "Mortgage – Primary Residence",
       amount: 315000,
@@ -798,7 +828,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId,
+      userId: clientId,
       environment,
       name: "Joint Credit Card",
       amount: 8400,
@@ -811,7 +841,7 @@ export async function seedDemoData() {
 
   await db.insert(incomes).values([
     {
-      userId,
+      userId: clientId,
       environment,
       source: "W-2 Employment – Software Engineer",
       amount: 9800,
@@ -820,7 +850,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId,
+      userId: clientId,
       environment,
       source: "Child Support Received",
       amount: 1200,
@@ -832,7 +862,7 @@ export async function seedDemoData() {
 
   await db.insert(expenses).values([
     {
-      userId,
+      userId: clientId,
       environment,
       category: "legal_professional",
       description: "Retainer payment to family law attorney",
@@ -842,7 +872,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId,
+      userId: clientId,
       environment,
       category: "childcare",
       description: "After-school care and activities",
@@ -851,6 +881,69 @@ export async function seedDemoData() {
       owner: "you",
       createdAt: now,
     },
+  ] as any);
+
+  await db.insert(transactions).values([
+    {
+      userId: clientId,
+      environment,
+      date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 2).toISOString().split('T')[0],
+      amount: -7500,
+      description: "Online Transfer to xxx4421",
+      category: "transfer",
+      type: "expense",
+      isReviewed: false,
+      aiAnalysis: {
+        suggestedCategory: "transfer",
+        confidence: 0.95,
+        flagForReview: true,
+        reason: "Large unexplained transfer matching violation report"
+      },
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 5).toISOString().split('T')[0],
+      amount: -2450,
+      description: "Chase Mortgage Servicing",
+      category: "mortgage",
+      type: "expense",
+      isReviewed: true,
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 10).toISOString().split('T')[0],
+      amount: 4900,
+      description: "Acme Corp Payroll",
+      category: "income",
+      type: "income",
+      isReviewed: true,
+      createdAt: now,
+    }
+  ] as any);
+
+  await db.insert(alerts).values([
+    {
+      userId: clientId,
+      environment,
+      title: "Action Required",
+      description: "Please sign the Joint Custody Parenting Plan draft.",
+      type: "document_signature",
+      severity: "warning",
+      isRead: false,
+    },
+    {
+      userId: clientId,
+      environment,
+      title: "New Message",
+      description: "Demo Firm Admin sent you a secure message.",
+      type: "new_message",
+      severity: "info",
+      isRead: false,
+    }
   ] as any);
 
   console.log("[DEMO] Demo data seeded successfully.");

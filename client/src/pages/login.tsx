@@ -26,15 +26,15 @@ export default function Login() {
   const { login, completeLogin, setEnvironment, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("demo@example.com");
-  const [password, setPassword] = useState("demo123");
+  const [password, setPassword] = useState("demo1234");
   const [showPassword, setShowPassword] = useState(false);
   const [environment, setEnv] = useState<Environment>("demo");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [rememberMe, setRememberMe] = useState(() => 
+  const [rememberMe, setRememberMe] = useState(() =>
     localStorage.getItem("rememberMe") === "true"
   );
-  
+
   // 2FA state
   const [twoFactorState, setTwoFactorState] = useState<TwoFactorState | null>(null);
   const [verificationCode, setVerificationCode] = useState("");
@@ -49,7 +49,7 @@ export default function Login() {
       setLocation(redirectUrl);
     }
   }, [isAuthenticated, setLocation]);
-  
+
   // Resend cooldown timer
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -64,8 +64,8 @@ export default function Login() {
     setError("");
     setTwoFactorState(null);
     if (env === "demo") {
-      setEmail("demo@example.com");
-      setPassword("demo123");
+      setEmail("client.demo@example.com");
+      setPassword("demo1234");
     } else {
       setEmail("");
       setPassword("");
@@ -78,7 +78,7 @@ export default function Login() {
     setError("");
 
     const result = await login(email, password, environment, rememberMe);
-    
+
     if ('requires2fa' in result && result.requires2fa) {
       // 2FA required - show verification form
       setTwoFactorState({
@@ -97,16 +97,16 @@ export default function Login() {
       setError(result.error || "Invalid email or password. Please try again.");
     }
     // If success is true, auth context already updated and useEffect will redirect
-    
+
     setIsLoading(false);
   };
-  
+
   const handleVerify2FA = async () => {
     if (!twoFactorState || verificationCode.length !== 6) return;
-    
+
     setIsVerifying(true);
     setError("");
-    
+
     try {
       const deviceFingerprint = getDeviceFingerprint();
       const response = await apiRequest("POST", "/api/auth/2fa/verify", {
@@ -115,16 +115,16 @@ export default function Login() {
         rememberMe: twoFactorState.rememberMe,
         deviceFingerprint,
       });
-      
+
       const data = await response.json();
-      
+
       // 2FA verified - complete login via auth context
       completeLogin(data.user, data.environment);
-      
+
       // Clear 2FA state
       setTwoFactorState(null);
       setVerificationCode("");
-      
+
       toast({
         title: "Verification Successful",
         description: "You have been signed in securely.",
@@ -135,17 +135,17 @@ export default function Login() {
     }
     setIsVerifying(false);
   };
-  
+
   const handleResendCode = async () => {
     if (!twoFactorState || resendCooldown > 0) return;
-    
+
     setError("");
-    
+
     try {
       const response = await apiRequest("POST", "/api/auth/2fa/send", { userId: twoFactorState.userId });
-      
+
       const data = await response.json();
-      
+
       setResendCooldown(30);
       setVerificationCode("");
       toast({
@@ -160,7 +160,7 @@ export default function Login() {
       });
     }
   };
-  
+
   const handleBack = () => {
     setTwoFactorState(null);
     setVerificationCode("");
@@ -177,7 +177,7 @@ export default function Login() {
           <ThemeToggle />
         </div>
       </header>
-      
+
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-2">
@@ -191,7 +191,7 @@ export default function Login() {
               Forensic Financial & Legal Case Management
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             <div className="sm:hidden flex justify-center mb-2">
               <EnvironmentBadge />
@@ -211,7 +211,7 @@ export default function Login() {
                   <ArrowLeft className="h-4 w-4" />
                   Back
                 </Button>
-                
+
                 <div className="text-center space-y-2">
                   <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <Smartphone className="h-6 w-6 text-primary" />
@@ -221,7 +221,7 @@ export default function Login() {
                     We sent a 6-digit code to {twoFactorState.maskedPhone}
                   </p>
                 </div>
-                
+
                 <div className="flex justify-center">
                   <InputOTP
                     value={verificationCode}
@@ -239,13 +239,13 @@ export default function Login() {
                     </InputOTPGroup>
                   </InputOTP>
                 </div>
-                
+
                 {error && (
                   <div className="text-sm text-destructive text-center" data-testid="text-2fa-error">
                     {error}
                   </div>
                 )}
-                
+
                 <Button
                   type="button"
                   className="w-full"
@@ -262,7 +262,7 @@ export default function Login() {
                     "Verify Code"
                   )}
                 </Button>
-                
+
                 <div className="text-center">
                   <Button
                     type="button"
@@ -308,12 +308,6 @@ export default function Login() {
                   </Button>
                 </div>
 
-                {environment === "demo" && (
-                  <div className="text-center text-xs text-muted-foreground bg-accent/50 rounded-md p-2">
-                    Demo credentials pre-filled. Data resets nightly.
-                  </div>
-                )}
-
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm">Email</Label>
@@ -327,7 +321,7 @@ export default function Login() {
                       data-testid="input-email"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <Label htmlFor="password" className="text-sm">Password</Label>
@@ -391,19 +385,19 @@ export default function Login() {
                   )}
 
                   {isDemoEnv && (
-                    <div className="mt-2 rounded-md border border-dashed border-orange-300 bg-orange-50 px-3 py-2 text-xs text-orange-900 space-y-1">
+                    <div className="mt-2 rounded-md border border-dashed border-orange-300 bg-orange-50 px-3 py-3 text-sm text-orange-900 flex flex-col gap-2">
                       <p className="font-medium text-[11px] uppercase tracking-wide text-orange-700">
-                        Demo accounts
+                        Demo quick login
                       </p>
-                      <p>
-                        <span className="font-semibold">Client portal:</span> client.demo@example.com / demo1234
-                      </p>
-                      <p>
-                        <span className="font-semibold">Firm admin:</span> firm.admin.demo@example.com / demo1234
-                      </p>
-                      <p className="text-[11px] text-orange-700/80">
-                        Use these in demo mode, or your own email/password in live.
-                      </p>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="w-full justify-start font-mono text-xs border border-orange-200"
+                        onClick={() => { setEmail("demo@example.com"); setPassword("demo1234"); }}
+                      >
+                        Load full demo environment
+                      </Button>
                     </div>
                   )}
 

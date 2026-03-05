@@ -245,7 +245,7 @@ SELECT
   w.subscription_status,
   w.ai_credits_balance,
   w.ai_credits_limit,
-  u.username,
+  u.full_name AS username,
   u.email
 FROM workspace_members wm
 JOIN workspaces w ON w.id = wm.workspace_id

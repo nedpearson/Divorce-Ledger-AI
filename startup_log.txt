@@ -1,0 +1,76 @@
+
+> rest-express@1.0.0 dev
+> cross-env NODE_ENV=development tsx --import dotenv/config server/index.ts
+
+[Document Analysis] Using claude (claude-3-5-sonnet-20241022)
+≡ƒöì [Config] Mode: DEVELOPMENT, NodeEnv: DEVELOPMENT
+Γ£à [Config] Environment sanity check passed.
+
+=== Startup Health Check ===
+[OK] Database: PostgreSQL connection successful
+[OK] Stripe: Disabled by feature flag (ENABLE_OPTIONAL_INTEGRATIONS)
+============================
+
+[Firefly Config] Startup validation:
+  Γä╣ Global config: Not set (per-user connections will be used)
+  ΓÜá Global Firefly III environment variables not configured. Users can connect their own Firefly III instances via Settings > Integrations.
+[STARTUP] Running database migrations...
+[STARTUP] Using DIRECT_URL for migrations
+Γ£à [STARTUP] Database migrations completed successfully
+[2026-03-05T02:58:14.307Z] [INFO] [Bootstrap] Starting user bootstrap...
+[2026-03-05T02:58:14.672Z] [INFO] [Bootstrap] Updated user: nedpearson@gmail.com (forceReset=true)
+[2026-03-05T02:58:14.687Z] [INFO] [Bootstrap] Super Admin (nedpearson@gmail.com): {"action":"updated","passwordSet":true,"warning":"Development password"}
+[2026-03-05T02:58:14.978Z] [INFO] [Bootstrap] Updated user: demo@example.com (forceReset=true)
+[2026-03-05T02:58:14.994Z] [INFO] [Bootstrap] Demo User (demo@example.com): {"action":"updated","passwordSet":true}
+[2026-03-05T02:58:14.994Z] [INFO] [Bootstrap] Bootstrap complete {"result":{"created":0,"updated":2,"skipped":0,"error":0,"errors":[]}}
+[DEMO] seedDemoData: existing demo data detected, skipping reseed.
+Γ£à Health Check Routes Loaded
+   GET /health (simple)
+   GET /api/health (quick)
+   GET /api/health/detailed (comprehensive)
+   GET /api/health/firefly (Firefly III status)
+≡ƒöÉ Security Endpoints:
+   POST /api/auth/2fa/send
+   POST /api/auth/2fa/verify
+   GET  /api/security/devices
+   POST /api/security/devices/:id/block
+   GET  /api/security/sessions
+   POST /api/security/sessions/:id/revoke
+   POST /api/security/sessions/revoke-all
+   GET  /api/security/events
+   POST /api/security/phone
+   POST /api/security/2fa/settings
+Media & Analytics Routes Loaded:
+   POST /api/violations/:violationId/media
+   POST /api/violations/:violationId/transcript
+   POST /api/violations/:violationId/classify
+   GET  /api/violations/:violationId/media
+   GET  /api/users/violations-this-month
+   GET  /api/cases/:caseId/violations-count
+   POST /api/users/:userId/update-tier
+   GET  /api/users/:userId/tier-stats
+   GET  /api/users/:userId/usage-metrics
+   POST /api/users/:userId/check-upload
+   GET  /api/users/:userId/tier-recommendation
+   POST /api/users/:userId/log-usage
+   GET  /api/users/:userId/billing
+   GET  /api/users/:userId/billing/history
+   POST /api/users/:userId/billing/save
+   GET  /api/tier-pricing
+   POST /api/users/:userId/migrate-tier
+   GET  /api/users/:userId/migration
+   GET  /api/users/:userId/migration/history
+   POST /api/migrations/:migrationId/cancel
+   GET  /api/users/:userId/quota-status
+   POST /api/users/:userId/reset-quota
+   GET  /api/users/:userId/quota-history
+   POST /api/admin/reset-all-quotas
+≡ƒôó Version Endpoints:
+   GET  /api/version
+≡ƒôï Frontend Logging Endpoints:
+   POST /api/log/frontend-error
+[STARTUP] Application mode: DEVELOPMENT
+Dashboard Service starting...
+[2026-03-05T02:58:15.357Z] [INFO] [WebSocket] WebSocket server initialized
+8:58:15 PM [express] serving on port 5000
+Dashboard Service ready

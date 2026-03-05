@@ -43,6 +43,49 @@ function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
+// --- STRANGLER PATTERN MIGRATION ADAPTER ---
+// Safely maps specific domains to the Python backend based on feature flags.
+// Automatically falls back to the Express Node backend if the Python handler fails or 404s.
+const ENABLE_PYTHON_MIGRATION = import.meta.env.VITE_ENABLE_PYTHON_MIGRATION === "true";
+const PYTHON_API_URL = import.meta.env.VITE_PYTHON_API_URL || "http://localhost:8000";
+
+const PYTHON_ROUTES = [
+  /^\/api\/workspaces(\/|$)/, // Domain 1: Tenant Handling
+  // Future domains appended here safely once stabilized
+];
+
+function getTargetUrl(url: string): string {
+  if (!ENABLE_PYTHON_MIGRATION) return url;
+  if (PYTHON_ROUTES.some((route) => route.test(url))) {
+    // Explicitly scope the url to standard hostname formatting
+    return `${PYTHON_API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+  }
+  return url;
+}
+
+export async function safeRouterFetch(url: string, options: RequestInit): Promise<Response> {
+  const targetUrl = getTargetUrl(url);
+
+  try {
+    const res = await fetch(targetUrl, options);
+
+    // Fallback logic if python was hit but explicitly crashed (5XX) or genuinely failed to discover route (404)
+    if (targetUrl !== url && (!res.ok && (res.status === 404 || res.status >= 500))) {
+      console.warn(`[Python API Adapter] Fallback triggered for ${url} (Status: ${res.status})`);
+      return fetch(url, options); // Fallback to original Express backend
+    }
+
+    return res;
+  } catch (error) {
+    if (targetUrl !== url) {
+      console.warn(`[Python API Adapter] Network failure on ${targetUrl}, falling back to Express:`, error);
+      return fetch(url, options);
+    }
+    throw error;
+  }
+}
+// ------------------------------------------
+
 export async function apiRequest(
   method: string,
   url: string,
@@ -54,7 +97,7 @@ export async function apiRequest(
     ...(data ? { "Content-Type": "application/json" } : {}),
   };
 
-  const res = await fetch(url, {
+  const res = await safeRouterFetch(url, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
@@ -70,26 +113,26 @@ export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const segments = queryKey as unknown[];
-    const url = segments.filter((s): s is string => typeof s === "string").join("/");
-    const environment = localStorage.getItem("environment") || "demo";
-    const authHeaders = {
-      ...getAuthHeaders(),
-      "X-Environment": environment,
+    async ({ queryKey }) => {
+      const segments = queryKey as unknown[];
+      const url = segments.filter((s): s is string => typeof s === "string").join("/");
+      const environment = localStorage.getItem("environment") || "demo";
+      const authHeaders = {
+        ...getAuthHeaders(),
+        "X-Environment": environment,
+      };
+      const res = await safeRouterFetch(url, {
+        credentials: "include",
+        headers: authHeaders,
+      });
+
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
+
+      await throwIfResNotOk(res);
+      return await res.json();
     };
-    const res = await fetch(url, {
-      credentials: "include",
-      headers: authHeaders,
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
-
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
 
 export const queryClient = new QueryClient({
   defaultOptions: {

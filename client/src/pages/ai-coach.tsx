@@ -233,11 +233,7 @@ export default function AICoachPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6" data-testid="page-ai-coach">
-      {environment === "demo" && (
-        <div className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-sm rounded-md text-center">
-          DEMO MODE - Data resets nightly
-        </div>
-      )}
+      
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>

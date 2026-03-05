@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { User, Environment } from "@shared/schema";
-import { supabase } from "./supabase";
 
 // Generate a stable device fingerprint for trusted device tracking
 function getDeviceFingerprint(): string {
@@ -67,13 +66,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = user !== null;
 
   const checkSession = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      setUser(session.user as unknown as User);
-      setEnvironmentState(getInitialEnvironment());
-      localStorage.setItem("user", JSON.stringify(session.user));
-    } else {
+    try {
+      const response = await fetch("/api/auth/session", { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        setEnvironmentState(data.environment || getInitialEnvironment());
+        localStorage.setItem("user", JSON.stringify(data.user));
+        if (data.environment) {
+          localStorage.setItem("environment", data.environment);
+        }
+      } else {
+        setUser(null);
+        localStorage.removeItem("user");
+      }
+    } catch (e) {
       setUser(null);
+      localStorage.removeItem("user");
     }
   }, []);
 
@@ -82,18 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkSession().then(() => {
       if (isMounted) setIsLoading(false);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser(session.user as unknown as User);
-        localStorage.setItem("user", JSON.stringify(session.user));
-      } else {
-        setUser(null);
-        localStorage.removeItem("user");
-      }
-    });
     return () => {
       isMounted = false;
-      listener.subscription.unsubscribe();
     };
   }, [checkSession]);
 

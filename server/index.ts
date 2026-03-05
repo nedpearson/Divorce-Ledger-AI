@@ -163,17 +163,9 @@ app.use(
 );
 
 
-try {
-  // Dynamically require csurf to handle missing dependency in some environments
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const csurf = require('csurf');
-  app.use(express.urlencoded({ extended: false, limit: '50mb' }));
-  app.use(cookieParser());
-  // Add CSRF protection for all non-API routes (customize as needed)
-  app.use(csurf({ cookie: true }));
-} catch (err: any) {
-  console.warn('CSRF protection is not enabled: csurf module not found or failed to load.', err?.message || err);
-}
+// Apply basic body parsing for all routes early
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+app.use(cookieParser());
 app.use(demoResetMiddleware);
 app.use(adminDemoRouter);
 
@@ -232,6 +224,7 @@ app.use((req, res, next) => {
 
   // Run database migrations if database is connected
   if (dbConnected) {
+    let currentMigrationFile = 'init';
     try {
       console.log('[STARTUP] Running database migrations...');
       const fs = await import('fs');
@@ -290,6 +283,7 @@ app.use((req, res, next) => {
           .filter((f: string) => f.endsWith('.sql'))
           .sort();
         for (const file of sqlFiles) {
+          currentMigrationFile = file;
           const { rows } = await client.query(
             'SELECT id FROM _migrations WHERE filename = $1', [file]
           );
@@ -306,8 +300,9 @@ app.use((req, res, next) => {
         await migPool.end();
       }
     } catch (error) {
-      console.error('❌ [STARTUP] Database migration failed:', error);
-      console.error('[STARTUP] Application will continue but database schema may be incomplete');
+      console.error(`❌ [STARTUP] CRITICAL: Database migration failed while applying ${currentMigrationFile}:`, error);
+      console.error('❌ [STARTUP] Halting application. Resolve schema issues before running.');
+      process.exit(1);
     }
 
     // Bootstrap users (admin + demo)
@@ -328,7 +323,7 @@ app.use((req, res, next) => {
   }
 
   // Initialize Stripe webhook/sync if database is connected
-  if (dbConnected && isStripeAvailable()) {
+  if (dbConnected && isStripeAvailable() && process.env.ENABLE_OPTIONAL_INTEGRATIONS === 'true') {
     await initStripe();
   }
 
@@ -374,7 +369,7 @@ app.use((req, res, next) => {
 
     // APPWRITE AUTO-START: Start queue processor if Appwrite is configured
     // This ensures documents are analyzed even if /api/appwrite/setup wasn't called
-    if (isAppwriteConfigured()) {
+    if (isAppwriteConfigured() && process.env.ENABLE_OPTIONAL_INTEGRATIONS === 'true') {
       try {
         initializeAppwrite();
         startQueueProcessor(15000);
@@ -407,7 +402,7 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
+  const serverInstance = httpServer.listen(
     {
       port,
       host: "0.0.0.0",
@@ -417,4 +412,30 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
     },
   );
+
+  // Bulletproof graceful shutdown hooks to prevent EADDRINUSE on rapid restarts
+  const gracefulShutdown = (signal: string) => {
+    startupLogger.info(`Received ${signal}. Shutting down gracefully...`);
+    serverInstance.close(() => {
+      startupLogger.info("HTTP server closed.");
+      if (pool) {
+        pool.end().then(() => {
+          startupLogger.info("Database pool closed.");
+          process.exit(0);
+        });
+      } else {
+        process.exit(0);
+      }
+    });
+
+    // Force exit after 3s if hanging
+    setTimeout(() => {
+      startupLogger.error("Forced shutdown after timeout.");
+      process.exit(1);
+    }, 3000);
+  };
+
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // Nodemon explicit restart
 })();

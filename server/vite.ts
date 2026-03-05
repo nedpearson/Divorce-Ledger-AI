@@ -33,7 +33,7 @@ export async function setupVite(server: Server, app: Express) {
   // Add rate limiting to Vite dev server routes
   const viteLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
-    max: 100, // 100 requests per minute per IP
+    max: 5000, // Increased to 5000: Vite HMR pulls hundreds of small chunks and quickly exhausts 100 requests
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: "Too many requests, please try again later." },

@@ -74,7 +74,7 @@ import {
 import type { Document, MobileViolationReport, Reimbursement, W2Record, Asset, Debt, Income, Expense, ChildSupportPayment, DashboardStats } from "@shared/schema";
 
 // Supabase URL logic for all mobile API endpoints
-const SUPABASE_API = process.env.NEXT_PUBLIC_SUPABASE_API_URL || "";
+const SUPABASE_API = import.meta.env.VITE_PUBLIC_URL || import.meta.env.VITE_SUPABASE_URL || "";
 const apiUrl = (endpoint: string) => SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint;
 
 const MobileAppBanner = lazy(() => import("@/components/mobile-app-banner").then(m => ({ default: m.MobileAppHeaderButton })));
@@ -1225,7 +1225,7 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
       formData.append("analyzeWithAI", "true");
 
       // Use Supabase deployment URL
-      const SUPABASE_API = process.env.NEXT_PUBLIC_SUPABASE_API_URL || "";
+      const SUPABASE_API = import.meta.env.VITE_PUBLIC_URL || import.meta.env.VITE_SUPABASE_URL || "";
       const apiUrl = (endpoint: string) => SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint;
 
       const response = await fetch(apiUrl("/api/mobile/documents"), {

@@ -144,7 +144,14 @@ async function deleteEnvironmentData(environment: string, deleteUser: boolean = 
   await db.delete(evidenceFiles).where(eq(evidenceFiles.environment, environment));
   await db.delete(violations).where(eq(violations.environment, environment));
   await db.delete(cases).where(eq(cases.environment, environment));
-  
+
+  // Wipe newly added tenant tables mapped to users 
+  await db.execute(sql`DELETE FROM matter_members`);
+  await db.execute(sql`DELETE FROM matters`);
+  await db.execute(sql`DELETE FROM workspace_members`);
+  await db.execute(sql`DELETE FROM workspaces`);
+  await db.execute(sql`DELETE FROM teams`);
+
   if (deleteUser) {
     await db.delete(users).where(eq(users.environment, environment));
   }
@@ -169,7 +176,7 @@ async function getLastResetTimestamp(): Promise<Date | null> {
     .from(demoMeta)
     .where(eq(demoMeta.id, 1))
     .limit(1);
-  
+
   return result.length > 0 ? result[0].lastResetAt : null;
 }
 
@@ -195,7 +202,7 @@ export async function maybeResetDemo(): Promise<void> {
   try {
     resetInProgress = true;
     const lastResetAt = await getLastResetTimestamp();
-    
+
     if (isStale(lastResetAt)) {
       console.log(`[DEMO] Stale data detected (Interval: ${DEMO_RESET_INTERVAL_HOURS}h). Initializing lazy reset...`);
       await resetDemoEnvironment();

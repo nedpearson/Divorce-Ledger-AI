@@ -72,6 +72,15 @@ CREATE TABLE IF NOT EXISTS dim_user_tier_history (
 );
 
 -- Subscription/Tier dimension with SCD Type 2
+DO $$ 
+BEGIN 
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'dim_subscription') THEN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'dim_subscription' AND column_name = 'subscription_key') THEN
+      DROP TABLE dim_subscription CASCADE;
+    END IF;
+  END IF; 
+END $$;
+
 CREATE TABLE IF NOT EXISTS dim_subscription (
   subscription_key SERIAL PRIMARY KEY,
   tier_name VARCHAR(50) NOT NULL,

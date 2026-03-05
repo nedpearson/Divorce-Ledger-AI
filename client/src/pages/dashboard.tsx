@@ -15,6 +15,10 @@ import {
   Heart,
   Calendar,
   CheckCircle2,
+  Briefcase,
+  Landmark,
+  FileText,
+  Clock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,11 +71,10 @@ const StatCard = memo(function StatCard({
           {trend && (
             <Badge
               variant="outline"
-              className={`text-xs ${
-                trend === "up"
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-red-600 dark:text-red-400"
-              }`}
+              className={`text-xs ${trend === "up"
+                ? "text-green-600 dark:text-green-400"
+                : "text-red-600 dark:text-red-400"
+                }`}
             >
               {trend === "up" ? (
                 <TrendingUp className="h-3 w-3 mr-1" />
@@ -97,16 +100,15 @@ const StatCard = memo(function StatCard({
 
 const TransactionRow = memo(function TransactionRow({ transaction }: { transaction: Transaction }) {
   const isPositive = transaction.amount > 0;
-  
+
   return (
     <button
       className="flex items-center gap-3 w-full p-3 hover-elevate rounded-md transition-colors text-left"
       data-testid={`row-transaction-${transaction.id}`}
     >
       <div
-        className={`p-2 rounded-lg ${
-          isPositive ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30"
-        }`}
+        className={`p-2 rounded-lg ${isPositive ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30"
+          }`}
       >
         {isPositive ? (
           <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -119,9 +121,8 @@ const TransactionRow = memo(function TransactionRow({ transaction }: { transacti
         <p className="text-xs text-muted-foreground">{transaction.date}</p>
       </div>
       <span
-        className={`text-sm font-medium tabular-nums ${
-          isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-        }`}
+        className={`text-sm font-medium tabular-nums ${isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+          }`}
       >
         {isPositive ? "+" : ""}
         {formatCurrency(transaction.amount)}
@@ -258,6 +259,7 @@ export default function Dashboard() {
   const [drilldownOpen, setDrilldownOpen] = useState(false);
   const [drilldownType, setDrilldownType] = useState<DrilldownType>("assets");
   const [drilldownTitle, setDrilldownTitle] = useState("Assets");
+  const [viewMode, setViewMode] = useState<"client" | "firm">("client");
 
   const openDrilldown = (type: DrilldownType, title: string) => {
     setDrilldownType(type);
@@ -288,11 +290,6 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="p-6">
-        {environment === "demo" && (
-          <div className="mb-4 px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-sm rounded-md text-center">
-            DEMO MODE - Data resets nightly
-          </div>
-        )}
         <DashboardSkeleton />
       </div>
     );
@@ -300,130 +297,260 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6">
-      {environment === "demo" && (
-        <div className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-sm rounded-md text-center">
-          DEMO MODE - Data resets nightly
+
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold mb-1" data-testid="text-page-title">
+            {environment === "demo" ? "Platform Overview" : "Dashboard"}
+          </h1>
+          <p className="text-sm text-muted-foreground">Overview of your financial position and case status</p>
+        </div>
+
+        {environment === "demo" && (
+          <div className="bg-muted p-1 rounded-lg flex items-center space-x-1 shrink-0 mt-2 sm:mt-0">
+            <Button
+              size="sm"
+              variant={viewMode === "client" ? "default" : "ghost"}
+              onClick={() => setViewMode("client")}
+              className="text-xs w-28"
+            >
+              Client View
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === "firm" ? "default" : "ghost"}
+              onClick={() => setViewMode("firm")}
+              className="text-xs w-28"
+            >
+              Firm View
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {viewMode === "firm" ? (
+        <div className="space-y-6 mt-6 animate-in fade-in duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              title="Active Matters"
+              value="14"
+              subtitle="Pending Court Dates"
+              subtitleValue="3"
+              icon={Briefcase}
+            />
+            <StatCard
+              title="Recent Uploads"
+              value="28"
+              subtitle="Unread Documents"
+              subtitleValue="12"
+              trend="up"
+              trendValue="8%"
+              icon={FileText}
+            />
+            <StatCard
+              title="Unbilled Time"
+              value="$12,450"
+              subtitle="WIP Hours"
+              subtitleValue="32.5"
+              icon={Clock}
+            />
+            <StatCard
+              title="Trust Balance"
+              value="$45,000"
+              subtitle="Needs Replenishment"
+              subtitleValue="2"
+              trend="down"
+              trendValue="1%"
+              icon={Landmark}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base font-medium flex items-center gap-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    High-Priority Clients
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3 mt-4">
+                  {[
+                    { client: "Alex Pearson", status: "Trial Prep", docs: 14, alert: "Discovery Due" },
+                    { client: "Sarah Miller", status: "Mediation", docs: 4, alert: "Waiting on client" },
+                    { client: "David Chen", status: "Filing", docs: 8, alert: "Financials pending" }
+                  ].map((row, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-3 border rounded-lg hover-elevate cursor-pointer bg-card">
+                      <div>
+                        <p className="font-medium text-sm">{row.client}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{row.status}</p>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant={idx === 0 ? "destructive" : "outline"} className="text-xs font-normal mb-1">
+                          {row.alert}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground">{row.docs} new docs</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base font-medium flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    Upcoming Firm Schedule
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3 mt-4">
+                  {[
+                    { event: "Pearson Status Conference", time: "Tomorrow, 9:00 AM", location: "19th JDC" },
+                    { event: "Miller Mediation", time: "Friday, 1:00 PM", location: "Zoom" },
+                    { event: "Chen Pre-trial", time: "Next Mon, 10:30 AM", location: "Dept 4" }
+                  ].map((row, idx) => (
+                    <div key={idx} className="flex items-start gap-4 p-3 border rounded-lg bg-card hover-elevate cursor-pointer">
+                      <div className="bg-primary/10 p-2 rounded-lg mt-0.5">
+                        <Calendar className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{row.event}</p>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                          <span>{row.time}</span>
+                          <span>•</span>
+                          <span>{row.location}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6 mt-6 animate-in fade-in duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              title="Total Assets"
+              value={formatCurrency(totalAssets)}
+              subtitle="Marital Assets"
+              subtitleValue={formatCurrency(maritalAssets)}
+              trend="up"
+              trendValue="3%"
+              icon={Wallet}
+              onClick={() => openDrilldown("assets", "Assets")}
+            />
+            <StatCard
+              title="Total Debts"
+              value={formatCurrency(totalDebts)}
+              subtitle="Monthly Payment"
+              subtitleValue={formatCurrency(3200)}
+              trend="down"
+              trendValue="2%"
+              icon={CreditCard}
+              onClick={() => openDrilldown("debts", "Debts")}
+            />
+            <StatCard
+              title="Monthly Income"
+              value={formatCurrency(monthlyIncome)}
+              subtitle="Your Portion"
+              subtitleValue={formatCurrency(monthlyIncome * 0.55)}
+              icon={DollarSign}
+              onClick={() => openDrilldown("income", "Income")}
+            />
+            <StatCard
+              title="Monthly Expenses"
+              value={formatCurrency(monthlyExpenses)}
+              subtitle="Unaccounted"
+              subtitleValue={formatCurrency(2100)}
+              icon={Home}
+              onClick={() => openDrilldown("expenses", "Expenses")}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <PaymentCard
+              title="Child Support"
+              amount={stats?.childSupportOwed ?? 0}
+              dueDate="Jan 5"
+              isPaid={false}
+              icon={Users}
+            />
+            <PaymentCard
+              title="Alimony"
+              amount={stats?.alimonyOwed ?? 0}
+              dueDate="Jan 3"
+              isPaid={true}
+              icon={Heart}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base font-medium flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    Recent Transactions
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" className="text-xs" data-testid="button-view-all-transactions">
+                    View All
+                    <ChevronRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-1">
+                  {transactions && transactions.length > 0 ? (
+                    transactions.slice(0, 5).map((transaction) => (
+                      <TransactionRow key={transaction.id} transaction={transaction} />
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      No recent transactions
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base font-medium flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                    Violations & Alerts
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" className="text-xs" data-testid="button-view-all-alerts">
+                    View All
+                    <ChevronRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  {alerts && alerts.length > 0 ? (
+                    alerts.slice(0, 4).map((alert) => (
+                      <AlertRow key={alert.id} alert={alert} />
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      No active alerts
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
-
-      <div>
-        <h1 className="text-2xl font-semibold mb-1" data-testid="text-page-title">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Overview of your financial position and case status</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Assets"
-          value={formatCurrency(totalAssets)}
-          subtitle="Marital Assets"
-          subtitleValue={formatCurrency(maritalAssets)}
-          trend="up"
-          trendValue="3%"
-          icon={Wallet}
-          onClick={() => openDrilldown("assets", "Assets")}
-        />
-        <StatCard
-          title="Total Debts"
-          value={formatCurrency(totalDebts)}
-          subtitle="Monthly Payment"
-          subtitleValue={formatCurrency(3200)}
-          trend="down"
-          trendValue="2%"
-          icon={CreditCard}
-          onClick={() => openDrilldown("debts", "Debts")}
-        />
-        <StatCard
-          title="Monthly Income"
-          value={formatCurrency(monthlyIncome)}
-          subtitle="Your Portion"
-          subtitleValue={formatCurrency(monthlyIncome * 0.55)}
-          icon={DollarSign}
-          onClick={() => openDrilldown("income", "Income")}
-        />
-        <StatCard
-          title="Monthly Expenses"
-          value={formatCurrency(monthlyExpenses)}
-          subtitle="Unaccounted"
-          subtitleValue={formatCurrency(2100)}
-          icon={Home}
-          onClick={() => openDrilldown("expenses", "Expenses")}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <PaymentCard
-          title="Child Support"
-          amount={stats?.childSupportOwed ?? 0}
-          dueDate="Jan 5"
-          isPaid={false}
-          icon={Users}
-        />
-        <PaymentCard
-          title="Alimony"
-          amount={stats?.alimonyOwed ?? 0}
-          dueDate="Jan 3"
-          isPaid={true}
-          icon={Heart}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-base font-medium flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                Recent Transactions
-              </CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs" data-testid="button-view-all-transactions">
-                View All
-                <ChevronRight className="h-3 w-3 ml-1" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-1">
-              {transactions && transactions.length > 0 ? (
-                transactions.slice(0, 5).map((transaction) => (
-                  <TransactionRow key={transaction.id} transaction={transaction} />
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No recent transactions
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-base font-medium flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                Violations & Alerts
-              </CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs" data-testid="button-view-all-alerts">
-                View All
-                <ChevronRight className="h-3 w-3 ml-1" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-2">
-              {alerts && alerts.length > 0 ? (
-                alerts.slice(0, 4).map((alert) => (
-                  <AlertRow key={alert.id} alert={alert} />
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No active alerts
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       <FinancialDrilldownDrawer
         open={drilldownOpen}

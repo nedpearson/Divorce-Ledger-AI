@@ -16,9 +16,8 @@ import { apiRequest } from "@/lib/queryClient";
 const LOCAL_HOSTNAMES = ["localhost", "127.0.0.1", "0.0.0.0", "::1"];
 
 function getMobileUrl(): string {
-  // Use Supabase public URL if available
-  const supabaseUrl = import.meta.env.VITE_PUBLIC_URL || process.env.NEXT_PUBLIC_SUPABASE_API_URL;
-  if (supabaseUrl) return `${supabaseUrl.replace(/\/$/, "")}/mobile`;
+  const envUrl = import.meta.env.VITE_PUBLIC_URL || import.meta.env.VITE_SUPABASE_URL;
+  if (envUrl) return `${envUrl.replace(/\/$/, "")}/mobile`;
 
   const { protocol, hostname, port } = window.location;
   const portPart = port ? `:${port}` : "";
