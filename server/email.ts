@@ -13,18 +13,18 @@ async function getCredentials() {
   // Try direct environment variable first (Railway, standard deployment)
   const directApiKey = process.env.SENDGRID_API_KEY;
   const directFromEmail = process.env.SENDGRID_FROM_EMAIL || DEFAULT_FROM_EMAIL;
-  
+
   if (directApiKey) {
     return { apiKey: directApiKey, email: directFromEmail };
   }
 
   // Fallback to Replit connectors if available (backward compatibility)
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
+  const xReplitToken = process.env.REPL_IDENTITY
+    ? 'repl ' + process.env.REPL_IDENTITY
+    : process.env.WEB_REPL_RENEWAL
+      ? 'depl ' + process.env.WEB_REPL_RENEWAL
+      : null;
 
   if (hostname && xReplitToken) {
     try {
@@ -63,7 +63,7 @@ async function getUncachableSendGridClient() {
 export async function sendWelcomeEmail(userEmail: string, fullName: string): Promise<void> {
   try {
     const { client, fromEmail } = await getUncachableSendGridClient();
-    
+
     const msg = {
       to: userEmail,
       from: fromEmail,
@@ -99,10 +99,10 @@ export async function sendWelcomeEmail(userEmail: string, fullName: string): Pro
 export async function sendPasswordResetEmail(userEmail: string, fullName: string, resetToken: string): Promise<void> {
   try {
     const { client, fromEmail } = await getUncachableSendGridClient();
-    
+
     const baseUrl = getBaseUrl();
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
-    
+
     const msg = {
       to: userEmail,
       from: fromEmail,
@@ -134,3 +134,79 @@ export async function sendPasswordResetEmail(userEmail: string, fullName: string
     throw error;
   }
 }
+
+export async function sendWorkspaceInvitationEmail(
+  toEmail: string,
+  inviterName: string,
+  workspaceName: string,
+  role: string,
+  token: string
+): Promise<void> {
+  try {
+    const { client, fromEmail } = await getUncachableSendGridClient();
+
+    const baseUrl = getBaseUrl();
+    const inviteUrl = `${baseUrl}/join?token=${token}`;
+
+    const msg = {
+      to: toEmail,
+      from: fromEmail,
+      subject: `You've been invited to join ${workspaceName} on Divorce Ledger`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #1a1a2e;">Workspace Invitation</h1>
+          <p>Hi there,</p>
+          <p><strong>${inviterName}</strong> has invited you to join the <strong>${workspaceName}</strong> workspace on Divorce Ledger as a <strong>${role}</strong>.</p>
+          <p>Click the button below to accept the invitation and set up your account:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${inviteUrl}" style="background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Accept Invitation</a>
+          </div>
+          <p>Or copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #0066cc;">${inviteUrl}</p>
+          <p style="color: #666;">This link will expire in 7 days.</p>
+          <p style="color: #666; font-size: 12px; margin-top: 30px;">
+            &copy; Divorce Ledger - Forensic Financial & Legal Case Management
+          </p>
+        </div>
+      `
+    };
+
+    await client.send(msg);
+    console.log(`Workspace invitation email sent to ${toEmail}`);
+  } catch (error) {
+    console.error('Failed to send workspace invitation email:', error);
+    // Don't throw to prevent breaking the flow if email fails
+  }
+}
+
+export async function sendWorkspaceNotificationEmail(
+  toEmail: string,
+  subject: string,
+  title: string,
+  messageHtml: string
+): Promise<void> {
+  try {
+    const { client, fromEmail } = await getUncachableSendGridClient();
+
+    const msg = {
+      to: toEmail,
+      from: fromEmail,
+      subject: subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #1a1a2e;">${title}</h1>
+          ${messageHtml}
+          <p style="color: #666; font-size: 12px; margin-top: 30px;">
+            &copy; Divorce Ledger - Forensic Financial & Legal Case Management
+          </p>
+        </div>
+      `
+    };
+
+    await client.send(msg);
+    console.log(`Workspace notification email sent to ${toEmail}`);
+  } catch (error) {
+    console.error('Failed to send workspace notification email:', error);
+  }
+}
+

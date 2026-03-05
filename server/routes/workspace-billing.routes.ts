@@ -18,6 +18,7 @@ import { getAICreditBalance, getAICreditHistory } from '../services/ai-credits.s
 import { db } from '../db';
 import { workspaces, workspaceMembers, matters, matterMembers, invitations } from '@shared/workspace-schema';
 import { eq, and, or, sql } from 'drizzle-orm';
+import { sendWorkspaceInvitationEmail } from '../email';
 import crypto from 'crypto';
 
 const router = Router();
@@ -384,7 +385,20 @@ router.post('/matters/:matterId/invite', requireAuth, async (req, res) => {
       })
       .returning();
 
-    // TODO: Send invitation email with token
+    const workspace = await db.query.workspaces.findFirst({
+      where: eq(workspaces.id, matter.workspaceId)
+    });
+
+    if (workspace && req.user) {
+      const inviterName = (req.user as any).fullName || 'A team member';
+      await sendWorkspaceInvitationEmail(
+        email,
+        inviterName,
+        workspace.name,
+        'client',
+        token
+      );
+    }
 
     res.json(invitation);
   } catch (error: any) {

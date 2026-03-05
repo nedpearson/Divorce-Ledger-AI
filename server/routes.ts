@@ -4687,7 +4687,7 @@ export async function registerRoutes(
   // Upload media to violation
   app.post("/api/violations/:violationId/media", async (req, res) => {
     try {
-      const userId = "demo-client-user"; // TODO: Get from auth middleware
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
@@ -4744,7 +4744,7 @@ export async function registerRoutes(
   // Save transcript for violation
   app.post("/api/violations/:violationId/transcript", async (req, res) => {
     try {
-      const userId = "demo-client-user"; // TODO: Get from auth middleware
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
@@ -4779,7 +4779,7 @@ export async function registerRoutes(
   // AI classify violation from transcript
   app.post("/api/violations/:violationId/classify", async (req, res) => {
     try {
-      const userId = "demo-client-user"; // TODO: Get from auth middleware
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
@@ -4824,7 +4824,7 @@ export async function registerRoutes(
   // Get user's violation count this month
   app.get("/api/users/violations-this-month", async (req, res) => {
     try {
-      const userId = "demo-client-user"; // TODO: Get from auth middleware
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const count = await mediaService.getViolationsThisMonth(userId);
 
       res.json({

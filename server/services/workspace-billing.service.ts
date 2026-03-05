@@ -7,6 +7,7 @@ import { getUncachableStripeClient } from '../stripeClient';
 import { syncEntitlements } from './entitlements.service';
 import { grantAICredits } from './ai-credits.service';
 import { WORKSPACE_TIER_ENTITLEMENTS, type WorkspaceTier } from '@shared/workspace-schema';
+import { sendWorkspaceNotificationEmail } from '../email';
 
 const APP_URL = process.env.APP_URL || 'http://localhost:5000';
 
@@ -317,7 +318,23 @@ export async function handleInvoicePaymentFailed(
     .where(eq(workspaces.id, workspace.id));
 
   console.warn(`Invoice payment failed for workspace ${workspace.id}`);
-  // TODO: Send notification email to workspace owner
+
+  const owner = await db.query.users.findFirst({
+    where: eq(users.id, workspace.ownerId)
+  });
+
+  if (owner && owner.email) {
+    await sendWorkspaceNotificationEmail(
+      owner.email,
+      'Action Required: Subscription Payment Failed',
+      'Payment Failed',
+      `<p>Your latest subscription payment for workspace <strong>${workspace.name}</strong> has failed.</p>
+       <p>Please update your billing information to avoid service interruption.</p>
+       <div style="text-align: center; margin: 30px 0;">
+         <a href="${APP_URL}/workspace/${workspace.id}/settings/billing" style="background-color: #ef4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Update Billing Info</a>
+       </div>`
+    );
+  }
 }
 
 /**
