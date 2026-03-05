@@ -387,16 +387,34 @@ export default function Login() {
                   {isDemoEnv && (
                     <div className="mt-2 rounded-md border border-dashed border-orange-300 bg-orange-50 px-3 py-3 text-sm text-orange-900 flex flex-col gap-2">
                       <p className="font-medium text-[11px] uppercase tracking-wide text-orange-700">
-                        Demo quick login
+                        Demo Account Views
                       </p>
                       <Button
                         type="button"
                         variant="secondary"
                         size="sm"
                         className="w-full justify-start font-mono text-xs border border-orange-200"
+                        onClick={() => { setEmail("client.demo@example.com"); setPassword("demo1234"); }}
+                      >
+                        [Client View] client.demo@example.com
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="w-full justify-start font-mono text-xs border border-orange-200"
+                        onClick={() => { setEmail("firm.admin.demo@example.com"); setPassword("demo1234"); }}
+                      >
+                        [Firm View] firm.admin.demo@...
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start font-mono text-xs opacity-70 border border-orange-200"
                         onClick={() => { setEmail("demo@example.com"); setPassword("demo1234"); }}
                       >
-                        Load full demo environment
+                        [Generic Staff] demo@example.com
                       </Button>
                     </div>
                   )}

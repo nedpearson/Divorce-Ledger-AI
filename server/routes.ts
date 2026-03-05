@@ -596,7 +596,7 @@ export async function registerRoutes(
   app.get("/api/auth/demo-auto-login", async (req, res) => {
     try {
       if (process.env.DEMO_MODE !== 'true') return res.redirect("/login");
-      const email = (process.env.DEMO_EMAIL || 'demo@example.com').trim().toLowerCase();
+      const email = (process.env.DEMO_EMAIL !== 'demo@example.com' && process.env.DEMO_EMAIL ? process.env.DEMO_EMAIL : 'client.demo@example.com').trim().toLowerCase();
       const user = await storage.getUserByEmail(email);
       if (!user) return res.redirect("/login");
 

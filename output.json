@@ -1,0 +1,15 @@
+Missing DATABASE_URL/DIRECT_URL environment variables
+Available env vars: ALLUSERSPROFILE, ANTIGRAVITY_AGENT, ANTIGRAVITY_CLI_ALIAS, APPDATA, BUNDLED_DEBUGPY_PATH, CHROME_CRASHPAD_PIPE_NAME, COLOR, COLORTERM, CommonProgramFiles, CommonProgramFiles(x86), CommonProgramW6432, COMPUTERNAME, ComSpec, DriverData, EDITOR, EFC_10060_1262719628, EFC_10060_1592913036, EFC_10060_2283032206, EFC_10060_2775293581, EFC_10060_3789132940, FPS_BROWSER_APP_PROFILE_STRING, FPS_BROWSER_USER_PROFILE_STRING, GIT_ASKPASS, HOME, HOMEDRIVE, HOMEPATH, INIT_CWD, LANG, LOCALAPPDATA, LOGONSERVER, NODE, Node.Js, npm_command, npm_config_cache, npm_config_fund, npm_config_globalconfig, npm_config_global_prefix, npm_config_init_module, npm_config_local_prefix, npm_config_node_gyp, npm_config_noproxy, npm_config_npm_version, npm_config_prefer_online, npm_config_prefix, npm_config_userconfig, npm_config_user_agent, npm_execpath, npm_lifecycle_event, npm_lifecycle_script, npm_node_execpath, npm_package_engines_node, npm_package_engines_npm, npm_package_json, npm_package_name, npm_package_version, NUMBER_OF_PROCESSORS, NVM_HOME, NVM_SYMLINK, OneDrive, OS, PAGER, Path, PATHEXT, POWERSHELL_DISTRIBUTION_CHANNEL, PROCESSOR_ARCHITECTURE, PROCESSOR_IDENTIFIER, PROCESSOR_LEVEL, PROCESSOR_REVISION, ProgramData, ProgramFiles, ProgramFiles(x86), ProgramW6432, PROMPT, PSModulePath, PUBLIC, PYDEVD_DISABLE_FILE_VALIDATION, PYTHONSTARTUP, PYTHON_BASIC_REPL, SESSIONNAME, SystemDrive, SystemRoot, TEMP, TERM_PROGRAM, TERM_PROGRAM_VERSION, TMP, USERDOMAIN, USERDOMAIN_ROAMINGPROFILE, USERNAME, USERPROFILE, VSCODE_DEBUGPY_ADAPTER_ENDPOINTS, VSCODE_GIT_ASKPASS_EXTRA_ARGS, VSCODE_GIT_ASKPASS_MAIN, VSCODE_GIT_ASKPASS_NODE, VSCODE_GIT_IPC_HANDLE, VSCODE_INJECTION, VSCODE_PYTHON_AUTOACTIVATE_GUARD, windir
+C:\dev\github\business\Divorce-Ledger-AI\server\db.ts:47
+    throw new Error(`Database not available: DIRECT_URL/DATABASE_URL environment variables are not set. Cannot access db.${String(prop)}`);
+          ^
+
+Error: Database not available: DIRECT_URL/DATABASE_URL environment variables are not set. Cannot access db.select
+    at Object.get (C:\dev\github\business\Divorce-Ledger-AI\server\db.ts:47:11)
+    at run (C:\dev\github\business\Divorce-Ledger-AI\test.ts:6:31)
+    at <anonymous> (C:\dev\github\business\Divorce-Ledger-AI\test.ts:10:1)
+    at ModuleJob.run (node:internal/modules/esm/module_job:430:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:661:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.14.0

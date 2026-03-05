@@ -523,11 +523,6 @@ export async function seedDemoData() {
   // 3) Seed rich firm-side artifacts: documents, legal docs, calendar, chat
   // ------------------------------------------------------------------------
 
-  // OVERRIDE: Collapse data generation explicitly back to the single generic demo user !!
-  // This honors the single-login, single-password credential flow requested by the user.
-  clientId = userId;
-  firmAdminId = userId;
-
   const now = new Date();
 
   // Seed a couple of key legal documents for the firm admin

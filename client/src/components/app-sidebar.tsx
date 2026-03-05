@@ -289,6 +289,44 @@ export function AppSidebar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
+            {environment === "demo" && (
+              <>
+                <div className="px-2 py-1.5 text-xs font-semibold text-orange-600 bg-orange-50 uppercase mt-1 mb-1 rounded-sm">
+                  Demo Switcher
+                </div>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    const pass = "demo1234";
+                    const email = "client.demo@example.com";
+                    const res = await fetch("/api/auth/login", {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ email, password: pass, environment: "demo", rememberMe: false })
+                    });
+                    if (res.ok) window.location.reload();
+                  }}
+                  className="cursor-pointer font-medium"
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Client View
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    const pass = "demo1234";
+                    const email = "firm.admin.demo@example.com";
+                    const res = await fetch("/api/auth/login", {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ email, password: pass, environment: "demo", rememberMe: false })
+                    });
+                    if (res.ok) window.location.reload();
+                  }}
+                  className="cursor-pointer font-medium"
+                >
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Firm Admin View
+                </DropdownMenuItem>
+                <SidebarSeparator className="my-1" />
+              </>
+            )}
             <DropdownMenuItem
               onClick={logout}
               className="text-destructive focus:text-destructive"
