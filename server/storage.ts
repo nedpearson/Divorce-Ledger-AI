@@ -354,7 +354,7 @@ export async function seedDemoData() {
   let firmAdminId: string;
 
   if (!existingFirmAdmin) {
-    const newId = crypto.randomUUID();
+    const newId = "demo-firm-admin";
     const inserted = await db
       .insert(users)
       .values({
@@ -384,7 +384,7 @@ export async function seedDemoData() {
   let clientId: string;
 
   if (!existingClient) {
-    const newId = crypto.randomUUID();
+    const newId = "demo-client-user";
     const inserted = await db
       .insert(users)
       .values({

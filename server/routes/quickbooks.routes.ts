@@ -5,7 +5,7 @@ const router = Router();
 
 router.get('/status', async (req: Request, res: Response) => {
   try {
-    const userId = (req.query.userId as string) || 'demo-user';
+    const userId = (req.query.userId as string) || 'demo-client-user';
     const status = await quickBooksService.getConnectionStatus(userId);
     
     res.json({
@@ -24,7 +24,7 @@ router.get('/status', async (req: Request, res: Response) => {
 
 router.get('/auth-url', async (req: Request, res: Response) => {
   try {
-    const userId = (req.query.userId as string) || 'demo-user';
+    const userId = (req.query.userId as string) || 'demo-client-user';
     
     if (!quickBooksService.isConfigured()) {
       return res.status(503).json({ 
@@ -93,7 +93,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
 router.post('/disconnect', async (req: Request, res: Response) => {
   try {
-    const userId = (req.body.userId as string) || 'demo-user';
+    const userId = (req.body.userId as string) || 'demo-client-user';
     
     await quickBooksService.disconnectUser(userId, 'User requested disconnect');
     
@@ -106,7 +106,7 @@ router.post('/disconnect', async (req: Request, res: Response) => {
 
 router.get('/sync-logs', async (req: Request, res: Response) => {
   try {
-    const userId = (req.query.userId as string) || 'demo-user';
+    const userId = (req.query.userId as string) || 'demo-client-user';
     const limit = parseInt(req.query.limit as string) || 20;
     
     const { db } = await import('../db');
@@ -128,7 +128,7 @@ router.get('/sync-logs', async (req: Request, res: Response) => {
 
 router.get('/rate-limit', async (req: Request, res: Response) => {
   try {
-    const userId = (req.query.userId as string) || 'demo-user';
+    const userId = (req.query.userId as string) || 'demo-client-user';
     const rateLimit = await quickBooksService.checkRateLimit(userId);
     
     res.json({

@@ -29,7 +29,7 @@ const DocumentTransactionSchema = z.object({
 
 router.get("/status", async (req: Request, res: Response) => {
   try {
-    const userId = req.headers["x-user-id"] as string || "demo-user";
+    const userId = req.headers["x-user-id"] as string || "demo-client-user";
     const environment = req.headers["x-environment"] as string || "demo";
 
     const connection = await storage.getFireflyConnection(userId, environment);
@@ -73,7 +73,7 @@ router.get("/status", async (req: Request, res: Response) => {
 
 router.post("/connect", async (req: Request, res: Response) => {
   try {
-    const userId = req.headers["x-user-id"] as string || "demo-user";
+    const userId = req.headers["x-user-id"] as string || "demo-client-user";
     const environment = req.headers["x-environment"] as string || "demo";
 
     const validation = ConnectionConfigSchema.safeParse(req.body);
@@ -132,7 +132,7 @@ router.post("/connect", async (req: Request, res: Response) => {
 
 router.post("/disconnect", async (req: Request, res: Response) => {
   try {
-    const userId = req.headers["x-user-id"] as string || "demo-user";
+    const userId = req.headers["x-user-id"] as string || "demo-client-user";
     const environment = req.headers["x-environment"] as string || "demo";
 
     const connection = await storage.getFireflyConnection(userId, environment);
@@ -155,7 +155,7 @@ router.post("/disconnect", async (req: Request, res: Response) => {
 
 router.post("/sync/expense/:expenseId", async (req: Request, res: Response) => {
   try {
-    const userId = req.headers["x-user-id"] as string || "demo-user";
+    const userId = req.headers["x-user-id"] as string || "demo-client-user";
     const environment = req.headers["x-environment"] as string || "demo";
     const { expenseId } = req.params;
 
@@ -225,7 +225,7 @@ router.post("/sync/expense/:expenseId", async (req: Request, res: Response) => {
 
 router.post("/sync/income/:incomeId", async (req: Request, res: Response) => {
   try {
-    const userId = req.headers["x-user-id"] as string || "demo-user";
+    const userId = req.headers["x-user-id"] as string || "demo-client-user";
     const environment = req.headers["x-environment"] as string || "demo";
     const { incomeId } = req.params;
 
@@ -294,7 +294,7 @@ router.post("/sync/income/:incomeId", async (req: Request, res: Response) => {
 
 router.post("/sync/all", async (req: Request, res: Response) => {
   try {
-    const userId = req.headers["x-user-id"] as string || "demo-user";
+    const userId = req.headers["x-user-id"] as string || "demo-client-user";
     const environment = req.headers["x-environment"] as string || "demo";
 
     const connection = await storage.getFireflyConnection(userId, environment);
@@ -405,7 +405,7 @@ router.post("/sync/all", async (req: Request, res: Response) => {
 
 router.get("/sync-logs", async (req: Request, res: Response) => {
   try {
-    const userId = req.headers["x-user-id"] as string || "demo-user";
+    const userId = req.headers["x-user-id"] as string || "demo-client-user";
     const environment = req.headers["x-environment"] as string || "demo";
 
     const connection = await storage.getFireflyConnection(userId, environment);
@@ -423,7 +423,7 @@ router.get("/sync-logs", async (req: Request, res: Response) => {
 
 router.get("/accounts", async (req: Request, res: Response) => {
   try {
-    const userId = req.headers["x-user-id"] as string || "demo-user";
+    const userId = req.headers["x-user-id"] as string || "demo-client-user";
     const environment = req.headers["x-environment"] as string || "demo";
     const { type } = req.query;
 
@@ -451,7 +451,7 @@ router.get("/accounts", async (req: Request, res: Response) => {
 
 router.post("/transactions/from-document", async (req: Request, res: Response) => {
   try {
-    const userId = req.headers["x-user-id"] as string || "demo-user";
+    const userId = req.headers["x-user-id"] as string || "demo-client-user";
     const environment = req.headers["x-environment"] as string || "demo";
 
     const validation = DocumentTransactionSchema.safeParse(req.body);
@@ -553,7 +553,7 @@ router.post("/transactions/from-document", async (req: Request, res: Response) =
 
 router.get("/categories", async (req: Request, res: Response) => {
   try {
-    const userId = req.headers["x-user-id"] as string || "demo-user";
+    const userId = req.headers["x-user-id"] as string || "demo-client-user";
     const environment = req.headers["x-environment"] as string || "demo";
 
     const connection = await storage.getFireflyConnection(userId, environment);

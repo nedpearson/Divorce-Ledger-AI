@@ -113,7 +113,7 @@ function getUserIdOrThrow(req: MulterRequest): { userId: string; error?: string 
     if (headerUserId) {
       return { userId: headerUserId };
     }
-    return { userId: 'demo-user' };
+    return { userId: 'demo-client-user' };
   }
   
   return { userId: '', error: 'Authentication required' };

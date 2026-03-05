@@ -1851,7 +1851,7 @@ export async function registerRoutes(
   // Get current user profile
   app.get("/api/auth/me", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const user = await storage.getUser(userId);
 
       if (!user) {
@@ -1869,7 +1869,7 @@ export async function registerRoutes(
   // Update user profile
   app.patch("/api/auth/profile", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const { fullName, email, profilePhoto } = req.body;
 
       // Validate input
@@ -1907,7 +1907,7 @@ export async function registerRoutes(
   // Change password
   app.post("/api/auth/change-password", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const { currentPassword, newPassword } = req.body;
 
       if (!currentPassword || !newPassword) {
@@ -2203,7 +2203,7 @@ export async function registerRoutes(
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const stats = await storage.getDashboardStats((req as any).session?.userId || "demo-user", environment);
+      const stats = await storage.getDashboardStats((req as any).session?.userId || "demo-client-user", environment);
       res.json(stats);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch stats" });
@@ -2216,7 +2216,7 @@ export async function registerRoutes(
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
 
       // Check tier for AI pattern detection access
-      const user = await storage.getUser((req as any).session?.userId || "demo-user");
+      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
       if (user && !canUseAIPatternDetection(user)) {
         return res.status(403).json({
           error: "Upgrade required",
@@ -2226,7 +2226,7 @@ export async function registerRoutes(
         });
       }
 
-      const violations = await storage.getViolations((req as any).session?.userId || "demo-user", environment);
+      const violations = await storage.getViolations((req as any).session?.userId || "demo-client-user", environment);
 
       interface Pattern {
         type: string;
@@ -2326,7 +2326,7 @@ export async function registerRoutes(
 
   app.get("/api/transactions/recent", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       console.log(`[API] /transactions/recent -> userId: ${userId}, environment: ${environment}`);
       const transactions = await storage.getRecentTransactions(userId, environment, 7);
@@ -2338,7 +2338,7 @@ export async function registerRoutes(
 
   app.get("/api/transactions", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       const transactions = await storage.getTransactions(userId, environment);
       res.json(transactions);
@@ -2349,7 +2349,7 @@ export async function registerRoutes(
 
   app.post("/api/transactions", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       const parsed = createTransactionSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -2369,7 +2369,7 @@ export async function registerRoutes(
   app.get("/api/assets", async (req, res) => {
     try {
       const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-user";
+      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       console.log(`[Assets API] Fetching for userId: ${userId}, environment: ${environment}`);
       const assets = await storage.getAssets(userId, environment);
@@ -2383,7 +2383,7 @@ export async function registerRoutes(
 
   app.post("/api/assets", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       const parsed = createAssetSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -2402,7 +2402,7 @@ export async function registerRoutes(
 
   app.delete("/api/assets/:id", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       await storage.deleteAsset(req.params.id, userId, environment);
       res.json({ success: true });
@@ -2414,7 +2414,7 @@ export async function registerRoutes(
   app.get("/api/debts", async (req, res) => {
     try {
       const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-user";
+      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       console.log(`[Debts API] Fetching for userId: ${userId}, environment: ${environment}`);
       const debts = await storage.getDebts(userId, environment);
@@ -2428,7 +2428,7 @@ export async function registerRoutes(
 
   app.post("/api/debts", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       const parsed = createDebtSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -2447,7 +2447,7 @@ export async function registerRoutes(
 
   app.delete("/api/debts/:id", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       await storage.deleteDebt(req.params.id, userId, environment);
       res.json({ success: true });
@@ -2459,7 +2459,7 @@ export async function registerRoutes(
   app.get("/api/incomes", async (req, res) => {
     try {
       const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-user";
+      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       console.log(`[Incomes API] Fetching for userId: ${userId}, environment: ${environment}`);
       const incomes = await storage.getIncomes(userId, environment);
@@ -2473,7 +2473,7 @@ export async function registerRoutes(
 
   app.post("/api/incomes", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       const parsed = createIncomeSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -2492,7 +2492,7 @@ export async function registerRoutes(
 
   app.delete("/api/incomes/:id", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       await storage.deleteIncome(req.params.id, userId, environment);
       res.json({ success: true });
@@ -2504,7 +2504,7 @@ export async function registerRoutes(
   app.get("/api/expenses", async (req, res) => {
     try {
       const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-user";
+      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       console.log(`[Expenses API] Fetching for userId: ${userId}, environment: ${environment}`);
       const expenses = await storage.getExpenses(userId, environment);
@@ -2518,7 +2518,7 @@ export async function registerRoutes(
 
   app.post("/api/expenses", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       const parsed = createExpenseSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -2537,7 +2537,7 @@ export async function registerRoutes(
 
   app.delete("/api/expenses/:id", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       await storage.deleteExpense(req.params.id, userId, environment);
       res.json({ success: true });
@@ -2589,7 +2589,7 @@ export async function registerRoutes(
   app.get("/api/alerts", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const alerts = await storage.getAlerts(userId, environment);
       res.json(alerts);
     } catch (error) {
@@ -2606,7 +2606,7 @@ export async function registerRoutes(
       }
       const alert = await storage.createAlert({
         ...parsed.data,
-        userId: (req as any).session?.userId || "demo-user",
+        userId: (req as any).session?.userId || "demo-client-user",
         environment,
       });
       res.json(alert);
@@ -2626,7 +2626,7 @@ export async function registerRoutes(
 
   // Documents API
   app.delete("/api/documents/:id", async (req, res) => {
-    const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-user";
+    const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-client-user";
     const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -2647,7 +2647,7 @@ export async function registerRoutes(
   app.get("/api/documents", async (req, res) => {
     try {
       const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-user";
+      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       console.log(`[Documents API] Fetching for userId: ${userId}, environment: ${environment}`);
       const docs = await storage.getDocuments(userId, environment);
@@ -2661,7 +2661,7 @@ export async function registerRoutes(
 
   app.post("/api/documents", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       const workspaceId = resolveWorkspaceId(req);
       const parsed = createDocumentSchema.safeParse(req.body);
@@ -2736,7 +2736,7 @@ export async function registerRoutes(
   app.post("/api/capture/analyze", async (req, res) => {
     try {
       const { base64Data, mimeType, fileName, captureType, source } = req.body;
-      const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-client-user";
       const workspaceId = resolveWorkspaceId(req);
       let result;
       if (captureType === "document") {
@@ -2763,7 +2763,7 @@ export async function registerRoutes(
   app.post("/api/capture/extract-financial", async (req, res) => {
     try {
       const { fileName, fileType, base64Data } = req.body;
-      const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-client-user";
       const workspaceId = resolveWorkspaceId(req);
 
       if (!fileName || !fileType) {
@@ -2845,7 +2845,7 @@ export async function registerRoutes(
 
       const { fileName, fileType, base64Data, languageHint, uiLanguage } = validationResult.data;
       const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-user";
+      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       const workspaceId = resolveWorkspaceId(req);
 
@@ -3001,7 +3001,7 @@ export async function registerRoutes(
 
       const { intakeResult, fileName, fileUrl, fileType, createFinancialRecords, overrides } = validationResult.data;
       const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-user";
+      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
 
       // Merge overrides with intake result
@@ -3232,7 +3232,7 @@ export async function registerRoutes(
   // Batch re-analyze all documents - force option reprocesses all
   app.post("/api/documents/reanalyze", async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
       const force = req.query.force === "true" || req.body?.force === true;
       const allDocs = await storage.getDocuments(userId, environment);
@@ -3344,7 +3344,7 @@ export async function registerRoutes(
       };
 
       let analysis;
-      const userId = doc.userId || "demo-user";
+      const userId = doc.userId || "demo-client-user";
       const environment = doc.environment || "demo";
       const workspaceId = resolveWorkspaceId(req);
 
@@ -3750,7 +3750,7 @@ export async function registerRoutes(
   app.get("/api/calendar-events", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const events = await storage.getCalendarEvents((req as any).session?.userId || "demo-user", environment);
+      const events = await storage.getCalendarEvents((req as any).session?.userId || "demo-client-user", environment);
       res.json(events);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch calendar events" });
@@ -3768,7 +3768,7 @@ export async function registerRoutes(
         ...parsed.data,
         startDate: new Date(parsed.data.startDate),
         endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
-        userId: (req as any).session?.userId || "demo-user",
+        userId: (req as any).session?.userId || "demo-client-user",
         environment,
       });
       res.json(event);
@@ -3780,7 +3780,7 @@ export async function registerRoutes(
   app.delete("/api/calendar-events/:id", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      await storage.deleteCalendarEvent(req.params.id, (req as any).session?.userId || "demo-user", environment);
+      await storage.deleteCalendarEvent(req.params.id, (req as any).session?.userId || "demo-client-user", environment);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete calendar event" });
@@ -3791,7 +3791,7 @@ export async function registerRoutes(
   app.get("/api/legal-documents", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const docs = await storage.getLegalDocuments((req as any).session?.userId || "demo-user", environment);
+      const docs = await storage.getLegalDocuments((req as any).session?.userId || "demo-client-user", environment);
       res.json(docs);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch legal documents" });
@@ -3807,7 +3807,7 @@ export async function registerRoutes(
       }
       const doc = await storage.createLegalDocument({
         ...parsed.data,
-        userId: (req as any).session?.userId || "demo-user",
+        userId: (req as any).session?.userId || "demo-client-user",
         environment,
       });
       res.json(doc);
@@ -3819,7 +3819,7 @@ export async function registerRoutes(
   app.delete("/api/legal-documents/:id", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      await storage.deleteLegalDocument(req.params.id, (req as any).session?.userId || "demo-user", environment);
+      await storage.deleteLegalDocument(req.params.id, (req as any).session?.userId || "demo-client-user", environment);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete legal document" });
@@ -3830,7 +3830,7 @@ export async function registerRoutes(
   app.get("/api/child-support-payments", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const payments = await storage.getChildSupportPayments((req as any).session?.userId || "demo-user", environment);
+      const payments = await storage.getChildSupportPayments((req as any).session?.userId || "demo-client-user", environment);
       res.json(payments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch child support payments" });
@@ -3848,7 +3848,7 @@ export async function registerRoutes(
         ...parsed.data,
         dueDate: new Date(parsed.data.dueDate),
         paidDate: parsed.data.paidDate ? new Date(parsed.data.paidDate) : null,
-        userId: (req as any).session?.userId || "demo-user",
+        userId: (req as any).session?.userId || "demo-client-user",
         environment,
       });
       res.json(payment);
@@ -3866,7 +3866,7 @@ export async function registerRoutes(
       }
       const payment = await storage.updateChildSupportPayment(
         req.params.id,
-        "demo-user",
+        "demo-client-user",
         environment,
         {
           ...parsed.data,
@@ -3885,7 +3885,7 @@ export async function registerRoutes(
   app.delete("/api/child-support-payments/:id", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      await storage.deleteChildSupportPayment(req.params.id, (req as any).session?.userId || "demo-user", environment);
+      await storage.deleteChildSupportPayment(req.params.id, (req as any).session?.userId || "demo-client-user", environment);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete child support payment" });
@@ -3898,7 +3898,7 @@ export async function registerRoutes(
   app.get("/api/violations", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const user = await storage.getUser((req as any).session?.userId || "demo-user");
+      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -3922,7 +3922,7 @@ export async function registerRoutes(
 
       const { type, description, location, mediaUrls, photoCount, videoDuration, witnesses, isDraft, audioTranscript } = parsed.data;
 
-      const user = await storage.getUser((req as any).session?.userId || "demo-user");
+      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
 
       // Check tier limits for non-draft violations
       if (!isDraft && user) {
@@ -3987,24 +3987,24 @@ export async function registerRoutes(
         witnesses: witnesses || null,
         isDraft: isDraft || false,
         status: "pending",
-        userId: (req as any).session?.userId || "demo-user",
+        userId: (req as any).session?.userId || "demo-client-user",
         environment,
         audioTranscript: audioTranscript || null,
       });
 
       // Increment usage counts for non-draft violations
       if (!isDraft) {
-        await storage.incrementViolationCount((req as any).session?.userId || "demo-user");
+        await storage.incrementViolationCount((req as any).session?.userId || "demo-client-user");
 
         // Increment voice transcription count if used
         if (audioTranscript && audioTranscript.trim()) {
-          await storage.incrementVoiceTranscriptionCount((req as any).session?.userId || "demo-user");
+          await storage.incrementVoiceTranscriptionCount((req as any).session?.userId || "demo-client-user");
         }
 
         // Increment media upload count if used
         const mediaCount = (mediaUrls?.length || 0);
         if (mediaCount > 0) {
-          await storage.incrementMediaUploadCount((req as any).session?.userId || "demo-user", mediaCount);
+          await storage.incrementMediaUploadCount((req as any).session?.userId || "demo-client-user", mediaCount);
         }
       }
 
@@ -4023,7 +4023,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid status. Must be: pending, reviewed, or approved" });
       }
 
-      const violation = await storage.updateViolationStatus(req.params.id, (req as any).session?.userId || "demo-user", environment, status);
+      const violation = await storage.updateViolationStatus(req.params.id, (req as any).session?.userId || "demo-client-user", environment, status);
       if (!violation) {
         return res.status(404).json({ error: "Violation not found" });
       }
@@ -4036,7 +4036,7 @@ export async function registerRoutes(
   app.delete("/api/violations/:id", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      await storage.deleteViolation(req.params.id, (req as any).session?.userId || "demo-user", environment);
+      await storage.deleteViolation(req.params.id, (req as any).session?.userId || "demo-client-user", environment);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete violation" });
@@ -4046,7 +4046,7 @@ export async function registerRoutes(
   app.get("/api/filings/export", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const userId = "demo-user";
+      const userId = "demo-client-user";
 
       const violations = await storage.getViolations(userId, environment);
       const transactions = await storage.getTransactions(userId, environment);
@@ -4125,7 +4125,7 @@ export async function registerRoutes(
   app.get("/api/suggestions", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const violations = await storage.getViolations((req as any).session?.userId || "demo-user", environment);
+      const violations = await storage.getViolations((req as any).session?.userId || "demo-client-user", environment);
 
       const suggestions: Array<{ type: string; title: string; description: string }> = [];
 
@@ -4184,7 +4184,7 @@ export async function registerRoutes(
   app.post("/api/evidence", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const userId = "demo-user";
+      const userId = "demo-client-user";
       const {
         violationId,
         fileName,
@@ -4265,7 +4265,7 @@ export async function registerRoutes(
   app.get("/api/violations/:id/evidence", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const evidenceFiles = await storage.getEvidenceFiles(req.params.id, (req as any).session?.userId || "demo-user", environment);
+      const evidenceFiles = await storage.getEvidenceFiles(req.params.id, (req as any).session?.userId || "demo-client-user", environment);
       res.json(evidenceFiles);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch evidence files" });
@@ -4364,7 +4364,7 @@ export async function registerRoutes(
   // Get user subscription info and limits
   app.get("/api/subscription", async (req, res) => {
     try {
-      const user = await storage.getUser((req as any).session?.userId || "demo-user");
+      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -4420,7 +4420,7 @@ export async function registerRoutes(
   app.get("/api/cases", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || "demo";
-      const userCases = await storage.getCases((req as any).session?.userId || "demo-user", environment);
+      const userCases = await storage.getCases((req as any).session?.userId || "demo-client-user", environment);
       res.json(userCases);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch cases" });
@@ -4431,7 +4431,7 @@ export async function registerRoutes(
   app.post("/api/cases", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || "demo";
-      const user = await storage.getUser((req as any).session?.userId || "demo-user");
+      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
 
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -4455,7 +4455,7 @@ export async function registerRoutes(
       }
 
       const newCase = await storage.createCase({
-        userId: (req as any).session?.userId || "demo-user",
+        userId: (req as any).session?.userId || "demo-client-user",
         title,
         caseNumber: caseNumber || null,
         court: court || null,
@@ -4465,7 +4465,7 @@ export async function registerRoutes(
       });
 
       // Increment user's case count
-      await storage.incrementCaseCount((req as any).session?.userId || "demo-user");
+      await storage.incrementCaseCount((req as any).session?.userId || "demo-client-user");
 
       res.json(newCase);
     } catch (error) {
@@ -4478,8 +4478,8 @@ export async function registerRoutes(
   app.delete("/api/cases/:id", async (req, res) => {
     try {
       const environment = (req.query.environment as string) || "demo";
-      await storage.deleteCase(req.params.id, (req as any).session?.userId || "demo-user", environment);
-      await storage.decrementCaseCount((req as any).session?.userId || "demo-user");
+      await storage.deleteCase(req.params.id, (req as any).session?.userId || "demo-client-user", environment);
+      await storage.decrementCaseCount((req as any).session?.userId || "demo-client-user");
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete case" });
@@ -4499,7 +4499,7 @@ export async function registerRoutes(
       }
 
       const { priceId, tier } = req.body;
-      const user = await storage.getUser((req as any).session?.userId || "demo-user");
+      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
 
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -4593,7 +4593,7 @@ export async function registerRoutes(
         return res.status(503).json({ error: "Payment system not configured" });
       }
 
-      const user = await storage.getUser((req as any).session?.userId || "demo-user");
+      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
 
       if (!user || !user.stripeCustomerId) {
         return res.status(400).json({ error: "No active subscription" });
@@ -4687,7 +4687,7 @@ export async function registerRoutes(
   // Upload media to violation
   app.post("/api/violations/:violationId/media", async (req, res) => {
     try {
-      const userId = "demo-user"; // TODO: Get from auth middleware
+      const userId = "demo-client-user"; // TODO: Get from auth middleware
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
@@ -4744,7 +4744,7 @@ export async function registerRoutes(
   // Save transcript for violation
   app.post("/api/violations/:violationId/transcript", async (req, res) => {
     try {
-      const userId = "demo-user"; // TODO: Get from auth middleware
+      const userId = "demo-client-user"; // TODO: Get from auth middleware
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
@@ -4779,7 +4779,7 @@ export async function registerRoutes(
   // AI classify violation from transcript
   app.post("/api/violations/:violationId/classify", async (req, res) => {
     try {
-      const userId = "demo-user"; // TODO: Get from auth middleware
+      const userId = "demo-client-user"; // TODO: Get from auth middleware
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
@@ -4824,7 +4824,7 @@ export async function registerRoutes(
   // Get user's violation count this month
   app.get("/api/users/violations-this-month", async (req, res) => {
     try {
-      const userId = "demo-user"; // TODO: Get from auth middleware
+      const userId = "demo-client-user"; // TODO: Get from auth middleware
       const count = await mediaService.getViolationsThisMonth(userId);
 
       res.json({
@@ -5429,7 +5429,7 @@ export async function registerRoutes(
     // GET /api/mobile/documents - Get documents with AI analysis info
     app.get("/api/mobile/documents", async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
         const environment = req.headers["x-environment"] as string || "demo";
 
         const documents = await storage.getDocuments(userId, environment);
@@ -5446,7 +5446,7 @@ export async function registerRoutes(
     // POST /api/mobile/documents - Upload document with AI analysis
     app.post("/api/mobile/documents", async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
         const environment = req.headers["x-environment"] as string || req.body.environment || "demo";
         const workspaceId = resolveWorkspaceId(req);
         const { title, fileName, fileType, fileUrl, fileSize, description } = req.body;
@@ -5553,7 +5553,7 @@ export async function registerRoutes(
     // GET /api/mobile/violations - Get violation reports for mobile
     app.get("/api/mobile/violations", async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
         const environment = req.headers["x-environment"] as string || "demo";
 
         const mobileReports = await storage.getMobileViolationReports(userId, environment);
@@ -5570,7 +5570,7 @@ export async function registerRoutes(
     // POST /api/mobile/violations - Create a new violation report from mobile
     app.post("/api/mobile/violations", async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
         const {
           title,
           violationType,
@@ -5727,7 +5727,7 @@ export async function registerRoutes(
     // GET /api/mobile/reimbursements - Get all reimbursements
     app.get("/api/mobile/reimbursements", async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
         const environment = req.headers["x-environment"] as string || "demo";
 
         const reimbursementsList = await storage.getReimbursements(userId, environment);
@@ -5742,7 +5742,7 @@ export async function registerRoutes(
     // POST /api/mobile/reimbursements - Create a new reimbursement
     app.post("/api/mobile/reimbursements", async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
         const environment = req.headers["x-environment"] as string || "demo";
         const { category, description, amount, owedBy, status = "pending", dueDate, notes, linkedDocumentIds } = req.body;
 
@@ -5822,7 +5822,7 @@ export async function registerRoutes(
     // GET /api/mobile/w2-records - Get all W2 records for both parties
     app.get("/api/mobile/w2-records", async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || "demo-user";
+        const userId = (req as any).session?.userId || "demo-client-user";
         const environment = (req.headers["x-environment"] as string) || "demo";
 
         const records = await storage.getW2Records(userId, environment);
@@ -6362,7 +6362,7 @@ export async function registerRoutes(
     // GET /api/journal - Get all journal entries
     app.get("/api/journal", async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
         const environment = (req.headers["x-environment"] as string) || "demo";
 
         const entries = await storage.getJournalEntries(userId, environment);
@@ -6377,7 +6377,7 @@ export async function registerRoutes(
     app.get("/api/journal/:id", async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
 
         const entry = await storage.getJournalEntry(id);
         if (!entry) {
@@ -6397,7 +6397,7 @@ export async function registerRoutes(
     // POST /api/journal - Create journal entry
     app.post("/api/journal", async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
         const environment = (req.headers["x-environment"] as string) || "demo";
 
         const entry = await storage.createJournalEntry({
@@ -6416,7 +6416,7 @@ export async function registerRoutes(
     app.patch("/api/journal/:id", async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
 
         // Authorization check - verify ownership before update
         const existing = await storage.getJournalEntry(id);
@@ -6439,7 +6439,7 @@ export async function registerRoutes(
     app.delete("/api/journal/:id", async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
 
         // Authorization check - verify ownership before delete
         const existing = await storage.getJournalEntry(id);
@@ -6462,7 +6462,7 @@ export async function registerRoutes(
     app.post("/api/journal/transcribe", async (req: Request, res: Response) => {
       try {
         const { audioData, mimeType } = req.body;
-        const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-client-user";
         const workspaceId = resolveWorkspaceId(req);
 
         if (!audioData) {
@@ -6498,7 +6498,7 @@ export async function registerRoutes(
     // GET /api/conversations - Get all conversations for user
     app.get("/api/conversations", async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
         const environment = (req.headers["x-environment"] as string) || "demo";
 
         const convos = await storage.getConversations(userId, environment);
@@ -6522,7 +6522,7 @@ export async function registerRoutes(
     app.get("/api/conversations/:id", async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
 
         const conversation = await storage.getConversation(id);
 
@@ -6550,7 +6550,7 @@ export async function registerRoutes(
     // POST /api/conversations - Create new conversation
     app.post("/api/conversations", async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
         const userEmail = (req.headers["x-user-email"] as string) || "demo@divorceledger.live";
         const userName = (req.headers["x-user-name"] as string) || "Demo User";
         const environment = (req.headers["x-environment"] as string) || "demo";
@@ -6650,7 +6650,7 @@ export async function registerRoutes(
     app.post("/api/conversations/:id/messages", async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const senderId = (req.headers["x-user-id"] as string) || "demo-user";
+        const senderId = (req.headers["x-user-id"] as string) || "demo-client-user";
         const senderEmail = (req.headers["x-user-email"] as string) || "demo@divorceledger.live";
         const senderName = (req.headers["x-user-name"] as string) || "Demo User";
 
@@ -6716,7 +6716,7 @@ export async function registerRoutes(
     app.post("/api/conversations/:id/reports", async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
         const environment = (req.headers["x-environment"] as string) || "demo";
 
         // Authorization check - verify user is participant
@@ -7414,7 +7414,7 @@ export async function registerRoutes(
 
     app.get("/api/debug/finances", async (req, res) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-user";
+        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
         const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
 
         const allExpenses = await storage.getExpenses(userId, environment);
