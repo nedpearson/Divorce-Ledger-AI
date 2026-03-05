@@ -29,6 +29,7 @@ import { useAuth } from "@/lib/auth";
 import { FeedbackCTA } from "@/components/feedback-cta";
 import { DrillDownValue } from "@/components/ui/drilldown-value";
 import { type DrilldownType } from "@/components/financial-drilldown-drawer";
+import { useDrilldown } from "@/lib/drilldown-context";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -60,10 +61,20 @@ const StatCard = memo(function StatCard({
   onClick?: () => void;
   drilldownType?: DrilldownType;
 }) {
+  const { openDrilldown } = useDrilldown();
+
+  const handleCardClick = () => {
+    if (drilldownType) {
+      openDrilldown({ type: drilldownType, title });
+    } else if (onClick) {
+      onClick();
+    }
+  };
+
   return (
     <Card
-      className={`hover-elevate cursor-pointer transition-all ${onClick ? "" : ""}`}
-      onClick={onClick}
+      className={`hover-elevate transition-all ${onClick || drilldownType ? "cursor-pointer" : ""}`}
+      onClick={handleCardClick}
       data-testid={`card-stat-${title.toLowerCase().replace(/\s+/g, "-")}`}
     >
       <CardContent className="p-4">
@@ -202,6 +213,7 @@ const PaymentCard = memo(function PaymentCard({
   dueDate,
   isPaid,
   icon: Icon,
+  drilldownType,
 }: {
   title: string;
   amount: number;
@@ -210,8 +222,20 @@ const PaymentCard = memo(function PaymentCard({
   icon: React.ElementType;
   drilldownType?: DrilldownType;
 }) {
+  const { openDrilldown } = useDrilldown();
+
+  const handleCardClick = () => {
+    if (drilldownType) {
+      openDrilldown({ type: drilldownType, title });
+    }
+  };
+
   return (
-    <Card className="hover-elevate cursor-pointer" data-testid={`card-payment-${title.toLowerCase().replace(/\s+/g, "-")}`}>
+    <Card
+      className={`hover-elevate ${drilldownType ? "cursor-pointer" : ""}`}
+      onClick={handleCardClick}
+      data-testid={`card-payment-${title.toLowerCase().replace(/\s+/g, "-")}`}
+    >
       <CardContent className="p-4">
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
@@ -241,7 +265,15 @@ const PaymentCard = memo(function PaymentCard({
         <p className="text-xs text-muted-foreground mt-1">
           {isPaid ? `Paid: ${dueDate}` : `Due: ${dueDate}`}
         </p>
-        <Button variant="outline" size="sm" className="w-full mt-3 text-xs">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full mt-3 text-xs"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCardClick();
+          }}
+        >
           {isPaid ? "View Details" : "Payment Plan"}
         </Button>
       </CardContent>

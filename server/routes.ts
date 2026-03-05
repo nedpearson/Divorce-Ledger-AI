@@ -6860,8 +6860,8 @@ export async function registerRoutes(
     // ==================== ADMIN PANEL ROUTES ====================
 
     // Admin credentials from environment variables (required, no fallback)
-    const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "";
-    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+    const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.SUPERADMIN_EMAIL || "";
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.SUPERADMIN_PASSWORD || "";
 
     if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
       console.warn('[WARN] ADMIN_EMAIL and ADMIN_PASSWORD env vars not set - admin panel disabled');
