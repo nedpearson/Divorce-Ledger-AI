@@ -1,15 +1,58 @@
-Missing DATABASE_URL/DIRECT_URL environment variables
-Available env vars: ALLUSERSPROFILE, ANTIGRAVITY_AGENT, ANTIGRAVITY_CLI_ALIAS, APPDATA, BUNDLED_DEBUGPY_PATH, CHROME_CRASHPAD_PIPE_NAME, COLOR, COLORTERM, CommonProgramFiles, CommonProgramFiles(x86), CommonProgramW6432, COMPUTERNAME, ComSpec, DriverData, EDITOR, EFC_10060_1262719628, EFC_10060_1592913036, EFC_10060_2283032206, EFC_10060_2775293581, EFC_10060_3789132940, FPS_BROWSER_APP_PROFILE_STRING, FPS_BROWSER_USER_PROFILE_STRING, GIT_ASKPASS, HOME, HOMEDRIVE, HOMEPATH, INIT_CWD, LANG, LOCALAPPDATA, LOGONSERVER, NODE, Node.Js, npm_command, npm_config_cache, npm_config_fund, npm_config_globalconfig, npm_config_global_prefix, npm_config_init_module, npm_config_local_prefix, npm_config_node_gyp, npm_config_noproxy, npm_config_npm_version, npm_config_prefer_online, npm_config_prefix, npm_config_userconfig, npm_config_user_agent, npm_execpath, npm_lifecycle_event, npm_lifecycle_script, npm_node_execpath, npm_package_engines_node, npm_package_engines_npm, npm_package_json, npm_package_name, npm_package_version, NUMBER_OF_PROCESSORS, NVM_HOME, NVM_SYMLINK, OneDrive, OS, PAGER, Path, PATHEXT, POWERSHELL_DISTRIBUTION_CHANNEL, PROCESSOR_ARCHITECTURE, PROCESSOR_IDENTIFIER, PROCESSOR_LEVEL, PROCESSOR_REVISION, ProgramData, ProgramFiles, ProgramFiles(x86), ProgramW6432, PROMPT, PSModulePath, PUBLIC, PYDEVD_DISABLE_FILE_VALIDATION, PYTHONSTARTUP, PYTHON_BASIC_REPL, SESSIONNAME, SystemDrive, SystemRoot, TEMP, TERM_PROGRAM, TERM_PROGRAM_VERSION, TMP, USERDOMAIN, USERDOMAIN_ROAMINGPROFILE, USERNAME, USERPROFILE, VSCODE_DEBUGPY_ADAPTER_ENDPOINTS, VSCODE_GIT_ASKPASS_EXTRA_ARGS, VSCODE_GIT_ASKPASS_MAIN, VSCODE_GIT_ASKPASS_NODE, VSCODE_GIT_IPC_HANDLE, VSCODE_INJECTION, VSCODE_PYTHON_AUTOACTIVATE_GUARD, windir
-C:\dev\github\business\Divorce-Ledger-AI\server\db.ts:47
-    throw new Error(`Database not available: DIRECT_URL/DATABASE_URL environment variables are not set. Cannot access db.${String(prop)}`);
-          ^
-
-Error: Database not available: DIRECT_URL/DATABASE_URL environment variables are not set. Cannot access db.select
-    at Object.get (C:\dev\github\business\Divorce-Ledger-AI\server\db.ts:47:11)
-    at run (C:\dev\github\business\Divorce-Ledger-AI\test.ts:6:31)
-    at <anonymous> (C:\dev\github\business\Divorce-Ledger-AI\test.ts:10:1)
-    at ModuleJob.run (node:internal/modules/esm/module_job:430:25)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:661:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
-
-Node.js v24.14.0
+{
+  "users": [
+    {
+      "id": "49aebdd3-e900-4d31-a822-ea95484cd2f0",
+      "email": "client.demo@example.com"
+    },
+    {
+      "id": "caf5db34-f2f8-4362-ab57-4c3067a4cb78",
+      "email": "firm.admin.demo@example.com"
+    },
+    {
+      "id": "0430cfe5-8290-4328-ab3c-a14ee7a26c34",
+      "email": "nedpearson@gmail.com"
+    },
+    {
+      "id": "demo-user",
+      "email": "demo@example.com"
+    }
+  ],
+  "docs": [
+    {
+      "id": "e977cd53-af04-464e-a48c-c66ab233a6be",
+      "userId": "49aebdd3-e900-4d31-a822-ea95484cd2f0",
+      "title": "January Joint Checking Statement"
+    },
+    {
+      "id": "e6e21559-d714-4977-9a7d-b677c5a5bcbb",
+      "userId": "49aebdd3-e900-4d31-a822-ea95484cd2f0",
+      "title": "Childcare & Activities Invoice"
+    }
+  ],
+  "cases": [
+    {
+      "id": "1c9951c8-61cc-4c35-bd2f-ab25cc333ddd",
+      "userId": "49aebdd3-e900-4d31-a822-ea95484cd2f0",
+      "title": "Custody & Parenting Time"
+    },
+    {
+      "id": "d28ce7e6-0f44-465f-b367-73243fbdc337",
+      "userId": "49aebdd3-e900-4d31-a822-ea95484cd2f0",
+      "title": "Hidden Assets & Financial Misconduct"
+    }
+  ],
+  "violations": [
+    {
+      "id": "4a333d72-3ff2-4c2b-a4c0-8c91d519eb85",
+      "userId": "49aebdd3-e900-4d31-a822-ea95484cd2f0"
+    },
+    {
+      "id": "3dcda70a-f80d-4225-885a-102ad712be42",
+      "userId": "49aebdd3-e900-4d31-a822-ea95484cd2f0"
+    },
+    {
+      "id": "7ed56286-6382-4edd-882b-e02e4914d0e9",
+      "userId": "49aebdd3-e900-4d31-a822-ea95484cd2f0"
+    }
+  ]
+}
