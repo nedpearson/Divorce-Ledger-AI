@@ -55,7 +55,8 @@ import { FeedbackCTA } from "@/components/feedback-cta";
 import { FinancialExtractionDialog } from "@/components/financial-extraction-dialog";
 import type { Income, Expense, Asset, Debt } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
-import { FinancialDrilldownDrawer, type DrilldownType } from "@/components/financial-drilldown-drawer";
+import { DrillDownValue } from "@/components/ui/drilldown-value";
+import { type DrilldownType } from "@/components/financial-drilldown-drawer";
 import { RecordDetailDrawer } from "@/components/record-detail-drawer";
 
 type RecordType = "income" | "expense" | "asset" | "debt";
@@ -313,11 +314,15 @@ function IncomeTab({ onRecordClick }: TabProps) {
             <div className="border-t pt-4 mt-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">TOTAL</span>
-                <span className="font-semibold tabular-nums">{formatCurrency(totalIncome)}/mo</span>
+                <span className="font-semibold tabular-nums">
+                  <DrillDownValue type="income" title="Monthly Income" value={`${formatCurrency(totalIncome)}/mo`} />
+                </span>
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground mt-1">
                 <span>Your Portion</span>
-                <span className="tabular-nums">{formatCurrency(yourIncome)}/mo</span>
+                <span className="tabular-nums">
+                  <DrillDownValue type="income" title="Your Income" value={`${formatCurrency(yourIncome)}/mo`} />
+                </span>
               </div>
             </div>
           </div>
@@ -646,7 +651,9 @@ function ExpensesTab({ onRecordClick }: TabProps) {
             <div className="border-t pt-4 mt-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">TOTAL EXPENSES</span>
-                <span className="font-semibold tabular-nums">{formatCurrency(totalExpenses)}/mo</span>
+                <span className="font-semibold tabular-nums">
+                  <DrillDownValue type="expenses" title="Monthly Expenses" value={`${formatCurrency(totalExpenses)}/mo`} />
+                </span>
               </div>
             </div>
           </div>
@@ -821,14 +828,16 @@ function AssetsTab({ onRecordClick }: TabProps) {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Total Assets</p>
-            <p className="text-2xl font-semibold tabular-nums">{formatCurrency(totalAssets)}</p>
+            <p className="text-2xl font-semibold tabular-nums">
+              <DrillDownValue type="assets" title="Total Assets" value={formatCurrency(totalAssets)} />
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Marital Assets</p>
             <p className="text-2xl font-semibold tabular-nums">
-              {formatCurrency(assets?.filter((a) => a.ownership === "joint").reduce((s, a) => s + a.value, 0) || 0)}
+              <DrillDownValue type="assets" title="Marital Assets" value={formatCurrency(assets?.filter((a) => a.ownership === "joint").reduce((s, a) => s + a.value, 0) || 0)} />
             </p>
           </CardContent>
         </Card>
@@ -1049,14 +1058,16 @@ function DebtsTab({ onRecordClick }: TabProps) {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Total Debts</p>
             <p className="text-2xl font-semibold tabular-nums text-red-600 dark:text-red-400">
-              {formatCurrency(totalDebts)}
+              <DrillDownValue type="debts" title="Total Debts" value={formatCurrency(totalDebts)} />
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Monthly Payments</p>
-            <p className="text-2xl font-semibold tabular-nums">{formatCurrency(totalMonthly)}/mo</p>
+            <p className="text-2xl font-semibold tabular-nums">
+              <DrillDownValue type="debts" title="Monthly Debt Payments" value={`${formatCurrency(totalMonthly)}/mo`} />
+            </p>
           </CardContent>
         </Card>
       </div>

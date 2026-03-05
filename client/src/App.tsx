@@ -11,6 +11,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SubscriptionBadge } from "@/components/upgrade-prompt";
+import { DrilldownProvider } from "@/lib/drilldown-context";
 import { Bell, Loader2, RefreshCw, TestTube2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -113,54 +114,56 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-full w-full">
-        <AppSidebar />
-        <div className="flex flex-col flex-1 min-w-0">
-          <header className="flex items-center justify-between gap-2 p-2 border-b h-14 shrink-0">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger data-testid="button-sidebar-toggle" className="md:hidden" />
-              <h1 className="font-semibold text-lg md:hidden">Divorce Ledger</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <SubscriptionBadge />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  queryClient.invalidateQueries();
-                  // Avoid direct window.location.reload() in a tight loop
-                  const now = Date.now();
-                  const lastReload = parseInt(sessionStorage.getItem("lastManualReload") || "0");
-                  if (now - lastReload > 5000) {
-                    sessionStorage.setItem("lastManualReload", now.toString());
-                    window.location.reload();
-                  }
-                }}
-                title="Refresh application data"
-                data-testid="button-refresh-all"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" data-testid="button-notifications">
-                <Bell className="h-4 w-4" />
-              </Button>
-              <SyncStatusIndicator />
-              <MobileAppHeaderButton />
-              <ThemeToggle />
-            </div>
-          </header>
-          <main className="flex-1 overflow-auto bg-background pb-20 md:pb-0">
-            <Suspense fallback={<PageLoader />}>
-              {children}
-            </Suspense>
-          </main>
+    <DrilldownProvider>
+      <SidebarProvider style={style as React.CSSProperties}>
+        <div className="flex h-full w-full">
+          <AppSidebar />
+          <div className="flex flex-col flex-1 min-w-0">
+            <header className="flex items-center justify-between gap-2 p-2 border-b h-14 shrink-0">
+              <div className="flex items-center gap-2">
+                <SidebarTrigger data-testid="button-sidebar-toggle" className="md:hidden" />
+                <h1 className="font-semibold text-lg md:hidden">Divorce Ledger</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <SubscriptionBadge />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    queryClient.invalidateQueries();
+                    // Avoid direct window.location.reload() in a tight loop
+                    const now = Date.now();
+                    const lastReload = parseInt(sessionStorage.getItem("lastManualReload") || "0");
+                    if (now - lastReload > 5000) {
+                      sessionStorage.setItem("lastManualReload", now.toString());
+                      window.location.reload();
+                    }
+                  }}
+                  title="Refresh application data"
+                  data-testid="button-refresh-all"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" data-testid="button-notifications">
+                  <Bell className="h-4 w-4" />
+                </Button>
+                <SyncStatusIndicator />
+                <MobileAppHeaderButton />
+                <ThemeToggle />
+              </div>
+            </header>
+            <main className="flex-1 overflow-auto bg-background pb-20 md:pb-0">
+              <Suspense fallback={<PageLoader />}>
+                {children}
+              </Suspense>
+            </main>
+          </div>
+          <MobileBottomNav onCaptureClick={() => setCaptureOpen(true)} />
+          <QuickCaptureSheet open={captureOpen} onOpenChange={setCaptureOpen} />
+          <PWAInstallPrompt />
         </div>
-        <MobileBottomNav onCaptureClick={() => setCaptureOpen(true)} />
-        <QuickCaptureSheet open={captureOpen} onOpenChange={setCaptureOpen} />
-        <PWAInstallPrompt />
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </DrilldownProvider>
   );
 }
 

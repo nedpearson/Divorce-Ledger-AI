@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { DrillDownValue } from "@/components/ui/drilldown-value";
 import { Home, Building, Car, DollarSign, TrendingUp, TrendingDown, PieChart, Loader2, CreditCard, Wallet, Download } from "lucide-react";
 import type { Asset, Debt } from "@shared/schema";
 
@@ -181,7 +182,7 @@ export default function PropertyPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      {formatCurrency(totalAssets)}
+                      <DrillDownValue type="assets" title="Total Assets" value={formatCurrency(totalAssets)} />
                     </p>
                     <p className="text-xs text-muted-foreground">Total Assets</p>
                   </div>
@@ -196,7 +197,7 @@ export default function PropertyPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                      {formatCurrency(totalDebts)}
+                      <DrillDownValue type="debts" title="Total Debts" value={formatCurrency(totalDebts)} />
                     </p>
                     <p className="text-xs text-muted-foreground">Total Debts</p>
                   </div>
@@ -248,7 +249,9 @@ export default function PropertyPage() {
                     <div key={category} className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
                         <span className="capitalize">{category.replace("_", " ")}</span>
-                        <span className="font-medium">{formatCurrency(value)}</span>
+                        <span className="font-medium">
+                          <DrillDownValue type="assets" title={`${category.replace("_", " ")} Assets`} value={formatCurrency(value)} />
+                        </span>
                       </div>
                       <Progress value={percentage} className="h-2" />
                     </div>
@@ -267,14 +270,16 @@ export default function PropertyPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-sm text-foreground">
                     <span>Joint Assets</span>
-                    <span className="font-medium">{formatCurrency(jointAssetValue)}</span>
+                    <span className="font-medium">
+                      <DrillDownValue type="assets" title="Joint Assets" value={formatCurrency(jointAssetValue)} />
+                    </span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-sm text-foreground">
                     <span>Separate Assets</span>
                     <span className="font-medium">
-                      {formatCurrency(separateAssets.reduce((s, a) => s + a.value, 0))}
+                      <DrillDownValue type="assets" title="Separate Assets" value={formatCurrency(separateAssets.reduce((s, a) => s + a.value, 0))} />
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">

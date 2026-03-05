@@ -26,8 +26,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import type { DashboardStats, Transaction, Alert as AlertType } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
-import { FinancialDrilldownDrawer, type DrilldownType } from "@/components/financial-drilldown-drawer";
 import { FeedbackCTA } from "@/components/feedback-cta";
+import { DrillDownValue } from "@/components/ui/drilldown-value";
+import { type DrilldownType } from "@/components/financial-drilldown-drawer";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -47,6 +48,7 @@ const StatCard = memo(function StatCard({
   trendValue,
   icon: Icon,
   onClick,
+  drilldownType,
 }: {
   title: string;
   value: string;
@@ -56,6 +58,7 @@ const StatCard = memo(function StatCard({
   trendValue?: string;
   icon: React.ElementType;
   onClick?: () => void;
+  drilldownType?: DrilldownType;
 }) {
   return (
     <Card
@@ -86,7 +89,13 @@ const StatCard = memo(function StatCard({
           )}
         </div>
         <p className="text-xs text-muted-foreground mb-1">{title}</p>
-        <p className="text-2xl font-semibold tabular-nums">{value}</p>
+        <p className="text-2xl font-semibold tabular-nums">
+          {drilldownType ? (
+            <DrillDownValue type={drilldownType} title={title} value={value} />
+          ) : (
+            value
+          )}
+        </p>
         {subtitle && (
           <div className="flex items-center justify-between mt-2 pt-2 border-t text-xs">
             <span className="text-muted-foreground">{subtitle}</span>
@@ -256,17 +265,8 @@ function DashboardSkeleton() {
 
 export default function Dashboard() {
   const { environment, user } = useAuth();
-  const [drilldownOpen, setDrilldownOpen] = useState(false);
-  const [drilldownType, setDrilldownType] = useState<DrilldownType>("assets");
-  const [drilldownTitle, setDrilldownTitle] = useState("Assets");
   const defaultMode = (user?.role === "admin" || user?.role === "staff" || user?.isAdmin) ? "firm" : "client";
   const [viewMode, setViewMode] = useState<"client" | "firm">(defaultMode);
-
-  const openDrilldown = (type: DrilldownType, title: string) => {
-    setDrilldownType(type);
-    setDrilldownTitle(title);
-    setDrilldownOpen(true);
-  };
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
@@ -446,7 +446,7 @@ export default function Dashboard() {
               trend="up"
               trendValue="3%"
               icon={Wallet}
-              onClick={() => openDrilldown("assets", "Assets")}
+              drilldownType="assets"
             />
             <StatCard
               title="Total Debts"
@@ -456,7 +456,7 @@ export default function Dashboard() {
               trend="down"
               trendValue="2%"
               icon={CreditCard}
-              onClick={() => openDrilldown("debts", "Debts")}
+              drilldownType="debts"
             />
             <StatCard
               title="Monthly Income"
@@ -464,7 +464,7 @@ export default function Dashboard() {
               subtitle="Your Portion"
               subtitleValue={formatCurrency(monthlyIncome * 0.55)}
               icon={DollarSign}
-              onClick={() => openDrilldown("income", "Income")}
+              drilldownType="income"
             />
             <StatCard
               title="Monthly Expenses"
@@ -472,7 +472,7 @@ export default function Dashboard() {
               subtitle="Unaccounted"
               subtitleValue={formatCurrency(2100)}
               icon={Home}
-              onClick={() => openDrilldown("expenses", "Expenses")}
+              drilldownType="expenses"
             />
           </div>
 
@@ -552,14 +552,6 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-
-      <FinancialDrilldownDrawer
-        open={drilldownOpen}
-        onOpenChange={setDrilldownOpen}
-        type={drilldownType}
-        title={drilldownTitle}
-        environment={environment}
-      />
 
       <div className="flex justify-center pt-4">
         <FeedbackCTA />
