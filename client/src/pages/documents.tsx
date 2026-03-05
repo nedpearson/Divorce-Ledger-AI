@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, safeRouterFetch } from "@/lib/queryClient";
 import {
   FileText, Upload, FolderOpen, Search, Filter, Plus, Download, Trash2, Eye, Lock,
   Loader2, File, Image, FileSpreadsheet, BarChart3, FileCheck, ZoomIn, ZoomOut,
@@ -98,8 +98,8 @@ function AddDocumentDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Upload file to Appwrite storage (replaces broken Replit Object Storage)
-  const uploadToAppwrite = async (file: File, metadata?: { title?: string; category?: string }): Promise<{ fileUrl: string; storageFileId: string } | null> => {
+  // Upload file to Python backend for text extraction & storage (replaces Appwrite / Node upload)
+  const uploadToAppwrite = async (file: File, metadata?: { title?: string; category?: string }): Promise<{ fileUrl: string; storageFileId: string; extractedText?: string } | null> => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("title", metadata?.title || file.name.replace(/\.[^/.]+$/, ""));
@@ -109,28 +109,29 @@ function AddDocumentDialog({
     }
 
     try {
-      const response = await fetch("/api/appwrite/files/upload", {
+      // Changed from /api/appwrite/files/upload to /api/documents/upload to hit Python via safeRouterFetch
+      const response = await safeRouterFetch("/api/documents/upload", {
         method: "POST",
         body: formData,
         credentials: "include", // Include session cookies for auth
       });
 
       if (!response.ok) {
-        console.error("Appwrite upload failed:", await response.text());
+        console.error("Document upload failed:", await response.text());
         return null;
       }
 
       const result = await response.json();
       if (result.success && result.file) {
-        // Store the storage file ID - the backend will use this to fetch file content
         return {
-          fileUrl: `/api/appwrite/files/${result.file.storageFileId}`,
-          storageFileId: result.file.storageFileId
+          fileUrl: result.file.fileUrl || "",
+          storageFileId: result.file.storageFileId || "",
+          extractedText: result.extractedText || ""
         };
       }
       return null;
     } catch (error) {
-      console.error("Appwrite upload error:", error);
+      console.error("Document upload error:", error);
       return null;
     }
   };
@@ -186,12 +187,13 @@ function AddDocumentDialog({
       if (uploadRes) setUploadProgress(100);
 
       const publicFileUrl = uploadRes?.fileUrl || "";
+      const extractedTextFromPython = uploadRes?.extractedText || "";
 
       const data: CapturedData = {
         title: result.data?.title || file.name.replace(/\.[^/.]+$/, ""),
         suggestedCategory: result.data?.category || "other",
         suggestedLink: result.data?.suggestedLink || "case",
-        extractedText: result.data?.extractedText || "",
+        extractedText: extractedTextFromPython || result.data?.extractedText || "",
         file,
         fileUrl: publicFileUrl,
         fileSize: file.size,
@@ -782,8 +784,8 @@ function PDFView({ documents, onPreview }: { documents: Document[]; onPreview: (
                   key={doc.id}
                   onClick={() => setSelectedDoc(doc)}
                   className={`w-full text-left p-3 rounded-lg transition-colors flex items-center gap-3 ${selectedDoc?.id === doc.id
-                      ? 'bg-primary/10 border border-primary/20'
-                      : 'hover:bg-muted/50'
+                    ? 'bg-primary/10 border border-primary/20'
+                    : 'hover:bg-muted/50'
                     }`}
                   data-testid={`pdf-select-${doc.id}`}
                 >

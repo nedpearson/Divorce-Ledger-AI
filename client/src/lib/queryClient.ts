@@ -51,6 +51,7 @@ const PYTHON_API_URL = import.meta.env.VITE_PYTHON_API_URL || "http://localhost:
 
 const PYTHON_ROUTES = [
   /^\/api\/workspaces(\/|$)/, // Domain 1: Tenant Handling
+  /^\/api\/documents\/upload(\/|$)/, // Domain 2: Python Document Parsing
   // Future domains appended here safely once stabilized
 ];
 

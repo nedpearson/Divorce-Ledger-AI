@@ -102,6 +102,32 @@ export function FinancialDrilldownDrawer({
   const total = records.reduce((sum, r) => sum + getRecordAmount(r), 0);
   const withDocuments = records.filter((r) => r.documentId).length;
 
+  const exportData = () => {
+    if (records.length === 0) return;
+    const headers = ["Name/Source", "Category", "Amount", "Date", "Vendor", "Verified", "Documented"];
+
+    let csvContent = headers.join(",") + "\\n";
+    records.forEach(r => {
+      csvContent += [
+        `"${getRecordName(r).replace(/"/g, '""')}"`,
+        r.category || "-",
+        (getRecordAmount(r) / 100).toFixed(2),
+        getRecordDate(r),
+        `"${(r.vendor || "-").replace(/"/g, '""')}"`,
+        r.verified ? "Yes" : "No",
+        r.documentId ? "Yes" : "No"
+      ].join(",") + "\\n";
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `drilldown_${type}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-xl" data-testid="drilldown-sheet">
@@ -110,9 +136,21 @@ export function FinancialDrilldownDrawer({
             <DollarSign className="h-5 w-5 text-primary" />
             {title}
           </SheetTitle>
-          <SheetDescription>
-            Detailed breakdown with vendor information and supporting documents
-          </SheetDescription>
+          <div className="flex items-center justify-between">
+            <SheetDescription>
+              Detailed breakdown with vendor information and supporting documents
+            </SheetDescription>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportData}
+              disabled={records.length === 0}
+              className="h-8"
+            >
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Export
+            </Button>
+          </div>
         </SheetHeader>
 
         <div className="mt-4 space-y-4">

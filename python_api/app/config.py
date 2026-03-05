@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     environment: str = os.getenv("NODE_ENV", "development")
     debug: bool = environment != "production"
 
+    # Appwrite Integration
+    appwrite_endpoint: str = os.getenv("APPWRITE_ENDPOINT", "")
+    appwrite_project_id: str = os.getenv("APPWRITE_PROJECT_ID", "")
+    appwrite_api_key: str = os.getenv("APPWRITE_API_KEY", "")
+
     model_config = SettingsConfigDict(case_sensitive=False, env_file=".env", extra="ignore")
 
 settings = Settings()
