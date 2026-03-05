@@ -115,13 +115,13 @@ export default function CommunicationsPage() {
   const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
   const [isReportSheetOpen, setIsReportSheetOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<SentimentReport | null>(null);
-  
+
   // New conversation form
   const [convoTitle, setConvoTitle] = useState("");
   const [participantEmail, setParticipantEmail] = useState("");
   const [participantName, setParticipantName] = useState("");
   const [participantRole, setParticipantRole] = useState("party");
-  
+
   // Message input
   const [messageContent, setMessageContent] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -289,6 +289,33 @@ export default function CommunicationsPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversationDetails?.messages]);
 
+  const exportConversation = () => {
+    if (!conversationDetails || !conversationDetails.messages) return;
+    const headers = ["Date", "Time", "Sender", "Role", "Message", "Sentiment", "Topics"];
+    const csvContent = [
+      headers.join(","),
+      ...conversationDetails.messages.map(msg => {
+        const participant = conversationDetails.participants?.find((p: any) => p.email === msg.senderEmail);
+        return [
+          format(new Date(msg.createdAt), "yyyy-MM-dd"),
+          format(new Date(msg.createdAt), "HH:mm:ss"),
+          `"${msg.senderName.replace(/"/g, '""')}"`,
+          participant?.role || "Unknown",
+          `"${msg.content.replace(/"/g, '""')}"`,
+          msg.sentimentLabel || "Neutral",
+          `"${(msg.negativeTopics || []).join("; ")}"`
+        ].join(",");
+      })
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `conversation_${selectedConversation?.id || 'export'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const getSentimentBadge = (message: Message) => {
     if (!message.hasNegativeContent) return null;
     return (
@@ -410,6 +437,10 @@ export default function CommunicationsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={exportConversation} disabled={!conversationDetails?.messages?.length}>
+                  <Download className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
                 <Dialog open={isAddParticipantOpen} onOpenChange={setIsAddParticipantOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm" data-testid="button-add-participant">

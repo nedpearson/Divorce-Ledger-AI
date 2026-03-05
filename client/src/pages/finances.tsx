@@ -17,6 +17,7 @@ import {
   Sparkles,
   RefreshCw,
   Flame,
+  Download,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -206,8 +207,8 @@ function IncomeTab({ onRecordClick }: TabProps) {
         <CardContent>
           <div className="space-y-4">
             {incomes?.map((income) => (
-              <div 
-                key={income.id} 
+              <div
+                key={income.id}
                 className="flex items-center gap-3 p-3 rounded-lg border hover-elevate cursor-pointer"
                 data-testid={`row-income-${income.id}`}
                 onClick={() => onRecordClick(income)}
@@ -547,8 +548,8 @@ function ExpensesTab({ onRecordClick }: TabProps) {
         <CardContent>
           <div className="space-y-4">
             {expenses?.map((expense) => (
-              <div 
-                key={expense.id} 
+              <div
+                key={expense.id}
                 className="flex items-center gap-3 p-3 rounded-lg border hover-elevate cursor-pointer"
                 data-testid={`row-expense-${expense.id}`}
                 onClick={() => onRecordClick(expense)}
@@ -1233,9 +1234,50 @@ export default function Finances() {
     setDetailOpen(true);
   };
 
+  const exportAllFinances = async () => {
+    try {
+      const [incRes, expRes, astRes, dbtRes] = await Promise.all([
+        fetch("/api/incomes"),
+        fetch("/api/expenses"),
+        fetch("/api/assets"),
+        fetch("/api/debts")
+      ]);
+      const [incomes, expenses, assets, debts] = await Promise.all([
+        incRes.json(), expRes.json(), astRes.json(), dbtRes.json()
+      ]);
+
+      let csvContent = "";
+      csvContent += "=== INCOMES ===\n";
+      csvContent += ["Source", "Amount", "Frequency", "Owner", "Vendor", "StartDate"].join(",") + "\n";
+      (incomes || []).forEach((i: any) => csvContent += [i.source, i.amount / 100, i.frequency, i.owner, i.vendor || "", i.startDate || ""].map(v => `"${v}"`).join(",") + "\n");
+
+      csvContent += "\n=== EXPENSES ===\n";
+      csvContent += ["Category", "Amount", "Frequency", "Owner", "Vendor", "Description", "StartDate"].join(",") + "\n";
+      (expenses || []).forEach((e: any) => csvContent += [e.category, e.amount / 100, e.frequency, e.owner, e.vendor || "", e.description || "", e.startDate || ""].map(v => `"${v}"`).join(",") + "\n");
+
+      csvContent += "\n=== ASSETS ===\n";
+      csvContent += ["Name", "AcquiredDate", "Value", "Institution"].join(",") + "\n";
+      (assets || []).forEach((a: any) => csvContent += [a.name, a.acquiredDate || "", a.value / 100, a.institution || ""].map(v => `"${v}"`).join(",") + "\n");
+
+      csvContent += "\n=== DEBTS ===\n";
+      csvContent += ["Name", "Amount", "OpenedDate", "Vendor"].join(",") + "\n";
+      (debts || []).forEach((d: any) => csvContent += [d.name, d.amount / 100, d.openedDate || "", d.vendor || ""].map(v => `"${v}"`).join(",") + "\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `finances_export_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Failed to export finances", e);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6">
-      
+
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
@@ -1244,14 +1286,20 @@ export default function Finances() {
             Track income, expenses, assets, and debts
           </p>
         </div>
-        <Button 
-          onClick={() => setScanDialogOpen(true)}
-          size="sm" 
-          data-testid="button-scan-document"
-        >
-          <Sparkles className="mr-2 h-4 w-4" />
-          Scan Document
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportAllFinances}>
+            <Download className="mr-2 h-4 w-4" />
+            Export Data
+          </Button>
+          <Button
+            onClick={() => setScanDialogOpen(true)}
+            size="sm"
+            data-testid="button-scan-document"
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            Scan Document
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="income" className="space-y-6">

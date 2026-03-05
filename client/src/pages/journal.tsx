@@ -28,6 +28,7 @@ import {
   X,
   ImageIcon,
   FileText,
+  Download,
 } from "lucide-react";
 
 interface JournalEntry {
@@ -70,14 +71,14 @@ export default function JournalPage() {
   const [isNewEntryOpen, setIsNewEntryOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  
+
   // Form state
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-  
+
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -286,6 +287,32 @@ export default function JournalPage() {
     }
   }, [selectedEntry, isEditing]);
 
+  const exportData = () => {
+    if (!entries || entries.length === 0) return;
+    const headers = ["Date", "Time", "Title", "Mood", "Tags", "Content"];
+    const csvContent = [
+      headers.join(","),
+      ...entries.map(e => {
+        const moodConfig = getMoodConfig(e.mood);
+        return [
+          format(new Date(e.createdAt), "yyyy-MM-dd"),
+          format(new Date(e.createdAt), "HH:mm:ss"),
+          `"${e.title.replace(/"/g, '""')}"`,
+          moodConfig.label,
+          `"${(e.tags || []).join("; ").replace(/"/g, '""')}"`,
+          `"${e.content.replace(/"/g, '""')}"`
+        ].join(",");
+      })
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `journal_entries_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -307,125 +334,131 @@ export default function JournalPage() {
             <p className="text-muted-foreground text-sm">Document your thoughts and experiences</p>
           </div>
         </div>
-        <Dialog open={isNewEntryOpen} onOpenChange={setIsNewEntryOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-new-entry" className="gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">New Entry</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>New Journal Entry</DialogTitle>
-              <DialogDescription>Record your thoughts, feelings, or events.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Input
-                data-testid="input-entry-title"
-                placeholder="Entry title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-              
-              {/* Voice/Camera/File controls */}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={isRecording ? "destructive" : "outline"}
-                  onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isTranscribing}
-                  data-testid="button-voice-record"
-                >
-                  {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  <span className="ml-1">{isRecording ? "Stop" : "Voice"}</span>
-                </Button>
-                <Button type="button" size="sm" variant="outline" onClick={handleCameraCapture} data-testid="button-camera">
-                  <Camera className="h-4 w-4" />
-                  <span className="ml-1">Camera</span>
-                </Button>
-                <label>
-                  <Button type="button" size="sm" variant="outline" asChild data-testid="button-file-upload">
-                    <span>
-                      <FileUp className="h-4 w-4" />
-                      <span className="ml-1">File</span>
-                    </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportData} disabled={entries.length === 0}>
+            <Download className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Export CSV</span>
+          </Button>
+          <Dialog open={isNewEntryOpen} onOpenChange={setIsNewEntryOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-new-entry" className="gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">New Entry</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>New Journal Entry</DialogTitle>
+                <DialogDescription>Record your thoughts, feelings, or events.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <Input
+                  data-testid="input-entry-title"
+                  placeholder="Entry title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+
+                {/* Voice/Camera/File controls */}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={isRecording ? "destructive" : "outline"}
+                    onClick={isRecording ? stopRecording : startRecording}
+                    disabled={isTranscribing}
+                    data-testid="button-voice-record"
+                  >
+                    {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    <span className="ml-1">{isRecording ? "Stop" : "Voice"}</span>
                   </Button>
-                  <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,video/*,audio/*,.pdf,.doc,.docx" />
-                </label>
-              </div>
-
-              {isTranscribing && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Transcribing voice note...
-                </div>
-              )}
-
-              <Textarea
-                data-testid="input-entry-content"
-                placeholder="Write about your day, feelings, or events..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="min-h-[200px]"
-              />
-
-              {/* Mood selection */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">How are you feeling?</label>
-                <div className="flex flex-wrap gap-2">
-                  {moodOptions.map((m) => (
-                    <Button
-                      key={m.value}
-                      type="button"
-                      size="sm"
-                      variant={mood === m.value ? "default" : "outline"}
-                      onClick={() => setMood(mood === m.value ? null : m.value)}
-                      className={mood === m.value ? "bg-primary" : ""}
-                      data-testid={`button-mood-${m.value}`}
-                    >
-                      {m.label}
+                  <Button type="button" size="sm" variant="outline" onClick={handleCameraCapture} data-testid="button-camera">
+                    <Camera className="h-4 w-4" />
+                    <span className="ml-1">Camera</span>
+                  </Button>
+                  <label>
+                    <Button type="button" size="sm" variant="outline" asChild data-testid="button-file-upload">
+                      <span>
+                        <FileUp className="h-4 w-4" />
+                        <span className="ml-1">File</span>
+                      </span>
                     </Button>
-                  ))}
+                    <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,video/*,audio/*,.pdf,.doc,.docx" />
+                  </label>
                 </div>
-              </div>
 
-              {/* Tags */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Tags</label>
-                <div className="flex gap-2 mb-2">
-                  <Input
-                    placeholder="Add a tag..."
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
-                    data-testid="input-tag"
-                  />
-                  <Button type="button" size="sm" onClick={handleAddTag} data-testid="button-add-tag">
-                    Add
-                  </Button>
+                {isTranscribing && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Transcribing voice note...
+                  </div>
+                )}
+
+                <Textarea
+                  data-testid="input-entry-content"
+                  placeholder="Write about your day, feelings, or events..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="min-h-[200px]"
+                />
+
+                {/* Mood selection */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">How are you feeling?</label>
+                  <div className="flex flex-wrap gap-2">
+                    {moodOptions.map((m) => (
+                      <Button
+                        key={m.value}
+                        type="button"
+                        size="sm"
+                        variant={mood === m.value ? "default" : "outline"}
+                        onClick={() => setMood(mood === m.value ? null : m.value)}
+                        className={mood === m.value ? "bg-primary" : ""}
+                        data-testid={`button-mood-${m.value}`}
+                      >
+                        {m.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1">
-                  {tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="gap-1">
-                      {tag}
-                      <X className="h-3 w-3 cursor-pointer" onClick={() => handleRemoveTag(tag)} />
-                    </Badge>
-                  ))}
+
+                {/* Tags */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Tags</label>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      placeholder="Add a tag..."
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
+                      data-testid="input-tag"
+                    />
+                    <Button type="button" size="sm" onClick={handleAddTag} data-testid="button-add-tag">
+                      Add
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {tags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="gap-1">
+                        {tag}
+                        <X className="h-3 w-3 cursor-pointer" onClick={() => handleRemoveTag(tag)} />
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { resetForm(); setIsNewEntryOpen(false); }} data-testid="button-cancel">
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={createMutation.isPending} data-testid="button-save-entry">
-                {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                Save Entry
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { resetForm(); setIsNewEntryOpen(false); }} data-testid="button-cancel">
+                  Cancel
+                </Button>
+                <Button onClick={handleSave} disabled={createMutation.isPending} data-testid="button-save-entry">
+                  {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                  Save Entry
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Entries Grid */}

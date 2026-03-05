@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Calendar as CalendarIcon, Plus, Clock, MapPin, Bell, ChevronLeft, ChevronRight, Trash2, Edit, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, Clock, MapPin, Bell, ChevronLeft, ChevronRight, Trash2, Edit, Loader2, Download } from "lucide-react";
 import type { CalendarEvent } from "@shared/schema";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday } from "date-fns";
 
@@ -220,13 +220,13 @@ function EventCard({ event, onDelete }: { event: CalendarEvent; onDelete: () => 
   );
 }
 
-function CalendarGrid({ events, selectedDate, onSelectDate }: { 
-  events: CalendarEvent[]; 
-  selectedDate: Date; 
-  onSelectDate: (date: Date) => void 
+function CalendarGrid({ events, selectedDate, onSelectDate }: {
+  events: CalendarEvent[];
+  selectedDate: Date;
+  onSelectDate: (date: Date) => void
 }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -272,7 +272,7 @@ function CalendarGrid({ events, selectedDate, onSelectDate }: {
             const dayEvents = getEventsForDay(day);
             const isSelected = isSameDay(day, selectedDate);
             const isTodayDate = isToday(day);
-            
+
             return (
               <button
                 key={day.toISOString()}
@@ -317,20 +317,51 @@ export default function CalendarPage() {
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
     .slice(0, 5);
 
-  const selectedDayEvents = (events || []).filter((event) => 
+  const selectedDayEvents = (events || []).filter((event) =>
     isSameDay(new Date(event.startDate), selectedDate)
   );
 
+  const exportData = () => {
+    if (!events || events.length === 0) return;
+    const headers = ["Title", "Type", "Start Date", "Location", "Notes", "All Day"];
+    const csvContent = [
+      headers.join(","),
+      ...events.map(e =>
+        [
+          `"${e.title.replace(/"/g, '""')}"`,
+          getEventTypeInfo(e.eventType).label,
+          format(new Date(e.startDate), "yyyy-MM-dd HH:mm"),
+          `"${(e.location || "").replace(/"/g, '""')}"`,
+          `"${(e.description || "").replace(/"/g, '""')}"`,
+          e.allDay ? "Yes" : "No"
+        ].join(",")
+      )
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `calendar_events_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6" data-testid="page-calendar">
-      
+
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold" data-testid="text-page-title">Calendar</h1>
           <p className="text-sm text-muted-foreground">Track court dates, custody schedules, and important deadlines.</p>
         </div>
-        <AddEventDialog onSuccess={() => refetch()} selectedDate={selectedDate} />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportData} disabled={!events?.length}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          <AddEventDialog onSuccess={() => refetch()} selectedDate={selectedDate} />
+        </div>
       </div>
 
       {isLoading ? (
@@ -340,13 +371,13 @@ export default function CalendarPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <CalendarGrid 
-              events={events || []} 
-              selectedDate={selectedDate} 
-              onSelectDate={setSelectedDate} 
+            <CalendarGrid
+              events={events || []}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
             />
           </div>
-          
+
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -355,8 +386,8 @@ export default function CalendarPage() {
                   {format(selectedDate, "MMMM d, yyyy")}
                 </CardTitle>
                 <CardDescription>
-                  {selectedDayEvents.length === 0 
-                    ? "No events scheduled" 
+                  {selectedDayEvents.length === 0
+                    ? "No events scheduled"
                     : `${selectedDayEvents.length} event${selectedDayEvents.length > 1 ? "s" : ""}`}
                 </CardDescription>
               </CardHeader>

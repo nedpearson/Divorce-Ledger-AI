@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { Home, Building, Car, DollarSign, TrendingUp, TrendingDown, PieChart, Loader2, CreditCard, Wallet } from "lucide-react";
+import { Home, Building, Car, DollarSign, TrendingUp, TrendingDown, PieChart, Loader2, CreditCard, Wallet, Download } from "lucide-react";
 import type { Asset, Debt } from "@shared/schema";
 
 function formatCurrency(cents: number): string {
@@ -127,13 +128,42 @@ export default function PropertyPage() {
     return acc;
   }, {} as Record<string, number>);
 
+  const exportData = () => {
+    if (allAssets.length === 0 && allDebts.length === 0) return;
+    const headers = ["Type", "Name", "Category", "Value/Amount", "Ownership", "Verified"];
+
+    let csvContent = headers.join(",") + "\n";
+    allAssets.forEach(a => {
+      csvContent += ["Asset", `"${a.name.replace(/"/g, '""')}"`, a.category, (a.value / 100).toFixed(2), a.ownership, a.verified ? "Yes" : "No"].join(",") + "\n";
+    });
+    allDebts.forEach(d => {
+      csvContent += ["Debt", `"${d.name.replace(/"/g, '""')}"`, d.category, (d.amount / 100).toFixed(2), d.ownership, "-"].join(",") + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `property_settlement_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6" data-testid="page-property">
-      
 
-      <div>
-        <h1 className="text-2xl font-semibold" data-testid="text-page-title">Property Settlement</h1>
-        <p className="text-sm text-muted-foreground">Manage asset division and equitable distribution tracking.</p>
+
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Property Settlement</h1>
+          <p className="text-sm text-muted-foreground">Manage asset division and equitable distribution tracking.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportData} disabled={allAssets.length === 0 && allDebts.length === 0}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

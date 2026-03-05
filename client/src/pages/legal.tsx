@@ -231,16 +231,47 @@ export default function LegalPage() {
   const courtOrders = allDocuments.filter((d) => d.documentType === "court_order");
   const agreements = allDocuments.filter((d) => d.documentType === "agreement" || d.documentType === "custody_plan");
 
+  const exportData = () => {
+    if (!allDocuments || allDocuments.length === 0) return;
+    const headers = ["Title", "Type", "Status", "Description", "Case Number", "Date Added"];
+    const csvContent = [
+      headers.join(","),
+      ...allDocuments.map(d =>
+        [
+          `"${d.title.replace(/"/g, '""')}"`,
+          documentTypes.find(t => t.value === d.documentType)?.label || d.documentType,
+          statusOptions.find(s => s.value === d.status)?.label || d.status,
+          `"${(d.description || "").replace(/"/g, '""')}"`,
+          `"${(d.courtCase || "").replace(/"/g, '""')}"`,
+          format(new Date(d.createdAt), "yyyy-MM-dd")
+        ].join(",")
+      )
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `legal_documents_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6" data-testid="page-legal">
-      
+
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold" data-testid="text-page-title">Legal Documents</h1>
           <p className="text-sm text-muted-foreground">View agreements, court filings, and settlement documents.</p>
         </div>
-        <AddLegalDocumentDialog onSuccess={() => refetch()} />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportData} disabled={allDocuments.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+          <AddLegalDocumentDialog onSuccess={() => refetch()} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

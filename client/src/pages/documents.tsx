@@ -12,10 +12,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { 
-  FileText, Upload, FolderOpen, Search, Filter, Plus, Download, Trash2, Eye, Lock, 
-  Loader2, File, Image, FileSpreadsheet, BarChart3, FileCheck, ZoomIn, ZoomOut, 
-  RotateCw, Camera, ChevronRight, Sparkles, RefreshCw, X, CheckCircle2 
+import {
+  FileText, Upload, FolderOpen, Search, Filter, Plus, Download, Trash2, Eye, Lock,
+  Loader2, File, Image, FileSpreadsheet, BarChart3, FileCheck, ZoomIn, ZoomOut,
+  RotateCw, Camera, ChevronRight, Sparkles, RefreshCw, X, CheckCircle2
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { FeedbackCTA } from "@/components/feedback-cta";
@@ -69,11 +69,11 @@ interface CapturedData {
   fileType?: string;
 }
 
-function AddDocumentDialog({ 
-  onSuccess, 
-  open: externalOpen, 
-  onOpenChange 
-}: { 
+function AddDocumentDialog({
+  onSuccess,
+  open: externalOpen,
+  onOpenChange
+}: {
   onSuccess: () => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -83,12 +83,12 @@ function AddDocumentDialog({
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = onOpenChange || setInternalOpen;
-  
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [capturedData, setCapturedData] = useState<CapturedData | null>(null);
-  
+
   const [editedTitle, setEditedTitle] = useState("");
   const [editedCategory, setEditedCategory] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
@@ -97,7 +97,7 @@ function AddDocumentDialog({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Upload file to Appwrite storage (replaces broken Replit Object Storage)
   const uploadToAppwrite = async (file: File, metadata?: { title?: string; category?: string }): Promise<{ fileUrl: string; storageFileId: string } | null> => {
     const formData = new FormData();
@@ -107,25 +107,25 @@ function AddDocumentDialog({
     if (environment) {
       formData.append("environment", environment);
     }
-    
+
     try {
       const response = await fetch("/api/appwrite/files/upload", {
         method: "POST",
         body: formData,
         credentials: "include", // Include session cookies for auth
       });
-      
+
       if (!response.ok) {
         console.error("Appwrite upload failed:", await response.text());
         return null;
       }
-      
+
       const result = await response.json();
       if (result.success && result.file) {
         // Store the storage file ID - the backend will use this to fetch file content
-        return { 
+        return {
           fileUrl: `/api/appwrite/files/${result.file.storageFileId}`,
-          storageFileId: result.file.storageFileId 
+          storageFileId: result.file.storageFileId
         };
       }
       return null;
@@ -178,15 +178,15 @@ function AddDocumentDialog({
       });
       const result = await res.json();
       setUploadProgress(50);
-      
+
       // Upload to Appwrite instead of Replit Object Storage
       const suggestedCategory = result.data?.category || "other";
       const suggestedTitle = result.data?.title || file.name.replace(/\.[^/.]+$/, "");
       const uploadRes = await uploadToAppwrite(file, { title: suggestedTitle, category: suggestedCategory });
       if (uploadRes) setUploadProgress(100);
-      
+
       const publicFileUrl = uploadRes?.fileUrl || "";
-      
+
       const data: CapturedData = {
         title: result.data?.title || file.name.replace(/\.[^/.]+$/, ""),
         suggestedCategory: result.data?.category || "other",
@@ -203,7 +203,7 @@ function AddDocumentDialog({
       setEditedCategory(data.suggestedCategory);
       setEditedDescription(data.extractedText);
       setEditedLink(data.suggestedLink);
-      
+
       // Auto-save the document immediately after successful AI analysis
       // This triggers the backend forensic analysis pipeline automatically
       const saveRes = await apiRequest("POST", "/api/documents", {
@@ -216,12 +216,12 @@ function AddDocumentDialog({
         fileSize: file.size,
         fileType: file.type,
       });
-      
+
       if (saveRes.ok) {
         const savedDoc = await saveRes.json();
-        toast({ 
-          title: "Document Analyzed & Saved", 
-          description: `"${data.title}" has been categorized as ${data.suggestedCategory} and saved.` 
+        toast({
+          title: "Document Analyzed & Saved",
+          description: `"${data.title}" has been categorized as ${data.suggestedCategory} and saved.`
         });
         setOpen(false);
         onSuccess();
@@ -232,10 +232,10 @@ function AddDocumentDialog({
       } else {
         // If auto-save fails, fall back to manual approval dialog
         setApprovalOpen(true);
-        toast({ 
-          title: "Auto-save failed", 
-          description: "Please review and save manually.", 
-          variant: "destructive" 
+        toast({
+          title: "Auto-save failed",
+          description: "Please review and save manually.",
+          variant: "destructive"
         });
       }
     } catch (error) {
@@ -274,8 +274,8 @@ function AddDocumentDialog({
             <DialogDescription>Choose how you want to add your document</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="h-24 flex flex-col gap-2 hover-elevate"
               onClick={() => cameraInputRef.current?.click()}
               disabled={isProcessing}
@@ -283,8 +283,8 @@ function AddDocumentDialog({
               <Camera className="h-8 w-8 text-blue-500" />
               <span>Scan with Camera</span>
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="h-24 flex flex-col gap-2 hover-elevate"
               onClick={() => fileInputRef.current?.click()}
               disabled={isProcessing}
@@ -302,19 +302,19 @@ function AddDocumentDialog({
               </div>
             )}
           </div>
-          <input 
-            type="file" 
-            ref={cameraInputRef} 
-            className="hidden" 
-            accept="image/*" 
-            capture="environment" 
-            onChange={(e) => handleCapture(e, "scan")} 
+          <input
+            type="file"
+            ref={cameraInputRef}
+            className="hidden"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => handleCapture(e, "scan")}
           />
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            onChange={(e) => handleCapture(e, "upload")} 
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={(e) => handleCapture(e, "upload")}
           />
         </DialogContent>
       </Dialog>
@@ -350,7 +350,7 @@ function AddDocumentDialog({
             </div>
             <div className="space-y-2">
               <Label>Extracted Content / Summary</Label>
-              <textarea 
+              <textarea
                 className="w-full min-h-[150px] p-3 rounded-md border bg-background text-sm"
                 value={editedDescription}
                 onChange={(e) => setEditedDescription(e.target.value)}
@@ -374,13 +374,13 @@ function AddDocumentDialog({
   );
 }
 
-function DocumentPreviewDialog({ 
-  document, 
-  open, 
-  onOpenChange 
-}: { 
-  document: Document | null; 
-  open: boolean; 
+function DocumentPreviewDialog({
+  document,
+  open,
+  onOpenChange
+}: {
+  document: Document | null;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const [zoom, setZoom] = useState(100);
@@ -421,13 +421,13 @@ function DocumentPreviewDialog({
             </div>
           </div>
         </DialogHeader>
-        
+
         <div className="flex-1 overflow-auto mt-4">
           <div className="bg-muted/30 rounded-lg p-6 min-h-[60vh] overflow-auto">
             {isImage && document.fileUrl ? (
               <div className="flex justify-center">
-                <img 
-                  src={document.fileUrl} 
+                <img
+                  src={document.fileUrl}
                   alt={document.title}
                   className="rounded-lg shadow-lg"
                   style={{ width: `${zoom}%`, maxWidth: 'none' }}
@@ -436,7 +436,7 @@ function DocumentPreviewDialog({
                 />
               </div>
             ) : isPdf && document.fileUrl ? (
-              <iframe 
+              <iframe
                 src={`${document.fileUrl}#zoom=${zoom}`}
                 className="w-full h-[600px] rounded-lg border-0"
                 title={document.title}
@@ -444,8 +444,8 @@ function DocumentPreviewDialog({
               />
             ) : (
               <div className="prose dark:prose-invert max-w-none">
-                <div className="bg-background rounded-lg p-6 shadow-sm border" style={{ 
-                  maxWidth: '8.5in', 
+                <div className="bg-background rounded-lg p-6 shadow-sm border" style={{
+                  maxWidth: '8.5in',
                   margin: '0 auto',
                   minHeight: '11in',
                   fontFamily: 'Georgia, serif',
@@ -453,13 +453,13 @@ function DocumentPreviewDialog({
                   lineHeight: '1.8'
                 }}>
                   <h2 className="font-semibold mb-4 border-b pb-2" style={{ fontSize: `${(zoom / 100) * 18}px` }}>{document.title}</h2>
-                  
+
                   {document.aiAnalysisStatus === "pending" && (
                     <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700">
                       <p className="text-amber-700 dark:text-amber-400 text-sm">AI analysis is pending. Text will be extracted shortly.</p>
                     </div>
                   )}
-                  
+
                   {document.aiExtractedText ? (
                     <div className="whitespace-pre-wrap leading-relaxed">
                       <div className="mb-4 p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-700">
@@ -474,13 +474,13 @@ function DocumentPreviewDialog({
                   ) : (
                     <p className="text-muted-foreground italic">No content available for this document.</p>
                   )}
-                  
+
                   {document.aiSummary && (
                     <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
                       <p className="text-blue-700 dark:text-blue-400 text-sm"><strong>AI Summary:</strong> {document.aiSummary}</p>
                     </div>
                   )}
-                  
+
                   {document.isConfidential && (
                     <div className="mt-6 pt-4 border-t flex items-center gap-2 text-amber-600 dark:text-amber-400">
                       <Lock className="h-4 w-4" />
@@ -497,7 +497,7 @@ function DocumentPreviewDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button 
+          <Button
             onClick={() => {
               if (document.fileUrl) {
                 window.open(document.fileUrl, '_blank');
@@ -522,13 +522,13 @@ function DocumentPreviewDialog({
   );
 }
 
-function LetterDocument({ 
-  document, 
+function LetterDocument({
+  document,
   onDelete,
   onPreview,
   showActions = true
-}: { 
-  document: Document; 
+}: {
+  document: Document;
   onDelete?: () => void;
   onPreview?: () => void;
   showActions?: boolean;
@@ -567,9 +567,9 @@ function LetterDocument({
 
   return (
     <div className="w-full max-w-4xl mx-auto" data-testid={`card-document-${document.id}`}>
-      <div 
+      <div
         className="bg-background border rounded-lg shadow-sm"
-        style={{ 
+        style={{
           fontFamily: 'Georgia, "Times New Roman", serif',
           lineHeight: '1.8'
         }}
@@ -590,8 +590,8 @@ function LetterDocument({
           </div>
           {showActions && (
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={onPreview}
                 data-testid={`button-view-${document.id}`}
@@ -599,8 +599,8 @@ function LetterDocument({
                 <Eye className="h-4 w-4 mr-1" />
                 View
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleDownload}
                 data-testid={`button-download-${document.id}`}
@@ -620,16 +620,16 @@ function LetterDocument({
             </div>
           )}
         </div>
-        
+
         <div className="p-6 md:p-8">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 pb-3 border-b">
             {document.title}
           </h2>
-          
+
           {document.fileUrl && document.fileType?.includes("image") ? (
             <div className="flex justify-center mb-4 aspect-video max-w-lg mx-auto bg-muted rounded-lg overflow-hidden">
-              <img 
-                src={document.fileUrl} 
+              <img
+                src={document.fileUrl}
                 alt={document.title}
                 className="w-full h-full object-contain rounded-lg shadow-md"
                 loading="lazy"
@@ -637,7 +637,7 @@ function LetterDocument({
               />
             </div>
           ) : null}
-          
+
           <div className="whitespace-pre-wrap text-sm md:text-base leading-relaxed text-foreground">
             {document.description || "No content available for this document."}
           </div>
@@ -702,7 +702,7 @@ function SummaryView({ documents }: { documents: Document[] }) {
                 <div key={opt.value} className="flex items-center gap-3">
                   <span className="text-sm w-32 truncate">{opt.label}</span>
                   <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-primary rounded-full transition-all"
                       style={{ width: `${percentage}%` }}
                     />
@@ -781,11 +781,10 @@ function PDFView({ documents, onPreview }: { documents: Document[]; onPreview: (
                 <button
                   key={doc.id}
                   onClick={() => setSelectedDoc(doc)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors flex items-center gap-3 ${
-                    selectedDoc?.id === doc.id 
-                      ? 'bg-primary/10 border border-primary/20' 
+                  className={`w-full text-left p-3 rounded-lg transition-colors flex items-center gap-3 ${selectedDoc?.id === doc.id
+                      ? 'bg-primary/10 border border-primary/20'
                       : 'hover:bg-muted/50'
-                  }`}
+                    }`}
                   data-testid={`pdf-select-${doc.id}`}
                 >
                   {getFileIcon(doc.fileType)}
@@ -828,17 +827,17 @@ function PDFView({ documents, onPreview }: { documents: Document[]; onPreview: (
         </CardHeader>
         <CardContent>
           {selectedDoc ? (
-            <div 
+            <div
               className="bg-muted/30 rounded-lg p-6 overflow-auto"
-              style={{ 
+              style={{
                 maxHeight: '600px',
                 minHeight: '400px'
               }}
             >
               {selectedDoc.fileType?.includes("image") && selectedDoc.fileUrl ? (
                 <div className="flex justify-center aspect-video bg-muted rounded-lg overflow-hidden">
-                  <img 
-                    src={selectedDoc.fileUrl} 
+                  <img
+                    src={selectedDoc.fileUrl}
                     alt={selectedDoc.title}
                     className="w-full h-full object-contain rounded-lg shadow-lg"
                     loading="lazy"
@@ -846,15 +845,15 @@ function PDFView({ documents, onPreview }: { documents: Document[]; onPreview: (
                   />
                 </div>
               ) : selectedDoc.fileType?.includes("pdf") && selectedDoc.fileUrl ? (
-                <iframe 
+                <iframe
                   src={selectedDoc.fileUrl}
                   className="w-full h-[500px] rounded-lg"
                   title={selectedDoc.title}
                 />
               ) : (
-                <div 
+                <div
                   className="bg-background rounded-lg p-8 shadow-sm border mx-auto"
-                  style={{ 
+                  style={{
                     maxWidth: '8.5in',
                     fontFamily: 'Georgia, serif',
                     lineHeight: '1.8'
@@ -894,7 +893,7 @@ export default function DocumentsPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
   const [activeTab, setActiveTab] = useState("all");
-  
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisStatus, setAnalysisStatus] = useState("");
@@ -934,12 +933,12 @@ export default function DocumentsPage() {
     setShowAnalysisCard(true);
     setAnalysisProgress(0);
     setAnalysisStatus("Scanning documents for re-analysis...");
-    
+
     try {
       // Use force=true to reanalyze all documents and extract financial data
       const scanRes = await apiRequest("POST", "/api/documents/reanalyze?force=true");
       const scanData = await scanRes.json();
-      
+
       if (scanData.total === 0) {
         toast({ title: "No Documents", description: "No documents with files found to analyze." });
         setIsAnalyzing(false);
@@ -968,11 +967,11 @@ export default function DocumentsPage() {
 
       setAnalysisProgress(100);
       setAnalysisComplete(true);
-      const msg = financialRecordsCreated > 0 
+      const msg = financialRecordsCreated > 0
         ? `Analyzed ${completed} documents. Created ${financialRecordsCreated} financial records.`
         : `Successfully analyzed ${completed} documents.`;
       setAnalysisStatus(msg);
-      
+
       // Refresh documents and financial data
       refetch();
       queryClient.invalidateQueries({ queryKey: ["/api", "incomes"] });
@@ -1002,9 +1001,33 @@ export default function DocumentsPage() {
     return matchesSearch && matchesCategory;
   });
 
+  const exportData = () => {
+    if (!documents || documents.length === 0) return;
+    const headers = ["Title", "Category", "Date Added", "File Size", "Confidential"];
+    const csvContent = [
+      headers.join(","),
+      ...documents.map(d =>
+        [
+          `"${d.title.replace(/"/g, '""')}"`,
+          categoryOptions.find(c => c.value === d.category)?.label || d.category,
+          new Date(d.createdAt).toLocaleDateString(),
+          d.fileSize ? formatFileSize(d.fileSize) : "",
+          d.isConfidential ? "Yes" : "No"
+        ].join(",")
+      )
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `documents_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6" data-testid="page-documents">
-      
+
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
@@ -1012,8 +1035,12 @@ export default function DocumentsPage() {
           <p className="text-sm text-muted-foreground">Upload, organize, and manage all your legal and financial documents.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
+          <Button variant="outline" size="sm" onClick={exportData} disabled={!documents?.length}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          <Button
+            variant="outline"
             onClick={handleReanalyze}
             disabled={isAnalyzing}
             data-testid="button-reanalyze"
@@ -1025,10 +1052,10 @@ export default function DocumentsPage() {
             )}
             {isAnalyzing ? "Analyzing..." : "Re-Analyze All"}
           </Button>
-          <AddDocumentDialog 
-            onSuccess={() => refetch()} 
-            open={showAddDialog} 
-            onOpenChange={setShowAddDialog} 
+          <AddDocumentDialog
+            onSuccess={() => refetch()}
+            open={showAddDialog}
+            onOpenChange={setShowAddDialog}
           />
         </div>
       </div>
@@ -1138,10 +1165,10 @@ export default function DocumentsPage() {
           ) : (
             <div className="space-y-8">
               {filteredDocuments.map((doc) => (
-                <LetterDocument 
-                  key={doc.id} 
-                  document={doc} 
-                  onDelete={() => refetch()} 
+                <LetterDocument
+                  key={doc.id}
+                  document={doc}
+                  onDelete={() => refetch()}
                   onPreview={() => setPreviewDocument(doc)}
                 />
               ))}
@@ -1154,8 +1181,8 @@ export default function DocumentsPage() {
         </TabsContent>
 
         <TabsContent value="pdf">
-          <PDFView 
-            documents={documents || []} 
+          <PDFView
+            documents={documents || []}
             onPreview={(doc) => setPreviewDocument(doc)}
           />
         </TabsContent>
@@ -1182,7 +1209,7 @@ export default function DocumentsPage() {
         </CardContent>
       </Card>
 
-      <DocumentPreviewDialog 
+      <DocumentPreviewDialog
         document={previewDocument}
         open={!!previewDocument}
         onOpenChange={(open) => !open && setPreviewDocument(null)}

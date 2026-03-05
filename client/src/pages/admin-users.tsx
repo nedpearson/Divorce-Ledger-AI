@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { Search, Users, Shield, ShieldCheck, Ban, CheckCircle, RefreshCw, Loader2, Crown } from "lucide-react";
+import { Search, Users, Shield, ShieldCheck, Ban, CheckCircle, RefreshCw, Loader2, Crown, Download } from "lucide-react";
 import { format } from "date-fns";
 
 interface UserMetadata {
@@ -163,6 +163,31 @@ export default function AdminUsers() {
     return matchesSearch && matchesStatus && matchesTier;
   }) || [];
 
+  const exportUsers = () => {
+    if (!filteredUsers || filteredUsers.length === 0) return;
+    const headers = ["Name", "Email", "Status", "Tier", "Role", "Cases", "Violations/mo", "Joined"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredUsers.map(u => [
+        `"${u.fullName.replace(/"/g, '""')}"`,
+        `"${u.email.replace(/"/g, '""')}"`,
+        u.status,
+        u.subscriptionTier,
+        u.isAdmin ? "Admin" : "Client",
+        u.casesCount,
+        u.violationsCountThisMonth,
+        u.createdAt ? format(new Date(u.createdAt), "yyyy-MM-dd") : "N/A"
+      ].join(","))
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `user_directory_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -219,10 +244,16 @@ export default function AdminUsers() {
             Manage users, permissions, and subscription plans
           </p>
         </div>
-        <Badge variant="outline" className="text-sm">
-          <Users className="h-4 w-4 mr-1" />
-          {data?.users?.length || 0} Total Users
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportUsers} disabled={filteredUsers.length === 0}>
+            <Download className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Export CSV</span>
+          </Button>
+          <Badge variant="outline" className="text-sm">
+            <Users className="h-4 w-4 mr-1" />
+            {data?.users?.length || 0} Total Users
+          </Badge>
+        </div>
       </div>
 
       <Card>
@@ -432,8 +463,8 @@ export default function AdminUsers() {
                 <p className="text-sm text-muted-foreground">
                   Admins can manage users, permissions, and plans but cannot see user documents.
                 </p>
-                <Select 
-                  value={newIsAdmin ? "admin" : "client"} 
+                <Select
+                  value={newIsAdmin ? "admin" : "client"}
                   onValueChange={(v) => setNewIsAdmin(v === "admin")}
                 >
                   <SelectTrigger data-testid="select-new-role">
@@ -473,8 +504,8 @@ export default function AdminUsers() {
                 updateTierMutation.isPending ||
                 updateRoleMutation.isPending ||
                 resetUsageMutation.isPending) && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
               Confirm
             </Button>
           </DialogFooter>

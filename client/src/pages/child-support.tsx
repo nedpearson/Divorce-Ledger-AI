@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Users, Plus, DollarSign, Calendar, CheckCircle, Clock, AlertTriangle, Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import { Users, Plus, DollarSign, Calendar, CheckCircle, Clock, AlertTriangle, Loader2, TrendingUp, TrendingDown, Download } from "lucide-react";
 import type { ChildSupportPayment } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -225,19 +225,19 @@ export default function ChildSupportPage() {
   });
 
   const allPayments = payments || [];
-  
+
   const totalPaid = allPayments
     .filter((p) => p.status === "paid")
     .reduce((sum, p) => sum + p.amount, 0);
-  
+
   const totalPending = allPayments
     .filter((p) => p.status === "pending")
     .reduce((sum, p) => sum + p.amount, 0);
-  
+
   const overduePayments = allPayments.filter(
     (p) => p.status === "pending" && new Date(p.dueDate) < new Date()
   );
-  
+
   const totalOverdue = overduePayments.reduce((sum, p) => sum + p.amount, 0);
 
   const markAsPaid = useMutation({
@@ -257,16 +257,51 @@ export default function ChildSupportPage() {
     },
   });
 
+  const exportData = () => {
+    if (!allPayments || allPayments.length === 0) return;
+    const headers = ["Type", "Amount", "Due Date", "Paid Date", "Status", "Method", "Child", "Notes"];
+    const csvContent = [
+      headers.join(","),
+      ...allPayments.map(p => {
+        const isOverdue = p.status === "pending" && new Date(p.dueDate) < new Date();
+        const displayStatus = isOverdue ? "overdue" : p.status;
+        return [
+          paymentTypes.find(t => t.value === p.paymentType)?.label || p.paymentType,
+          (p.amount / 100).toFixed(2),
+          format(new Date(p.dueDate), "yyyy-MM-dd"),
+          p.paidDate ? format(new Date(p.paidDate), "yyyy-MM-dd") : "",
+          displayStatus,
+          paymentMethods.find(m => m.value === p.paymentMethod)?.label || p.paymentMethod || "",
+          `"${(p.childName || "").replace(/"/g, '""')}"`,
+          `"${(p.notes || "").replace(/"/g, '""')}"`
+        ].join(",");
+      })
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `child_support_payments_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6" data-testid="page-child-support">
-      
+
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold" data-testid="text-page-title">Child Support</h1>
           <p className="text-sm text-muted-foreground">Track child support payments, modifications, and custody arrangements.</p>
         </div>
-        <AddPaymentDialog onSuccess={() => refetch()} />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportData} disabled={allPayments.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+          <AddPaymentDialog onSuccess={() => refetch()} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -364,7 +399,7 @@ export default function ChildSupportPage() {
                 {allPayments.map((payment) => {
                   const isOverdue = payment.status === "pending" && new Date(payment.dueDate) < new Date();
                   const displayStatus = isOverdue ? "overdue" : payment.status;
-                  
+
                   return (
                     <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`}>
                       <TableCell>
