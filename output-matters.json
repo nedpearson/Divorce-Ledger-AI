@@ -1,0 +1,43 @@
+{
+  "matters": [
+    {
+      "id": "7c9589b1-3356-4bae-ab1c-181b9499ba72",
+      "workspaceId": "be3a65ee-d035-4832-bc64-f126f971b395",
+      "matterNumber": "DL-FIRM-DEMO-001",
+      "title": "Pearson v. Pearson – Custody & Support",
+      "description": "End-to-end demo matter showing how the firm collaborates with the client, tracks documents, and prepares for court.",
+      "status": "active",
+      "leadAttorneyId": "caf5db34-f2f8-4362-ab57-4c3067a4cb78",
+      "createdAt": "2026-03-05T01:13:01.967Z",
+      "updatedAt": "2026-03-05T01:13:01.967Z",
+      "closedAt": null
+    }
+  ],
+  "members": [
+    {
+      "id": "3380d832-9bc4-432a-8c3d-e7d8501fc6f3",
+      "matterId": "7c9589b1-3356-4bae-ab1c-181b9499ba72",
+      "userId": "caf5db34-f2f8-4362-ab57-4c3067a4cb78",
+      "role": "attorney",
+      "permissions": {
+        "can_edit": true,
+        "can_view": true,
+        "can_upload": true,
+        "can_comment": true
+      },
+      "addedAt": "2026-03-05T01:13:01.970Z"
+    },
+    {
+      "id": "f82cfea3-e3b9-4c8d-94ba-2dcb2914639c",
+      "matterId": "7c9589b1-3356-4bae-ab1c-181b9499ba72",
+      "userId": "49aebdd3-e900-4d31-a822-ea95484cd2f0",
+      "role": "client",
+      "permissions": {
+        "can_view": true,
+        "can_upload": true,
+        "can_comment": true
+      },
+      "addedAt": "2026-03-05T01:13:01.970Z"
+    }
+  ]
+}

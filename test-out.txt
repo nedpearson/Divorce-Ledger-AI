@@ -1,0 +1,6 @@
+User: client.demo@example.com (role: client)
+  - Workspace: Demo Family Law Firm (Type: undefined) - Member Role: client
+User: demo@example.com (role: staff)
+  - Workspace: Demo Family Law Firm (Type: undefined) - Member Role: staff
+User: firm.admin.demo@example.com (role: admin)
+  - Workspace: Demo Family Law Firm (Type: undefined) - Member Role: owner

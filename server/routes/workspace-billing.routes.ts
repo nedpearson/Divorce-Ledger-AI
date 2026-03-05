@@ -123,7 +123,6 @@ router.get('/workspaces/:workspaceId/ai-credits', requireAuth, loadWorkspaceCont
  * GET /api/workspaces
  * @deprecated Migrated to Python Core ('/python_api/app/api/endpoints/workspaces.py')
  */
-/*
 router.get('/workspaces', requireAuth, async (req, res) => {
   try {
     const userWorkspaces = await db.query.workspaceMembers.findMany({
@@ -143,13 +142,11 @@ router.get('/workspaces', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to get workspaces' });
   }
 });
-*/
 
 /**
  * POST /api/workspaces
  * @deprecated Migrated to Python Core 
  */
-/*
 router.post('/workspaces', requireAuth, async (req, res) => {
   try {
     const { name, type } = req.body;
@@ -183,13 +180,11 @@ router.post('/workspaces', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to create workspace' });
   }
 });
-*/
 
 /**
  * GET /api/workspaces/:workspaceId
  * @deprecated Migrated to Python Core
  */
-/*
 router.get('/workspaces/:workspaceId', requireAuth, loadWorkspaceContext, async (req, res) => {
   try {
     const workspace = await db.query.workspaces.findFirst({
@@ -202,7 +197,6 @@ router.get('/workspaces/:workspaceId', requireAuth, loadWorkspaceContext, async 
     res.status(500).json({ error: 'Failed to get workspace' });
   }
 });
-*/
 
 /**
  * PATCH /api/workspaces/:workspaceId

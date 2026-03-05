@@ -1,0 +1,38 @@
+[
+  {
+    "email": "client.demo@example.com",
+    "role": "client",
+    "isAdmin": false,
+    "memberships": [
+      {
+        "workspaceName": "Demo Family Law Firm",
+        "workspaceType": "firm",
+        "memberRole": "client"
+      }
+    ]
+  },
+  {
+    "email": "demo@example.com",
+    "role": "staff",
+    "isAdmin": false,
+    "memberships": [
+      {
+        "workspaceName": "Demo Family Law Firm",
+        "workspaceType": "firm",
+        "memberRole": "staff"
+      }
+    ]
+  },
+  {
+    "email": "firm.admin.demo@example.com",
+    "role": "admin",
+    "isAdmin": true,
+    "memberships": [
+      {
+        "workspaceName": "Demo Family Law Firm",
+        "workspaceType": "firm",
+        "memberRole": "owner"
+      }
+    ]
+  }
+]

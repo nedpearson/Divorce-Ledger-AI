@@ -1,0 +1,38 @@
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+Error: Transform failed with 1 error:
+/eval.ts:1:19: ERROR: Expected string but found "."
+    at failureErrorWithLog (C:\dev\github\business\Divorce-Ledger-AI\node_modules\tsx\node_modules\esbuild\lib\main.js:1467:15)
+    at C:\dev\github\business\Divorce-Ledger-AI\node_modules\tsx\node_modules\esbuild\lib\main.js:736:50
+    at responseCallbacks.<computed> (C:\dev\github\business\Divorce-Ledger-AI\node_modules\tsx\node_modules\esbuild\lib\main.js:603:9)
+    at handleIncomingPacket (C:\dev\github\business\Divorce-Ledger-AI\node_modules\tsx\node_modules\esbuild\lib\main.js:658:12)
+    at Socket.readFromStdout (C:\dev\github\business\Divorce-Ledger-AI\node_modules\tsx\node_modules\esbuild\lib\main.js:581:7)
+    at Socket.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:563:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+    at Readable.push (node:internal/streams/readable:394:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23) {
+  errors: [
+    {
+      detail: undefined,
+      id: '',
+      location: {
+        column: 19,
+        file: '/eval.ts',
+        length: 1,
+        line: 1,
+        lineText: 'import { db } from ./server/db.ts; import { users } from ./shared/schema.ts; import { matters } from ./shared/workspace-schema.ts; async function run() { console.log(JSON.stringify(await db.select().from(matters), null, 2)); process.exit(0); } run();',
+        namespace: '',
+        suggestion: ''
+      },
+      notes: [],
+      pluginName: '',
+      text: 'Expected string but found "."'
+    }
+  ],
+  warnings: []
+}
+
+Node.js v24.14.0

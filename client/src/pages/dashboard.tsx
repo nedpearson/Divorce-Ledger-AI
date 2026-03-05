@@ -255,11 +255,12 @@ function DashboardSkeleton() {
 }
 
 export default function Dashboard() {
-  const { environment } = useAuth();
+  const { environment, user } = useAuth();
   const [drilldownOpen, setDrilldownOpen] = useState(false);
   const [drilldownType, setDrilldownType] = useState<DrilldownType>("assets");
   const [drilldownTitle, setDrilldownTitle] = useState("Assets");
-  const [viewMode, setViewMode] = useState<"client" | "firm">("client");
+  const defaultMode = (user?.role === "admin" || user?.role === "staff" || user?.isAdmin) ? "firm" : "client";
+  const [viewMode, setViewMode] = useState<"client" | "firm">(defaultMode);
 
   const openDrilldown = (type: DrilldownType, title: string) => {
     setDrilldownType(type);
