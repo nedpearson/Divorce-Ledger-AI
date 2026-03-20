@@ -1,15 +1,15 @@
-import { useState, useRef, useEffect, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { format } from "date-fns";
-import { useAuth } from "@/lib/auth";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import type { Violation } from "@shared/schema";
-import { VoiceInputButton } from "@/components/voice-recorder";
-import { FeedbackCTA } from "@/components/feedback-cta";
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { format } from 'date-fns';
+import { useAuth } from '@/lib/auth';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import type { Violation } from '@shared/schema';
+import { VoiceInputButton } from '@/components/voice-recorder';
+import { FeedbackCTA } from '@/components/feedback-cta';
 
 interface UploadedFile {
   name: string;
@@ -17,12 +17,12 @@ interface UploadedFile {
   size: number;
   objectPath: string;
 }
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Form,
   FormControl,
@@ -30,21 +30,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
+} from '@/components/ui/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   AlertTriangle,
   Plus,
@@ -64,22 +64,22 @@ import {
   Upload,
   X,
   Download,
-} from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+} from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const violationTypes = [
-  { value: "custody", label: "Custody Violation" },
-  { value: "financial_hiding", label: "Financial Hiding" },
-  { value: "property_damage", label: "Property Damage" },
-  { value: "child_neglect", label: "Child Neglect" },
-  { value: "court_order", label: "Court Order Violation" },
-  { value: "harassment", label: "Harassment" },
-  { value: "other", label: "Other" },
+  { value: 'custody', label: 'Custody Violation' },
+  { value: 'financial_hiding', label: 'Financial Hiding' },
+  { value: 'property_damage', label: 'Property Damage' },
+  { value: 'child_neglect', label: 'Child Neglect' },
+  { value: 'court_order', label: 'Court Order Violation' },
+  { value: 'harassment', label: 'Harassment' },
+  { value: 'other', label: 'Other' },
 ];
 
 const violationFormSchema = z.object({
-  type: z.string().min(1, "Select a violation type"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
+  type: z.string().min(1, 'Select a violation type'),
+  description: z.string().min(10, 'Description must be at least 10 characters'),
   location: z.string().optional(),
   witnesses: z.array(z.string()).optional(),
 });
@@ -90,28 +90,28 @@ export default function Violations() {
   const { environment } = useAuth();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState('all');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [witnessInputs, setWitnessInputs] = useState<string[]>([""]);
-  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [witnessInputs, setWitnessInputs] = useState<string[]>(['']);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-open report dialog if action=report query param is present
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("action") === "report") {
+    if (params.get('action') === 'report') {
       // Use setTimeout to ensure state is set before navigation
       setIsDialogOpen(true);
       // Clear the query param after a brief delay to prevent re-opening on refresh
       setTimeout(() => {
-        window.history.replaceState({}, "", "/violations");
+        window.history.replaceState({}, '', '/violations');
       }, 100);
     }
   }, []);
 
   const { data: violations, isLoading } = useQuery<Violation[]>({
-    queryKey: ["/api", "violations", { environment }],
+    queryKey: ['/api', 'violations', { environment }],
   });
 
   interface SubscriptionData {
@@ -127,15 +127,15 @@ export default function Violations() {
   }
 
   const { data: subscription } = useQuery<SubscriptionData>({
-    queryKey: ["/api/subscription"],
+    queryKey: ['/api/subscription'],
   });
 
   const form = useForm<ViolationFormValues>({
     resolver: zodResolver(violationFormSchema),
     defaultValues: {
-      type: "",
-      description: "",
-      location: "",
+      type: '',
+      description: '',
+      location: '',
       witnesses: [],
     },
   });
@@ -143,8 +143,8 @@ export default function Violations() {
   const resetFormState = () => {
     form.reset();
     setUploadedFiles([]);
-    setWitnessInputs([""]);
-    setVoiceTranscript("");
+    setWitnessInputs(['']);
+    setVoiceTranscript('');
   };
 
   const handleFileUpload = async (files: FileList | null) => {
@@ -156,9 +156,9 @@ export default function Violations() {
     for (const file of Array.from(files)) {
       try {
         // Request presigned URL
-        const urlResponse = await fetch("/api/uploads/request-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const urlResponse = await fetch('/api/uploads/request-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: file.name,
             size: file.size,
@@ -167,20 +167,20 @@ export default function Violations() {
         });
 
         if (!urlResponse.ok) {
-          throw new Error("Failed to get upload URL");
+          throw new Error('Failed to get upload URL');
         }
 
         const { uploadURL, objectPath } = await urlResponse.json();
 
         // Upload file directly to storage
         const uploadResponse = await fetch(uploadURL, {
-          method: "PUT",
+          method: 'PUT',
           body: file,
-          headers: { "Content-Type": file.type },
+          headers: { 'Content-Type': file.type },
         });
 
         if (!uploadResponse.ok) {
-          throw new Error("Failed to upload file");
+          throw new Error('Failed to upload file');
         }
 
         newFiles.push({
@@ -192,40 +192,44 @@ export default function Violations() {
 
         toast({ title: `Uploaded: ${file.name}` });
       } catch (error) {
-        toast({ title: `Failed to upload ${file.name}`, variant: "destructive" });
+        toast({ title: `Failed to upload ${file.name}`, variant: 'destructive' });
       }
     }
 
-    setUploadedFiles(prev => [...prev, ...newFiles]);
+    setUploadedFiles((prev) => [...prev, ...newFiles]);
     setIsUploading(false);
   };
 
   const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const createMutation = useMutation({
     mutationFn: async (data: ViolationFormValues & { isDraft?: boolean }) => {
-      const witnesses = witnessInputs.filter(w => w.trim() !== "");
-      const photoFiles = uploadedFiles.filter(f => f.type.startsWith("image/"));
-      const videoFiles = uploadedFiles.filter(f => f.type.startsWith("video/"));
+      const witnesses = witnessInputs.filter((w) => w.trim() !== '');
+      const photoFiles = uploadedFiles.filter((f) => f.type.startsWith('image/'));
+      const videoFiles = uploadedFiles.filter((f) => f.type.startsWith('video/'));
       const payload = {
         ...data,
         witnesses: witnesses.length > 0 ? witnesses : undefined,
         photoCount: photoFiles.length,
         videoDuration: videoFiles.length > 0 ? 1 : null,
-        mediaUrls: uploadedFiles.map(f => f.objectPath),
+        mediaUrls: uploadedFiles.map((f) => f.objectPath),
         isDraft: data.isDraft || false,
         audioTranscript: voiceTranscript || undefined,
       };
 
       // Create the violation first
-      const response = await apiRequest("POST", `/api/violations?environment=${environment}`, payload);
-      const violation = await response.json() as Violation;
+      const response = await apiRequest(
+        'POST',
+        `/api/violations?environment=${environment}`,
+        payload
+      );
+      const violation = (await response.json()) as Violation;
 
       // Save evidence files with metadata for each uploaded file
       for (const file of uploadedFiles) {
-        await apiRequest("POST", `/api/evidence?environment=${environment}`, {
+        await apiRequest('POST', `/api/evidence?environment=${environment}`, {
           violationId: violation.id,
           fileName: file.name,
           fileType: file.type,
@@ -237,20 +241,24 @@ export default function Violations() {
       return violation;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api", "violations", { environment }] });
-      toast({ title: variables.isDraft ? "Draft saved" : "Violation documented successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api', 'violations', { environment }] });
+      toast({ title: variables.isDraft ? 'Draft saved' : 'Violation documented successfully' });
       resetFormState();
       setIsDialogOpen(false);
     },
     onError: async (error: Error & { response?: Response }) => {
       try {
         if (error.response) {
-          const data = await error.response.json() as { error?: string; reason?: string; upgradeRequired?: boolean };
+          const data = (await error.response.json()) as {
+            error?: string;
+            reason?: string;
+            upgradeRequired?: boolean;
+          };
           if (data.upgradeRequired) {
             toast({
-              title: data.error || "Limit reached",
-              description: data.reason || "Please upgrade your plan to continue.",
-              variant: "destructive"
+              title: data.error || 'Limit reached',
+              description: data.reason || 'Please upgrade your plan to continue.',
+              variant: 'destructive',
             });
             return;
           }
@@ -258,27 +266,29 @@ export default function Violations() {
       } catch {
         // Ignore parsing errors
       }
-      toast({ title: "Failed to document violation", variant: "destructive" });
+      toast({ title: 'Failed to document violation', variant: 'destructive' });
     },
   });
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      return apiRequest("PATCH", `/api/violations/${id}/status?environment=${environment}`, { status });
+      return apiRequest('PATCH', `/api/violations/${id}/status?environment=${environment}`, {
+        status,
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api", "violations", { environment }] });
-      toast({ title: "Status updated" });
+      queryClient.invalidateQueries({ queryKey: ['/api', 'violations', { environment }] });
+      toast({ title: 'Status updated' });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/violations/${id}?environment=${environment}`);
+      return apiRequest('DELETE', `/api/violations/${id}?environment=${environment}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api", "violations", { environment }] });
-      toast({ title: "Violation deleted" });
+      queryClient.invalidateQueries({ queryKey: ['/api', 'violations', { environment }] });
+      toast({ title: 'Violation deleted' });
     },
   });
 
@@ -291,12 +301,12 @@ export default function Violations() {
     if (values.type && values.description.length >= 10) {
       onSubmit(values, true);
     } else {
-      toast({ title: "Please fill in required fields before saving", variant: "destructive" });
+      toast({ title: 'Please fill in required fields before saving', variant: 'destructive' });
     }
   };
 
   const addWitnessField = () => {
-    setWitnessInputs([...witnessInputs, ""]);
+    setWitnessInputs([...witnessInputs, '']);
   };
 
   const updateWitness = (index: number, value: string) => {
@@ -305,19 +315,23 @@ export default function Violations() {
     setWitnessInputs(updated);
   };
 
-  const photoFiles = uploadedFiles.filter(f => f.type.startsWith("image/"));
-  const videoFiles = uploadedFiles.filter(f => f.type.startsWith("video/"));
+  const photoFiles = uploadedFiles.filter((f) => f.type.startsWith('image/'));
+  const videoFiles = uploadedFiles.filter((f) => f.type.startsWith('video/'));
 
   const getStatusBadge = (status: string, isDraft?: boolean | null) => {
     if (isDraft) {
-      return <Badge variant="outline" className="border-dashed">Draft</Badge>;
+      return (
+        <Badge variant="outline" className="border-dashed">
+          Draft
+        </Badge>
+      );
     }
     switch (status) {
-      case "pending":
+      case 'pending':
         return <Badge variant="secondary">Pending Review</Badge>;
-      case "reviewed":
+      case 'reviewed':
         return <Badge variant="outline">Reviewed</Badge>;
-      case "approved":
+      case 'approved':
         return <Badge className="bg-green-600 text-white">Approved</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
@@ -328,41 +342,48 @@ export default function Violations() {
     return violationTypes.find((t) => t.value === type)?.label || type;
   };
 
-  const filteredViolations = useMemo(() => violations?.filter((v) => {
-    if (activeTab === "all") return true;
-    if (activeTab === "drafts") return v.isDraft === true;
-    return v.status === activeTab && !v.isDraft;
-  }), [violations, activeTab]);
+  const filteredViolations = useMemo(
+    () =>
+      violations?.filter((v) => {
+        if (activeTab === 'all') return true;
+        if (activeTab === 'drafts') return v.isDraft === true;
+        return v.status === activeTab && !v.isDraft;
+      }),
+    [violations, activeTab]
+  );
 
-  const stats = useMemo(() => ({
-    total: violations?.length || 0,
-    pending: violations?.filter((v) => v.status === "pending" && !v.isDraft).length || 0,
-    reviewed: violations?.filter((v) => v.status === "reviewed").length || 0,
-    approved: violations?.filter((v) => v.status === "approved").length || 0,
-    drafts: violations?.filter((v) => v.isDraft).length || 0,
-  }), [violations]);
+  const stats = useMemo(
+    () => ({
+      total: violations?.length || 0,
+      pending: violations?.filter((v) => v.status === 'pending' && !v.isDraft).length || 0,
+      reviewed: violations?.filter((v) => v.status === 'reviewed').length || 0,
+      approved: violations?.filter((v) => v.status === 'approved').length || 0,
+      drafts: violations?.filter((v) => v.isDraft).length || 0,
+    }),
+    [violations]
+  );
 
   const exportData = () => {
     if (!filteredViolations) return;
-    const headers = ["Type", "Status", "Date", "Description", "Location", "Witnesses"];
+    const headers = ['Type', 'Status', 'Date', 'Description', 'Location', 'Witnesses'];
     const csvContent = [
-      headers.join(","),
-      ...filteredViolations.map(v =>
+      headers.join(','),
+      ...filteredViolations.map((v) =>
         [
           getTypeLabel(v.type),
           v.status,
-          format(new Date(v.timestamp), "yyyy-MM-dd HH:mm"),
-          `"${(v.description || "").replace(/"/g, '""')}"`,
-          `"${(v.location || "").replace(/"/g, '""')}"`,
-          `"${(v.witnesses?.join(";") || "").replace(/"/g, '""')}"`
-        ].join(",")
-      )
-    ].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+          format(new Date(v.timestamp), 'yyyy-MM-dd HH:mm'),
+          `"${(v.description || '').replace(/"/g, '""')}"`,
+          `"${(v.location || '').replace(/"/g, '""')}"`,
+          `"${(v.witnesses?.join(';') || '').replace(/"/g, '""')}"`,
+        ].join(',')
+      ),
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `violations_export_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.download = `violations_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -377,7 +398,12 @@ export default function Violations() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportData} disabled={!filteredViolations?.length}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportData}
+            disabled={!filteredViolations?.length}
+          >
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
@@ -397,19 +423,28 @@ export default function Violations() {
                 {subscription && (
                   <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-1">
                     <span data-testid="text-remaining-voice">
-                      Voice: {subscription.usage.remainingVoice === "unlimited" ? "Unlimited" : `${subscription.usage.remainingVoice} left`}
+                      Voice:{' '}
+                      {subscription.usage.remainingVoice === 'unlimited'
+                        ? 'Unlimited'
+                        : `${subscription.usage.remainingVoice} left`}
                     </span>
                     <span data-testid="text-remaining-media">
-                      Media: {subscription.usage.remainingMedia === "unlimited" ? "Unlimited" : `${subscription.usage.remainingMedia} left`}
+                      Media:{' '}
+                      {subscription.usage.remainingMedia === 'unlimited'
+                        ? 'Unlimited'
+                        : `${subscription.usage.remainingMedia} left`}
                     </span>
                   </div>
                 )}
               </DialogHeader>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit((data) => onSubmit(data, false))} className="space-y-4">
+                <form
+                  onSubmit={form.handleSubmit((data) => onSubmit(data, false))}
+                  className="space-y-4"
+                >
                   <div className="flex items-center gap-2 text-sm text-muted-foreground border rounded-md p-2 bg-muted/30">
                     <Clock className="h-4 w-4" />
-                    <span>{format(new Date(), "MMM d, yyyy h:mm a")} (Auto-filled)</span>
+                    <span>{format(new Date(), 'MMM d, yyyy h:mm a')} (Auto-filled)</span>
                   </div>
 
                   <FormField
@@ -458,7 +493,7 @@ export default function Violations() {
                         data-testid="button-upload"
                       >
                         <Upload className="h-4 w-4 mr-1" />
-                        {isUploading ? "Uploading..." : "Upload Files"}
+                        {isUploading ? 'Uploading...' : 'Upload Files'}
                       </Button>
                       <Button
                         type="button"
@@ -484,22 +519,25 @@ export default function Violations() {
                       {photoFiles.length > 0 && (
                         <Badge variant="secondary" className="gap-1">
                           <Image className="h-3 w-3" />
-                          {photoFiles.length} {photoFiles.length === 1 ? "image" : "images"}
+                          {photoFiles.length} {photoFiles.length === 1 ? 'image' : 'images'}
                         </Badge>
                       )}
                       {videoFiles.length > 0 && (
                         <Badge variant="secondary" className="gap-1">
                           <Video className="h-3 w-3" />
-                          {videoFiles.length} {videoFiles.length === 1 ? "video" : "videos"}
+                          {videoFiles.length} {videoFiles.length === 1 ? 'video' : 'videos'}
                         </Badge>
                       )}
                     </div>
                     {uploadedFiles.length > 0 && (
                       <div className="space-y-1 pt-1">
                         {uploadedFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between text-sm bg-muted/50 rounded px-2 py-1">
+                          <div
+                            key={index}
+                            className="flex items-center justify-between text-sm bg-muted/50 rounded px-2 py-1"
+                          >
                             <span className="flex items-center gap-2 truncate">
-                              {file.type.startsWith("image/") ? (
+                              {file.type.startsWith('image/') ? (
                                 <Image className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                               ) : (
                                 <Video className="h-3 w-3 text-muted-foreground flex-shrink-0" />
@@ -523,7 +561,8 @@ export default function Violations() {
                       <div className="text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <CheckCircle className="h-3 w-3 text-green-500" />
-                          {uploadedFiles.length} {uploadedFiles.length === 1 ? "file" : "files"} uploaded
+                          {uploadedFiles.length} {uploadedFiles.length === 1 ? 'file' : 'files'}{' '}
+                          uploaded
                         </span>
                       </div>
                     )}
@@ -549,9 +588,9 @@ export default function Violations() {
                             <div className="absolute right-2 top-2">
                               <VoiceInputButton
                                 onTranscript={(text) => {
-                                  const current = field.value || "";
+                                  const current = field.value || '';
                                   field.onChange(current ? `${current} ${text}` : text);
-                                  setVoiceTranscript(prev => prev ? `${prev} ${text}` : text);
+                                  setVoiceTranscript((prev) => (prev ? `${prev} ${text}` : text));
                                 }}
                               />
                             </div>
@@ -701,11 +740,21 @@ export default function Violations() {
         <CardHeader className="p-3 pb-0">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex-wrap">
-              <TabsTrigger value="all" data-testid="tab-all">All</TabsTrigger>
-              <TabsTrigger value="drafts" data-testid="tab-drafts">Drafts ({stats.drafts})</TabsTrigger>
-              <TabsTrigger value="pending" data-testid="tab-pending">Pending</TabsTrigger>
-              <TabsTrigger value="reviewed" data-testid="tab-reviewed">Reviewed</TabsTrigger>
-              <TabsTrigger value="approved" data-testid="tab-approved">Approved</TabsTrigger>
+              <TabsTrigger value="all" data-testid="tab-all">
+                All
+              </TabsTrigger>
+              <TabsTrigger value="drafts" data-testid="tab-drafts">
+                Drafts ({stats.drafts})
+              </TabsTrigger>
+              <TabsTrigger value="pending" data-testid="tab-pending">
+                Pending
+              </TabsTrigger>
+              <TabsTrigger value="reviewed" data-testid="tab-reviewed">
+                Reviewed
+              </TabsTrigger>
+              <TabsTrigger value="approved" data-testid="tab-approved">
+                Approved
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </CardHeader>
@@ -730,7 +779,7 @@ export default function Violations() {
                       {getStatusBadge(violation.status, violation.isDraft)}
                     </div>
                     <div className="flex items-center gap-1">
-                      {violation.status === "pending" && (
+                      {violation.status === 'pending' && (
                         <>
                           <Button
                             size="sm"
@@ -738,7 +787,7 @@ export default function Violations() {
                             onClick={() =>
                               updateStatusMutation.mutate({
                                 id: violation.id,
-                                status: "reviewed",
+                                status: 'reviewed',
                               })
                             }
                             data-testid={`button-review-${violation.id}`}
@@ -750,7 +799,7 @@ export default function Violations() {
                             onClick={() =>
                               updateStatusMutation.mutate({
                                 id: violation.id,
-                                status: "approved",
+                                status: 'approved',
                               })
                             }
                             data-testid={`button-approve-${violation.id}`}
@@ -760,13 +809,13 @@ export default function Violations() {
                           </Button>
                         </>
                       )}
-                      {violation.status === "reviewed" && (
+                      {violation.status === 'reviewed' && (
                         <Button
                           size="sm"
                           onClick={() =>
                             updateStatusMutation.mutate({
                               id: violation.id,
-                              status: "approved",
+                              status: 'approved',
                             })
                           }
                           data-testid={`button-approve-${violation.id}`}
@@ -789,7 +838,7 @@ export default function Violations() {
                   <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {format(new Date(violation.timestamp), "MMM d, yyyy h:mm a")}
+                      {format(new Date(violation.timestamp), 'MMM d, yyyy h:mm a')}
                     </span>
                     {violation.location && (
                       <span className="flex items-center gap-1">
@@ -800,7 +849,7 @@ export default function Violations() {
                     {violation.photoCount && violation.photoCount > 0 && (
                       <span className="flex items-center gap-1">
                         <Image className="h-3 w-3" />
-                        {violation.photoCount} {violation.photoCount === 1 ? "photo" : "photos"}
+                        {violation.photoCount} {violation.photoCount === 1 ? 'photo' : 'photos'}
                       </span>
                     )}
                     {violation.videoDuration && (
@@ -812,7 +861,8 @@ export default function Violations() {
                     {violation.witnesses && violation.witnesses.length > 0 && (
                       <span className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        {violation.witnesses.length} {violation.witnesses.length === 1 ? "witness" : "witnesses"}
+                        {violation.witnesses.length}{' '}
+                        {violation.witnesses.length === 1 ? 'witness' : 'witnesses'}
                       </span>
                     )}
                   </div>

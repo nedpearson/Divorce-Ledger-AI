@@ -1,7 +1,7 @@
 /**
  * COMPLETE SYSTEM VALIDATION
  * Tests: Billing → Tier Enforcement → Analytics
- * 
+ *
  * Run with: npx tsx scripts/test-complete-system.ts
  */
 
@@ -44,7 +44,7 @@ class SystemValidator {
 
     try {
       const existingUsers = await db.select().from(users).limit(1);
-      
+
       if (existingUsers.length > 0) {
         this.testUser = { id: existingUsers[0].id, email: existingUsers[0].email };
         console.log(`✅ Using existing user: ${this.testUser.email} (ID: ${this.testUser.id})`);
@@ -72,7 +72,9 @@ class SystemValidator {
       this.addResult('File Upload Check', true, Date.now() - start);
       console.log(`   Can upload 5MB: ${uploadCheck.allowed}`);
 
-      const recommendation = await tierEnforcementService.getRecommendedTierUpgrade(this.testUser.id);
+      const recommendation = await tierEnforcementService.getRecommendedTierUpgrade(
+        this.testUser.id
+      );
       this.addResult('Upgrade Recommendation', true, Date.now() - start);
       console.log(`   Current: ${recommendation.currentTier}`);
       console.log(`   Recommended: ${recommendation.recommendedTier}`);
@@ -184,7 +186,7 @@ class SystemValidator {
     try {
       const allUsers = await db.select().from(users);
       const allViolations = await db.select().from(violations);
-      
+
       this.addResult('Users Table Access', true, Date.now() - start);
       console.log(`   Total users: ${allUsers.length}`);
 
@@ -194,7 +196,6 @@ class SystemValidator {
       const billingRecordsData = await db.select().from(billingRecords);
       this.addResult('Billing Records Access', true, Date.now() - start);
       console.log(`   Total billing records: ${billingRecordsData.length}`);
-
     } catch (error) {
       this.addResult('Data Consistency', false, Date.now() - start, error as Error);
     }
@@ -208,7 +209,7 @@ class SystemValidator {
       const analyticsStart = Date.now();
       await analyticsService.getPlatformMetrics();
       const analyticsTime = Date.now() - analyticsStart;
-      
+
       const passed = analyticsTime < 5000;
       this.addResult(`Analytics Query (<5s)`, passed, analyticsTime);
       console.log(`   Analytics query: ${analyticsTime}ms`);
@@ -219,10 +220,9 @@ class SystemValidator {
         await billingService.calculateMonthlyBilling(user[0].id);
       }
       const billingTime = Date.now() - billingStart;
-      
+
       this.addResult(`Billing Calculation (<1s)`, billingTime < 1000, billingTime);
       console.log(`   Billing calculation: ${billingTime}ms`);
-
     } catch (error) {
       this.addResult('Performance', false, Date.now() - start, error as Error);
     }
@@ -233,8 +233,8 @@ class SystemValidator {
     console.log('                    TEST SUMMARY');
     console.log('='.repeat(60) + '\n');
 
-    const passed = this.results.filter(r => r.passed).length;
-    const failed = this.results.filter(r => !r.passed).length;
+    const passed = this.results.filter((r) => r.passed).length;
+    const failed = this.results.filter((r) => !r.passed).length;
     const total = this.results.length;
 
     console.log(`Total Tests: ${total}`);
@@ -244,13 +244,15 @@ class SystemValidator {
 
     if (failed > 0) {
       console.log('Failed Tests:');
-      this.results.filter(r => !r.passed).forEach(r => {
-        console.log(`  ❌ ${r.name}: ${r.error || 'Unknown error'}`);
-      });
+      this.results
+        .filter((r) => !r.passed)
+        .forEach((r) => {
+          console.log(`  ❌ ${r.name}: ${r.error || 'Unknown error'}`);
+        });
     }
 
     console.log('\n' + '='.repeat(60));
-    
+
     if (failed === 0) {
       console.log('🎉 ALL TESTS PASSED! System is ready for production.');
     } else {
@@ -272,13 +274,14 @@ class SystemValidator {
     await this.testAnalytics();
     await this.testDataConsistency();
     await this.testPerformance();
-    
+
     this.printSummary();
   }
 }
 
 const validator = new SystemValidator();
-validator.runAll()
+validator
+  .runAll()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error('Validation failed:', error);

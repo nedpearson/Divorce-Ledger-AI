@@ -7,7 +7,8 @@ import { Analytics } from '@vercel/analytics/next';
 
 export default function App({ Component, pageProps }: AppProps) {
   const { initialize: initializeAuth, user } = useAuthStore();
-  const { initialize: initializeWorkspace, initialized: workspaceInitialized } = useWorkspaceStore();
+  const { initialize: initializeWorkspace, initialized: workspaceInitialized } =
+    useWorkspaceStore();
 
   useEffect(() => {
     // Initialize auth on app start
@@ -17,7 +18,7 @@ export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     // Initialize workspace context when user is authenticated
     if (user && !workspaceInitialized) {
-      initializeWorkspace(user.id).catch(error => {
+      initializeWorkspace(user.id).catch((error) => {
         console.error('Failed to initialize workspace:', error);
       });
     }

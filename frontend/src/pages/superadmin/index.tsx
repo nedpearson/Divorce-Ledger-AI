@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import AuthGuard from '@/components/guards/AuthGuard';
 import RoleGuard from '@/components/guards/RoleGuard';
 import { supabase } from '@/lib/supabase';
-import { 
-  BuildingOfficeIcon, 
-  UserGroupIcon, 
-  CheckCircleIcon, 
+import {
+  BuildingOfficeIcon,
+  UserGroupIcon,
+  CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
-  ChartBarIcon 
+  ChartBarIcon,
 } from '@heroicons/react/24/outline';
 
 interface Stats {
@@ -54,9 +54,9 @@ export default function SuperAdminDashboard() {
       const workspaces = workspacesRes.data || [];
       setStats({
         totalWorkspaces: workspaces.length,
-        pendingApprovals: workspaces.filter(w => w.status === 'pending').length,
+        pendingApprovals: workspaces.filter((w) => w.status === 'pending').length,
         activeUsers: usersRes.count || 0,
-        suspendedWorkspaces: workspaces.filter(w => w.status === 'suspended').length,
+        suspendedWorkspaces: workspaces.filter((w) => w.status === 'suspended').length,
       });
 
       // Load pending workspaces with owner info
@@ -106,7 +106,7 @@ export default function SuperAdminDashboard() {
         .eq('id', workspaceId);
 
       if (error) throw error;
-      
+
       alert('Workspace approved successfully');
       loadDashboardData();
     } catch (error) {
@@ -125,7 +125,7 @@ export default function SuperAdminDashboard() {
         .eq('id', workspaceId);
 
       if (error) throw error;
-      
+
       alert('Workspace rejected');
       loadDashboardData();
     } catch (error) {
@@ -163,8 +163,12 @@ export default function SuperAdminDashboard() {
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Total Workspaces</dt>
-                        <dd className="text-2xl font-semibold text-gray-900">{stats.totalWorkspaces}</dd>
+                        <dt className="text-sm font-medium text-gray-500 truncate">
+                          Total Workspaces
+                        </dt>
+                        <dd className="text-2xl font-semibold text-gray-900">
+                          {stats.totalWorkspaces}
+                        </dd>
                       </dl>
                     </div>
                   </div>
@@ -179,8 +183,12 @@ export default function SuperAdminDashboard() {
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Pending Approvals</dt>
-                        <dd className="text-2xl font-semibold text-yellow-600">{stats.pendingApprovals}</dd>
+                        <dt className="text-sm font-medium text-gray-500 truncate">
+                          Pending Approvals
+                        </dt>
+                        <dd className="text-2xl font-semibold text-yellow-600">
+                          {stats.pendingApprovals}
+                        </dd>
                       </dl>
                     </div>
                   </div>
@@ -196,7 +204,9 @@ export default function SuperAdminDashboard() {
                     <div className="ml-5 w-0 flex-1">
                       <dl>
                         <dt className="text-sm font-medium text-gray-500 truncate">Active Users</dt>
-                        <dd className="text-2xl font-semibold text-gray-900">{stats.activeUsers}</dd>
+                        <dd className="text-2xl font-semibold text-gray-900">
+                          {stats.activeUsers}
+                        </dd>
                       </dl>
                     </div>
                   </div>
@@ -212,7 +222,9 @@ export default function SuperAdminDashboard() {
                     <div className="ml-5 w-0 flex-1">
                       <dl>
                         <dt className="text-sm font-medium text-gray-500 truncate">Suspended</dt>
-                        <dd className="text-2xl font-semibold text-red-600">{stats.suspendedWorkspaces}</dd>
+                        <dd className="text-2xl font-semibold text-red-600">
+                          {stats.suspendedWorkspaces}
+                        </dd>
                       </dl>
                     </div>
                   </div>
@@ -235,10 +247,12 @@ export default function SuperAdminDashboard() {
                         <li key={workspace.id} className="py-4">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
-                              <h4 className="text-sm font-medium text-gray-900">{workspace.name}</h4>
+                              <h4 className="text-sm font-medium text-gray-900">
+                                {workspace.name}
+                              </h4>
                               <p className="text-sm text-gray-500">
-                                Type: <span className="capitalize">{workspace.type}</span> • 
-                                Owner: {workspace.owner_email}
+                                Type: <span className="capitalize">{workspace.type}</span> • Owner:{' '}
+                                {workspace.owner_email}
                               </p>
                               <p className="text-xs text-gray-400 mt-1">
                                 Created: {new Date(workspace.created_at).toLocaleDateString()}

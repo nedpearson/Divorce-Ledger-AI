@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import AuthGuard from '@/components/guards/AuthGuard';
 import RoleGuard from '@/components/guards/RoleGuard';
 import { supabase } from '@/lib/supabase';
-import { 
-  MagnifyingGlassIcon, 
+import {
+  MagnifyingGlassIcon,
   FunnelIcon,
   ShieldCheckIcon,
-  UserIcon 
+  UserIcon,
 } from '@heroicons/react/24/outline';
 
 interface AuditLogEntry {
@@ -83,7 +83,8 @@ export default function AuditLogViewer() {
 
   const getActionBadgeColor = (action: string) => {
     if (action.includes('delete') || action.includes('suspend')) return 'bg-red-100 text-red-800';
-    if (action.includes('create') || action.includes('approve')) return 'bg-green-100 text-green-800';
+    if (action.includes('create') || action.includes('approve'))
+      return 'bg-green-100 text-green-800';
     if (action.includes('update')) return 'bg-blue-100 text-blue-800';
     if (action.includes('impersonation')) return 'bg-purple-100 text-purple-800';
     return 'bg-gray-100 text-gray-800';
@@ -101,10 +102,7 @@ export default function AuditLogViewer() {
                   <h1 className="text-3xl font-bold text-gray-900">Audit Logs</h1>
                   <p className="mt-2 text-gray-600">Platform-wide activity and security log</p>
                 </div>
-                <a
-                  href="/superadmin"
-                  className="text-blue-600 hover:text-blue-800 font-medium"
-                >
+                <a href="/superadmin" className="text-blue-600 hover:text-blue-800 font-medium">
                   ← Back to Dashboard
                 </a>
               </div>
@@ -114,9 +112,7 @@ export default function AuditLogViewer() {
             <div className="mt-6 bg-white shadow rounded-lg p-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Search
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
                   <div className="relative">
                     <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <input
@@ -147,9 +143,7 @@ export default function AuditLogViewer() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Actor Type
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Actor Type</label>
                   <select
                     value={filter.isPlatformAdmin}
                     onChange={(e) => handleFilterChange('isPlatformAdmin', e.target.value)}
@@ -219,7 +213,9 @@ export default function AuditLogViewer() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getActionBadgeColor(log.action)}`}>
+                            <span
+                              className={`px-2 py-1 text-xs font-medium rounded-full ${getActionBadgeColor(log.action)}`}
+                            >
                               {log.action}
                             </span>
                           </td>

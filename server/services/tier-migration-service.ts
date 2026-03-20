@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db } from '../db';
 import { users, tierMigrations, type TierMigration as TierMigrationRow } from '@shared/schema';
 import { eq, and, or, lte, desc, gte, sql } from 'drizzle-orm';
 
@@ -14,7 +14,7 @@ export interface TierMigration {
   status: 'pending' | 'active' | 'completed';
 }
 
-import { isDemoMode, getAppMode } from "./config";
+import { isDemoMode, getAppMode } from '../config';
 
 export class TierMigrationService {
   async migrateTier(
@@ -55,12 +55,12 @@ export class TierMigrationService {
       });
 
       if (gracePeriodDays === 0) {
-        await db.update(users)
-          .set({ subscriptionTier: newTier })
-          .where(eq(users.id, userId));
+        await db.update(users).set({ subscriptionTier: newTier }).where(eq(users.id, userId));
         console.log(`User ${userId} migrated: ${fromTier} -> ${newTier}`);
       } else {
-        console.log(`User ${userId} migration scheduled: ${fromTier} -> ${newTier} (grace period: ${gracePeriodDays} days)`);
+        console.log(
+          `User ${userId} migration scheduled: ${fromTier} -> ${newTier} (grace period: ${gracePeriodDays} days)`
+        );
       }
 
       return {
@@ -87,16 +87,13 @@ export class TierMigrationService {
   async applyPendingMigrations(): Promise<{ applied: number; failed: number }> {
     const appMode = getAppMode();
     console.log(`[TIER-MIGRATION] Applying pending migrations in ${appMode} mode...`);
-    
+
     try {
       const pendingMigrations = await db
         .select()
         .from(tierMigrations)
         .where(
-          and(
-            eq(tierMigrations.status, 'pending'),
-            lte(tierMigrations.effectiveAt, new Date())
-          )
+          and(eq(tierMigrations.status, 'pending'), lte(tierMigrations.effectiveAt, new Date()))
         );
 
       let applied = 0;
@@ -104,11 +101,13 @@ export class TierMigrationService {
 
       for (const migration of pendingMigrations) {
         try {
-          await db.update(users)
+          await db
+            .update(users)
             .set({ subscriptionTier: migration.toTier })
             .where(eq(users.id, migration.userId));
 
-          await db.update(tierMigrations)
+          await db
+            .update(tierMigrations)
             .set({ status: 'active' })
             .where(eq(tierMigrations.id, migration.id));
 
@@ -135,10 +134,7 @@ export class TierMigrationService {
         .where(
           and(
             eq(tierMigrations.userId, userId),
-            or(
-              eq(tierMigrations.status, 'pending'),
-              eq(tierMigrations.status, 'active')
-            )
+            or(eq(tierMigrations.status, 'pending'), eq(tierMigrations.status, 'active'))
           )
         )
         .orderBy(desc(tierMigrations.migratedAt))
@@ -165,7 +161,8 @@ export class TierMigrationService {
 
   async cancelMigration(migrationId: string): Promise<void> {
     try {
-      await db.update(tierMigrations)
+      await db
+        .update(tierMigrations)
         .set({ status: 'completed' })
         .where(eq(tierMigrations.id, migrationId));
 
@@ -240,8 +237,11 @@ export class TierMigrationService {
 
       const pendingDetails = pendingMigrations.map((m: TierMigrationRow) => {
         const effectiveDate = new Date(m.effectiveAt);
-        const daysRemaining = Math.max(0, Math.ceil((effectiveDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-        
+        const daysRemaining = Math.max(
+          0,
+          Math.ceil((effectiveDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        );
+
         return {
           migration_id: m.id,
           user_id: m.userId,

@@ -1,19 +1,40 @@
-import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
+import { useState, useRef, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import {
   MessageSquare,
   Send,
@@ -33,7 +54,7 @@ import {
   Mic,
   MicOff,
   Camera,
-} from "lucide-react";
+} from 'lucide-react';
 
 interface Participant {
   id: string;
@@ -102,10 +123,10 @@ const roleIcons: Record<string, React.ReactNode> = {
 };
 
 const roleColors: Record<string, string> = {
-  party: "bg-blue-500/10 text-blue-600",
-  attorney: "bg-purple-500/10 text-purple-600",
-  mediator: "bg-green-500/10 text-green-600",
-  therapist: "bg-pink-500/10 text-pink-600",
+  party: 'bg-blue-500/10 text-blue-600',
+  attorney: 'bg-purple-500/10 text-purple-600',
+  mediator: 'bg-green-500/10 text-green-600',
+  therapist: 'bg-pink-500/10 text-pink-600',
 };
 
 export default function CommunicationsPage() {
@@ -117,13 +138,13 @@ export default function CommunicationsPage() {
   const [selectedReport, setSelectedReport] = useState<SentimentReport | null>(null);
 
   // New conversation form
-  const [convoTitle, setConvoTitle] = useState("");
-  const [participantEmail, setParticipantEmail] = useState("");
-  const [participantName, setParticipantName] = useState("");
-  const [participantRole, setParticipantRole] = useState("party");
+  const [convoTitle, setConvoTitle] = useState('');
+  const [participantEmail, setParticipantEmail] = useState('');
+  const [participantName, setParticipantName] = useState('');
+  const [participantRole, setParticipantRole] = useState('party');
 
   // Message input
-  const [messageContent, setMessageContent] = useState("");
+  const [messageContent, setMessageContent] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -132,89 +153,109 @@ export default function CommunicationsPage() {
 
   // Fetch conversations
   const { data: conversations = [], isLoading: loadingConvos } = useQuery<Conversation[]>({
-    queryKey: ["/api/conversations"],
+    queryKey: ['/api/conversations'],
   });
 
   // Fetch selected conversation details
   const { data: conversationDetails, isLoading: loadingDetails } = useQuery<Conversation>({
-    queryKey: ["/api/conversations", selectedConversation?.id],
+    queryKey: ['/api/conversations', selectedConversation?.id],
     enabled: !!selectedConversation,
   });
 
   // Fetch sentiment reports for selected conversation
   const { data: sentimentReports = [] } = useQuery<SentimentReport[]>({
-    queryKey: ["/api/conversations", selectedConversation?.id, "reports"],
+    queryKey: ['/api/conversations', selectedConversation?.id, 'reports'],
     enabled: !!selectedConversation,
   });
 
   // Create conversation mutation
   const createConvoMutation = useMutation({
-    mutationFn: async (data: { title: string; participants?: Array<{ email: string; displayName: string; role: string }> }) => {
-      const response = await apiRequest("POST", "/api/conversations", data);
+    mutationFn: async (data: {
+      title: string;
+      participants?: Array<{ email: string; displayName: string; role: string }>;
+    }) => {
+      const response = await apiRequest('POST', '/api/conversations', data);
       return response.json();
     },
     onSuccess: (newConvo) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
       setIsNewConvoOpen(false);
-      setConvoTitle("");
+      setConvoTitle('');
       setSelectedConversation(newConvo);
-      toast({ title: "Conversation created", description: "You can now start messaging." });
+      toast({ title: 'Conversation created', description: 'You can now start messaging.' });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { content: string; inputType?: string }) => {
-      const response = await apiRequest("POST", `/api/conversations/${selectedConversation?.id}/messages`, data);
+      const response = await apiRequest(
+        'POST',
+        `/api/conversations/${selectedConversation?.id}/messages`,
+        data
+      );
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations", selectedConversation?.id] });
-      setMessageContent("");
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedConversation?.id] });
+      setMessageContent('');
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
   // Add participant mutation
   const addParticipantMutation = useMutation({
     mutationFn: async (data: { email: string; displayName: string; role: string }) => {
-      const response = await apiRequest("POST", `/api/conversations/${selectedConversation?.id}/participants`, data);
+      const response = await apiRequest(
+        'POST',
+        `/api/conversations/${selectedConversation?.id}/participants`,
+        data
+      );
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations", selectedConversation?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedConversation?.id] });
       setIsAddParticipantOpen(false);
-      setParticipantEmail("");
-      setParticipantName("");
-      setParticipantRole("party");
-      toast({ title: "Participant added", description: "They will be notified and can join the conversation." });
+      setParticipantEmail('');
+      setParticipantName('');
+      setParticipantRole('party');
+      toast({
+        title: 'Participant added',
+        description: 'They will be notified and can join the conversation.',
+      });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
   // Generate report mutation
   const generateReportMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/conversations/${selectedConversation?.id}/reports`, {
-        title: `Communication Analysis - ${format(new Date(), "MMM d, yyyy")}`,
-      });
+      const response = await apiRequest(
+        'POST',
+        `/api/conversations/${selectedConversation?.id}/reports`,
+        {
+          title: `Communication Analysis - ${format(new Date(), 'MMM d, yyyy')}`,
+        }
+      );
       return response.json();
     },
     onSuccess: (report) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations", selectedConversation?.id, "reports"] });
+      queryClient.invalidateQueries({
+        queryKey: ['/api/conversations', selectedConversation?.id, 'reports'],
+      });
       setSelectedReport(report);
       setIsReportSheetOpen(true);
-      toast({ title: "Report generated", description: "Sentiment analysis report is ready." });
+      toast({ title: 'Report generated', description: 'Sentiment analysis report is ready.' });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -222,7 +263,7 @@ export default function CommunicationsPage() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -233,8 +274,8 @@ export default function CommunicationsPage() {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        stream.getTracks().forEach(track => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach((track) => track.stop());
         await transcribeAndSend(audioBlob);
       };
 
@@ -242,9 +283,9 @@ export default function CommunicationsPage() {
       setIsRecording(true);
     } catch (error) {
       toast({
-        title: "Microphone access denied",
-        description: "Please allow microphone access to use voice messages.",
-        variant: "destructive",
+        title: 'Microphone access denied',
+        description: 'Please allow microphone access to use voice messages.',
+        variant: 'destructive',
       });
     }
   };
@@ -262,54 +303,60 @@ export default function CommunicationsPage() {
       const reader = new FileReader();
       reader.readAsDataURL(audioBlob);
       reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(",")[1];
-        const response = await apiRequest("POST", "/api/journal/transcribe", {
+        const base64Audio = (reader.result as string).split(',')[1];
+        const response = await apiRequest('POST', '/api/journal/transcribe', {
           audioData: base64Audio,
-          mimeType: "audio/webm",
+          mimeType: 'audio/webm',
         });
         const { transcription } = await response.json();
         if (transcription) {
-          sendMessageMutation.mutate({ content: transcription, inputType: "voice" });
+          sendMessageMutation.mutate({ content: transcription, inputType: 'voice' });
         }
         setIsTranscribing(false);
       };
     } catch (error) {
       setIsTranscribing(false);
-      toast({ title: "Transcription failed", description: "Could not process voice message.", variant: "destructive" });
+      toast({
+        title: 'Transcription failed',
+        description: 'Could not process voice message.',
+        variant: 'destructive',
+      });
     }
   };
 
   const handleSendMessage = () => {
     if (!messageContent.trim() || !selectedConversation) return;
-    sendMessageMutation.mutate({ content: messageContent, inputType: "text" });
+    sendMessageMutation.mutate({ content: messageContent, inputType: 'text' });
   };
 
   // Scroll to bottom when messages update
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversationDetails?.messages]);
 
   const exportConversation = () => {
     if (!conversationDetails || !conversationDetails.messages) return;
-    const headers = ["Date", "Time", "Sender", "Role", "Message", "Sentiment", "Topics"];
+    const headers = ['Date', 'Time', 'Sender', 'Role', 'Message', 'Sentiment', 'Topics'];
     const csvContent = [
-      headers.join(","),
-      ...conversationDetails.messages.map(msg => {
-        const participant = conversationDetails.participants?.find((p: any) => p.email === msg.senderEmail);
+      headers.join(','),
+      ...conversationDetails.messages.map((msg) => {
+        const participant = conversationDetails.participants?.find(
+          (p: any) => p.email === msg.senderEmail
+        );
         return [
-          format(new Date(msg.createdAt), "yyyy-MM-dd"),
-          format(new Date(msg.createdAt), "HH:mm:ss"),
+          format(new Date(msg.createdAt), 'yyyy-MM-dd'),
+          format(new Date(msg.createdAt), 'HH:mm:ss'),
           `"${msg.senderName.replace(/"/g, '""')}"`,
-          participant?.role || "Unknown",
+          participant?.role || 'Unknown',
           `"${msg.content.replace(/"/g, '""')}"`,
-          msg.sentimentLabel || "Neutral",
-          `"${(msg.negativeTopics || []).join("; ")}"`
-        ].join(",");
-      })
-    ].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+          msg.sentimentLabel || 'Neutral',
+          `"${(msg.negativeTopics || []).join('; ')}"`,
+        ].join(',');
+      }),
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
     a.download = `conversation_${selectedConversation?.id || 'export'}.csv`;
     a.click();
@@ -337,7 +384,9 @@ export default function CommunicationsPage() {
   return (
     <div className="flex h-[calc(100vh-4rem)] md:h-[calc(100vh-2rem)]">
       {/* Conversations List */}
-      <div className={`w-full md:w-80 border-r flex flex-col ${selectedConversation ? "hidden md:flex" : "flex"}`}>
+      <div
+        className={`w-full md:w-80 border-r flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}
+      >
         <div className="p-4 border-b flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-primary" />
@@ -352,7 +401,9 @@ export default function CommunicationsPage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>New Conversation</DialogTitle>
-                <DialogDescription>Start a documented conversation with your co-parent or add legal counsel.</DialogDescription>
+                <DialogDescription>
+                  Start a documented conversation with your co-parent or add legal counsel.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <Input
@@ -363,13 +414,17 @@ export default function CommunicationsPage() {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsNewConvoOpen(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => setIsNewConvoOpen(false)}>
+                  Cancel
+                </Button>
                 <Button
                   onClick={() => createConvoMutation.mutate({ title: convoTitle })}
                   disabled={!convoTitle.trim() || createConvoMutation.isPending}
                   data-testid="button-create-conversation"
                 >
-                  {createConvoMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  {createConvoMutation.isPending && (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  )}
                   Create
                 </Button>
               </DialogFooter>
@@ -382,7 +437,12 @@ export default function CommunicationsPage() {
             <div className="p-8 text-center">
               <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">No conversations yet</p>
-              <Button size="sm" className="mt-4" onClick={() => setIsNewConvoOpen(true)} data-testid="button-start-first-conversation">
+              <Button
+                size="sm"
+                className="mt-4"
+                onClick={() => setIsNewConvoOpen(true)}
+                data-testid="button-start-first-conversation"
+              >
                 Start a Conversation
               </Button>
             </div>
@@ -391,7 +451,7 @@ export default function CommunicationsPage() {
               {conversations.map((conv) => (
                 <div
                   key={conv.id}
-                  className={`p-4 cursor-pointer hover-elevate ${selectedConversation?.id === conv.id ? "bg-accent" : ""}`}
+                  className={`p-4 cursor-pointer hover-elevate ${selectedConversation?.id === conv.id ? 'bg-accent' : ''}`}
                   onClick={() => setSelectedConversation(conv)}
                   data-testid={`conversation-${conv.id}`}
                 >
@@ -402,7 +462,7 @@ export default function CommunicationsPage() {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {format(new Date(conv.updatedAt), "MMM d, h:mm a")}
+                    {format(new Date(conv.updatedAt), 'MMM d, h:mm a')}
                   </p>
                 </div>
               ))}
@@ -412,13 +472,15 @@ export default function CommunicationsPage() {
       </div>
 
       {/* Conversation View */}
-      <div className={`flex-1 flex flex-col ${!selectedConversation ? "hidden md:flex" : "flex"}`}>
+      <div className={`flex-1 flex flex-col ${!selectedConversation ? 'hidden md:flex' : 'flex'}`}>
         {!selectedConversation ? (
           <div className="flex-1 flex items-center justify-center text-center p-8">
             <div>
               <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">Select a Conversation</h3>
-              <p className="text-muted-foreground">Choose a conversation from the list or start a new one</p>
+              <p className="text-muted-foreground">
+                Choose a conversation from the list or start a new one
+              </p>
             </div>
           </div>
         ) : (
@@ -426,7 +488,13 @@ export default function CommunicationsPage() {
             {/* Conversation Header */}
             <div className="p-4 border-b flex items-center justify-between gap-2">
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSelectedConversation(null)} data-testid="button-back">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden"
+                  onClick={() => setSelectedConversation(null)}
+                  data-testid="button-back"
+                >
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
                 <div>
@@ -437,7 +505,12 @@ export default function CommunicationsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={exportConversation} disabled={!conversationDetails?.messages?.length}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportConversation}
+                  disabled={!conversationDetails?.messages?.length}
+                >
                   <Download className="h-4 w-4 mr-1" />
                   <span className="hidden sm:inline">Export</span>
                 </Button>
@@ -451,7 +524,9 @@ export default function CommunicationsPage() {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Add Participant</DialogTitle>
-                      <DialogDescription>Add a co-parent, attorney, mediator, or therapist to this conversation.</DialogDescription>
+                      <DialogDescription>
+                        Add a co-parent, attorney, mediator, or therapist to this conversation.
+                      </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <Input
@@ -480,17 +555,25 @@ export default function CommunicationsPage() {
                       </Select>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsAddParticipantOpen(false)}>Cancel</Button>
+                      <Button variant="outline" onClick={() => setIsAddParticipantOpen(false)}>
+                        Cancel
+                      </Button>
                       <Button
-                        onClick={() => addParticipantMutation.mutate({
-                          email: participantEmail,
-                          displayName: participantName,
-                          role: participantRole,
-                        })}
-                        disabled={!participantEmail || !participantName || addParticipantMutation.isPending}
+                        onClick={() =>
+                          addParticipantMutation.mutate({
+                            email: participantEmail,
+                            displayName: participantName,
+                            role: participantRole,
+                          })
+                        }
+                        disabled={
+                          !participantEmail || !participantName || addParticipantMutation.isPending
+                        }
                         data-testid="button-submit-participant"
                       >
-                        {addParticipantMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                        {addParticipantMutation.isPending && (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        )}
                         Add
                       </Button>
                     </DialogFooter>
@@ -499,28 +582,44 @@ export default function CommunicationsPage() {
 
                 <Sheet open={isReportSheetOpen} onOpenChange={setIsReportSheetOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => generateReportMutation.mutate()} disabled={generateReportMutation.isPending} data-testid="button-generate-report">
-                      {generateReportMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BarChart3 className="h-4 w-4 mr-1" />}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => generateReportMutation.mutate()}
+                      disabled={generateReportMutation.isPending}
+                      data-testid="button-generate-report"
+                    >
+                      {generateReportMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <BarChart3 className="h-4 w-4 mr-1" />
+                      )}
                       <span className="hidden sm:inline">Report</span>
                     </Button>
                   </SheetTrigger>
                   <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
                     <SheetHeader>
                       <SheetTitle>Communication Analysis Report</SheetTitle>
-                      <SheetDescription>AI-generated analysis of negative communication patterns</SheetDescription>
+                      <SheetDescription>
+                        AI-generated analysis of negative communication patterns
+                      </SheetDescription>
                     </SheetHeader>
                     {selectedReport && (
                       <div className="mt-6 space-y-6">
                         <div className="grid grid-cols-2 gap-4">
                           <Card>
                             <CardContent className="pt-4">
-                              <p className="text-2xl font-bold">{selectedReport.totalMessagesAnalyzed}</p>
+                              <p className="text-2xl font-bold">
+                                {selectedReport.totalMessagesAnalyzed}
+                              </p>
                               <p className="text-sm text-muted-foreground">Messages Analyzed</p>
                             </CardContent>
                           </Card>
                           <Card>
                             <CardContent className="pt-4">
-                              <p className="text-2xl font-bold text-destructive">{selectedReport.negativeMessageCount}</p>
+                              <p className="text-2xl font-bold text-destructive">
+                                {selectedReport.negativeMessageCount}
+                              </p>
                               <p className="text-sm text-muted-foreground">Negative Messages</p>
                             </CardContent>
                           </Card>
@@ -530,7 +629,9 @@ export default function CommunicationsPage() {
                           <h4 className="font-medium mb-2">Summary</h4>
                           <Card>
                             <CardContent className="pt-4">
-                              <p className="text-sm whitespace-pre-wrap">{selectedReport.summary}</p>
+                              <p className="text-sm whitespace-pre-wrap">
+                                {selectedReport.summary}
+                              </p>
                             </CardContent>
                           </Card>
                         </div>
@@ -539,7 +640,9 @@ export default function CommunicationsPage() {
                           <h4 className="font-medium mb-2">Recommendations</h4>
                           <Card>
                             <CardContent className="pt-4">
-                              <p className="text-sm whitespace-pre-wrap">{selectedReport.recommendations}</p>
+                              <p className="text-sm whitespace-pre-wrap">
+                                {selectedReport.recommendations}
+                              </p>
                             </CardContent>
                           </Card>
                         </div>
@@ -548,11 +651,13 @@ export default function CommunicationsPage() {
                           <div>
                             <h4 className="font-medium mb-2">Topics of Conflict</h4>
                             <div className="flex flex-wrap gap-2">
-                              {Object.entries(selectedReport.topicBreakdown).map(([topic, items]) => (
-                                <Badge key={topic} variant="destructive">
-                                  {topic} ({(items as any[]).length})
-                                </Badge>
-                              ))}
+                              {Object.entries(selectedReport.topicBreakdown).map(
+                                ([topic, items]) => (
+                                  <Badge key={topic} variant="destructive">
+                                    {topic} ({(items as any[]).length})
+                                  </Badge>
+                                )
+                              )}
                             </div>
                           </div>
                         )}
@@ -572,7 +677,11 @@ export default function CommunicationsPage() {
             {conversationDetails?.participants && conversationDetails.participants.length > 0 && (
               <div className="px-4 py-2 border-b bg-muted/30 flex items-center gap-2 overflow-x-auto">
                 {conversationDetails.participants.map((p) => (
-                  <Badge key={p.id} variant="secondary" className={`${roleColors[p.role] || ""} shrink-0`}>
+                  <Badge
+                    key={p.id}
+                    variant="secondary"
+                    className={`${roleColors[p.role] || ''} shrink-0`}
+                  >
                     {roleIcons[p.role]}
                     <span className="ml-1">{p.displayName}</span>
                   </Badge>
@@ -594,42 +703,56 @@ export default function CommunicationsPage() {
               ) : (
                 <div className="space-y-4">
                   {conversationDetails?.messages?.map((msg) => {
-                    const isCurrentUser = msg.senderId === "demo-user"; // Simplified check
+                    const isCurrentUser = msg.senderId === 'demo-user'; // Simplified check
                     return (
-                      <div key={msg.id} className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[80%] ${isCurrentUser ? "order-2" : ""}`}>
+                      <div
+                        key={msg.id}
+                        className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div className={`max-w-[80%] ${isCurrentUser ? 'order-2' : ''}`}>
                           <div className="flex items-center gap-2 mb-1">
                             {!isCurrentUser && (
                               <Avatar className="h-6 w-6">
                                 <AvatarFallback className="text-xs">
-                                  {msg.senderName.split(" ").map(n => n[0]).join("")}
+                                  {msg.senderName
+                                    .split(' ')
+                                    .map((n) => n[0])
+                                    .join('')}
                                 </AvatarFallback>
                               </Avatar>
                             )}
                             <span className="text-xs text-muted-foreground">{msg.senderName}</span>
                             <span className="text-xs text-muted-foreground">
-                              {format(new Date(msg.createdAt), "h:mm a")}
+                              {format(new Date(msg.createdAt), 'h:mm a')}
                             </span>
                             {getSentimentBadge(msg)}
                           </div>
-                          <Card className={`${isCurrentUser ? "bg-primary text-primary-foreground" : ""}`}>
+                          <Card
+                            className={`${isCurrentUser ? 'bg-primary text-primary-foreground' : ''}`}
+                          >
                             <CardContent className="p-3">
                               <p className="text-sm">{msg.content}</p>
-                              {msg.inputType === "voice" && (
+                              {msg.inputType === 'voice' && (
                                 <div className="flex items-center gap-1 mt-1 text-xs opacity-70">
                                   <Mic className="h-3 w-3" />
                                   Voice message
                                 </div>
                               )}
-                              {msg.hasNegativeContent && msg.negativeTopics && msg.negativeTopics.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {msg.negativeTopics.map((topic) => (
-                                    <Badge key={topic} variant="outline" className="text-xs bg-destructive/10">
-                                      {topic}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
+                              {msg.hasNegativeContent &&
+                                msg.negativeTopics &&
+                                msg.negativeTopics.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {msg.negativeTopics.map((topic) => (
+                                      <Badge
+                                        key={topic}
+                                        variant="outline"
+                                        className="text-xs bg-destructive/10"
+                                      >
+                                        {topic}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
                             </CardContent>
                           </Card>
                         </div>
@@ -647,7 +770,7 @@ export default function CommunicationsPage() {
                 <Button
                   type="button"
                   size="icon"
-                  variant={isRecording ? "destructive" : "outline"}
+                  variant={isRecording ? 'destructive' : 'outline'}
                   onClick={isRecording ? stopRecording : startRecording}
                   disabled={isTranscribing}
                   data-testid="button-voice-message"
@@ -659,7 +782,7 @@ export default function CommunicationsPage() {
                   value={messageContent}
                   onChange={(e) => setMessageContent(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleSendMessage();
                     }

@@ -26,12 +26,12 @@ export function subscribeToFileUpdates(
   const existing = subscriptions.get(userId) || [];
   const subscription: RealtimeSubscription = { userId, callback };
   subscriptions.set(userId, [...existing, subscription]);
-  
+
   return () => {
     const current = subscriptions.get(userId) || [];
     subscriptions.set(
       userId,
-      current.filter(s => s !== subscription)
+      current.filter((s) => s !== subscription)
     );
   };
 }

@@ -16,9 +16,7 @@ export default function WorkspaceStatusGuard({ children }: WorkspaceStatusGuardP
         <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8 text-center">
           <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-yellow-500" />
           <h2 className="mt-4 text-xl font-semibold text-gray-900">No Workspace Selected</h2>
-          <p className="mt-2 text-gray-600">
-            Please select a workspace to continue.
-          </p>
+          <p className="mt-2 text-gray-600">Please select a workspace to continue.</p>
         </div>
       </div>
     );
@@ -31,18 +29,15 @@ export default function WorkspaceStatusGuard({ children }: WorkspaceStatusGuardP
           <ClockIcon className="mx-auto h-12 w-12 text-blue-500" />
           <h2 className="mt-4 text-xl font-semibold text-gray-900">Workspace Pending Approval</h2>
           <p className="mt-2 text-gray-600">
-            Your {activeWorkspace.workspace_type} workspace "<strong>{activeWorkspace.workspace_name}</strong>" 
-            is pending approval by our team.
+            Your {activeWorkspace.workspace_type} workspace "
+            <strong>{activeWorkspace.workspace_name}</strong>" is pending approval by our team.
           </p>
           <p className="mt-4 text-sm text-gray-500">
-            You'll receive an email notification once your workspace is approved. 
-            This typically takes 1-2 business days.
+            You'll receive an email notification once your workspace is approved. This typically
+            takes 1-2 business days.
           </p>
           <div className="mt-6">
-            <a
-              href="/auth/login"
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
+            <a href="/auth/login" className="text-blue-600 hover:text-blue-800 font-medium">
               Return to Login
             </a>
           </div>
@@ -60,9 +55,7 @@ export default function WorkspaceStatusGuard({ children }: WorkspaceStatusGuardP
           <p className="mt-2 text-gray-600">
             Your workspace "<strong>{activeWorkspace.workspace_name}</strong>" has been suspended.
           </p>
-          <p className="mt-4 text-sm text-gray-500">
-            Please contact support for more information.
-          </p>
+          <p className="mt-4 text-sm text-gray-500">Please contact support for more information.</p>
           <div className="mt-6">
             <a
               href="mailto:support@divorcelegder.com"

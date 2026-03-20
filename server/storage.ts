@@ -1,6 +1,6 @@
-import { eq, and, desc, sql, inArray, isNull } from "drizzle-orm";
-import { db, getDb } from "./db";
-import { hashPassword, isPasswordHashed } from "./auth";
+import { eq, and, desc, sql, inArray, isNull } from 'drizzle-orm';
+import { db, getDb } from './db';
+import { hashPassword, isPasswordHashed } from './auth';
 import {
   workspaces,
   workspaceMembers,
@@ -10,65 +10,135 @@ import {
   type InsertWorkspaceMember,
   type InsertMatter,
   type InsertMatterMember,
-} from "@shared/workspace-schema";
+} from '@shared/workspace-schema';
 import {
-  users, transactions, assets, debts, incomes, expenses, alerts, violations,
-  evidenceFiles, chainOfCustody, messages, cases, teams,
-  documents, calendarEvents, legalDocuments, childSupportPayments, mobileViolationReports,
-  reimbursements, w2Records, improvementRecommendations,
-  journalEntries, journalAttachments, conversations, conversationParticipants,
-  conversationMessages, messageAttachments, sentimentReports, sentimentReportItems,
-  userDevices, authSessions, mfaChallenges, securityEvents, smsDeliveries,
-  fireflyConnections, fireflySyncLogs,
-  type User, type InsertUser,
-  type Transaction, type InsertTransaction,
-  type Asset, type InsertAsset,
-  type Debt, type InsertDebt,
-  type Income, type InsertIncome,
-  type Expense, type InsertExpense,
-  type Alert, type InsertAlert,
-  type Violation, type InsertViolation,
-  type EvidenceFile, type InsertEvidenceFile,
-  type ChainOfCustody, type InsertChainOfCustody,
-  type Message, type InsertMessage,
+  users,
+  transactions,
+  assets,
+  debts,
+  incomes,
+  expenses,
+  alerts,
+  violations,
+  evidenceFiles,
+  chainOfCustody,
+  messages,
+  cases,
+  teams,
+  documents,
+  calendarEvents,
+  legalDocuments,
+  childSupportPayments,
+  mobileViolationReports,
+  reimbursements,
+  w2Records,
+  improvementRecommendations,
+  journalEntries,
+  journalAttachments,
+  conversations,
+  conversationParticipants,
+  conversationMessages,
+  messageAttachments,
+  sentimentReports,
+  sentimentReportItems,
+  userDevices,
+  authSessions,
+  mfaChallenges,
+  securityEvents,
+  smsDeliveries,
+  fireflyConnections,
+  fireflySyncLogs,
+  type User,
+  type InsertUser,
+  type Transaction,
+  type InsertTransaction,
+  type Asset,
+  type InsertAsset,
+  type Debt,
+  type InsertDebt,
+  type Income,
+  type InsertIncome,
+  type Expense,
+  type InsertExpense,
+  type Alert,
+  type InsertAlert,
+  type Violation,
+  type InsertViolation,
+  type EvidenceFile,
+  type InsertEvidenceFile,
+  type ChainOfCustody,
+  type InsertChainOfCustody,
+  type Message,
+  type InsertMessage,
   type DashboardStats,
-  type Case, type InsertCase,
-  type Team, type InsertTeam,
-  type Document, type InsertDocument,
-  type CalendarEvent, type InsertCalendarEvent,
-  type LegalDocument, type InsertLegalDocument,
-  type ChildSupportPayment, type InsertChildSupportPayment,
-  type MobileViolationReport, type InsertMobileViolationReport,
-  type Reimbursement, type InsertReimbursement,
-  type W2Record, type InsertW2Record,
-  type ImprovementRecommendation, type InsertImprovementRecommendation,
-  type JournalEntry, type InsertJournalEntry,
-  type JournalAttachment, type InsertJournalAttachment,
-  type Conversation, type InsertConversation,
-  type ConversationParticipant, type InsertConversationParticipant,
-  type ConversationMessage, type InsertConversationMessage,
-  type MessageAttachment, type InsertMessageAttachment,
-  type SentimentReport, type InsertSentimentReport,
-  type SentimentReportItem, type InsertSentimentReportItem,
-  type UserDevice, type InsertUserDevice,
-  type AuthSession, type InsertAuthSession,
-  type MfaChallenge, type InsertMfaChallenge,
-  type SecurityEvent, type InsertSecurityEvent,
-  type SmsDelivery, type InsertSmsDelivery,
-  type FireflyConnection, type InsertFireflyConnection,
-  type FireflySyncLog, type InsertFireflySyncLog,
-} from "@shared/schema";
+  type Case,
+  type InsertCase,
+  type Team,
+  type InsertTeam,
+  type Document,
+  type InsertDocument,
+  type CalendarEvent,
+  type InsertCalendarEvent,
+  type LegalDocument,
+  type InsertLegalDocument,
+  type ChildSupportPayment,
+  type InsertChildSupportPayment,
+  type MobileViolationReport,
+  type InsertMobileViolationReport,
+  type Reimbursement,
+  type InsertReimbursement,
+  type W2Record,
+  type InsertW2Record,
+  type ImprovementRecommendation,
+  type InsertImprovementRecommendation,
+  type JournalEntry,
+  type InsertJournalEntry,
+  type JournalAttachment,
+  type InsertJournalAttachment,
+  type Conversation,
+  type InsertConversation,
+  type ConversationParticipant,
+  type InsertConversationParticipant,
+  type ConversationMessage,
+  type InsertConversationMessage,
+  type MessageAttachment,
+  type InsertMessageAttachment,
+  type SentimentReport,
+  type InsertSentimentReport,
+  type SentimentReportItem,
+  type InsertSentimentReportItem,
+  type UserDevice,
+  type InsertUserDevice,
+  type AuthSession,
+  type InsertAuthSession,
+  type MfaChallenge,
+  type InsertMfaChallenge,
+  type SecurityEvent,
+  type InsertSecurityEvent,
+  type SmsDelivery,
+  type InsertSmsDelivery,
+  type FireflyConnection,
+  type InsertFireflyConnection,
+  type FireflySyncLog,
+  type InsertFireflySyncLog,
+} from '@shared/schema';
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserPassword(id: string, hashedPassword: string): Promise<void>;
-  updateUserProfile(id: string, profile: { fullName?: string; email?: string; profilePhoto?: string }): Promise<User | undefined>;
+  updateUserProfile(
+    id: string,
+    profile: { fullName?: string; email?: string; profilePhoto?: string }
+  ): Promise<User | undefined>;
   updateUserLastLogin(id: string): Promise<void>;
   updateUserAdminStatus(id: string, isAdmin: boolean): Promise<void>;
   updateUserStatus(id: string, status: string): Promise<void>;
-  updateUserTierAndRole(id: string, updates: { subscriptionTier?: string; role?: string; isAdmin?: boolean; status?: string }): Promise<User | undefined>;
+  updateUserTierAndRole(
+    id: string,
+    updates: { subscriptionTier?: string; role?: string; isAdmin?: boolean; status?: string }
+  ): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
 
   getTransactions(userId: string, environment: string): Promise<Transaction[]>;
@@ -97,10 +167,19 @@ export interface IStorage {
 
   getViolations(userId: string, environment: string): Promise<Violation[]>;
   createViolation(violation: InsertViolation): Promise<Violation>;
-  updateViolationStatus(id: string, userId: string, environment: string, status: string): Promise<Violation | undefined>;
+  updateViolationStatus(
+    id: string,
+    userId: string,
+    environment: string,
+    status: string
+  ): Promise<Violation | undefined>;
   deleteViolation(id: string, userId: string, environment: string): Promise<void>;
 
-  getEvidenceFiles(violationId: string, userId: string, environment: string): Promise<EvidenceFile[]>;
+  getEvidenceFiles(
+    violationId: string,
+    userId: string,
+    environment: string
+  ): Promise<EvidenceFile[]>;
   createEvidenceFile(evidenceFile: InsertEvidenceFile): Promise<EvidenceFile>;
 
   getChainOfCustody(evidenceId: string, environment: string): Promise<ChainOfCustody[]>;
@@ -123,8 +202,16 @@ export interface IStorage {
   getTeamMembers(teamId: string): Promise<User[]>;
 
   // User subscription management
-  updateUserTier(userId: string, tier: string, stripeCustomerId?: string, stripeSubscriptionId?: string): Promise<User | undefined>;
-  updateUserStripeInfo(userId: string, info: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<User | undefined>;
+  updateUserTier(
+    userId: string,
+    tier: string,
+    stripeCustomerId?: string,
+    stripeSubscriptionId?: string
+  ): Promise<User | undefined>;
+  updateUserStripeInfo(
+    userId: string,
+    info: { stripeCustomerId?: string; stripeSubscriptionId?: string }
+  ): Promise<User | undefined>;
   incrementViolationCount(userId: string): Promise<void>;
   incrementCaseCount(userId: string): Promise<void>;
   decrementCaseCount(userId: string): Promise<void>;
@@ -146,14 +233,20 @@ export interface IStorage {
   getMobileViolationReports(userId: string, environment: string): Promise<MobileViolationReport[]>;
   getMobileViolationReport(id: string): Promise<MobileViolationReport | undefined>;
   createMobileViolationReport(report: InsertMobileViolationReport): Promise<MobileViolationReport>;
-  updateMobileViolationReport(id: string, updates: Partial<MobileViolationReport>): Promise<MobileViolationReport | undefined>;
+  updateMobileViolationReport(
+    id: string,
+    updates: Partial<MobileViolationReport>
+  ): Promise<MobileViolationReport | undefined>;
   deleteMobileViolationReport(id: string): Promise<void>;
 
   // Reimbursements management
   getReimbursements(userId: string, environment: string): Promise<Reimbursement[]>;
   getReimbursement(id: string): Promise<Reimbursement | undefined>;
   createReimbursement(reimbursement: InsertReimbursement): Promise<Reimbursement>;
-  updateReimbursement(id: string, updates: Partial<Reimbursement>): Promise<Reimbursement | undefined>;
+  updateReimbursement(
+    id: string,
+    updates: Partial<Reimbursement>
+  ): Promise<Reimbursement | undefined>;
   deleteReimbursement(id: string): Promise<void>;
 
   // Calendar events management
@@ -169,7 +262,12 @@ export interface IStorage {
   // Child support payments management
   getChildSupportPayments(userId: string, environment: string): Promise<ChildSupportPayment[]>;
   createChildSupportPayment(payment: InsertChildSupportPayment): Promise<ChildSupportPayment>;
-  updateChildSupportPayment(id: string, userId: string, environment: string, update: Partial<ChildSupportPayment>): Promise<ChildSupportPayment | undefined>;
+  updateChildSupportPayment(
+    id: string,
+    userId: string,
+    environment: string,
+    update: Partial<ChildSupportPayment>
+  ): Promise<ChildSupportPayment | undefined>;
   deleteChildSupportPayment(id: string, userId: string, environment: string): Promise<void>;
 
   // Password reset
@@ -178,12 +276,23 @@ export interface IStorage {
   clearPasswordResetToken(userId: string): Promise<void>;
 
   // Improvement recommendations (demo testing)
-  getImprovementRecommendations(environment: string, status?: string): Promise<ImprovementRecommendation[]>;
+  getImprovementRecommendations(
+    environment: string,
+    status?: string
+  ): Promise<ImprovementRecommendation[]>;
   getAllImprovementRecommendations(): Promise<ImprovementRecommendation[]>;
   getImprovementRecommendation(id: string): Promise<ImprovementRecommendation | undefined>;
-  createImprovementRecommendation(recommendation: InsertImprovementRecommendation): Promise<ImprovementRecommendation>;
-  updateImprovementRecommendation(id: string, updates: Partial<ImprovementRecommendation>): Promise<ImprovementRecommendation | undefined>;
-  updateImprovementRecommendationStatus(id: string, status: string): Promise<ImprovementRecommendation | undefined>;
+  createImprovementRecommendation(
+    recommendation: InsertImprovementRecommendation
+  ): Promise<ImprovementRecommendation>;
+  updateImprovementRecommendation(
+    id: string,
+    updates: Partial<ImprovementRecommendation>
+  ): Promise<ImprovementRecommendation | undefined>;
+  updateImprovementRecommendationStatus(
+    id: string,
+    status: string
+  ): Promise<ImprovementRecommendation | undefined>;
   deleteImprovementRecommendation(id: string): Promise<void>;
   getImplementedRecommendations(): Promise<ImprovementRecommendation[]>;
 
@@ -207,19 +316,27 @@ export interface IStorage {
 
   // Conversation participants
   getConversationParticipants(conversationId: string): Promise<ConversationParticipant[]>;
-  addConversationParticipant(participant: InsertConversationParticipant): Promise<ConversationParticipant>;
+  addConversationParticipant(
+    participant: InsertConversationParticipant
+  ): Promise<ConversationParticipant>;
   removeConversationParticipant(id: string): Promise<void>;
 
   // Conversation messages
   getConversationMessages(conversationId: string): Promise<ConversationMessage[]>;
   createConversationMessage(message: InsertConversationMessage): Promise<ConversationMessage>;
-  updateConversationMessage(id: string, updates: Partial<ConversationMessage>): Promise<ConversationMessage | undefined>;
+  updateConversationMessage(
+    id: string,
+    updates: Partial<ConversationMessage>
+  ): Promise<ConversationMessage | undefined>;
 
   // Sentiment reports
   getSentimentReports(conversationId: string): Promise<SentimentReport[]>;
   getSentimentReport(id: string): Promise<SentimentReport | undefined>;
   createSentimentReport(report: InsertSentimentReport): Promise<SentimentReport>;
-  updateSentimentReport(id: string, updates: Partial<SentimentReport>): Promise<SentimentReport | undefined>;
+  updateSentimentReport(
+    id: string,
+    updates: Partial<SentimentReport>
+  ): Promise<SentimentReport | undefined>;
 
   // Sentiment report items
   getSentimentReportItems(reportId: string): Promise<SentimentReportItem[]>;
@@ -261,7 +378,12 @@ export interface IStorage {
 
   // SMS deliveries
   createSmsDelivery(delivery: InsertSmsDelivery): Promise<SmsDelivery>;
-  updateSmsDeliveryStatus(id: string, status: string, errorCode?: string, errorMessage?: string): Promise<void>;
+  updateSmsDeliveryStatus(
+    id: string,
+    status: string,
+    errorCode?: string,
+    errorMessage?: string
+  ): Promise<void>;
   getSmsDeliveries(userId: string, limit?: number): Promise<SmsDelivery[]>;
 
   // User phone management
@@ -279,30 +401,74 @@ export interface IStorage {
 
   getFireflyConnection(userId: string, environment: string): Promise<FireflyConnection | undefined>;
   createFireflyConnection(connection: InsertFireflyConnection): Promise<FireflyConnection>;
-  updateFireflyConnection(id: string, updates: Partial<FireflyConnection>): Promise<FireflyConnection | undefined>;
+  updateFireflyConnection(
+    id: string,
+    updates: Partial<FireflyConnection>
+  ): Promise<FireflyConnection | undefined>;
   deleteFireflyConnection(id: string): Promise<void>;
   createFireflySyncLog(log: InsertFireflySyncLog): Promise<FireflySyncLog>;
-  updateFireflySyncLog(id: string, updates: Partial<FireflySyncLog>): Promise<FireflySyncLog | undefined>;
+  updateFireflySyncLog(
+    id: string,
+    updates: Partial<FireflySyncLog>
+  ): Promise<FireflySyncLog | undefined>;
   getFireflySyncLogs(connectionId: string, limit?: number): Promise<FireflySyncLog[]>;
-  getFireflySyncLogBySourceId(sourceType: string, sourceId: string): Promise<FireflySyncLog | undefined>;
+  getFireflySyncLogBySourceId(
+    sourceType: string,
+    sourceId: string
+  ): Promise<FireflySyncLog | undefined>;
 }
 
 export const TEST_USERS = [
-  { id: "test1", email: "test1@example.com", password: "test123", fullName: "Test User 1", isAdmin: false, environment: "test-1" },
-  { id: "test2", email: "test2@example.com", password: "test123", fullName: "Test User 2", isAdmin: false, environment: "test-2" },
-  { id: "test3", email: "test3@example.com", password: "test123", fullName: "Test User 3", isAdmin: false, environment: "test-3" },
-  { id: "test4", email: "test4@example.com", password: "admin123", fullName: "Test Admin 4", isAdmin: true, environment: "test-4" },
-  { id: "test5", email: "test5@example.com", password: "admin123", fullName: "Test Admin 5", isAdmin: true, environment: "test-5" },
+  {
+    id: 'test1',
+    email: 'test1@example.com',
+    password: 'test123',
+    fullName: 'Test User 1',
+    isAdmin: false,
+    environment: 'test-1',
+  },
+  {
+    id: 'test2',
+    email: 'test2@example.com',
+    password: 'test123',
+    fullName: 'Test User 2',
+    isAdmin: false,
+    environment: 'test-2',
+  },
+  {
+    id: 'test3',
+    email: 'test3@example.com',
+    password: 'test123',
+    fullName: 'Test User 3',
+    isAdmin: false,
+    environment: 'test-3',
+  },
+  {
+    id: 'test4',
+    email: 'test4@example.com',
+    password: 'admin123',
+    fullName: 'Test Admin 4',
+    isAdmin: true,
+    environment: 'test-4',
+  },
+  {
+    id: 'test5',
+    email: 'test5@example.com',
+    password: 'admin123',
+    fullName: 'Test Admin 5',
+    isAdmin: true,
+    environment: 'test-5',
+  },
 ];
 
 export async function seedDemoData() {
-  const environment = "demo";
-  const demoEmail = (process.env.DEMO_EMAIL || "demo@example.com").trim().toLowerCase();
+  const environment = 'demo';
+  const demoEmail = (process.env.DEMO_EMAIL || 'demo@example.com').trim().toLowerCase();
 
   // ------------------------------------------------------------------------
   // 0) Ensure legacy fallback demo user exists for structural links
   // ------------------------------------------------------------------------
-  const demoPasswordOriginal = process.env.DEMO_PASSWORD || "demo1234";
+  const demoPasswordOriginal = process.env.DEMO_PASSWORD || 'demo1234';
   const hashedDemoPasswordOriginal = await hashPassword(demoPasswordOriginal);
 
   const [existingDemo] = await db
@@ -313,20 +479,20 @@ export async function seedDemoData() {
   let userId: string;
 
   if (!existingDemo) {
-    const newId = "demo-user";
+    const newId = 'demo-user';
     const inserted = await db
       .insert(users)
       .values({
         id: newId,
         email: demoEmail,
         password: hashedDemoPasswordOriginal,
-        fullName: "Demo User",
-        role: "staff",
+        fullName: 'Demo User',
+        role: 'staff',
         isAdmin: false,
-        status: "active",
+        status: 'active',
         environment,
-        subscriptionTier: "free",
-        subscriptionStatus: "active",
+        subscriptionTier: 'free',
+        subscriptionStatus: 'active',
         createdAt: new Date(),
       })
       .returning();
@@ -335,14 +501,13 @@ export async function seedDemoData() {
     userId = existingDemo.id;
   }
 
-
   // ------------------------------------------------------------------------
   // 1) Ensure demo firm admin + client users exist (demo-only credentials)
   // ------------------------------------------------------------------------
 
-  const firmAdminEmail = "firm.admin.demo@example.com";
-  const clientEmail = "client.demo@example.com";
-  const demoPassword = process.env.DEMO_FIRM_PASSWORD || "demo1234";
+  const firmAdminEmail = 'firm.admin.demo@example.com';
+  const clientEmail = 'client.demo@example.com';
+  const demoPassword = process.env.DEMO_FIRM_PASSWORD || 'demo1234';
 
   const hashedDemoPassword = await hashPassword(demoPassword);
 
@@ -354,20 +519,20 @@ export async function seedDemoData() {
   let firmAdminId: string;
 
   if (!existingFirmAdmin) {
-    const newId = "demo-firm-admin";
+    const newId = 'demo-firm-admin';
     const inserted = await db
       .insert(users)
       .values({
         id: newId,
         email: firmAdminEmail,
         password: hashedDemoPassword,
-        fullName: "Demo Firm Admin",
-        role: "admin",
+        fullName: 'Demo Firm Admin',
+        role: 'admin',
         isAdmin: true,
-        status: "active",
+        status: 'active',
         environment,
-        subscriptionTier: "firm_starter",
-        subscriptionStatus: "active",
+        subscriptionTier: 'firm_starter',
+        subscriptionStatus: 'active',
         createdAt: new Date(),
       })
       .returning();
@@ -384,20 +549,20 @@ export async function seedDemoData() {
   let clientId: string;
 
   if (!existingClient) {
-    const newId = "demo-client-user";
+    const newId = 'demo-client-user';
     const inserted = await db
       .insert(users)
       .values({
         id: newId,
         email: clientEmail,
         password: hashedDemoPassword,
-        fullName: "Demo Client",
-        role: "client",
+        fullName: 'Demo Client',
+        role: 'client',
         isAdmin: false,
-        status: "active",
+        status: 'active',
         environment,
-        subscriptionTier: "free",
-        subscriptionStatus: "active",
+        subscriptionTier: 'free',
+        subscriptionStatus: 'active',
         createdAt: new Date(),
       })
       .returning();
@@ -410,30 +575,30 @@ export async function seedDemoData() {
   // 2) Ensure a sample firm workspace + memberships + matter exist
   // ------------------------------------------------------------------------
 
-  const workspaceName = "Demo Family Law Firm";
+  const workspaceName = 'Demo Family Law Firm';
 
   let workspaceId: string;
 
   const existingWorkspace = await db
     .select()
     .from(workspaces)
-    .where(and(eq(workspaces.name, workspaceName), eq(workspaces.type, "firm" as any)));
+    .where(and(eq(workspaces.name, workspaceName), eq(workspaces.type, 'firm' as any)));
 
   if (existingWorkspace.length === 0) {
     const insertedWorkspace = await db
       .insert(workspaces)
       .values({
         name: workspaceName,
-        type: "firm",
+        type: 'firm',
         ownerId: firmAdminId,
-        subscriptionTier: "firm_starter",
-        subscriptionStatus: "active",
+        subscriptionTier: 'firm_starter',
+        subscriptionStatus: 'active',
         aiCreditsBalance: 2500,
         aiCreditsLimit: 5000,
         settings: {
           branding: {
-            primaryColor: "#1f2937",
-            logoText: "Pearson Family Law Group",
+            primaryColor: '#1f2937',
+            logoText: 'Pearson Family Law Group',
           },
         },
       } as any)
@@ -457,7 +622,7 @@ export async function seedDemoData() {
     workspaceMemberInserts.push({
       workspaceId,
       userId: firmAdminId,
-      role: "owner",
+      role: 'owner',
     } as any);
   }
 
@@ -465,7 +630,7 @@ export async function seedDemoData() {
     workspaceMemberInserts.push({
       workspaceId,
       userId: userId,
-      role: "staff",
+      role: 'staff',
     } as any);
   }
 
@@ -473,7 +638,7 @@ export async function seedDemoData() {
     workspaceMemberInserts.push({
       workspaceId,
       userId: clientId,
-      role: "client",
+      role: 'client',
     } as any);
   }
 
@@ -492,11 +657,11 @@ export async function seedDemoData() {
       .insert(matters)
       .values({
         workspaceId,
-        matterNumber: "DL-FIRM-DEMO-001",
-        title: "Pearson v. Pearson – Custody & Support",
+        matterNumber: 'DL-FIRM-DEMO-001',
+        title: 'Pearson v. Pearson – Custody & Support',
         description:
-          "End-to-end demo matter showing how the firm collaborates with the client, tracks documents, and prepares for court.",
-        status: "active",
+          'End-to-end demo matter showing how the firm collaborates with the client, tracks documents, and prepares for court.',
+        status: 'active',
         leadAttorneyId: firmAdminId,
       } as any)
       .returning();
@@ -505,13 +670,13 @@ export async function seedDemoData() {
       {
         matterId: insertedMatter.id,
         userId: firmAdminId,
-        role: "attorney",
+        role: 'attorney',
         permissions: { can_view: true, can_upload: true, can_comment: true, can_edit: true },
       } as any,
       {
         matterId: insertedMatter.id,
         userId: clientId,
-        role: "client",
+        role: 'client',
         permissions: { can_view: true, can_upload: true, can_comment: true },
       } as any,
     ];
@@ -529,36 +694,38 @@ export async function seedDemoData() {
   const existingLegalDocs = await db
     .select({ count: sql`COUNT(*)` })
     .from(legalDocuments)
-    .where(and(eq(legalDocuments.userId, firmAdminId), eq(legalDocuments.environment, environment)));
+    .where(
+      and(eq(legalDocuments.userId, firmAdminId), eq(legalDocuments.environment, environment))
+    );
 
   if (Number(existingLegalDocs[0]?.count ?? 0) === 0) {
     await db.insert(legalDocuments).values([
       {
         userId: firmAdminId,
-        title: "Proposed Joint Custody Parenting Plan",
-        documentType: "parenting_plan",
-        description: "Draft joint custody schedule including holidays and summer break.",
-        fileName: "DL-Demo-Parenting-Plan.pdf",
-        fileUrl: "https://demo-files.divorce-ledger.local/DL-Demo-Parenting-Plan.pdf",
-        status: "final",
-        courtCase: "Pearson v. Pearson",
-        parties: ["Alex Pearson", "Jordan Pearson"],
-        tags: ["custody", "parenting_time", "court_ready"],
+        title: 'Proposed Joint Custody Parenting Plan',
+        documentType: 'parenting_plan',
+        description: 'Draft joint custody schedule including holidays and summer break.',
+        fileName: 'DL-Demo-Parenting-Plan.pdf',
+        fileUrl: 'https://demo-files.divorce-ledger.local/DL-Demo-Parenting-Plan.pdf',
+        status: 'final',
+        courtCase: 'Pearson v. Pearson',
+        parties: ['Alex Pearson', 'Jordan Pearson'],
+        tags: ['custody', 'parenting_time', 'court_ready'],
         environment,
         createdAt: now,
         updatedAt: now,
       },
       {
         userId: firmAdminId,
-        title: "Financial Affidavit – Client",
-        documentType: "financial_affidavit",
-        description: "Sworn financial statement prepared from Divorce Ledger data.",
-        fileName: "DL-Demo-Financial-Affidavit.pdf",
-        fileUrl: "https://demo-files.divorce-ledger.local/DL-Demo-Financial-Affidavit.pdf",
-        status: "filed",
-        courtCase: "Pearson v. Pearson",
-        parties: ["Alex Pearson"],
-        tags: ["financials", "court_order", "support"],
+        title: 'Financial Affidavit – Client',
+        documentType: 'financial_affidavit',
+        description: 'Sworn financial statement prepared from Divorce Ledger data.',
+        fileName: 'DL-Demo-Financial-Affidavit.pdf',
+        fileUrl: 'https://demo-files.divorce-ledger.local/DL-Demo-Financial-Affidavit.pdf',
+        status: 'filed',
+        courtCase: 'Pearson v. Pearson',
+        parties: ['Alex Pearson'],
+        tags: ['financials', 'court_order', 'support'],
         environment,
         createdAt: now,
         updatedAt: now,
@@ -576,19 +743,19 @@ export async function seedDemoData() {
     await db.insert(documents).values([
       {
         userId: clientId,
-        title: "January Joint Checking Statement",
-        category: "bank_statement",
-        description: "Used to trace hidden transfers and joint expenses.",
-        fileName: "DL-Demo-Joint-Checking-Jan.pdf",
-        fileType: "application/pdf",
+        title: 'January Joint Checking Statement',
+        category: 'bank_statement',
+        description: 'Used to trace hidden transfers and joint expenses.',
+        fileName: 'DL-Demo-Joint-Checking-Jan.pdf',
+        fileType: 'application/pdf',
         fileSize: 512000,
-        tags: ["bank", "joint_account", "hidden_assets"],
+        tags: ['bank', 'joint_account', 'hidden_assets'],
         isConfidential: true,
-        aiCategory: "BANK_STATEMENT",
+        aiCategory: 'BANK_STATEMENT',
         aiConfidence: 0.97,
-        aiSummary: "Statement showing regular payroll deposits and a suspicious $7,500 transfer.",
-        aiSuggestedTags: ["potential_hidden_asset", "review_required"],
-        aiAnalysisStatus: "completed",
+        aiSummary: 'Statement showing regular payroll deposits and a suspicious $7,500 transfer.',
+        aiSuggestedTags: ['potential_hidden_asset', 'review_required'],
+        aiAnalysisStatus: 'completed',
         aiAnalyzedAt: now,
         environment,
         createdAt: now,
@@ -596,19 +763,19 @@ export async function seedDemoData() {
       },
       {
         userId: clientId,
-        title: "Childcare & Activities Invoice",
-        category: "evidence_photo",
-        description: "Scanned invoice for after-school care and extracurricular activities.",
-        fileName: "DL-Demo-Childcare-Invoice.png",
-        fileType: "image/png",
+        title: 'Childcare & Activities Invoice',
+        category: 'evidence_photo',
+        description: 'Scanned invoice for after-school care and extracurricular activities.',
+        fileName: 'DL-Demo-Childcare-Invoice.png',
+        fileType: 'image/png',
         fileSize: 220000,
-        tags: ["childcare", "expenses", "support"],
+        tags: ['childcare', 'expenses', 'support'],
         isConfidential: false,
-        aiCategory: "GENERIC_FINANCIAL_EXPENSE",
+        aiCategory: 'GENERIC_FINANCIAL_EXPENSE',
         aiConfidence: 0.94,
-        aiSummary: "Monthly childcare and activities costs totaling $600.",
-        aiSuggestedTags: ["child_support", "special_expenses"],
-        aiAnalysisStatus: "completed",
+        aiSummary: 'Monthly childcare and activities costs totaling $600.',
+        aiSuggestedTags: ['child_support', 'special_expenses'],
+        aiAnalysisStatus: 'completed',
         aiAnalyzedAt: now,
         environment,
         createdAt: now,
@@ -627,32 +794,32 @@ export async function seedDemoData() {
     await db.insert(calendarEvents).values([
       {
         userId: clientId,
-        title: "Status Conference – Pearson v. Pearson",
-        description: "Status conference to review temporary orders and upcoming mediation.",
-        eventType: "court_hearing",
+        title: 'Status Conference – Pearson v. Pearson',
+        description: 'Status conference to review temporary orders and upcoming mediation.',
+        eventType: 'court_hearing',
         startDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
         endDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
         allDay: false,
-        location: "19th JDC – Division C, Courtroom 3",
+        location: '19th JDC – Division C, Courtroom 3',
         reminder: true,
         reminderMinutes: 120,
         isRecurring: false,
-        status: "scheduled",
+        status: 'scheduled',
         environment,
       },
       {
         userId: clientId,
-        title: "Mediation Session",
-        description: "First mediation session focusing on custody schedule and holiday time.",
-        eventType: "mediation",
+        title: 'Mediation Session',
+        description: 'First mediation session focusing on custody schedule and holiday time.',
+        eventType: 'mediation',
         startDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000 + 9 * 60 * 60 * 1000),
         endDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000 + 11 * 60 * 60 * 1000),
         allDay: false,
-        location: "Baton Rouge Mediation Center – Suite 400",
+        location: 'Baton Rouge Mediation Center – Suite 400',
         reminder: true,
         reminderMinutes: 1440,
         isRecurring: false,
-        status: "scheduled",
+        status: 'scheduled',
         environment,
       },
     ]);
@@ -668,17 +835,19 @@ export async function seedDemoData() {
     await db.insert(messages).values([
       {
         senderId: firmAdminId,
-        senderRole: "attorney",
-        senderName: "Demo Firm Admin",
-        content: "Hi Alex – I’ve reviewed your latest financial uploads. I’ll use these to update your affidavit and prepare for our status conference.",
+        senderRole: 'attorney',
+        senderName: 'Demo Firm Admin',
+        content:
+          'Hi Alex – I’ve reviewed your latest financial uploads. I’ll use these to update your affidavit and prepare for our status conference.',
         isRead: false,
         environment,
       },
       {
         senderId: clientId,
-        senderRole: "client",
-        senderName: "Demo Client",
-        content: "Thank you. I just uploaded the January bank statement and childcare invoice from my phone.",
+        senderRole: 'client',
+        senderName: 'Demo Client',
+        content:
+          'Thank you. I just uploaded the January bank statement and childcare invoice from my phone.',
         isRead: false,
         environment,
       },
@@ -689,20 +858,25 @@ export async function seedDemoData() {
   const existingMobileReports = await db
     .select({ count: sql`COUNT(*)` })
     .from(mobileViolationReports)
-    .where(and(eq(mobileViolationReports.userId, clientId), eq(mobileViolationReports.environment, environment)));
+    .where(
+      and(
+        eq(mobileViolationReports.userId, clientId),
+        eq(mobileViolationReports.environment, environment)
+      )
+    );
 
   if (Number(existingMobileReports[0]?.count ?? 0) === 0) {
     await db.insert(mobileViolationReports).values({
       userId: clientId,
-      title: "Missed custody exchange (mobile report)",
-      violationType: "custody",
+      title: 'Missed custody exchange (mobile report)',
+      violationType: 'custody',
       description:
-        "Other parent did not arrive at the agreed exchange location. I started this report from my phone while waiting.",
-      severity: "high",
-      location: "Target on Siegen Lane – parking lot",
+        'Other parent did not arrive at the agreed exchange location. I started this report from my phone while waiting.',
+      severity: 'high',
+      location: 'Target on Siegen Lane – parking lot',
       relatedDocumentIds: [],
-      witnesses: ["Store security camera", "Neighbor Jessica"],
-      status: "submitted",
+      witnesses: ['Store security camera', 'Neighbor Jessica'],
+      status: 'submitted',
       environment,
       submittedAt: now,
     } as any);
@@ -715,11 +889,11 @@ export async function seedDemoData() {
     .where(and(eq(violations.userId, clientId), eq(violations.environment, environment)));
 
   if (Number(existingViolations[0]?.count ?? 0) > 0) {
-    console.log("[DEMO] seedDemoData: existing demo data detected, skipping reseed.");
+    console.log('[DEMO] seedDemoData: existing demo data detected, skipping reseed.');
     return;
   }
 
-  console.log("[DEMO] Seeding sample demo data for the client user...");
+  console.log('[DEMO] Seeding sample demo data for the client user...');
 
   // Create a few sample cases
   const case1 = await db
@@ -727,10 +901,10 @@ export async function seedDemoData() {
     .values({
       userId: clientId,
       environment,
-      title: "Custody & Parenting Time",
-      status: "open",
-      courtName: "Family Court of East Baton Rouge Parish",
-      caseNumber: "DL-DEMO-2026-001",
+      title: 'Custody & Parenting Time',
+      status: 'open',
+      courtName: 'Family Court of East Baton Rouge Parish',
+      caseNumber: 'DL-DEMO-2026-001',
       createdAt: now,
     } as any)
     .returning();
@@ -740,10 +914,10 @@ export async function seedDemoData() {
     .values({
       userId: clientId,
       environment,
-      title: "Hidden Assets & Financial Misconduct",
-      status: "open",
-      courtName: "19th Judicial District Court",
-      caseNumber: "DL-DEMO-2026-002",
+      title: 'Hidden Assets & Financial Misconduct',
+      status: 'open',
+      courtName: '19th Judicial District Court',
+      caseNumber: 'DL-DEMO-2026-002',
       createdAt: now,
     } as any)
     .returning();
@@ -756,10 +930,10 @@ export async function seedDemoData() {
       userId: clientId,
       environment,
       caseId: primaryCase.id,
-      type: "custody",
+      type: 'custody',
       description:
-        "Other parent failed to appear for scheduled custody exchange and did not notify prior to being 45 minutes late.",
-      location: "Exchange point – Target parking lot, Siegen Lane",
+        'Other parent failed to appear for scheduled custody exchange and did not notify prior to being 45 minutes late.',
+      location: 'Exchange point – Target parking lot, Siegen Lane',
       createdAt: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7),
       isDraft: false,
     },
@@ -767,10 +941,10 @@ export async function seedDemoData() {
       userId: clientId,
       environment,
       caseId: primaryCase.id,
-      type: "financial_hiding",
+      type: 'financial_hiding',
       description:
-        "Unexplained $7,500 transfer from joint checking to new online-only bank account not previously disclosed.",
-      location: "Online banking – joint checking ending 4421",
+        'Unexplained $7,500 transfer from joint checking to new online-only bank account not previously disclosed.',
+      location: 'Online banking – joint checking ending 4421',
       createdAt: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 3),
       isDraft: false,
     },
@@ -778,10 +952,10 @@ export async function seedDemoData() {
       userId: clientId,
       environment,
       caseId: primaryCase.id,
-      type: "court_order",
+      type: 'court_order',
       description:
-        "Missed child support payment for January despite standing order requiring payment by the 5th of each month.",
-      location: "Child support order – Section C, paragraph 4",
+        'Missed child support payment for January despite standing order requiring payment by the 5th of each month.',
+      location: 'Child support order – Section C, paragraph 4',
       createdAt: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 14),
       isDraft: false,
     },
@@ -792,20 +966,20 @@ export async function seedDemoData() {
     {
       userId: clientId,
       environment,
-      name: "Joint Checking Account",
+      name: 'Joint Checking Account',
       value: 12500,
-      category: "bank_account",
-      ownership: "joint",
+      category: 'bank_account',
+      ownership: 'joint',
       verified: true,
       createdAt: now,
     },
     {
       userId: clientId,
       environment,
-      name: "Primary Residence",
+      name: 'Primary Residence',
       value: 425000,
-      category: "real_property",
-      ownership: "marital",
+      category: 'real_property',
+      ownership: 'marital',
       verified: false,
       createdAt: now,
     },
@@ -815,20 +989,20 @@ export async function seedDemoData() {
     {
       userId: clientId,
       environment,
-      name: "Mortgage – Primary Residence",
+      name: 'Mortgage – Primary Residence',
       amount: 315000,
-      category: "mortgage",
-      ownership: "marital",
+      category: 'mortgage',
+      ownership: 'marital',
       monthlyPayment: 2450,
       createdAt: now,
     },
     {
       userId: clientId,
       environment,
-      name: "Joint Credit Card",
+      name: 'Joint Credit Card',
       amount: 8400,
-      category: "credit_card",
-      ownership: "joint",
+      category: 'credit_card',
+      ownership: 'joint',
       monthlyPayment: 250,
       createdAt: now,
     },
@@ -838,19 +1012,19 @@ export async function seedDemoData() {
     {
       userId: clientId,
       environment,
-      source: "W-2 Employment – Software Engineer",
+      source: 'W-2 Employment – Software Engineer',
       amount: 9800,
-      frequency: "monthly",
-      owner: "you",
+      frequency: 'monthly',
+      owner: 'you',
       createdAt: now,
     },
     {
       userId: clientId,
       environment,
-      source: "Child Support Received",
+      source: 'Child Support Received',
       amount: 1200,
-      frequency: "monthly",
-      owner: "you",
+      frequency: 'monthly',
+      owner: 'you',
       createdAt: now,
     },
   ] as any);
@@ -859,21 +1033,21 @@ export async function seedDemoData() {
     {
       userId: clientId,
       environment,
-      category: "legal_professional",
-      description: "Retainer payment to family law attorney",
+      category: 'legal_professional',
+      description: 'Retainer payment to family law attorney',
       amount: 3500,
-      frequency: "one_time",
-      owner: "you",
+      frequency: 'one_time',
+      owner: 'you',
       createdAt: now,
     },
     {
       userId: clientId,
       environment,
-      category: "childcare",
-      description: "After-school care and activities",
+      category: 'childcare',
+      description: 'After-school care and activities',
       amount: 600,
-      frequency: "monthly",
-      owner: "you",
+      frequency: 'monthly',
+      owner: 'you',
       createdAt: now,
     },
   ] as any);
@@ -884,15 +1058,15 @@ export async function seedDemoData() {
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 2).toISOString().split('T')[0],
       amount: -7500,
-      description: "Online Transfer to xxx4421",
-      category: "transfer",
-      type: "expense",
+      description: 'Online Transfer to xxx4421',
+      category: 'transfer',
+      type: 'expense',
       isReviewed: false,
       aiAnalysis: {
-        suggestedCategory: "transfer",
+        suggestedCategory: 'transfer',
         confidence: 0.95,
         flagForReview: true,
-        reason: "Large unexplained transfer matching violation report"
+        reason: 'Large unexplained transfer matching violation report',
       },
       createdAt: now,
     },
@@ -901,9 +1075,9 @@ export async function seedDemoData() {
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 5).toISOString().split('T')[0],
       amount: -2450,
-      description: "Chase Mortgage Servicing",
-      category: "mortgage",
-      type: "expense",
+      description: 'Chase Mortgage Servicing',
+      category: 'mortgage',
+      type: 'expense',
       isReviewed: true,
       createdAt: now,
     },
@@ -912,36 +1086,36 @@ export async function seedDemoData() {
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 10).toISOString().split('T')[0],
       amount: 4900,
-      description: "Acme Corp Payroll",
-      category: "income",
-      type: "income",
+      description: 'Acme Corp Payroll',
+      category: 'income',
+      type: 'income',
       isReviewed: true,
       createdAt: now,
-    }
+    },
   ] as any);
 
   await db.insert(alerts).values([
     {
       userId: clientId,
       environment,
-      title: "Action Required",
-      description: "Please sign the Joint Custody Parenting Plan draft.",
-      type: "document_signature",
-      severity: "warning",
+      title: 'Action Required',
+      description: 'Please sign the Joint Custody Parenting Plan draft.',
+      type: 'document_signature',
+      severity: 'warning',
       isRead: false,
     },
     {
       userId: clientId,
       environment,
-      title: "New Message",
-      description: "Demo Firm Admin sent you a secure message.",
-      type: "new_message",
-      severity: "info",
+      title: 'New Message',
+      description: 'Demo Firm Admin sent you a secure message.',
+      type: 'new_message',
+      severity: 'info',
       isRead: false,
-    }
+    },
   ] as any);
 
-  console.log("[DEMO] Demo data seeded successfully.");
+  console.log('[DEMO] Demo data seeded successfully.');
 }
 
 export async function seedTestUsers() {
@@ -971,16 +1145,16 @@ export class DatabaseStorage implements IStorage {
     await db.update(users).set({ password: hashedPassword }).where(eq(users.id, id));
   }
 
-  async updateUserProfile(id: string, profile: { fullName?: string; email?: string; profilePhoto?: string }): Promise<User | undefined> {
+  async updateUserProfile(
+    id: string,
+    profile: { fullName?: string; email?: string; profilePhoto?: string }
+  ): Promise<User | undefined> {
     const updateData: Partial<User> = {};
     if (profile.fullName !== undefined) updateData.fullName = profile.fullName;
     if (profile.email !== undefined) updateData.email = profile.email;
     if (profile.profilePhoto !== undefined) updateData.profilePhoto = profile.profilePhoto;
 
-    const result = await db.update(users)
-      .set(updateData)
-      .where(eq(users.id, id))
-      .returning();
+    const result = await db.update(users).set(updateData).where(eq(users.id, id)).returning();
     return result[0];
   }
 
@@ -989,24 +1163,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserAdminStatus(id: string, isAdmin: boolean): Promise<void> {
-    await db.update(users).set({ isAdmin, role: isAdmin ? "admin" : "client" }).where(eq(users.id, id));
+    await db
+      .update(users)
+      .set({ isAdmin, role: isAdmin ? 'admin' : 'client' })
+      .where(eq(users.id, id));
   }
 
   async updateUserStatus(id: string, status: string): Promise<void> {
     await db.update(users).set({ status }).where(eq(users.id, id));
   }
 
-  async updateUserTierAndRole(id: string, updates: { subscriptionTier?: string; role?: string; isAdmin?: boolean; status?: string }): Promise<User | undefined> {
+  async updateUserTierAndRole(
+    id: string,
+    updates: { subscriptionTier?: string; role?: string; isAdmin?: boolean; status?: string }
+  ): Promise<User | undefined> {
     const updateData: Partial<User> = {};
-    if (updates.subscriptionTier !== undefined) updateData.subscriptionTier = updates.subscriptionTier;
+    if (updates.subscriptionTier !== undefined)
+      updateData.subscriptionTier = updates.subscriptionTier;
     if (updates.role !== undefined) updateData.role = updates.role;
     if (updates.isAdmin !== undefined) updateData.isAdmin = updates.isAdmin;
     if (updates.status !== undefined) updateData.status = updates.status;
 
-    const result = await db.update(users)
-      .set(updateData)
-      .where(eq(users.id, id))
-      .returning();
+    const result = await db.update(users).set(updateData).where(eq(users.id, id)).returning();
     return result[0];
   }
 
@@ -1016,16 +1194,25 @@ export class DatabaseStorage implements IStorage {
 
   async getTransactions(userId: string, environment: string): Promise<Transaction[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(transactions).where(
-      and(eq(transactions.userId, userId), eq(transactions.environment, environment))
-    ).orderBy(desc(transactions.date));
+    return currentDb
+      .select()
+      .from(transactions)
+      .where(and(eq(transactions.userId, userId), eq(transactions.environment, environment)))
+      .orderBy(desc(transactions.date));
   }
 
-  async getRecentTransactions(userId: string, environment: string, limit: number): Promise<Transaction[]> {
+  async getRecentTransactions(
+    userId: string,
+    environment: string,
+    limit: number
+  ): Promise<Transaction[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(transactions).where(
-      and(eq(transactions.userId, userId), eq(transactions.environment, environment))
-    ).orderBy(desc(transactions.date)).limit(limit);
+    return currentDb
+      .select()
+      .from(transactions)
+      .where(and(eq(transactions.userId, userId), eq(transactions.environment, environment)))
+      .orderBy(desc(transactions.date))
+      .limit(limit);
   }
 
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
@@ -1035,9 +1222,10 @@ export class DatabaseStorage implements IStorage {
 
   async getAssets(userId: string, environment: string): Promise<Asset[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(assets).where(
-      and(eq(assets.userId, userId), eq(assets.environment, environment))
-    );
+    return currentDb
+      .select()
+      .from(assets)
+      .where(and(eq(assets.userId, userId), eq(assets.environment, environment)));
   }
 
   async createAsset(asset: InsertAsset): Promise<Asset> {
@@ -1046,16 +1234,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAsset(id: string, userId: string, environment: string): Promise<void> {
-    await db.delete(assets).where(
-      and(eq(assets.id, id), eq(assets.userId, userId), eq(assets.environment, environment))
-    );
+    await db
+      .delete(assets)
+      .where(
+        and(eq(assets.id, id), eq(assets.userId, userId), eq(assets.environment, environment))
+      );
   }
 
   async getDebts(userId: string, environment: string): Promise<Debt[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(debts).where(
-      and(eq(debts.userId, userId), eq(debts.environment, environment))
-    );
+    return currentDb
+      .select()
+      .from(debts)
+      .where(and(eq(debts.userId, userId), eq(debts.environment, environment)));
   }
 
   async createDebt(debt: InsertDebt): Promise<Debt> {
@@ -1064,16 +1255,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteDebt(id: string, userId: string, environment: string): Promise<void> {
-    await db.delete(debts).where(
-      and(eq(debts.id, id), eq(debts.userId, userId), eq(debts.environment, environment))
-    );
+    await db
+      .delete(debts)
+      .where(and(eq(debts.id, id), eq(debts.userId, userId), eq(debts.environment, environment)));
   }
 
   async getIncomes(userId: string, environment: string): Promise<Income[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(incomes).where(
-      and(eq(incomes.userId, userId), eq(incomes.environment, environment))
-    );
+    return currentDb
+      .select()
+      .from(incomes)
+      .where(and(eq(incomes.userId, userId), eq(incomes.environment, environment)));
   }
 
   async createIncome(income: InsertIncome): Promise<Income> {
@@ -1082,16 +1274,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteIncome(id: string, userId: string, environment: string): Promise<void> {
-    await db.delete(incomes).where(
-      and(eq(incomes.id, id), eq(incomes.userId, userId), eq(incomes.environment, environment))
-    );
+    await db
+      .delete(incomes)
+      .where(
+        and(eq(incomes.id, id), eq(incomes.userId, userId), eq(incomes.environment, environment))
+      );
   }
 
   async getExpenses(userId: string, environment: string): Promise<Expense[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(expenses).where(
-      and(eq(expenses.userId, userId), eq(expenses.environment, environment))
-    );
+    return currentDb
+      .select()
+      .from(expenses)
+      .where(and(eq(expenses.userId, userId), eq(expenses.environment, environment)));
   }
 
   async createExpense(expense: InsertExpense): Promise<Expense> {
@@ -1100,16 +1295,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteExpense(id: string, userId: string, environment: string): Promise<void> {
-    await db.delete(expenses).where(
-      and(eq(expenses.id, id), eq(expenses.userId, userId), eq(expenses.environment, environment))
-    );
+    await db
+      .delete(expenses)
+      .where(
+        and(eq(expenses.id, id), eq(expenses.userId, userId), eq(expenses.environment, environment))
+      );
   }
 
   async getAlerts(userId: string, environment: string): Promise<Alert[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(alerts).where(
-      and(eq(alerts.userId, userId), eq(alerts.environment, environment))
-    ).orderBy(desc(alerts.id));
+    return currentDb
+      .select()
+      .from(alerts)
+      .where(and(eq(alerts.userId, userId), eq(alerts.environment, environment)))
+      .orderBy(desc(alerts.id));
   }
 
   async createAlert(alert: InsertAlert): Promise<Alert> {
@@ -1123,9 +1322,11 @@ export class DatabaseStorage implements IStorage {
 
   async getViolations(userId: string, environment: string): Promise<Violation[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(violations).where(
-      and(eq(violations.userId, userId), eq(violations.environment, environment))
-    ).orderBy(desc(violations.id));
+    return currentDb
+      .select()
+      .from(violations)
+      .where(and(eq(violations.userId, userId), eq(violations.environment, environment)))
+      .orderBy(desc(violations.id));
   }
 
   async createViolation(violation: InsertViolation): Promise<Violation> {
@@ -1133,28 +1334,53 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateViolationStatus(id: string, userId: string, environment: string, status: string): Promise<Violation | undefined> {
-    const result = await db.update(violations)
+  async updateViolationStatus(
+    id: string,
+    userId: string,
+    environment: string,
+    status: string
+  ): Promise<Violation | undefined> {
+    const result = await db
+      .update(violations)
       .set({ status })
-      .where(and(eq(violations.id, id), eq(violations.userId, userId), eq(violations.environment, environment)))
+      .where(
+        and(
+          eq(violations.id, id),
+          eq(violations.userId, userId),
+          eq(violations.environment, environment)
+        )
+      )
       .returning();
     return result[0];
   }
 
   async deleteViolation(id: string, userId: string, environment: string): Promise<void> {
-    await db.delete(violations).where(
-      and(eq(violations.id, id), eq(violations.userId, userId), eq(violations.environment, environment))
-    );
+    await db
+      .delete(violations)
+      .where(
+        and(
+          eq(violations.id, id),
+          eq(violations.userId, userId),
+          eq(violations.environment, environment)
+        )
+      );
   }
 
-  async getEvidenceFiles(violationId: string, userId: string, environment: string): Promise<EvidenceFile[]> {
-    return db.select().from(evidenceFiles).where(
-      and(
-        eq(evidenceFiles.violationId, violationId),
-        eq(evidenceFiles.userId, userId),
-        eq(evidenceFiles.environment, environment)
-      )
-    );
+  async getEvidenceFiles(
+    violationId: string,
+    userId: string,
+    environment: string
+  ): Promise<EvidenceFile[]> {
+    return db
+      .select()
+      .from(evidenceFiles)
+      .where(
+        and(
+          eq(evidenceFiles.violationId, violationId),
+          eq(evidenceFiles.userId, userId),
+          eq(evidenceFiles.environment, environment)
+        )
+      );
   }
 
   async createEvidenceFile(evidenceFile: InsertEvidenceFile): Promise<EvidenceFile> {
@@ -1163,9 +1389,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getChainOfCustody(evidenceId: string, environment: string): Promise<ChainOfCustody[]> {
-    return db.select().from(chainOfCustody).where(
-      and(eq(chainOfCustody.evidenceId, evidenceId), eq(chainOfCustody.environment, environment))
-    );
+    return db
+      .select()
+      .from(chainOfCustody)
+      .where(
+        and(eq(chainOfCustody.evidenceId, evidenceId), eq(chainOfCustody.environment, environment))
+      );
   }
 
   async addChainOfCustodyEntry(entry: InsertChainOfCustody): Promise<ChainOfCustody> {
@@ -1174,7 +1403,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMessages(environment: string): Promise<Message[]> {
-    return db.select().from(messages).where(eq(messages.environment, environment)).orderBy(desc(messages.id));
+    return db
+      .select()
+      .from(messages)
+      .where(eq(messages.environment, environment))
+      .orderBy(desc(messages.id));
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {
@@ -1186,41 +1419,62 @@ export class DatabaseStorage implements IStorage {
     const currentDb = getDb(environment);
 
     // Optimized: Execute counting queries in parallel
-    const [
-      assetsRes,
-      debtsRes,
-      incomeRes,
-      expenseRes,
-      violationsRes,
-      casesRes,
-      childSupportRes
-    ] = await Promise.all([
-      currentDb.select().from(assets).where(and(eq(assets.userId, userId), eq(assets.environment, environment))),
-      currentDb.select().from(debts).where(and(eq(debts.userId, userId), eq(debts.environment, environment))),
-      currentDb.select().from(incomes).where(and(eq(incomes.userId, userId), eq(incomes.environment, environment))),
-      currentDb.select().from(expenses).where(and(eq(expenses.userId, userId), eq(expenses.environment, environment))),
-      currentDb.select().from(violations).where(and(eq(violations.userId, userId), eq(violations.environment, environment))),
-      currentDb.select().from(cases).where(and(eq(cases.userId, userId), eq(cases.environment, environment))),
-      currentDb.select().from(childSupportPayments).where(and(eq(childSupportPayments.userId, userId), eq(childSupportPayments.environment, environment)))
-    ]);
+    const [assetsRes, debtsRes, incomeRes, expenseRes, violationsRes, casesRes, childSupportRes] =
+      await Promise.all([
+        currentDb
+          .select()
+          .from(assets)
+          .where(and(eq(assets.userId, userId), eq(assets.environment, environment))),
+        currentDb
+          .select()
+          .from(debts)
+          .where(and(eq(debts.userId, userId), eq(debts.environment, environment))),
+        currentDb
+          .select()
+          .from(incomes)
+          .where(and(eq(incomes.userId, userId), eq(incomes.environment, environment))),
+        currentDb
+          .select()
+          .from(expenses)
+          .where(and(eq(expenses.userId, userId), eq(expenses.environment, environment))),
+        currentDb
+          .select()
+          .from(violations)
+          .where(and(eq(violations.userId, userId), eq(violations.environment, environment))),
+        currentDb
+          .select()
+          .from(cases)
+          .where(and(eq(cases.userId, userId), eq(cases.environment, environment))),
+        currentDb
+          .select()
+          .from(childSupportPayments)
+          .where(
+            and(
+              eq(childSupportPayments.userId, userId),
+              eq(childSupportPayments.environment, environment)
+            )
+          ),
+      ]);
 
     const totalAssets = assetsRes.reduce((sum, a) => sum + (a.value || 0), 0);
-    const maritalAssets = assetsRes.filter(a => a.ownership === 'marital').reduce((sum, a) => sum + (a.value || 0), 0);
+    const maritalAssets = assetsRes
+      .filter((a) => a.ownership === 'marital')
+      .reduce((sum, a) => sum + (a.value || 0), 0);
     const totalDebts = debtsRes.reduce((sum, d) => sum + (d.amount || 0), 0);
     const monthlyIncome = incomeRes.reduce((sum, i) => {
       const amount = i.amount || 0;
-      if (i.frequency === 'weekly') return sum + (amount * 52 / 12);
-      if (i.frequency === 'bi-weekly') return sum + (amount * 26 / 12);
+      if (i.frequency === 'weekly') return sum + (amount * 52) / 12;
+      if (i.frequency === 'bi-weekly') return sum + (amount * 26) / 12;
       return sum + amount;
     }, 0);
     const monthlyExpenses = expenseRes.reduce((sum, e) => sum + (e.amount || 0), 0);
 
     // Calculate child support and alimony from actual payment records
     const childSupportOwed = childSupportRes
-      .filter(p => p.paymentType === 'child_support' && p.status === 'pending')
+      .filter((p) => p.paymentType === 'child_support' && p.status === 'pending')
       .reduce((sum, p) => sum + (p.amount || 0), 0);
     const alimonyOwed = childSupportRes
-      .filter(p => p.paymentType === 'alimony' && p.status === 'pending')
+      .filter((p) => p.paymentType === 'alimony' && p.status === 'pending')
       .reduce((sum, p) => sum + (p.amount || 0), 0);
 
     return {
@@ -1239,16 +1493,18 @@ export class DatabaseStorage implements IStorage {
 
   async getCases(userId: string, environment: string): Promise<Case[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(cases).where(
-      and(eq(cases.userId, userId), eq(cases.environment, environment))
-    );
+    return currentDb
+      .select()
+      .from(cases)
+      .where(and(eq(cases.userId, userId), eq(cases.environment, environment)));
   }
 
   async getCase(id: string, userId: string, environment: string): Promise<Case | undefined> {
     const currentDb = getDb(environment);
-    const result = await currentDb.select().from(cases).where(
-      and(eq(cases.id, id), eq(cases.userId, userId), eq(cases.environment, environment))
-    );
+    const result = await currentDb
+      .select()
+      .from(cases)
+      .where(and(eq(cases.id, id), eq(cases.userId, userId), eq(cases.environment, environment)));
     return result[0];
   }
 
@@ -1258,9 +1514,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCase(id: string, userId: string, environment: string): Promise<void> {
-    await db.delete(cases).where(
-      and(eq(cases.id, id), eq(cases.userId, userId), eq(cases.environment, environment))
-    );
+    await db
+      .delete(cases)
+      .where(and(eq(cases.id, id), eq(cases.userId, userId), eq(cases.environment, environment)));
   }
 
   async getTeam(id: string): Promise<Team | undefined> {
@@ -1277,7 +1533,12 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(users).where(eq(users.teamId, teamId));
   }
 
-  async updateUserTier(userId: string, tier: string, stripeCustomerId?: string, stripeSubscriptionId?: string): Promise<User | undefined> {
+  async updateUserTier(
+    userId: string,
+    tier: string,
+    stripeCustomerId?: string,
+    stripeSubscriptionId?: string
+  ): Promise<User | undefined> {
     const updateData: any = { subscriptionTier: tier };
     if (stripeCustomerId) updateData.stripeCustomerId = stripeCustomerId;
     if (stripeSubscriptionId) updateData.stripeSubscriptionId = stripeSubscriptionId;
@@ -1286,62 +1547,71 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateUserStripeInfo(userId: string, info: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<User | undefined> {
+  async updateUserStripeInfo(
+    userId: string,
+    info: { stripeCustomerId?: string; stripeSubscriptionId?: string }
+  ): Promise<User | undefined> {
     const result = await db.update(users).set(info).where(eq(users.id, userId)).returning();
     return result[0];
   }
 
   async incrementViolationCount(userId: string): Promise<void> {
-    await db.update(users)
+    await db
+      .update(users)
       .set({ violationsCountThisMonth: sql`${users.violationsCountThisMonth} + 1` })
       .where(eq(users.id, userId));
   }
 
   async incrementCaseCount(userId: string): Promise<void> {
-    await db.update(users)
+    await db
+      .update(users)
       .set({ casesCount: sql`${users.casesCount} + 1` })
       .where(eq(users.id, userId));
   }
 
   async decrementCaseCount(userId: string): Promise<void> {
-    await db.update(users)
+    await db
+      .update(users)
       .set({ casesCount: sql`GREATEST(0, ${users.casesCount} - 1)` })
       .where(eq(users.id, userId));
   }
 
   async resetMonthlyViolationCount(userId: string): Promise<void> {
-    await db.update(users)
-      .set({ violationsCountThisMonth: 0 })
-      .where(eq(users.id, userId));
+    await db.update(users).set({ violationsCountThisMonth: 0 }).where(eq(users.id, userId));
   }
 
   async incrementVoiceTranscriptionCount(userId: string): Promise<void> {
-    await db.update(users)
+    await db
+      .update(users)
       .set({ voiceTranscriptionsThisMonth: sql`${users.voiceTranscriptionsThisMonth} + 1` })
       .where(eq(users.id, userId));
   }
 
   async incrementMediaUploadCount(userId: string, count = 1): Promise<void> {
-    await db.update(users)
+    await db
+      .update(users)
       .set({ mediaUploadsThisMonth: sql`${users.mediaUploadsThisMonth} + ${count}` })
       .where(eq(users.id, userId));
   }
 
   async resetMonthlyUsageCounts(userId: string): Promise<void> {
-    await db.update(users)
+    await db
+      .update(users)
       .set({
         violationsCountThisMonth: 0,
         voiceTranscriptionsThisMonth: 0,
-        mediaUploadsThisMonth: 0
+        mediaUploadsThisMonth: 0,
       })
       .where(eq(users.id, userId));
   }
 
   async getDocuments(userId: string, environment: string): Promise<Document[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(documents).where(
-      and(eq(documents.userId, userId), eq(documents.environment, environment))
-    ).orderBy(desc(documents.createdAt));
+    return currentDb
+      .select()
+      .from(documents)
+      .where(and(eq(documents.userId, userId), eq(documents.environment, environment)))
+      .orderBy(desc(documents.createdAt));
   }
 
   async getDocument(id: string): Promise<Document | undefined> {
@@ -1360,30 +1630,58 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteDocument(id: string, userId: string, environment: string): Promise<void> {
-    await db.delete(documents).where(
-      and(eq(documents.id, id), eq(documents.userId, userId), eq(documents.environment, environment))
-    );
+    await db
+      .delete(documents)
+      .where(
+        and(
+          eq(documents.id, id),
+          eq(documents.userId, userId),
+          eq(documents.environment, environment)
+        )
+      );
   }
 
-  async getMobileViolationReports(userId: string, environment: string): Promise<MobileViolationReport[]> {
+  async getMobileViolationReports(
+    userId: string,
+    environment: string
+  ): Promise<MobileViolationReport[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(mobileViolationReports).where(
-      and(eq(mobileViolationReports.userId, userId), eq(mobileViolationReports.environment, environment))
-    ).orderBy(desc(mobileViolationReports.createdAt));
+    return currentDb
+      .select()
+      .from(mobileViolationReports)
+      .where(
+        and(
+          eq(mobileViolationReports.userId, userId),
+          eq(mobileViolationReports.environment, environment)
+        )
+      )
+      .orderBy(desc(mobileViolationReports.createdAt));
   }
 
   async getMobileViolationReport(id: string): Promise<MobileViolationReport | undefined> {
-    const result = await db.select().from(mobileViolationReports).where(eq(mobileViolationReports.id, id));
+    const result = await db
+      .select()
+      .from(mobileViolationReports)
+      .where(eq(mobileViolationReports.id, id));
     return result[0];
   }
 
-  async createMobileViolationReport(report: InsertMobileViolationReport): Promise<MobileViolationReport> {
+  async createMobileViolationReport(
+    report: InsertMobileViolationReport
+  ): Promise<MobileViolationReport> {
     const result = await db.insert(mobileViolationReports).values(report).returning();
     return result[0];
   }
 
-  async updateMobileViolationReport(id: string, updates: Partial<MobileViolationReport>): Promise<MobileViolationReport | undefined> {
-    const result = await db.update(mobileViolationReports).set(updates).where(eq(mobileViolationReports.id, id)).returning();
+  async updateMobileViolationReport(
+    id: string,
+    updates: Partial<MobileViolationReport>
+  ): Promise<MobileViolationReport | undefined> {
+    const result = await db
+      .update(mobileViolationReports)
+      .set(updates)
+      .where(eq(mobileViolationReports.id, id))
+      .returning();
     return result[0];
   }
 
@@ -1393,9 +1691,11 @@ export class DatabaseStorage implements IStorage {
 
   async getReimbursements(userId: string, environment: string): Promise<Reimbursement[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(reimbursements).where(
-      and(eq(reimbursements.userId, userId), eq(reimbursements.environment, environment))
-    ).orderBy(desc(reimbursements.createdAt));
+    return currentDb
+      .select()
+      .from(reimbursements)
+      .where(and(eq(reimbursements.userId, userId), eq(reimbursements.environment, environment)))
+      .orderBy(desc(reimbursements.createdAt));
   }
 
   async getReimbursement(id: string): Promise<Reimbursement | undefined> {
@@ -1408,8 +1708,15 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateReimbursement(id: string, updates: Partial<Reimbursement>): Promise<Reimbursement | undefined> {
-    const result = await db.update(reimbursements).set(updates).where(eq(reimbursements.id, id)).returning();
+  async updateReimbursement(
+    id: string,
+    updates: Partial<Reimbursement>
+  ): Promise<Reimbursement | undefined> {
+    const result = await db
+      .update(reimbursements)
+      .set(updates)
+      .where(eq(reimbursements.id, id))
+      .returning();
     return result[0];
   }
 
@@ -1419,9 +1726,11 @@ export class DatabaseStorage implements IStorage {
 
   async getCalendarEvents(userId: string, environment: string): Promise<CalendarEvent[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(calendarEvents).where(
-      and(eq(calendarEvents.userId, userId), eq(calendarEvents.environment, environment))
-    ).orderBy(desc(calendarEvents.startDate));
+    return currentDb
+      .select()
+      .from(calendarEvents)
+      .where(and(eq(calendarEvents.userId, userId), eq(calendarEvents.environment, environment)))
+      .orderBy(desc(calendarEvents.startDate));
   }
 
   async createCalendarEvent(event: InsertCalendarEvent): Promise<CalendarEvent> {
@@ -1430,16 +1739,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCalendarEvent(id: string, userId: string, environment: string): Promise<void> {
-    await db.delete(calendarEvents).where(
-      and(eq(calendarEvents.id, id), eq(calendarEvents.userId, userId), eq(calendarEvents.environment, environment))
-    );
+    await db
+      .delete(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.id, id),
+          eq(calendarEvents.userId, userId),
+          eq(calendarEvents.environment, environment)
+        )
+      );
   }
 
   async getLegalDocuments(userId: string, environment: string): Promise<LegalDocument[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(legalDocuments).where(
-      and(eq(legalDocuments.userId, userId), eq(legalDocuments.environment, environment))
-    ).orderBy(desc(legalDocuments.filingDate));
+    return currentDb
+      .select()
+      .from(legalDocuments)
+      .where(and(eq(legalDocuments.userId, userId), eq(legalDocuments.environment, environment)))
+      .orderBy(desc(legalDocuments.filingDate));
   }
 
   async createLegalDocument(document: InsertLegalDocument): Promise<LegalDocument> {
@@ -1448,39 +1765,78 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteLegalDocument(id: string, userId: string, environment: string): Promise<void> {
-    await db.delete(legalDocuments).where(
-      and(eq(legalDocuments.id, id), eq(legalDocuments.userId, userId), eq(legalDocuments.environment, environment))
-    );
+    await db
+      .delete(legalDocuments)
+      .where(
+        and(
+          eq(legalDocuments.id, id),
+          eq(legalDocuments.userId, userId),
+          eq(legalDocuments.environment, environment)
+        )
+      );
   }
 
-  async getChildSupportPayments(userId: string, environment: string): Promise<ChildSupportPayment[]> {
+  async getChildSupportPayments(
+    userId: string,
+    environment: string
+  ): Promise<ChildSupportPayment[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(childSupportPayments).where(
-      and(eq(childSupportPayments.userId, userId), eq(childSupportPayments.environment, environment))
-    ).orderBy(desc(childSupportPayments.dueDate));
+    return currentDb
+      .select()
+      .from(childSupportPayments)
+      .where(
+        and(
+          eq(childSupportPayments.userId, userId),
+          eq(childSupportPayments.environment, environment)
+        )
+      )
+      .orderBy(desc(childSupportPayments.dueDate));
   }
 
-  async createChildSupportPayment(payment: InsertChildSupportPayment): Promise<ChildSupportPayment> {
+  async createChildSupportPayment(
+    payment: InsertChildSupportPayment
+  ): Promise<ChildSupportPayment> {
     const result = await db.insert(childSupportPayments).values(payment).returning();
     return result[0];
   }
 
-  async updateChildSupportPayment(id: string, userId: string, environment: string, update: Partial<ChildSupportPayment>): Promise<ChildSupportPayment | undefined> {
-    const result = await db.update(childSupportPayments)
+  async updateChildSupportPayment(
+    id: string,
+    userId: string,
+    environment: string,
+    update: Partial<ChildSupportPayment>
+  ): Promise<ChildSupportPayment | undefined> {
+    const result = await db
+      .update(childSupportPayments)
       .set(update)
-      .where(and(eq(childSupportPayments.id, id), eq(childSupportPayments.userId, userId), eq(childSupportPayments.environment, environment)))
+      .where(
+        and(
+          eq(childSupportPayments.id, id),
+          eq(childSupportPayments.userId, userId),
+          eq(childSupportPayments.environment, environment)
+        )
+      )
       .returning();
     return result[0];
   }
 
   async deleteChildSupportPayment(id: string, userId: string, environment: string): Promise<void> {
-    await db.delete(childSupportPayments).where(
-      and(eq(childSupportPayments.id, id), eq(childSupportPayments.userId, userId), eq(childSupportPayments.environment, environment))
-    );
+    await db
+      .delete(childSupportPayments)
+      .where(
+        and(
+          eq(childSupportPayments.id, id),
+          eq(childSupportPayments.userId, userId),
+          eq(childSupportPayments.environment, environment)
+        )
+      );
   }
 
   async setPasswordResetToken(userId: string, token: string, expires: Date): Promise<void> {
-    await db.update(users).set({ passwordResetToken: token, passwordResetExpires: expires }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({ passwordResetToken: token, passwordResetExpires: expires })
+      .where(eq(users.id, userId));
   }
 
   async getUserByPasswordResetToken(token: string): Promise<User | undefined> {
@@ -1493,36 +1849,68 @@ export class DatabaseStorage implements IStorage {
   }
 
   async clearPasswordResetToken(userId: string): Promise<void> {
-    await db.update(users).set({ passwordResetToken: null, passwordResetExpires: null }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({ passwordResetToken: null, passwordResetExpires: null })
+      .where(eq(users.id, userId));
   }
 
-  async getImprovementRecommendations(environment: string, status?: string): Promise<ImprovementRecommendation[]> {
+  async getImprovementRecommendations(
+    environment: string,
+    status?: string
+  ): Promise<ImprovementRecommendation[]> {
     const filters = [eq(improvementRecommendations.environment, environment)];
     if (status) filters.push(eq(improvementRecommendations.status, status));
-    return db.select().from(improvementRecommendations).where(and(...filters)).orderBy(desc(improvementRecommendations.createdAt));
+    return db
+      .select()
+      .from(improvementRecommendations)
+      .where(and(...filters))
+      .orderBy(desc(improvementRecommendations.createdAt));
   }
 
   async getAllImprovementRecommendations(): Promise<ImprovementRecommendation[]> {
-    return db.select().from(improvementRecommendations).orderBy(desc(improvementRecommendations.createdAt));
+    return db
+      .select()
+      .from(improvementRecommendations)
+      .orderBy(desc(improvementRecommendations.createdAt));
   }
 
   async getImprovementRecommendation(id: string): Promise<ImprovementRecommendation | undefined> {
-    const result = await db.select().from(improvementRecommendations).where(eq(improvementRecommendations.id, id));
+    const result = await db
+      .select()
+      .from(improvementRecommendations)
+      .where(eq(improvementRecommendations.id, id));
     return result[0];
   }
 
-  async createImprovementRecommendation(recommendation: InsertImprovementRecommendation): Promise<ImprovementRecommendation> {
+  async createImprovementRecommendation(
+    recommendation: InsertImprovementRecommendation
+  ): Promise<ImprovementRecommendation> {
     const result = await db.insert(improvementRecommendations).values(recommendation).returning();
     return result[0];
   }
 
-  async updateImprovementRecommendation(id: string, updates: Partial<ImprovementRecommendation>): Promise<ImprovementRecommendation | undefined> {
-    const result = await db.update(improvementRecommendations).set(updates).where(eq(improvementRecommendations.id, id)).returning();
+  async updateImprovementRecommendation(
+    id: string,
+    updates: Partial<ImprovementRecommendation>
+  ): Promise<ImprovementRecommendation | undefined> {
+    const result = await db
+      .update(improvementRecommendations)
+      .set(updates)
+      .where(eq(improvementRecommendations.id, id))
+      .returning();
     return result[0];
   }
 
-  async updateImprovementRecommendationStatus(id: string, status: string): Promise<ImprovementRecommendation | undefined> {
-    const result = await db.update(improvementRecommendations).set({ status }).where(eq(improvementRecommendations.id, id)).returning();
+  async updateImprovementRecommendationStatus(
+    id: string,
+    status: string
+  ): Promise<ImprovementRecommendation | undefined> {
+    const result = await db
+      .update(improvementRecommendations)
+      .set({ status })
+      .where(eq(improvementRecommendations.id, id))
+      .returning();
     return result[0];
   }
 
@@ -1531,14 +1919,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getImplementedRecommendations(): Promise<ImprovementRecommendation[]> {
-    return db.select().from(improvementRecommendations).where(eq(improvementRecommendations.status, 'implemented')).orderBy(desc(improvementRecommendations.updatedAt));
+    return db
+      .select()
+      .from(improvementRecommendations)
+      .where(eq(improvementRecommendations.status, 'implemented'))
+      .orderBy(desc(improvementRecommendations.updatedAt));
   }
 
   async getJournalEntries(userId: string, environment: string): Promise<JournalEntry[]> {
     const currentDb = getDb(environment);
-    return currentDb.select().from(journalEntries).where(
-      and(eq(journalEntries.userId, userId), eq(journalEntries.environment, environment))
-    ).orderBy(desc(journalEntries.createdAt));
+    return currentDb
+      .select()
+      .from(journalEntries)
+      .where(and(eq(journalEntries.userId, userId), eq(journalEntries.environment, environment)))
+      .orderBy(desc(journalEntries.createdAt));
   }
 
   async getJournalEntry(id: string): Promise<JournalEntry | undefined> {
@@ -1551,8 +1945,15 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateJournalEntry(id: string, updates: Partial<JournalEntry>): Promise<JournalEntry | undefined> {
-    const result = await db.update(journalEntries).set(updates).where(eq(journalEntries.id, id)).returning();
+  async updateJournalEntry(
+    id: string,
+    updates: Partial<JournalEntry>
+  ): Promise<JournalEntry | undefined> {
+    const result = await db
+      .update(journalEntries)
+      .set(updates)
+      .where(eq(journalEntries.id, id))
+      .returning();
     return result[0];
   }
 
@@ -1561,7 +1962,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getJournalAttachments(journalEntryId: string): Promise<JournalAttachment[]> {
-    return db.select().from(journalAttachments).where(eq(journalAttachments.journalEntryId, journalEntryId));
+    return db
+      .select()
+      .from(journalAttachments)
+      .where(eq(journalAttachments.journalEntryId, journalEntryId));
   }
 
   async createJournalAttachment(attachment: InsertJournalAttachment): Promise<JournalAttachment> {
@@ -1576,15 +1980,21 @@ export class DatabaseStorage implements IStorage {
   async getConversations(userId: string, environment: string): Promise<Conversation[]> {
     const currentDb = getDb(environment);
     // Optimized: Single query with join
-    const result = await currentDb.select({
-      conversation: conversations
-    })
+    const result = await currentDb
+      .select({
+        conversation: conversations,
+      })
       .from(conversations)
-      .innerJoin(conversationParticipants, eq(conversations.id, conversationParticipants.conversationId))
-      .where(and(eq(conversationParticipants.userId, userId), eq(conversations.environment, environment)))
+      .innerJoin(
+        conversationParticipants,
+        eq(conversations.id, conversationParticipants.conversationId)
+      )
+      .where(
+        and(eq(conversationParticipants.userId, userId), eq(conversations.environment, environment))
+      )
       .orderBy(desc(conversations.updatedAt));
 
-    return result.map(r => r.conversation);
+    return result.map((r) => r.conversation);
   }
 
   async getConversation(id: string): Promise<Conversation | undefined> {
@@ -1597,16 +2007,28 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateConversation(id: string, updates: Partial<Conversation>): Promise<Conversation | undefined> {
-    const result = await db.update(conversations).set(updates).where(eq(conversations.id, id)).returning();
+  async updateConversation(
+    id: string,
+    updates: Partial<Conversation>
+  ): Promise<Conversation | undefined> {
+    const result = await db
+      .update(conversations)
+      .set(updates)
+      .where(eq(conversations.id, id))
+      .returning();
     return result[0];
   }
 
   async getConversationParticipants(conversationId: string): Promise<ConversationParticipant[]> {
-    return db.select().from(conversationParticipants).where(eq(conversationParticipants.conversationId, conversationId));
+    return db
+      .select()
+      .from(conversationParticipants)
+      .where(eq(conversationParticipants.conversationId, conversationId));
   }
 
-  async addConversationParticipant(participant: InsertConversationParticipant): Promise<ConversationParticipant> {
+  async addConversationParticipant(
+    participant: InsertConversationParticipant
+  ): Promise<ConversationParticipant> {
     const result = await db.insert(conversationParticipants).values(participant).returning();
     return result[0];
   }
@@ -1616,21 +2038,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getConversationMessages(conversationId: string): Promise<ConversationMessage[]> {
-    return db.select().from(conversationMessages).where(eq(conversationMessages.conversationId, conversationId)).orderBy(desc(conversationMessages.createdAt));
+    return db
+      .select()
+      .from(conversationMessages)
+      .where(eq(conversationMessages.conversationId, conversationId))
+      .orderBy(desc(conversationMessages.createdAt));
   }
 
-  async createConversationMessage(message: InsertConversationMessage): Promise<ConversationMessage> {
+  async createConversationMessage(
+    message: InsertConversationMessage
+  ): Promise<ConversationMessage> {
     const result = await db.insert(conversationMessages).values(message).returning();
     return result[0];
   }
 
-  async updateConversationMessage(id: string, updates: Partial<ConversationMessage>): Promise<ConversationMessage | undefined> {
-    const result = await db.update(conversationMessages).set(updates).where(eq(conversationMessages.id, id)).returning();
+  async updateConversationMessage(
+    id: string,
+    updates: Partial<ConversationMessage>
+  ): Promise<ConversationMessage | undefined> {
+    const result = await db
+      .update(conversationMessages)
+      .set(updates)
+      .where(eq(conversationMessages.id, id))
+      .returning();
     return result[0];
   }
 
   async getSentimentReports(conversationId: string): Promise<SentimentReport[]> {
-    return db.select().from(sentimentReports).where(eq(sentimentReports.conversationId, conversationId)).orderBy(desc(sentimentReports.createdAt));
+    return db
+      .select()
+      .from(sentimentReports)
+      .where(eq(sentimentReports.conversationId, conversationId))
+      .orderBy(desc(sentimentReports.createdAt));
   }
 
   async getSentimentReport(id: string): Promise<SentimentReport | undefined> {
@@ -1643,13 +2082,23 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateSentimentReport(id: string, updates: Partial<SentimentReport>): Promise<SentimentReport | undefined> {
-    const result = await db.update(sentimentReports).set(updates).where(eq(sentimentReports.id, id)).returning();
+  async updateSentimentReport(
+    id: string,
+    updates: Partial<SentimentReport>
+  ): Promise<SentimentReport | undefined> {
+    const result = await db
+      .update(sentimentReports)
+      .set(updates)
+      .where(eq(sentimentReports.id, id))
+      .returning();
     return result[0];
   }
 
   async getSentimentReportItems(reportId: string): Promise<SentimentReportItem[]> {
-    return db.select().from(sentimentReportItems).where(eq(sentimentReportItems.reportId, reportId));
+    return db
+      .select()
+      .from(sentimentReportItems)
+      .where(eq(sentimentReportItems.reportId, reportId));
   }
 
   async createSentimentReportItem(item: InsertSentimentReportItem): Promise<SentimentReportItem> {
@@ -1661,8 +2110,14 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(userDevices).where(eq(userDevices.userId, userId));
   }
 
-  async getDeviceByFingerprint(userId: string, fingerprint: string): Promise<UserDevice | undefined> {
-    const result = await db.select().from(userDevices).where(and(eq(userDevices.userId, userId), eq(userDevices.deviceFingerprint, fingerprint)));
+  async getDeviceByFingerprint(
+    userId: string,
+    fingerprint: string
+  ): Promise<UserDevice | undefined> {
+    const result = await db
+      .select()
+      .from(userDevices)
+      .where(and(eq(userDevices.userId, userId), eq(userDevices.deviceFingerprint, fingerprint)));
     return result[0];
   }
 
@@ -1672,7 +2127,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateDevice(id: string, updates: Partial<UserDevice>): Promise<UserDevice | undefined> {
-    const result = await db.update(userDevices).set(updates).where(eq(userDevices.id, id)).returning();
+    const result = await db
+      .update(userDevices)
+      .set(updates)
+      .where(eq(userDevices.id, id))
+      .returning();
     return result[0];
   }
 
@@ -1690,7 +2149,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSessionByToken(tokenHash: string): Promise<AuthSession | undefined> {
-    const result = await db.select().from(authSessions).where(eq(authSessions.refreshTokenHash, tokenHash));
+    const result = await db
+      .select()
+      .from(authSessions)
+      .where(eq(authSessions.refreshTokenHash, tokenHash));
     return result[0];
   }
 
@@ -1699,7 +2161,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveSessionsForUser(userId: string): Promise<AuthSession[]> {
-    return db.select().from(authSessions).where(and(eq(authSessions.userId, userId), isNull(authSessions.revokedAt)));
+    return db
+      .select()
+      .from(authSessions)
+      .where(and(eq(authSessions.userId, userId), isNull(authSessions.revokedAt)));
   }
 
   async createSession(session: InsertAuthSession): Promise<AuthSession> {
@@ -1708,18 +2173,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSession(id: string, updates: Partial<AuthSession>): Promise<AuthSession | undefined> {
-    const result = await db.update(authSessions).set(updates).where(eq(authSessions.id, id)).returning();
+    const result = await db
+      .update(authSessions)
+      .set(updates)
+      .where(eq(authSessions.id, id))
+      .returning();
     return result[0];
   }
 
   async revokeSession(id: string, reason: string): Promise<void> {
-    await db.update(authSessions).set({ revokedAt: new Date(), revokedReason: reason }).where(eq(authSessions.id, id));
+    await db
+      .update(authSessions)
+      .set({ revokedAt: new Date(), revokedReason: reason })
+      .where(eq(authSessions.id, id));
   }
 
-  async revokeAllUserSessions(userId: string, reason: string, exceptSessionId?: string): Promise<void> {
+  async revokeAllUserSessions(
+    userId: string,
+    reason: string,
+    exceptSessionId?: string
+  ): Promise<void> {
     const filters = [eq(authSessions.userId, userId), isNull(authSessions.revokedAt)];
     if (exceptSessionId) filters.push(sql`${authSessions.id} != ${exceptSessionId}`);
-    await db.update(authSessions).set({ revokedAt: new Date(), revokedReason: reason }).where(and(...filters));
+    await db
+      .update(authSessions)
+      .set({ revokedAt: new Date(), revokedReason: reason })
+      .where(and(...filters));
   }
 
   async createMfaChallenge(challenge: InsertMfaChallenge): Promise<MfaChallenge> {
@@ -1733,17 +2212,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveMfaChallenge(userId: string): Promise<MfaChallenge | undefined> {
-    const result = await db.select().from(mfaChallenges).where(and(eq(mfaChallenges.userId, userId), isNull(mfaChallenges.verifiedAt))).orderBy(desc(mfaChallenges.createdAt)).limit(1);
+    const result = await db
+      .select()
+      .from(mfaChallenges)
+      .where(and(eq(mfaChallenges.userId, userId), isNull(mfaChallenges.verifiedAt)))
+      .orderBy(desc(mfaChallenges.createdAt))
+      .limit(1);
     return result[0];
   }
 
-  async updateMfaChallenge(id: string, updates: Partial<MfaChallenge>): Promise<MfaChallenge | undefined> {
-    const result = await db.update(mfaChallenges).set(updates).where(eq(mfaChallenges.id, id)).returning();
+  async updateMfaChallenge(
+    id: string,
+    updates: Partial<MfaChallenge>
+  ): Promise<MfaChallenge | undefined> {
+    const result = await db
+      .update(mfaChallenges)
+      .set(updates)
+      .where(eq(mfaChallenges.id, id))
+      .returning();
     return result[0];
   }
 
   async incrementMfaAttempts(id: string): Promise<void> {
-    await db.update(mfaChallenges).set({ attemptCount: sql`${mfaChallenges.attemptCount} + 1` }).where(eq(mfaChallenges.id, id));
+    await db
+      .update(mfaChallenges)
+      .set({ attemptCount: sql`${mfaChallenges.attemptCount} + 1` })
+      .where(eq(mfaChallenges.id, id));
   }
 
   async logSecurityEvent(event: InsertSecurityEvent): Promise<SecurityEvent> {
@@ -1752,7 +2246,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSecurityEvents(userId: string, limit = 50): Promise<SecurityEvent[]> {
-    return db.select().from(securityEvents).where(eq(securityEvents.userId, userId)).orderBy(desc(securityEvents.createdAt)).limit(limit);
+    return db
+      .select()
+      .from(securityEvents)
+      .where(eq(securityEvents.userId, userId))
+      .orderBy(desc(securityEvents.createdAt))
+      .limit(limit);
   }
 
   async getAllSecurityEvents(limit = 100): Promise<SecurityEvent[]> {
@@ -1764,12 +2263,25 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateSmsDeliveryStatus(id: string, status: string, errorCode?: string, errorMessage?: string): Promise<void> {
-    await db.update(smsDeliveries).set({ status, errorCode, errorMessage }).where(eq(smsDeliveries.id, id));
+  async updateSmsDeliveryStatus(
+    id: string,
+    status: string,
+    errorCode?: string,
+    errorMessage?: string
+  ): Promise<void> {
+    await db
+      .update(smsDeliveries)
+      .set({ status, errorCode, errorMessage })
+      .where(eq(smsDeliveries.id, id));
   }
 
   async getSmsDeliveries(userId: string, limit = 50): Promise<SmsDelivery[]> {
-    return db.select().from(smsDeliveries).where(eq(smsDeliveries.userId, userId)).orderBy(desc(smsDeliveries.createdAt)).limit(limit);
+    return db
+      .select()
+      .from(smsDeliveries)
+      .where(eq(smsDeliveries.userId, userId))
+      .orderBy(desc(smsDeliveries.createdAt))
+      .limit(limit);
   }
 
   async updateUserPhone(userId: string, phoneNumber: string): Promise<void> {
@@ -1781,11 +2293,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async enableTwoFactor(userId: string, method = 'sms'): Promise<void> {
-    await db.update(users).set({ twoFactorEnabled: true, twoFactorMethod: method }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({ twoFactorEnabled: true, twoFactorMethod: method })
+      .where(eq(users.id, userId));
   }
 
   async enableTwoFactorSms(userId: string, phoneNumber: string): Promise<void> {
-    await db.update(users).set({ phoneNumber, twoFactorEnabled: true, twoFactorMethod: 'sms' }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({ phoneNumber, twoFactorEnabled: true, twoFactorMethod: 'sms' })
+      .where(eq(users.id, userId));
   }
 
   async disableTwoFactor(userId: string): Promise<void> {
@@ -1793,9 +2311,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getW2Records(userId: string, environment: string): Promise<W2Record[]> {
-    return db.select().from(w2Records).where(
-      and(eq(w2Records.userId, userId), eq(w2Records.environment, environment))
-    ).orderBy(desc(w2Records.createdAt));
+    return db
+      .select()
+      .from(w2Records)
+      .where(and(eq(w2Records.userId, userId), eq(w2Records.environment, environment)))
+      .orderBy(desc(w2Records.createdAt));
   }
 
   async createW2Record(record: InsertW2Record): Promise<W2Record> {
@@ -1821,10 +2341,16 @@ export class DatabaseStorage implements IStorage {
     // Demo reset logic handled by specialized service
   }
 
-  async getFireflyConnection(userId: string, environment: string): Promise<FireflyConnection | undefined> {
-    const result = await db.select().from(fireflyConnections).where(
-      and(eq(fireflyConnections.userId, userId), eq(fireflyConnections.environment, environment))
-    );
+  async getFireflyConnection(
+    userId: string,
+    environment: string
+  ): Promise<FireflyConnection | undefined> {
+    const result = await db
+      .select()
+      .from(fireflyConnections)
+      .where(
+        and(eq(fireflyConnections.userId, userId), eq(fireflyConnections.environment, environment))
+      );
     return result[0];
   }
 
@@ -1833,8 +2359,15 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateFireflyConnection(id: string, updates: Partial<FireflyConnection>): Promise<FireflyConnection | undefined> {
-    const result = await db.update(fireflyConnections).set(updates).where(eq(fireflyConnections.id, id)).returning();
+  async updateFireflyConnection(
+    id: string,
+    updates: Partial<FireflyConnection>
+  ): Promise<FireflyConnection | undefined> {
+    const result = await db
+      .update(fireflyConnections)
+      .set(updates)
+      .where(eq(fireflyConnections.id, id))
+      .returning();
     return result[0];
   }
 
@@ -1847,19 +2380,37 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateFireflySyncLog(id: string, updates: Partial<FireflySyncLog>): Promise<FireflySyncLog | undefined> {
-    const result = await db.update(fireflySyncLogs).set(updates).where(eq(fireflySyncLogs.id, id)).returning();
+  async updateFireflySyncLog(
+    id: string,
+    updates: Partial<FireflySyncLog>
+  ): Promise<FireflySyncLog | undefined> {
+    const result = await db
+      .update(fireflySyncLogs)
+      .set(updates)
+      .where(eq(fireflySyncLogs.id, id))
+      .returning();
     return result[0];
   }
 
   async getFireflySyncLogs(connectionId: string, limit = 50): Promise<FireflySyncLog[]> {
-    return db.select().from(fireflySyncLogs).where(eq(fireflySyncLogs.connectionId, connectionId)).orderBy(desc(fireflySyncLogs.syncedAt)).limit(limit);
+    return db
+      .select()
+      .from(fireflySyncLogs)
+      .where(eq(fireflySyncLogs.connectionId, connectionId))
+      .orderBy(desc(fireflySyncLogs.syncedAt))
+      .limit(limit);
   }
 
-  async getFireflySyncLogBySourceId(sourceType: string, sourceId: string): Promise<FireflySyncLog | undefined> {
-    const result = await db.select().from(fireflySyncLogs).where(
-      and(eq(fireflySyncLogs.sourceType, sourceType), eq(fireflySyncLogs.sourceId, sourceId))
-    );
+  async getFireflySyncLogBySourceId(
+    sourceType: string,
+    sourceId: string
+  ): Promise<FireflySyncLog | undefined> {
+    const result = await db
+      .select()
+      .from(fireflySyncLogs)
+      .where(
+        and(eq(fireflySyncLogs.sourceType, sourceType), eq(fireflySyncLogs.sourceId, sourceId))
+      );
     return result[0];
   }
 }

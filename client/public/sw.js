@@ -6,49 +6,51 @@
 //   • Static assets (JS/CSS/img)  → Network-first, cache fallback
 //   • POST/PATCH/DELETE           → Not intercepted (client queues mutations offline)
 
-const ASSET_CACHE = "divorce-ledger-assets-v2";
-const API_CACHE   = "divorce-ledger-api-v2";
-const DOCUMENT_CACHE = "divorce-ledger-documents-v1";
+const ASSET_CACHE = 'divorce-ledger-assets-v2';
+const API_CACHE = 'divorce-ledger-api-v2';
+const DOCUMENT_CACHE = 'divorce-ledger-documents-v1';
 
 const MOBILE_API_PREFIXES = [
-  "/api/mobile/documents",
-  "/api/mobile/violations",
-  "/api/mobile/reimbursements",
-  "/api/mobile/w2-records",
-  "/api/mobile/financial-summary",
-  "/api/mobile/assets",
-  "/api/mobile/debts",
-  "/api/mobile/incomes",
-  "/api/mobile/expenses",
-  "/api/mobile/child-support",
-  "/api/mobile/document-categories",
-  "/api/documents",
-  "/api/violations",
+  '/api/mobile/documents',
+  '/api/mobile/violations',
+  '/api/mobile/reimbursements',
+  '/api/mobile/w2-records',
+  '/api/mobile/financial-summary',
+  '/api/mobile/assets',
+  '/api/mobile/debts',
+  '/api/mobile/incomes',
+  '/api/mobile/expenses',
+  '/api/mobile/child-support',
+  '/api/mobile/document-categories',
+  '/api/documents',
+  '/api/violations',
 ];
 
 // ── Install ────────────────────────────────────────────────────────────────
-self.addEventListener("install", (event) => {
+self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
 });
 
 // ── Activate ───────────────────────────────────────────────────────────────
-self.addEventListener("activate", (event) => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
     Promise.all([
       // Delete old cache versions (v1 etc.)
-      caches.keys().then((keys) =>
-        Promise.all(
-          keys
-            .filter(
-              (k) =>
-                k.startsWith("divorce-ledger-") &&
-                k !== ASSET_CACHE &&
-                k !== API_CACHE &&
-                k !== DOCUMENT_CACHE
-            )
-            .map((k) => caches.delete(k))
-        )
-      ),
+      caches
+        .keys()
+        .then((keys) =>
+          Promise.all(
+            keys
+              .filter(
+                (k) =>
+                  k.startsWith('divorce-ledger-') &&
+                  k !== ASSET_CACHE &&
+                  k !== API_CACHE &&
+                  k !== DOCUMENT_CACHE
+              )
+              .map((k) => caches.delete(k))
+          )
+        ),
       self.clients.claim(),
     ])
   );
@@ -56,8 +58,8 @@ self.addEventListener("activate", (event) => {
 
 // ── Background Sync ────────────────────────────────────────────────────────
 // Triggered when device comes back online or periodically
-self.addEventListener("sync", (event) => {
-  if (event.tag === "sync-offline-data") {
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-offline-data') {
     event.waitUntil(syncOfflineData());
   }
 });
@@ -65,21 +67,21 @@ self.addEventListener("sync", (event) => {
 async function syncOfflineData() {
   try {
     // Notify all clients to start sync
-    const clients = await self.clients.matchAll({ type: "window" });
+    const clients = await self.clients.matchAll({ type: 'window' });
     clients.forEach((client) =>
       client.postMessage({
-        type: "BACKGROUND_SYNC_START",
+        type: 'BACKGROUND_SYNC_START',
       })
     );
-    
-    console.log("[SW] Background sync triggered");
+
+    console.log('[SW] Background sync triggered');
   } catch (error) {
-    console.error("[SW] Background sync failed:", error);
+    console.error('[SW] Background sync failed:', error);
   }
 }
 
 // ── Fetch ──────────────────────────────────────────────────────────────────
-self.addEventListener("fetch", (event) => {
+self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
@@ -87,7 +89,7 @@ self.addEventListener("fetch", (event) => {
   // Returning without calling event.respondWith lets the browser handle it
   // natively, so the server always serves the latest HTML.
   // This is the fix for the old "refresh loop" bug.
-  if (request.mode === "navigate") {
+  if (request.mode === 'navigate') {
     return;
   }
 
@@ -98,10 +100,9 @@ self.addEventListener("fetch", (event) => {
 
   // RULE 3 — Mobile API GET requests: network-first with offline cache fallback
   const isMobileApiGet =
-    request.method === "GET" &&
+    request.method === 'GET' &&
     MOBILE_API_PREFIXES.some(
-      (prefix) =>
-        url.pathname === prefix || url.pathname.startsWith(prefix + "/")
+      (prefix) => url.pathname === prefix || url.pathname.startsWith(prefix + '/')
     );
 
   if (isMobileApiGet) {
@@ -111,16 +112,14 @@ self.addEventListener("fetch", (event) => {
 
   // RULE 4 — Non-GET methods: do not intercept.
   // The client-side sync queue (offline-db.ts) handles offline mutation queuing.
-  if (request.method !== "GET") {
+  if (request.method !== 'GET') {
     return;
   }
 
   // RULE 5 — Static assets: network-first with cache fallback
   const isStaticAsset =
-    url.pathname.startsWith("/assets/") ||
-    /\.(js|css|png|svg|ico|woff2?|ttf|webp|jpg|jpeg|gif)(\?.*)?$/.test(
-      url.pathname
-    );
+    url.pathname.startsWith('/assets/') ||
+    /\.(js|css|png|svg|ico|woff2?|ttf|webp|jpg|jpeg|gif)(\?.*)?$/.test(url.pathname);
 
   if (isStaticAsset) {
     event.respondWith(handleStaticAsset(request));
@@ -142,10 +141,10 @@ async function handleApiGet(request) {
       cache.put(request, networkResponse.clone());
 
       // Notify all open tabs that fresh data arrived
-      const clients = await self.clients.matchAll({ type: "window" });
+      const clients = await self.clients.matchAll({ type: 'window' });
       clients.forEach((client) =>
         client.postMessage({
-          type: "API_CACHE_UPDATED",
+          type: 'API_CACHE_UPDATED',
           pathname: new URL(request.url).pathname,
         })
       );
@@ -161,12 +160,12 @@ async function handleApiGet(request) {
     return new Response(
       JSON.stringify({
         success: false,
-        error: "Offline — no cached data available",
+        error: 'Offline — no cached data available',
         offline: true,
       }),
       {
         status: 503,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
       }
     );
   }
@@ -185,6 +184,6 @@ async function handleStaticAsset(request) {
   } catch {
     const cached = await cache.match(request);
     if (cached) return cached;
-    return new Response("Asset unavailable offline", { status: 503 });
+    return new Response('Asset unavailable offline', { status: 503 });
   }
 }

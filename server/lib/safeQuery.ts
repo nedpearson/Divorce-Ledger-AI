@@ -1,12 +1,12 @@
 /**
  * safeQuery.ts - Universal Database Safety Wrapper
- * 
+ *
  * Provides a safe query execution layer that:
  * - Validates parameters before execution
  * - Catches and logs all DB exceptions with structured format
  * - Never exposes raw SQL or stack traces to callers
  * - Generates trace IDs for error correlation
- * 
+ *
  * Environment-based logging:
  * - DEBUG_SQL=true: Enable debug logging of all queries (dev only)
  * - NODE_ENV=production: Only log errors and critical events
@@ -91,7 +91,7 @@ function validateParams(params: unknown[]): { valid: boolean; error?: string } {
 
 function sanitizeErrorMessage(error: PostgresError): string {
   const pgCode = error.code || 'UNKNOWN';
-  
+
   const codeMessages: Record<string, string> = {
     '23505': 'Duplicate entry violation',
     '23503': 'Foreign key constraint violation',
@@ -117,7 +117,7 @@ function sanitizeErrorMessage(error: PostgresError): string {
 
 function getErrorCode(error: PostgresError): string {
   const pgCode = error.code || 'UNKNOWN';
-  
+
   const codeMapping: Record<string, string> = {
     '23505': 'DUPLICATE_ENTRY',
     '23503': 'FK_VIOLATION',
@@ -147,7 +147,10 @@ export interface SafeQueryOptions {
 }
 
 export interface QueryExecutor {
-  query<R extends QueryResultRow = QueryResultRow>(text: string, values?: unknown[]): Promise<QueryResult<R>>;
+  query<R extends QueryResultRow = QueryResultRow>(
+    text: string,
+    values?: unknown[]
+  ): Promise<QueryResult<R>>;
 }
 
 export async function safeQuery<T extends QueryResultRow = QueryResultRow>(
@@ -171,12 +174,7 @@ export async function safeQuery<T extends QueryResultRow = QueryResultRow>(
       traceId,
     };
     logger.error('Query parameter validation failed', undefined, errorContext);
-    throw new DatabaseError(
-      'Invalid query parameters',
-      queryName,
-      traceId,
-      'INVALID_PARAMS'
-    );
+    throw new DatabaseError('Invalid query parameters', queryName, traceId, 'INVALID_PARAMS');
   }
 
   try {
@@ -214,16 +212,11 @@ export async function safeQuery<T extends QueryResultRow = QueryResultRow>(
 
       logger.error(`Query failed: ${queryName}`, error, errorContext);
 
-      throw new DatabaseError(
-        sanitizeErrorMessage(error),
-        queryName,
-        traceId,
-        getErrorCode(error)
-      );
+      throw new DatabaseError(sanitizeErrorMessage(error), queryName, traceId, getErrorCode(error));
     }
 
     const unknownError = error instanceof Error ? error : new Error(String(error));
-    
+
     const errorContext: QueryErrorContext = {
       level: 'error',
       queryName,
@@ -235,12 +228,7 @@ export async function safeQuery<T extends QueryResultRow = QueryResultRow>(
 
     logger.error(`Query failed with unknown error: ${queryName}`, unknownError, errorContext);
 
-    throw new DatabaseError(
-      'Database operation failed',
-      queryName,
-      traceId,
-      'UNKNOWN_ERROR'
-    );
+    throw new DatabaseError('Database operation failed', queryName, traceId, 'UNKNOWN_ERROR');
   }
 }
 
@@ -324,12 +312,7 @@ export async function safeTransaction<T>(
       traceId,
     });
 
-    throw new DatabaseError(
-      'Transaction failed',
-      transactionName,
-      traceId,
-      'TRANSACTION_FAILED'
-    );
+    throw new DatabaseError('Transaction failed', transactionName, traceId, 'TRANSACTION_FAILED');
   } finally {
     client.release();
   }
@@ -365,10 +348,8 @@ export function createQueryWrapper(pool: Pool) {
       options: SafeQueryOptions = {}
     ) => safeQueryCount(pool, queryName, sql, params, options),
 
-    transaction: <T>(
-      transactionName: string,
-      fn: (client: any) => Promise<T>
-    ) => safeTransaction<T>(pool, transactionName, fn),
+    transaction: <T>(transactionName: string, fn: (client: any) => Promise<T>) =>
+      safeTransaction<T>(pool, transactionName, fn),
   };
 }
 

@@ -1,4 +1,3 @@
-
 name: CD - Deploy to Railway
 
 # Explicit permissions: only read access to contents and metadata

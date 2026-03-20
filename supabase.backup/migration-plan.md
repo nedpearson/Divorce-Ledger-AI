@@ -29,11 +29,11 @@ pg_dump -h localhost -U postgres -d divorce_ledger \
 
 Create mapping document comparing local schema to new Supabase schema:
 
-| Local Table | Supabase Table | Changes Needed | Migration Notes |
-|-------------|----------------|----------------|-----------------|
-| `users` | `users` | Add subscription fields | Link to auth.users |
-| `documents` | `documents` | Add storage_path | Update file handling |
-| `classifications` | `classifications` | Restructure JSONB fields | Migrate nested data |
+| Local Table       | Supabase Table    | Changes Needed           | Migration Notes      |
+| ----------------- | ----------------- | ------------------------ | -------------------- |
+| `users`           | `users`           | Add subscription fields  | Link to auth.users   |
+| `documents`       | `documents`       | Add storage_path         | Update file handling |
+| `classifications` | `classifications` | Restructure JSONB fields | Migrate nested data  |
 
 ### Step 3: Apply Supabase Schema
 
@@ -70,8 +70,8 @@ psql -h db.your-project-ref.supabase.co -U postgres -d postgres
 \dt public.*
 
 # Verify RLS is enabled
-SELECT tablename, rowsecurity 
-FROM pg_tables 
+SELECT tablename, rowsecurity
+FROM pg_tables
 WHERE schemaname = 'public';
 
 # Check constraints and indexes
@@ -97,36 +97,33 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'fs/promises';
 import path from 'path';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 async function migrateFiles() {
   // 1. Get all documents from local DB
   const documents = await getLocalDocuments();
-  
+
   for (const doc of documents) {
     try {
       // 2. Read file from local storage
       const localPath = path.join('/local/storage', doc.file_path);
       const fileBuffer = await fs.readFile(localPath);
-      
+
       // 3. Upload to Supabase Storage
       const storagePath = `${doc.user_id}/${doc.id}/${doc.filename}`;
-      
+
       const { data, error } = await supabase.storage
         .from('documents_raw')
         .upload(storagePath, fileBuffer, {
           contentType: doc.mime_type,
-          upsert: false
+          upsert: false,
         });
-      
+
       if (error) throw error;
-      
+
       // 4. Update document record with new storage path
       doc.storage_path = storagePath;
-      
+
       console.log(`✅ Migrated: ${doc.filename}`);
     } catch (error) {
       console.error(`❌ Failed to migrate ${doc.filename}:`, error);
@@ -137,6 +134,7 @@ async function migrateFiles() {
 ```
 
 Run migration:
+
 ```bash
 ts-node scripts/migrate-files-to-supabase.ts
 ```
@@ -173,8 +171,8 @@ import { stringify } from 'csv-stringify/sync';
 
 async function transformUsers() {
   const localUsers = parse(await fs.readFile('exports/users.csv'));
-  
-  const transformedUsers = localUsers.map(user => ({
+
+  const transformedUsers = localUsers.map((user) => ({
     id: user.id,
     email: user.email,
     full_name: user.name,
@@ -183,13 +181,10 @@ async function transformUsers() {
     storage_quota_bytes: getQuotaForTier(user.plan),
     storage_used_bytes: 0, // Will be calculated
     created_at: user.created_at,
-    updated_at: user.updated_at
+    updated_at: user.updated_at,
   }));
-  
-  await fs.writeFile(
-    'transformed/users.csv',
-    stringify(transformedUsers, { header: true })
-  );
+
+  await fs.writeFile('transformed/users.csv', stringify(transformedUsers, { header: true }));
 }
 ```
 
@@ -216,7 +211,7 @@ BEGIN;
 ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
 
 -- Insert from staging
-INSERT INTO public.users 
+INSERT INTO public.users
 SELECT * FROM staging.users
 ON CONFLICT (id) DO NOTHING;
 
@@ -231,23 +226,23 @@ EOF
 
 ```sql
 -- Check row counts match
-SELECT 
+SELECT
   'users' as table_name,
   COUNT(*) as row_count
 FROM public.users
 UNION ALL
-SELECT 
+SELECT
   'documents',
   COUNT(*)
 FROM public.documents
 UNION ALL
-SELECT 
+SELECT
   'document_versions',
   COUNT(*)
 FROM public.document_versions;
 
 -- Verify foreign key relationships
-SELECT 
+SELECT
   d.id,
   d.user_id,
   u.email
@@ -257,7 +252,7 @@ WHERE u.id IS NULL;
 -- Should return 0 rows
 
 -- Check storage calculations
-SELECT 
+SELECT
   u.id,
   u.storage_used_bytes as calculated,
   SUM(d.file_size_bytes) as actual
@@ -370,6 +365,7 @@ git push origin main
 ### Step 3: Test User Flows
 
 Manual QA checklist:
+
 - [ ] User signup (email/password)
 - [ ] User login (email/password)
 - [ ] Google OAuth login
@@ -394,7 +390,7 @@ const queries = [
       SELECT COUNT(DISTINCT user_id)
       FROM audit_logs
       WHERE created_at > NOW() - INTERVAL '24 hours'
-    `
+    `,
   },
   {
     name: 'Failed Uploads (24h)',
@@ -404,7 +400,7 @@ const queries = [
       WHERE job_type = 'upload'
         AND status = 'failed'
         AND created_at > NOW() - INTERVAL '24 hours'
-    `
+    `,
   },
   {
     name: 'Storage Usage Growth',
@@ -416,8 +412,8 @@ const queries = [
       WHERE created_at > NOW() - INTERVAL '30 days'
       GROUP BY DATE(created_at)
       ORDER BY date
-    `
-  }
+    `,
+  },
 ];
 ```
 
@@ -435,7 +431,7 @@ railway logs --service backend | grep ERROR
 
 ```sql
 -- Check slow queries
-SELECT 
+SELECT
   query,
   calls,
   total_time,
@@ -452,12 +448,14 @@ LIMIT 20;
 ### If Critical Issues Arise
 
 1. **Revert Backend to Local DB**:
+
    ```bash
    railway variables --set DATABASE_URL=postgresql://localhost:5432/divorce_ledger
    railway up
    ```
 
 2. **Revert Frontend**:
+
    ```bash
    git revert HEAD
    git push origin main
@@ -490,20 +488,21 @@ LIMIT 20;
 
 ## Timeline Summary
 
-| Phase | Duration | Dependencies | Risk |
-|-------|----------|--------------|------|
-| Schema Migration | 1 day | Supabase project ready | Low |
-| Storage Migration | 2 days | Schema deployed | Medium |
-| Data Migration | 3 days | Storage migrated | High |
-| Edge Functions | 1 day | Schema & storage ready | Low |
-| Backend Cutover | 2 days | All above complete | High |
-| Frontend Cutover | 1 day | Backend stable | Medium |
-| Validation | 7 days | Everything deployed | Low |
-| **Total** | **17 days** | | |
+| Phase             | Duration    | Dependencies           | Risk   |
+| ----------------- | ----------- | ---------------------- | ------ |
+| Schema Migration  | 1 day       | Supabase project ready | Low    |
+| Storage Migration | 2 days      | Schema deployed        | Medium |
+| Data Migration    | 3 days      | Storage migrated       | High   |
+| Edge Functions    | 1 day       | Schema & storage ready | Low    |
+| Backend Cutover   | 2 days      | All above complete     | High   |
+| Frontend Cutover  | 1 day       | Backend stable         | Medium |
+| Validation        | 7 days      | Everything deployed    | Low    |
+| **Total**         | **17 days** |                        |        |
 
 ## Success Criteria
 
 ✅ Migration is successful when:
+
 1. All data migrated with 100% integrity
 2. Zero data loss
 3. All user flows functional

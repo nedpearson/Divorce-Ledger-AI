@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { X, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
-import { queryClient } from "@/lib/queryClient";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { X, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { motion, AnimatePresence } from 'framer-motion';
+import { queryClient } from '@/lib/queryClient';
 
 interface AppVersion {
   version: string;
@@ -14,8 +14,8 @@ interface AppVersion {
 }
 
 const POLL_INTERVAL = 30000;
-const VERSION_STORAGE_KEY = "divorce-ledger-last-version";
-const DISMISSED_KEY = "divorce-ledger-update-dismissed";
+const VERSION_STORAGE_KEY = 'divorce-ledger-last-version';
+const DISMISSED_KEY = 'divorce-ledger-update-dismissed';
 
 export function UpdateNotification() {
   const [showBanner, setShowBanner] = useState(false);
@@ -23,22 +23,26 @@ export function UpdateNotification() {
 
   const checkForUpdates = useCallback(async () => {
     try {
-      const response = await fetch("/api/version");
+      const response = await fetch('/api/version');
       if (!response.ok) return;
-      
+
       const data: AppVersion = await response.json();
       const lastSeenVersion = localStorage.getItem(VERSION_STORAGE_KEY);
       const dismissedVersion = sessionStorage.getItem(DISMISSED_KEY);
-      
+
       versionRef.current = data.version;
-      
-      if (lastSeenVersion && lastSeenVersion !== data.version && dismissedVersion !== data.version) {
+
+      if (
+        lastSeenVersion &&
+        lastSeenVersion !== data.version &&
+        dismissedVersion !== data.version
+      ) {
         setShowBanner(true);
       } else if (!lastSeenVersion) {
         localStorage.setItem(VERSION_STORAGE_KEY, data.version);
       }
     } catch (error) {
-      console.error("Failed to check for updates:", error);
+      console.error('Failed to check for updates:', error);
     }
   }, []);
 

@@ -1,6 +1,6 @@
-import { storage } from "../storage";
-import { FireflyIIIService, FireflyAPIError } from "./firefly-iii.service";
-import { decryptToken } from "../lib/encryption";
+import { storage } from '../storage';
+import { FireflyIIIService, FireflyAPIError } from './firefly-iii.service';
+import { decryptToken } from '../lib/encryption';
 
 export interface ParsedDocument {
   documentId: string;
@@ -27,20 +27,20 @@ export interface CreateTransactionResult {
 export async function createTransactionFromParsedDocument(
   input: ParsedDocument,
   userId: string,
-  environment: string = "demo"
+  environment: string = 'demo'
 ): Promise<CreateTransactionResult> {
   try {
     if (!input.documentId || !input.date || input.amount === undefined || input.amount === null) {
       return {
         success: false,
-        error: "Missing required fields: documentId, date, and amount are required",
+        error: 'Missing required fields: documentId, date, and amount are required',
       };
     }
 
     if (!input.sourceAccountId || !input.destinationAccountId) {
       return {
         success: false,
-        error: "Missing required fields: sourceAccountId and destinationAccountId are required",
+        error: 'Missing required fields: sourceAccountId and destinationAccountId are required',
       };
     }
 
@@ -48,7 +48,7 @@ export async function createTransactionFromParsedDocument(
     if (!connection) {
       return {
         success: false,
-        error: "Firefly III not connected. Please connect to Firefly III first in Settings.",
+        error: 'Firefly III not connected. Please connect to Firefly III first in Settings.',
       };
     }
 
@@ -56,7 +56,7 @@ export async function createTransactionFromParsedDocument(
       console.log(`[documentToTransaction] Auto-sync disabled for user ${userId}, skipping`);
       return {
         success: false,
-        error: "Auto-sync is disabled. Enable it in Settings to automatically sync documents.",
+        error: 'Auto-sync is disabled. Enable it in Settings to automatically sync documents.',
       };
     }
 
@@ -67,17 +67,19 @@ export async function createTransactionFromParsedDocument(
     });
 
     const chainOfCustodyNote = [
-      input.notes || "",
-      "",
-      "--- Chain of Custody ---",
+      input.notes || '',
+      '',
+      '--- Chain of Custody ---',
       `Source: Divorce Ledger Document Intake`,
       `Document ID: ${input.documentId}`,
       `Document URL: ${input.documentUrl}`,
       `Imported: ${new Date().toISOString()}`,
-    ].filter(Boolean).join("\n");
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     const transactionPayload: any = {
-      type: "withdrawal",
+      type: 'withdrawal',
       date: input.date,
       amount: input.amount.toFixed(2),
       description: input.description || `Document ${input.documentId}`,
@@ -85,7 +87,7 @@ export async function createTransactionFromParsedDocument(
       category_name: input.categoryName || undefined,
       notes: chainOfCustodyNote,
       external_id: `divorce-ledger-doc-${input.documentId}`,
-      tags: ["divorce-ledger", "document-intake", "auto-sync"],
+      tags: ['divorce-ledger', 'document-intake', 'auto-sync'],
       source_id: input.sourceAccountId,
       destination_id: input.destinationAccountId,
     };
@@ -94,7 +96,9 @@ export async function createTransactionFromParsedDocument(
       transactionPayload.destination_name = input.merchantName;
     }
 
-    console.log(`[documentToTransaction] Creating Firefly transaction for document ${input.documentId}`);
+    console.log(
+      `[documentToTransaction] Creating Firefly transaction for document ${input.documentId}`
+    );
 
     const result = await fireflyService.createTransaction(transactionPayload);
 
@@ -102,28 +106,29 @@ export async function createTransactionFromParsedDocument(
       connectionId: connection.id,
       userId,
       environment,
-      syncType: "document-intake",
-      sourceType: "document",
+      syncType: 'document-intake',
+      sourceType: 'document',
       sourceId: input.documentId,
       fireflyTransactionId: result.data.id,
-      status: "success",
+      status: 'success',
     });
 
     await storage.updateFireflyConnection(connection.id, {
       lastSyncAt: new Date(),
-      lastSyncStatus: "success",
+      lastSyncStatus: 'success',
     });
 
-    console.log(`[documentToTransaction] ✅ Created Firefly transaction ${result.data.id} for document ${input.documentId}`);
+    console.log(
+      `[documentToTransaction] ✅ Created Firefly transaction ${result.data.id} for document ${input.documentId}`
+    );
 
     return {
       success: true,
       fireflyTransactionId: result.data.id,
       syncLogId: syncLog.id,
     };
-
   } catch (error) {
-    console.error("[documentToTransaction] Failed to create transaction:", error);
+    console.error('[documentToTransaction] Failed to create transaction:', error);
 
     if (error instanceof FireflyAPIError) {
       return {
@@ -143,7 +148,7 @@ export async function createTransactionFromParsedDocument(
 export async function createTransactionFromParsedDocumentIfEnabled(
   input: ParsedDocument,
   userId: string,
-  environment: string = "demo"
+  environment: string = 'demo'
 ): Promise<CreateTransactionResult | null> {
   try {
     const connection = await storage.getFireflyConnection(userId, environment);
@@ -152,7 +157,7 @@ export async function createTransactionFromParsedDocumentIfEnabled(
     }
     return await createTransactionFromParsedDocument(input, userId, environment);
   } catch (error) {
-    console.error("[documentToTransaction] Error checking connection:", error);
+    console.error('[documentToTransaction] Error checking connection:', error);
     return null;
   }
 }

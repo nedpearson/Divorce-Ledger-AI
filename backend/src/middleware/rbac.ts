@@ -25,7 +25,10 @@ declare module 'fastify' {
  * Workspace context middleware
  * Loads workspace context from header and attaches to request
  */
-export async function workspaceMiddleware(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function workspaceMiddleware(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
   if (!request.user) {
     throw new ForbiddenError('User not authenticated');
   }
@@ -66,11 +69,14 @@ export async function workspaceMiddleware(request: FastifyRequest, reply: Fastif
       status: membership.workspace_status,
     };
 
-    logger.debug({ 
-      userId: request.user.id, 
-      workspaceId: membership.workspace_id,
-      role: membership.role
-    }, 'Workspace context loaded');
+    logger.debug(
+      {
+        userId: request.user.id,
+        workspaceId: membership.workspace_id,
+        role: membership.role,
+      },
+      'Workspace context loaded'
+    );
   } catch (err) {
     logger.warn({ error: err, workspaceId }, 'Failed to load workspace context');
     throw err;
@@ -81,7 +87,10 @@ export async function workspaceMiddleware(request: FastifyRequest, reply: Fastif
  * Platform role middleware
  * Loads platform role and attaches to request
  */
-export async function platformRoleMiddleware(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function platformRoleMiddleware(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
   if (!request.user) {
     throw new ForbiddenError('User not authenticated');
   }
@@ -99,10 +108,13 @@ export async function platformRoleMiddleware(request: FastifyRequest, reply: Fas
 
     request.platformRole = profile?.platform_role || null;
 
-    logger.debug({ 
-      userId: request.user.id, 
-      platformRole: request.platformRole 
-    }, 'Platform role loaded');
+    logger.debug(
+      {
+        userId: request.user.id,
+        platformRole: request.platformRole,
+      },
+      'Platform role loaded'
+    );
   } catch (err) {
     logger.warn({ error: err }, 'Failed to load platform role');
     throw new ForbiddenError('Failed to verify permissions');
@@ -118,9 +130,7 @@ export function requirePlatformAdmin(allowSupportAdmin: boolean = true) {
       await platformRoleMiddleware(request, reply);
     }
 
-    const allowedRoles = allowSupportAdmin 
-      ? ['super_admin', 'support_admin'] 
-      : ['super_admin'];
+    const allowedRoles = allowSupportAdmin ? ['super_admin', 'support_admin'] : ['super_admin'];
 
     if (!request.platformRole || !allowedRoles.includes(request.platformRole)) {
       throw new ForbiddenError('Platform admin access required');

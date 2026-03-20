@@ -1,11 +1,11 @@
-import { 
-  databases, 
-  storage, 
-  DATABASE_ID, 
-  STORAGE_BUCKET_ID, 
+import {
+  databases,
+  storage,
+  DATABASE_ID,
+  STORAGE_BUCKET_ID,
   COLLECTIONS,
   initializeAppwrite,
-  isAppwriteConfigured
+  isAppwriteConfigured,
 } from './client';
 import { Permission, Role, IndexType, Compression, Query, ID } from 'node-appwrite';
 
@@ -17,7 +17,7 @@ async function waitForAttributes(collectionId: string, maxWaitMs = 30000): Promi
     if (allAvailable && attrs.attributes.length > 0) {
       return;
     }
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
   console.log(`[Appwrite Setup] Warning: Attributes may still be processing for '${collectionId}'`);
 }
@@ -78,7 +78,7 @@ async function ensureFilesApprovalAttributes() {
     { name: 'approvedAt', type: 'datetime' },
     { name: 'approvedBy', type: 'string', size: 255 },
   ];
-  
+
   for (const attr of newAttributes) {
     try {
       await databases.getAttribute(DATABASE_ID, collectionId, attr.name);
@@ -86,7 +86,13 @@ async function ensureFilesApprovalAttributes() {
     } catch {
       try {
         if (attr.type === 'string') {
-          await databases.createStringAttribute(DATABASE_ID, collectionId, attr.name, attr.size!, false);
+          await databases.createStringAttribute(
+            DATABASE_ID,
+            collectionId,
+            attr.name,
+            attr.size!,
+            false
+          );
         } else if (attr.type === 'datetime') {
           await databases.createDatetimeAttribute(DATABASE_ID, collectionId, attr.name, false);
         }
@@ -127,7 +133,13 @@ async function createFilesCollection() {
   await databases.createStringAttribute(DATABASE_ID, collectionId, 'status', 50, true);
   await databases.createStringAttribute(DATABASE_ID, collectionId, 'category', 100, false);
   await databases.createStringAttribute(DATABASE_ID, collectionId, 'suggestedCategory', 100, false);
-  await databases.createStringAttribute(DATABASE_ID, collectionId, 'latestAnalysisRunId', 255, false);
+  await databases.createStringAttribute(
+    DATABASE_ID,
+    collectionId,
+    'latestAnalysisRunId',
+    255,
+    false
+  );
   await databases.createStringAttribute(DATABASE_ID, collectionId, 'extractedText', 50000, false);
   await databases.createStringAttribute(DATABASE_ID, collectionId, 'aiSummary', 2000, false);
   await databases.createFloatAttribute(DATABASE_ID, collectionId, 'aiConfidence', false);
@@ -142,8 +154,13 @@ async function createFilesCollection() {
 
   await databases.createIndex(DATABASE_ID, collectionId, 'idx_userId', IndexType.Key, ['userId']);
   await databases.createIndex(DATABASE_ID, collectionId, 'idx_status', IndexType.Key, ['status']);
-  await databases.createIndex(DATABASE_ID, collectionId, 'idx_category', IndexType.Key, ['category']);
-  await databases.createIndex(DATABASE_ID, collectionId, 'idx_userId_status', IndexType.Key, ['userId', 'status']);
+  await databases.createIndex(DATABASE_ID, collectionId, 'idx_category', IndexType.Key, [
+    'category',
+  ]);
+  await databases.createIndex(DATABASE_ID, collectionId, 'idx_userId_status', IndexType.Key, [
+    'userId',
+    'status',
+  ]);
 
   console.log(`[Appwrite Setup] Created attributes and indexes for '${collectionId}'`);
 }
@@ -154,7 +171,7 @@ async function ensureAnalysisRunsAttributes() {
     { name: 'normalizedOutput', type: 'string', size: 50000 },
     { name: 'estimatedCost', type: 'float' },
   ];
-  
+
   for (const attr of newAttributes) {
     try {
       await databases.getAttribute(DATABASE_ID, collectionId, attr.name);
@@ -162,7 +179,13 @@ async function ensureAnalysisRunsAttributes() {
     } catch {
       try {
         if (attr.type === 'string') {
-          await databases.createStringAttribute(DATABASE_ID, collectionId, attr.name, attr.size!, false);
+          await databases.createStringAttribute(
+            DATABASE_ID,
+            collectionId,
+            attr.name,
+            attr.size!,
+            false
+          );
         } else if (attr.type === 'float') {
           await databases.createFloatAttribute(DATABASE_ID, collectionId, attr.name, false);
         }
@@ -200,7 +223,13 @@ async function createAnalysisRunsCollection() {
   await databases.createStringAttribute(DATABASE_ID, collectionId, 'modelVersion', 100, true);
   await databases.createStringAttribute(DATABASE_ID, collectionId, 'inputHash', 64, true);
   await databases.createStringAttribute(DATABASE_ID, collectionId, 'rawOutput', 50000, true);
-  await databases.createStringAttribute(DATABASE_ID, collectionId, 'normalizedOutput', 50000, false);
+  await databases.createStringAttribute(
+    DATABASE_ID,
+    collectionId,
+    'normalizedOutput',
+    50000,
+    false
+  );
   await databases.createStringAttribute(DATABASE_ID, collectionId, 'suggestedCategory', 100, false);
   await databases.createFloatAttribute(DATABASE_ID, collectionId, 'confidence', false);
   await databases.createStringAttribute(DATABASE_ID, collectionId, 'status', 50, true);
@@ -247,7 +276,9 @@ async function createCategoriesCollection() {
   await waitForAttributes(collectionId);
 
   await databases.createIndex(DATABASE_ID, collectionId, 'idx_name', IndexType.Unique, ['name']);
-  await databases.createIndex(DATABASE_ID, collectionId, 'idx_isActive', IndexType.Key, ['isActive']);
+  await databases.createIndex(DATABASE_ID, collectionId, 'idx_isActive', IndexType.Key, [
+    'isActive',
+  ]);
 
   console.log(`[Appwrite Setup] Created attributes and indexes for '${collectionId}'`);
 }
@@ -281,29 +312,66 @@ async function createUserOverridesCollection() {
 
   await databases.createIndex(DATABASE_ID, collectionId, 'idx_userId', IndexType.Key, ['userId']);
   await databases.createIndex(DATABASE_ID, collectionId, 'idx_fileId', IndexType.Key, ['fileId']);
-  await databases.createIndex(DATABASE_ID, collectionId, 'idx_overrideType', IndexType.Key, ['overrideType']);
+  await databases.createIndex(DATABASE_ID, collectionId, 'idx_overrideType', IndexType.Key, [
+    'overrideType',
+  ]);
 
   console.log(`[Appwrite Setup] Created attributes and indexes for '${collectionId}'`);
 }
 
 async function seedDefaultCategories() {
   await waitForAttributes(COLLECTIONS.CATEGORIES);
-  
+
   const defaultCategories = [
-    { name: 'financial', displayName: 'Financial Documents', description: 'Bank statements, tax returns, pay stubs', sortOrder: 1 },
-    { name: 'legal', displayName: 'Legal Documents', description: 'Court orders, agreements, contracts', sortOrder: 2 },
-    { name: 'medical', displayName: 'Medical Records', description: 'Health records, insurance claims', sortOrder: 3 },
-    { name: 'property', displayName: 'Property Documents', description: 'Deeds, appraisals, mortgage statements', sortOrder: 4 },
-    { name: 'correspondence', displayName: 'Correspondence', description: 'Emails, letters, communications', sortOrder: 5 },
-    { name: 'evidence', displayName: 'Evidence', description: 'Photos, screenshots, recordings', sortOrder: 6 },
-    { name: 'receipt', displayName: 'Receipts', description: 'Purchase receipts, expense documentation', sortOrder: 7 },
+    {
+      name: 'financial',
+      displayName: 'Financial Documents',
+      description: 'Bank statements, tax returns, pay stubs',
+      sortOrder: 1,
+    },
+    {
+      name: 'legal',
+      displayName: 'Legal Documents',
+      description: 'Court orders, agreements, contracts',
+      sortOrder: 2,
+    },
+    {
+      name: 'medical',
+      displayName: 'Medical Records',
+      description: 'Health records, insurance claims',
+      sortOrder: 3,
+    },
+    {
+      name: 'property',
+      displayName: 'Property Documents',
+      description: 'Deeds, appraisals, mortgage statements',
+      sortOrder: 4,
+    },
+    {
+      name: 'correspondence',
+      displayName: 'Correspondence',
+      description: 'Emails, letters, communications',
+      sortOrder: 5,
+    },
+    {
+      name: 'evidence',
+      displayName: 'Evidence',
+      description: 'Photos, screenshots, recordings',
+      sortOrder: 6,
+    },
+    {
+      name: 'receipt',
+      displayName: 'Receipts',
+      description: 'Purchase receipts, expense documentation',
+      sortOrder: 7,
+    },
     { name: 'other', displayName: 'Other', description: 'Miscellaneous documents', sortOrder: 99 },
   ];
 
   for (const cat of defaultCategories) {
     try {
       const existing = await databases.listDocuments(DATABASE_ID, COLLECTIONS.CATEGORIES, [
-        Query.equal("name", cat.name)
+        Query.equal('name', cat.name),
       ]);
       if (existing.total === 0) {
         await databases.createDocument(
@@ -350,9 +418,15 @@ async function createIdempotencyCollection() {
 
   await waitForAttributes(collectionId);
 
-  await databases.createIndex(DATABASE_ID, collectionId, 'idx_idempotency_key', IndexType.Unique, ['idempotencyKey']);
-  await databases.createIndex(DATABASE_ID, collectionId, 'idx_idempotency_file', IndexType.Key, ['fileId']);
-  await databases.createIndex(DATABASE_ID, collectionId, 'idx_idempotency_expires', IndexType.Key, ['expiresAt']);
+  await databases.createIndex(DATABASE_ID, collectionId, 'idx_idempotency_key', IndexType.Unique, [
+    'idempotencyKey',
+  ]);
+  await databases.createIndex(DATABASE_ID, collectionId, 'idx_idempotency_file', IndexType.Key, [
+    'fileId',
+  ]);
+  await databases.createIndex(DATABASE_ID, collectionId, 'idx_idempotency_expires', IndexType.Key, [
+    'expiresAt',
+  ]);
 
   console.log(`[Appwrite Setup] Collection '${collectionId}' fully configured`);
 }
@@ -382,7 +456,10 @@ async function createUsageCollection() {
 
   await waitForAttributes(collectionId);
 
-  await databases.createIndex(DATABASE_ID, collectionId, 'idx_usage_user_date', IndexType.Unique, ['userId', 'date']);
+  await databases.createIndex(DATABASE_ID, collectionId, 'idx_usage_user_date', IndexType.Unique, [
+    'userId',
+    'date',
+  ]);
 
   console.log(`[Appwrite Setup] Collection '${collectionId}' fully configured`);
 }
@@ -400,7 +477,7 @@ export async function setupAppwrite(): Promise<boolean> {
 
   try {
     console.log('[Appwrite Setup] Starting database setup...');
-    
+
     await createDatabaseIfNotExists();
     await createStorageBucketIfNotExists();
     await createFilesCollection();
@@ -419,7 +496,11 @@ export async function setupAppwrite(): Promise<boolean> {
   }
 }
 
-export async function checkAppwriteHealth(): Promise<{ connected: boolean; database: boolean; storage: boolean }> {
+export async function checkAppwriteHealth(): Promise<{
+  connected: boolean;
+  database: boolean;
+  storage: boolean;
+}> {
   if (!isAppwriteConfigured()) {
     return { connected: false, database: false, storage: false };
   }

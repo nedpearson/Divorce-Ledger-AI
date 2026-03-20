@@ -1,23 +1,19 @@
-import {
-  getSyncQueue,
-  removeSyncQueueItem,
-  incrementRetryCount,
-} from "./offline-db";
-import { queryClient } from "./queryClient";
+import { getSyncQueue, removeSyncQueueItem, incrementRetryCount } from './offline-db';
+import { queryClient } from './queryClient';
 
 // All mobile GET endpoints — invalidated after a successful sync
 const MOBILE_QUERY_KEYS = [
-  "/api/mobile/documents",
-  "/api/mobile/violations",
-  "/api/mobile/reimbursements",
-  "/api/mobile/w2-records",
-  "/api/mobile/financial-summary",
-  "/api/mobile/assets",
-  "/api/mobile/debts",
-  "/api/mobile/incomes",
-  "/api/mobile/expenses",
-  "/api/mobile/child-support",
-  "/api/mobile/document-categories",
+  '/api/mobile/documents',
+  '/api/mobile/violations',
+  '/api/mobile/reimbursements',
+  '/api/mobile/w2-records',
+  '/api/mobile/financial-summary',
+  '/api/mobile/assets',
+  '/api/mobile/debts',
+  '/api/mobile/incomes',
+  '/api/mobile/expenses',
+  '/api/mobile/child-support',
+  '/api/mobile/document-categories',
 ];
 
 export interface SyncResult {
@@ -42,11 +38,11 @@ export async function syncOfflineChanges(): Promise<SyncResult> {
       const response = await fetch(item.url, {
         method: item.method,
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           ...item.headers,
         },
-        body: item.method !== "DELETE" ? JSON.stringify(item.body) : undefined,
-        credentials: "include",
+        body: item.method !== 'DELETE' ? JSON.stringify(item.body) : undefined,
+        credentials: 'include',
       });
 
       if (response.ok || response.status === 404) {
@@ -55,21 +51,17 @@ export async function syncOfflineChanges(): Promise<SyncResult> {
         flushed++;
       } else if (response.status === 401) {
         // Session expired — stop flushing, leave queue intact
-        errors.push("Session expired — please log in again to sync.");
+        errors.push('Session expired — please log in again to sync.');
         failed++;
         break;
       } else if (response.status === 409) {
         // Conflict — remove from queue so we don't block everything else
-        errors.push(
-          `Conflict on ${item.method} ${item.url}: ${response.statusText}`
-        );
+        errors.push(`Conflict on ${item.method} ${item.url}: ${response.statusText}`);
         await removeSyncQueueItem(item.id);
         failed++;
       } else {
         await incrementRetryCount(item.id);
-        errors.push(
-          `${item.method} ${item.url} failed: HTTP ${response.status}`
-        );
+        errors.push(`${item.method} ${item.url} failed: HTTP ${response.status}`);
         failed++;
       }
     } catch {
@@ -95,9 +87,7 @@ export async function syncOfflineChanges(): Promise<SyncResult> {
  */
 export async function refreshAllMobileData(): Promise<void> {
   await Promise.all(
-    MOBILE_QUERY_KEYS.map((key) =>
-      queryClient.invalidateQueries({ queryKey: [key] })
-    )
+    MOBILE_QUERY_KEYS.map((key) => queryClient.invalidateQueries({ queryKey: [key] }))
   );
 }
 

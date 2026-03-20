@@ -1,15 +1,15 @@
-import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/lib/auth";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useState, useRef, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useAuth } from '@/lib/auth';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Send,
   Paperclip,
@@ -22,27 +22,33 @@ import {
   User,
   Scale,
   AlertTriangle,
-} from "lucide-react";
-import type { Message } from "@shared/schema";
+} from 'lucide-react';
+import type { Message } from '@shared/schema';
 
 export default function Communication() {
   const { user, environment } = useAuth();
   const { toast } = useToast();
-  const [messageInput, setMessageInput] = useState("");
+  const [messageInput, setMessageInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: messages = [], isLoading: messagesLoading, isError: messagesError } = useQuery<Message[]>({
-    queryKey: ["/api/messages", environment],
+  const {
+    data: messages = [],
+    isLoading: messagesLoading,
+    isError: messagesError,
+  } = useQuery<Message[]>({
+    queryKey: ['/api/messages', environment],
     queryFn: async () => {
       const res = await fetch(`/api/messages?environment=${environment}`);
-      if (!res.ok) throw new Error("Failed to load messages");
+      if (!res.ok) throw new Error('Failed to load messages');
       return res.json();
     },
     refetchInterval: 10000,
   });
 
-  const { data: suggestions = [] } = useQuery<Array<{ type: string; title: string; description: string }>>({
-    queryKey: ["/api/suggestions", environment],
+  const { data: suggestions = [] } = useQuery<
+    Array<{ type: string; title: string; description: string }>
+  >({
+    queryKey: ['/api/suggestions', environment],
     queryFn: async () => {
       const res = await fetch(`/api/suggestions?environment=${environment}`);
       if (!res.ok) return [];
@@ -52,22 +58,22 @@ export default function Communication() {
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      return apiRequest("POST", `/api/messages?environment=${environment}`, {
-        senderId: user?.id || "demo-user",
-        senderRole: "client",
-        senderName: user?.fullName || "Client",
+      return apiRequest('POST', `/api/messages?environment=${environment}`, {
+        senderId: user?.id || 'demo-user',
+        senderRole: 'client',
+        senderName: user?.fullName || 'Client',
         content,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/messages", environment] });
-      setMessageInput("");
+      queryClient.invalidateQueries({ queryKey: ['/api/messages', environment] });
+      setMessageInput('');
     },
     onError: () => {
       toast({
-        title: "Failed to send message",
-        description: "Please try again.",
-        variant: "destructive",
+        title: 'Failed to send message',
+        description: 'Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -85,7 +91,7 @@ export default function Communication() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -96,28 +102,28 @@ export default function Communication() {
   );
 
   const formatTime = (timestamp: Date | string) => {
-    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const formatDate = (timestamp: Date | string) => {
-    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return "Today";
+      return 'Today';
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return "Yesterday";
+      return 'Yesterday';
     } else {
-      return date.toLocaleDateString([], { month: "short", day: "numeric" });
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
   };
 
   const groupMessagesByDate = (msgs: Message[]) => {
     const groups: { date: string; messages: Message[] }[] = [];
-    let currentDate = "";
+    let currentDate = '';
 
     for (const msg of msgs) {
       const msgDate = formatDate(msg.timestamp);
@@ -135,11 +141,11 @@ export default function Communication() {
 
   const getSuggestionIcon = (type: string) => {
     switch (type) {
-      case "evidence_missing":
+      case 'evidence_missing':
         return AlertCircle;
-      case "similar_violations":
+      case 'similar_violations':
         return FileText;
-      case "next_steps":
+      case 'next_steps':
         return Lightbulb;
       default:
         return Lightbulb;
@@ -157,7 +163,9 @@ export default function Communication() {
               </AvatarFallback>
             </Avatar>
             <div>
-              <h2 className="font-semibold text-sm" data-testid="text-chat-title">Attorney: Michael Chen</h2>
+              <h2 className="font-semibold text-sm" data-testid="text-chat-title">
+                Attorney: Michael Chen
+              </h2>
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 bg-green-500 rounded-full" />
                 <span className="text-xs text-muted-foreground">Available</span>
@@ -201,7 +209,8 @@ export default function Communication() {
                     </div>
                     <h3 className="font-medium mb-1">Secure Communication Hub</h3>
                     <p className="text-sm text-muted-foreground max-w-sm">
-                      All messages are protected by attorney-client privilege and encrypted end-to-end.
+                      All messages are protected by attorney-client privilege and encrypted
+                      end-to-end.
                     </p>
                   </div>
                 ) : (
@@ -214,35 +223,43 @@ export default function Communication() {
                       </div>
                       <div className="space-y-3">
                         {group.messages.map((msg) => {
-                          const isOwnMessage = msg.senderRole === "client";
+                          const isOwnMessage = msg.senderRole === 'client';
                           return (
                             <div
                               key={msg.id}
-                              className={`flex gap-2 ${isOwnMessage ? "flex-row-reverse" : ""}`}
+                              className={`flex gap-2 ${isOwnMessage ? 'flex-row-reverse' : ''}`}
                               data-testid={`message-${msg.id}`}
                             >
                               <Avatar className="h-8 w-8 shrink-0">
-                                <AvatarFallback className={isOwnMessage ? "bg-primary text-primary-foreground" : "bg-muted"}>
-                                  {isOwnMessage ? <User className="h-4 w-4" /> : <Scale className="h-4 w-4" />}
+                                <AvatarFallback
+                                  className={
+                                    isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                                  }
+                                >
+                                  {isOwnMessage ? (
+                                    <User className="h-4 w-4" />
+                                  ) : (
+                                    <Scale className="h-4 w-4" />
+                                  )}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className={`max-w-[70%] ${isOwnMessage ? "text-right" : ""}`}>
+                              <div className={`max-w-[70%] ${isOwnMessage ? 'text-right' : ''}`}>
                                 <div
                                   className={`px-3 py-2 rounded-lg text-sm ${
-                                    isOwnMessage
-                                      ? "bg-primary text-primary-foreground"
-                                      : "bg-muted"
+                                    isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-muted'
                                   }`}
                                 >
                                   {msg.content}
                                   {msg.attachmentUrl && (
                                     <div className="mt-2 flex items-center gap-1.5 text-xs opacity-80">
                                       <Paperclip className="h-3 w-3" />
-                                      <span>{msg.attachmentName || "Attachment"}</span>
+                                      <span>{msg.attachmentName || 'Attachment'}</span>
                                     </div>
                                   )}
                                 </div>
-                                <div className={`flex items-center gap-1 mt-1 text-xs text-muted-foreground ${isOwnMessage ? "justify-end" : ""}`}>
+                                <div
+                                  className={`flex items-center gap-1 mt-1 text-xs text-muted-foreground ${isOwnMessage ? 'justify-end' : ''}`}
+                                >
                                   <span>{formatTime(msg.timestamp)}</span>
                                   {isOwnMessage && msg.isRead && (
                                     <CheckCheck className="h-3 w-3 text-primary" />

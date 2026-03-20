@@ -31,7 +31,7 @@ export function useDocuments() {
     error,
     pagination,
     filters,
-    fetchDocuments,  
+    fetchDocuments,
     fetchDocument,
     deleteDocument,
     updateDocument,

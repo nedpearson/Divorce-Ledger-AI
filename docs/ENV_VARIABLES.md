@@ -151,6 +151,7 @@ Deployment Region: us-west1 (or nearest to users)
 ### Environment Variables (Vercel Dashboard → Settings → Environment Variables)
 
 Add all "Frontend Environment Variables - Required" from above. Make sure to add them for:
+
 - Production
 - Preview (optional)
 - Development (optional)
@@ -238,7 +239,9 @@ openssl rand -base64 32
 
 ```javascript
 // Run in browser console on your deployed site
-const { data, error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+const { data, error } = await supabase
+  .from('profiles')
+  .select('count', { count: 'exact', head: true });
 console.log('Connection test:', error ? 'FAILED' : 'SUCCESS');
 ```
 
@@ -288,9 +291,11 @@ curl -H "Origin: https://your-frontend-domain.com" \
 ### Environment variables not updating
 
 **Railway:**
+
 - Redeploy after changing env vars (click Redeploy button)
 
-**Vercel:**  
+**Vercel:**
+
 - Re-run build after changing env vars
 - Different values for Production/Preview/Development
 

@@ -1,58 +1,58 @@
-import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, CheckCircle, XCircle } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'wouter';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
 
 export default function ResetPassword() {
   const [, setLocation] = useLocation();
-  const [token, setToken] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [token, setToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const tokenParam = params.get("token");
+    const tokenParam = params.get('token');
     if (tokenParam) {
       setToken(tokenParam);
     } else {
-      setError("Invalid reset link. Please request a new password reset.");
+      setError('Invalid reset link. Please request a new password reset.');
     }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
 
     if (!newPassword || !confirmPassword) {
-      setError("Please fill in all fields");
+      setError('Please fill in all fields');
       return;
     }
 
     if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError('Password must be at least 8 characters');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
+      setError('Passwords do not match');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ token, newPassword }),
       });
@@ -60,20 +60,20 @@ export default function ResetPassword() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to reset password");
+        throw new Error(data.error || 'Failed to reset password');
       }
 
       setIsSuccess(true);
       toast({
-        title: "Password Reset Successful",
-        description: "You can now log in with your new password.",
+        title: 'Password Reset Successful',
+        description: 'You can now log in with your new password.',
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reset password");
+      setError(err instanceof Error ? err.message : 'Failed to reset password');
       toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to reset password",
-        variant: "destructive",
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to reset password',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -139,18 +139,19 @@ export default function ResetPassword() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle data-testid="text-reset-password-title">Reset Your Password</CardTitle>
-          <CardDescription>
-            Enter your new password below.
-          </CardDescription>
+          <CardDescription>Enter your new password below.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm" data-testid="text-error-message">
+              <div
+                className="p-3 rounded-md bg-destructive/10 text-destructive text-sm"
+                data-testid="text-error-message"
+              >
                 {error}
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="newPassword">New Password</Label>
               <Input
@@ -164,7 +165,7 @@ export default function ResetPassword() {
               />
               <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input
@@ -177,7 +178,7 @@ export default function ResetPassword() {
                 data-testid="input-confirm-password"
               />
             </div>
-            
+
             <Button
               type="submit"
               className="w-full"
@@ -190,11 +191,11 @@ export default function ResetPassword() {
                   Resetting...
                 </>
               ) : (
-                "Reset Password"
+                'Reset Password'
               )}
             </Button>
           </form>
-          
+
           <div className="mt-4 text-center">
             <Link href="/">
               <Button variant="ghost" size="sm" data-testid="link-back-to-login-form">

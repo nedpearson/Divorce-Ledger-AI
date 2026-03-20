@@ -47,16 +47,17 @@ router.get('/runs/:runId', async (req: Request, res: Response) => {
 
 router.post('/run/full', requireAdminSecret, async (req: Request, res: Response) => {
   try {
-    res.json({ 
+    res.json({
       message: 'Full data quality check started',
-      note: 'Check is running in background'
+      note: 'Check is running in background',
     });
 
-    dataQualityService.runFullQualityCheck()
-      .then(result => {
+    dataQualityService
+      .runFullQualityCheck()
+      .then((result) => {
         console.log('[DQ API] Full check completed:', result.status);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('[DQ API] Full check failed:', error);
         // Background job - error logged, don't crash
       });
@@ -98,11 +99,11 @@ router.get('/alerts', async (req: Request, res: Response) => {
   try {
     const activeOnly = req.query.active !== 'false';
     const limit = parseInt(req.query.limit as string) || 50;
-    
-    const alerts = activeOnly 
+
+    const alerts = activeOnly
       ? await dqAlertService.getActiveAlerts(limit)
       : await dqAlertService.getAlertHistory(limit);
-    
+
     res.json({ alerts });
   } catch (error: any) {
     handleRouteError(res, error);
@@ -122,11 +123,11 @@ router.post('/alerts/:alertId/resolve', requireAdminSecret, async (req: Request,
   try {
     const resolvedBy = req.body.resolvedBy || 'admin';
     const alert = await dqAlertService.resolveAlert(req.params.alertId, resolvedBy);
-    
+
     if (!alert) {
       return res.status(404).json({ error: 'Alert not found' });
     }
-    
+
     res.json(alert);
   } catch (error: any) {
     handleRouteError(res, error);
@@ -145,8 +146,17 @@ router.get('/reconciliation/history', async (req: Request, res: Response) => {
 
 router.post('/reconciliation/jobs', requireAdminSecret, async (req: Request, res: Response) => {
   try {
-    const { jobName, sourceSystem, targetSystem, reconciliationType, sourceQuery, targetQuery, matchKeys, tolerancePercent } = req.body;
-    
+    const {
+      jobName,
+      sourceSystem,
+      targetSystem,
+      reconciliationType,
+      sourceQuery,
+      targetQuery,
+      matchKeys,
+      tolerancePercent,
+    } = req.body;
+
     if (!jobName || !sourceSystem || !targetSystem || !reconciliationType) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -159,7 +169,7 @@ router.post('/reconciliation/jobs', requireAdminSecret, async (req: Request, res
       sourceQuery: sourceQuery || '',
       targetQuery: targetQuery || '',
       matchKeys: matchKeys || [],
-      tolerancePercent: tolerancePercent || 0
+      tolerancePercent: tolerancePercent || 0,
     });
 
     res.status(201).json({ id: jobId, message: 'Reconciliation job created' });

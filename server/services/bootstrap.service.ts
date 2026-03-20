@@ -1,10 +1,10 @@
 /**
  * Bootstrap Service
- * 
+ *
  * Idempotent user provisioning for:
  * - Super Admin account
  * - Demo account (if DEMO_MODE=true)
- * 
+ *
  * SECURITY:
  * - Uses environment variables for credentials (never hardcoded)
  * - Only creates/updates if explicitly needed
@@ -12,14 +12,14 @@
  * - Safe to run multiple times
  */
 
-import { db } from "../db";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
-import { hashPassword } from "../auth";
-import { createLogger } from "../lib/logger";
-import { logAudit } from "./audit-log.service";
+import { db } from '../db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import { hashPassword } from '../auth';
+import { createLogger } from '../lib/logger';
+import { logAudit } from './audit-log.service';
 
-const logger = createLogger("Bootstrap");
+const logger = createLogger('Bootstrap');
 
 interface BootstrapUserConfig {
   email: string;
@@ -47,12 +47,14 @@ function normalizeEmail(email: string): string {
 
 /**
  * Provision a single user idempotently
- * 
+ *
  * @param config User configuration
  * @param forcePasswordReset If true, always update password to env value (useful for dev)
  * @returns 'created' | 'updated' | 'skipped' | 'error'
  */
-async function provisionUser(config: BootstrapUserConfig): Promise<'created' | 'updated' | 'skipped' | 'error'> {
+async function provisionUser(
+  config: BootstrapUserConfig
+): Promise<'created' | 'updated' | 'skipped' | 'error'> {
   const normalizedEmail = normalizeEmail(config.email);
   const hashedPassword = await hashPassword(config.password);
 
@@ -77,10 +79,10 @@ async function provisionUser(config: BootstrapUserConfig): Promise<'created' | '
 
       // Audit bootstrap user creation
       await logAudit({
-        actorId: "system-bootstrap",
-        actorEmail: "system-bootstrap@internal",
-        actionType: "user.bootstrap_create",
-        targetType: "user",
+        actorId: 'system-bootstrap',
+        actorEmail: 'system-bootstrap@internal',
+        actionType: 'user.bootstrap_create',
+        targetType: 'user',
         targetId: String(newUserId),
         details: {
           email: normalizedEmail,
@@ -109,18 +111,16 @@ async function provisionUser(config: BootstrapUserConfig): Promise<'created' | '
         updates.platformRole = config.platformRole;
       }
 
-      await db.update(users)
-        .set(updates)
-        .where(eq(users.email, normalizedEmail));
+      await db.update(users).set(updates).where(eq(users.email, normalizedEmail));
 
       logger.info(`Updated user: ${normalizedEmail} (forceReset=${config.forcePasswordReset})`);
 
       // Audit bootstrap user update
       await logAudit({
-        actorId: "system-bootstrap",
-        actorEmail: "system-bootstrap@internal",
-        actionType: "user.bootstrap_update",
-        targetType: "user",
+        actorId: 'system-bootstrap',
+        actorEmail: 'system-bootstrap@internal',
+        actionType: 'user.bootstrap_update',
+        targetType: 'user',
         targetId: String(user.id),
         details: {
           email: normalizedEmail,
@@ -142,12 +142,14 @@ async function provisionUser(config: BootstrapUserConfig): Promise<'created' | '
 
 /**
  * Bootstrap all required users based on environment configuration
- * 
+ *
  * Safe to call multiple times - idempotent.
- * 
+ *
  * @param options.forcePasswordReset If true, resets all passwords to env values (dev mode)
  */
-export async function bootstrapUsers(options: { forcePasswordReset?: boolean } = {}): Promise<BootstrapResult> {
+export async function bootstrapUsers(
+  options: { forcePasswordReset?: boolean } = {}
+): Promise<BootstrapResult> {
   const result: BootstrapResult = {
     created: 0,
     updated: 0,
@@ -156,14 +158,14 @@ export async function bootstrapUsers(options: { forcePasswordReset?: boolean } =
     errors: [],
   };
 
-  logger.info("Starting user bootstrap...");
+  logger.info('Starting user bootstrap...');
 
   // 1. Super Admin
   const superAdminEmail = process.env.SUPERADMIN_EMAIL;
   const superAdminPassword = process.env.SUPERADMIN_PASSWORD;
 
   if (!superAdminEmail || !superAdminPassword) {
-    const error = "SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD must be set in environment";
+    const error = 'SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD must be set in environment';
     logger.error(error);
     result.errors.push(error);
     return result;
@@ -190,20 +192,21 @@ export async function bootstrapUsers(options: { forcePasswordReset?: boolean } =
   logger.info(`Super Admin (${superAdminEmail}):`, {
     action: superAdminResult,
     passwordSet: true,
-    warning: process.env.NODE_ENV === 'production' 
-      ? '⚠️  CHANGE THIS PASSWORD IMMEDIATELY' 
-      : 'Development password',
+    warning:
+      process.env.NODE_ENV === 'production'
+        ? '⚠️  CHANGE THIS PASSWORD IMMEDIATELY'
+        : 'Development password',
   });
 
   // 2. Demo User (if DEMO_MODE enabled)
   const demoMode = process.env.DEMO_MODE === 'true';
-  
+
   if (demoMode) {
     const demoEmail = process.env.DEMO_EMAIL;
     const demoPassword = process.env.DEMO_PASSWORD;
 
     if (!demoEmail || !demoPassword) {
-      const error = "DEMO_EMAIL and DEMO_PASSWORD must be set when DEMO_MODE=true";
+      const error = 'DEMO_EMAIL and DEMO_PASSWORD must be set when DEMO_MODE=true';
       logger.error(error);
       result.errors.push(error);
     } else {
@@ -231,14 +234,14 @@ export async function bootstrapUsers(options: { forcePasswordReset?: boolean } =
       });
     }
   } else {
-    logger.info("Demo mode disabled (DEMO_MODE != true)");
+    logger.info('Demo mode disabled (DEMO_MODE != true)');
   }
 
   // 3. Summary
-  logger.info("Bootstrap complete", { result });
+  logger.info('Bootstrap complete', { result });
 
   if (result.errors.length > 0) {
-    logger.error("Bootstrap had errors:", result.errors);
+    logger.error('Bootstrap had errors:', result.errors);
   }
 
   return result;
@@ -249,10 +252,14 @@ export async function bootstrapUsers(options: { forcePasswordReset?: boolean } =
  */
 export async function isSuperAdminConfigured(): Promise<boolean> {
   const superAdminEmail = normalizeEmail(process.env.SUPERADMIN_EMAIL || 'nedpearson@gmail.com');
-  
+
   try {
     const existing = await db.select().from(users).where(eq(users.email, superAdminEmail));
-    return existing.length > 0 && existing[0].platformRole === 'super_admin' && existing[0].status === 'active';
+    return (
+      existing.length > 0 &&
+      existing[0].platformRole === 'super_admin' &&
+      existing[0].status === 'active'
+    );
   } catch {
     return false;
   }

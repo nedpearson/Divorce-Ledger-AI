@@ -28,6 +28,7 @@ railway link
 In Railway dashboard, go to **Variables** and add:
 
 **Required:**
+
 ```
 NODE_ENV=production
 PORT=3000
@@ -44,6 +45,7 @@ FRONTEND_URL=https://your-frontend.railway.app
 ```
 
 **Optional:**
+
 ```
 # OAuth (if using)
 GOOGLE_CLIENT_ID=...
@@ -69,11 +71,13 @@ Railway will auto-detect Node.js app. Verify settings:
 **Root Directory:** `backend` (if monorepo) or `/` (if backend is root)
 
 **Build Command:**
+
 ```bash
 npm run build
 ```
 
 **Start Command:**
+
 ```bash
 npm start
 ```
@@ -126,6 +130,7 @@ curl https://your-backend.railway.app/ready
 ```
 
 Expected response:
+
 ```json
 {
   "success": true,
@@ -141,11 +146,13 @@ Expected response:
 ### View Logs
 
 **Railway Dashboard:**
+
 - Go to your service
 - Click **Logs** tab
 - Filter by level (info, warn, error)
 
 **Railway CLI:**
+
 ```bash
 railway logs
 ```
@@ -153,6 +160,7 @@ railway logs
 ### Metrics
 
 Railway provides automatic metrics:
+
 - CPU usage
 - Memory usage
 - Network traffic
@@ -163,11 +171,13 @@ Access metrics in Railway dashboard under **Metrics** tab.
 ### Custom Metrics
 
 Your app exposes custom metrics:
+
 ```bash
 curl https://your-backend.railway.app/metrics
 ```
 
 Response includes:
+
 - Uptime
 - Memory usage
 - Database stats (user count, document count, etc.)
@@ -188,6 +198,7 @@ Railway supports horizontal scaling (multiple instances):
 ### Vertical Scaling
 
 Adjust resources per instance:
+
 - Memory: 512MB to 32GB
 - CPU: Shared to 8 vCPUs
 
@@ -196,11 +207,13 @@ Adjust resources per instance:
 ### Deployment Fails
 
 **Check build logs:**
+
 ```bash
 railway logs --build
 ```
 
 **Common issues:**
+
 - Missing environment variables
 - TypeScript compilation errors
 - Dependency installation failures
@@ -208,11 +221,13 @@ railway logs --build
 ### 502 Bad Gateway
 
 **Possible causes:**
+
 - Server not listening on correct host/port
 - Health check failing
 - Server crashing on startup
 
 **Fix:**
+
 - Ensure `HOST=0.0.0.0` (not `localhost`)
 - Ensure `PORT=3000` or use Railway's `$PORT`
 - Check logs for startup errors
@@ -220,10 +235,12 @@ railway logs --build
 ### Database Connection Issues
 
 **Symptoms:**
+
 - `/ready` endpoint returns 503
 - Database queries fail
 
 **Fix:**
+
 - Verify `SUPABASE_URL` and keys are correct
 - Check Supabase project is not paused
 - Verify RLS policies allow service role access
@@ -231,10 +248,12 @@ railway logs --build
 ### Storage Issues
 
 **Symptoms:**
+
 - File uploads fail
 - Storage operations timeout
 
 **Fix:**
+
 - Verify Supabase Storage buckets exist
 - Check storage policies allow service role access
 - Verify file size limits
@@ -242,10 +261,12 @@ railway logs --build
 ### Authentication Issues
 
 **Symptoms:**
+
 - Login/signup fails
 - JWT verification fails
 
 **Fix:**
+
 - Verify `SUPABASE_JWT_SECRET` matches Supabase project
 - Check JWT token is valid and not expired
 - Verify auth header format: `Bearer <token>`
@@ -271,26 +292,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Use Node.js 18
         uses: actions/setup-node@v3
         with:
           node-version: 18
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
-      
+
       - name: Install dependencies
         working-directory: backend
         run: npm ci
-      
+
       - name: Run tests
         working-directory: backend
         run: npm test
-      
+
       - name: Build
         working-directory: backend
         run: npm run build
-      
+
       - name: Deploy to Railway
         uses: railway/railway-cli@v1
         env:
@@ -348,11 +369,13 @@ FRONTEND_URL=https://app.divorcedger.com
 - **Team:** Custom pricing
 
 Usage charges:
+
 - CPU: $0.000463/vCPU-min
 - Memory: $0.000231/GB-min
 - Network: $0.10/GB egress
 
 **Estimated monthly cost for production:**
+
 - Small app (low traffic): $10-30
 - Medium app (moderate traffic): $50-100
 - Large app (high traffic): $200-500+

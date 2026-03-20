@@ -28,7 +28,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-**Important**: 
+**Important**:
+
 - Railway will automatically set `PORT` - don't override it
 - `NEXT_PUBLIC_*` variables must be set in Railway before each deployment
 - Variables are baked into the build at build time
@@ -56,6 +57,7 @@ Railway can use the provided `Dockerfile` for deployment:
 ```
 
 To use Dockerfile deployment:
+
 1. Railway Dashboard → Settings → Build Method → Dockerfile
 2. Ensure environment variables are set as build args
 
@@ -164,14 +166,16 @@ railway logs
 
 **Issue**: Build fails with "Module not found"
 
-**Solution**: 
+**Solution**:
+
 - Ensure all dependencies are in `package.json`
 - Run `npm install` locally first to verify
 - Check Railway build logs for specific error
 
-**Issue**: "NEXT_PUBLIC_* is undefined"
+**Issue**: "NEXT*PUBLIC*\* is undefined"
 
-**Solution**: 
+**Solution**:
+
 - Variables must be set in Railway before build
 - Redeploy after adding missing variables
 
@@ -180,6 +184,7 @@ railway logs
 **Issue**: "Failed to fetch" errors in browser console
 
 **Solution**:
+
 - Verify `NEXT_PUBLIC_API_URL` points to correct backend service
 - Check backend CORS configuration allows frontend origin
 - Ensure backend service is running
@@ -187,6 +192,7 @@ railway logs
 **Issue**: "Supabase client initialization failed"
 
 **Solution**:
+
 - Verify `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - Check Supabase project is active
 - Test connection from local environment first
@@ -194,6 +200,7 @@ railway logs
 **Issue**: OAuth redirect fails
 
 **Solution**:
+
 - Add Railway domain to Supabase redirect URLs
 - Verify OAuth provider configuration (Google/GitHub)
 - Check browser network tab for redirect errors
@@ -203,6 +210,7 @@ railway logs
 **Issue**: Slow page loads
 
 **Solution**:
+
 - Enable CDN/caching via Railway's CDN feature
 - Optimize images (use Next.js Image component)
 - Enable SWC minification (already in config)
@@ -213,6 +221,7 @@ railway logs
 **Issue**: "JavaScript heap out of memory" during build
 
 **Solution**: Add to build command:
+
 ```bash
 NODE_OPTIONS="--max-old-space-size=4096" npm run build
 ```

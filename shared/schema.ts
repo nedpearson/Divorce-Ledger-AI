@@ -1,12 +1,22 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, date, real, jsonb } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+import { sql } from 'drizzle-orm';
+import {
+  pgTable,
+  text,
+  varchar,
+  integer,
+  boolean,
+  timestamp,
+  date,
+  real,
+  jsonb,
+} from 'drizzle-orm/pg-core';
+import { createInsertSchema } from 'drizzle-zod';
+import { z } from 'zod';
 
 // Subscription tier types and configuration
 export const SUBSCRIPTION_TIERS = {
   free: {
-    name: "Free",
+    name: 'Free',
     price: 0,
     maxCases: 1,
     maxViolationsPerMonth: 10,
@@ -28,7 +38,7 @@ export const SUBSCRIPTION_TIERS = {
     screenshotOCR: false,
   },
   individual: {
-    name: "Individual",
+    name: 'Individual',
     price: 12,
     maxCases: 1,
     maxViolationsPerMonth: 20,
@@ -50,7 +60,7 @@ export const SUBSCRIPTION_TIERS = {
     screenshotOCR: false,
   },
   pro: {
-    name: "Pro",
+    name: 'Pro',
     price: 49,
     maxCases: -1, // unlimited
     maxViolationsPerMonth: 50,
@@ -72,7 +82,7 @@ export const SUBSCRIPTION_TIERS = {
     screenshotOCR: true,
   },
   team: {
-    name: "Team",
+    name: 'Team',
     price: 149,
     maxCases: -1,
     maxViolationsPerMonth: -1, // unlimited
@@ -94,7 +104,7 @@ export const SUBSCRIPTION_TIERS = {
     screenshotOCR: true,
   },
   enterprise: {
-    name: "Enterprise",
+    name: 'Enterprise',
     price: 399,
     maxCases: -1,
     maxViolationsPerMonth: -1, // unlimited
@@ -120,237 +130,216 @@ export const SUBSCRIPTION_TIERS = {
 export type SubscriptionTier = keyof typeof SUBSCRIPTION_TIERS;
 
 // Core Ledger Buckets - Simple, stable internal model
-export const CORE_LEDGER_BUCKETS = [
-  "INCOME",
-  "EXPENSE",
-  "ASSET",
-  "LIABILITY",
-  "UNKNOWN",
-] as const;
+export const CORE_LEDGER_BUCKETS = ['INCOME', 'EXPENSE', 'ASSET', 'LIABILITY', 'UNKNOWN'] as const;
 
-export type CoreLedgerBucket = typeof CORE_LEDGER_BUCKETS[number];
+export type CoreLedgerBucket = (typeof CORE_LEDGER_BUCKETS)[number];
 
 // Extended Ledger Buckets - For QuickBooks/Firefly mapping only (NOT stored internally)
-export const EXTENDED_LEDGER_BUCKETS = [
-  "COGS",
-  "TAX",
-  "OWNER_EQUITY",
-  "TRANSFER",
-] as const;
+export const EXTENDED_LEDGER_BUCKETS = ['COGS', 'TAX', 'OWNER_EQUITY', 'TRANSFER'] as const;
 
-export type ExtendedLedgerBucket = typeof EXTENDED_LEDGER_BUCKETS[number];
+export type ExtendedLedgerBucket = (typeof EXTENDED_LEDGER_BUCKETS)[number];
 
 // All Ledger Buckets (for backward compatibility with existing code)
 export const LEDGER_BUCKETS = [...CORE_LEDGER_BUCKETS, ...EXTENDED_LEDGER_BUCKETS] as const;
-export type LedgerBucket = typeof LEDGER_BUCKETS[number];
+export type LedgerBucket = (typeof LEDGER_BUCKETS)[number];
 
 // Internal Finance Categories - Simple, stable (used for internal storage)
 export const INTERNAL_FINANCE_CATEGORIES = {
   INCOME: [
-    "salary_wages",
-    "bonus_commission",
-    "investment_income",
-    "rental_income",
-    "child_support_received",
-    "alimony_received",
-    "refund_reimbursement",
-    "other_income",
+    'salary_wages',
+    'bonus_commission',
+    'investment_income',
+    'rental_income',
+    'child_support_received',
+    'alimony_received',
+    'refund_reimbursement',
+    'other_income',
   ],
   EXPENSE: [
-    "housing",
-    "utilities",
-    "groceries",
-    "transportation",
-    "childcare",
-    "healthcare",
-    "insurance",
-    "legal_professional",
-    "education",
-    "entertainment",
-    "clothing",
-    "personal_care",
-    "subscriptions",
-    "child_support_paid",
-    "alimony_paid",
-    "miscellaneous",
-    "needs_review",
+    'housing',
+    'utilities',
+    'groceries',
+    'transportation',
+    'childcare',
+    'healthcare',
+    'insurance',
+    'legal_professional',
+    'education',
+    'entertainment',
+    'clothing',
+    'personal_care',
+    'subscriptions',
+    'child_support_paid',
+    'alimony_paid',
+    'miscellaneous',
+    'needs_review',
   ],
   ASSET: [
-    "bank_account",
-    "investment_account",
-    "real_property",
-    "vehicle",
-    "personal_property",
-    "retirement_account",
-    "other_asset",
+    'bank_account',
+    'investment_account',
+    'real_property',
+    'vehicle',
+    'personal_property',
+    'retirement_account',
+    'other_asset',
   ],
   LIABILITY: [
-    "mortgage",
-    "auto_loan",
-    "credit_card",
-    "personal_loan",
-    "student_loan",
-    "medical_debt",
-    "other_liability",
+    'mortgage',
+    'auto_loan',
+    'credit_card',
+    'personal_loan',
+    'student_loan',
+    'medical_debt',
+    'other_liability',
   ],
-  UNKNOWN: [
-    "uncategorized",
-    "needs_review",
-  ],
+  UNKNOWN: ['uncategorized', 'needs_review'],
 } as const;
 
 export type InternalFinanceCategory = {
-  [K in CoreLedgerBucket]: typeof INTERNAL_FINANCE_CATEGORIES[K][number];
+  [K in CoreLedgerBucket]: (typeof INTERNAL_FINANCE_CATEGORIES)[K][number];
 }[CoreLedgerBucket];
 
 // QuickBooks-style Extended Categories - For mapping/export ONLY (not stored internally)
 export const QUICKBOOKS_FINANCE_CATEGORIES = {
   INCOME: [
-    "Sales of Product Income",
-    "Service/Fee Income",
-    "Rental Income",
-    "Salary/Wages",
-    "Bonus/Commission",
-    "Other Income",
+    'Sales of Product Income',
+    'Service/Fee Income',
+    'Rental Income',
+    'Salary/Wages',
+    'Bonus/Commission',
+    'Other Income',
   ],
   EXPENSE: [
-    "Advertising & Marketing",
-    "Automobile & Vehicle",
-    "Insurance",
-    "Legal & Professional Services",
-    "Utilities",
-    "Rent or Lease",
-    "Miscellaneous Expense",
+    'Advertising & Marketing',
+    'Automobile & Vehicle',
+    'Insurance',
+    'Legal & Professional Services',
+    'Utilities',
+    'Rent or Lease',
+    'Miscellaneous Expense',
   ],
   COGS: [
-    "Cost of Goods Sold - Materials",
-    "Cost of Goods Sold - Labor",
-    "Cost of Goods Sold - Other",
+    'Cost of Goods Sold - Materials',
+    'Cost of Goods Sold - Labor',
+    'Cost of Goods Sold - Other',
   ],
   ASSET: [
-    "Bank Account",
-    "Fixed Asset - Property",
-    "Fixed Asset - Vehicles",
-    "Investment Account",
-    "Other Asset",
+    'Bank Account',
+    'Fixed Asset - Property',
+    'Fixed Asset - Vehicles',
+    'Investment Account',
+    'Other Asset',
   ],
   LIABILITY: [
-    "Credit Card",
-    "Loan - Mortgage",
-    "Loan - Vehicle",
-    "Loan - Personal",
-    "Other Liability",
+    'Credit Card',
+    'Loan - Mortgage',
+    'Loan - Vehicle',
+    'Loan - Personal',
+    'Other Liability',
   ],
-  TAX: [
-    "Income Tax",
-    "Sales Tax Payable",
-    "Property Tax",
-  ],
-  OWNER_EQUITY: [
-    "Owner's Equity",
-    "Owner's Draw",
-    "Retained Earnings",
-  ],
-  TRANSFER: [
-    "Transfer Between Accounts",
-    "Internal Transfer",
-  ],
-  UNKNOWN: [
-    "Uncategorized",
-  ],
+  TAX: ['Income Tax', 'Sales Tax Payable', 'Property Tax'],
+  OWNER_EQUITY: ["Owner's Equity", "Owner's Draw", 'Retained Earnings'],
+  TRANSFER: ['Transfer Between Accounts', 'Internal Transfer'],
+  UNKNOWN: ['Uncategorized'],
 } as const;
 
 // Legacy compatibility - FINANCE_CATEGORIES alias for existing code
 export const FINANCE_CATEGORIES = QUICKBOOKS_FINANCE_CATEGORIES;
 
 export type FinanceCategory = {
-  [K in LedgerBucket]: typeof QUICKBOOKS_FINANCE_CATEGORIES[K][number];
+  [K in LedgerBucket]: (typeof QUICKBOOKS_FINANCE_CATEGORIES)[K][number];
 }[LedgerBucket];
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: text("email").notNull().unique(),
-  password: text("password").notNull(),
-  fullName: text("full_name").notNull(),
-  role: text("role").notNull().default("client"), // 'client' | 'admin'
-  isAdmin: boolean("is_admin").notNull().default(false),
-  status: text("status").notNull().default("active"), // 'active' | 'suspended' | 'pending'
-  environment: text("environment").notNull().default("demo"),
-  profilePhoto: text("profile_photo"),
-  createdAt: timestamp("created_at").defaultNow(),
-  lastLoginAt: timestamp("last_login_at"),
+export const users = pgTable('users', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  email: text('email').notNull().unique(),
+  password: text('password').notNull(),
+  fullName: text('full_name').notNull(),
+  role: text('role').notNull().default('client'), // 'client' | 'admin'
+  isAdmin: boolean('is_admin').notNull().default(false),
+  status: text('status').notNull().default('active'), // 'active' | 'suspended' | 'pending'
+  environment: text('environment').notNull().default('demo'),
+  profilePhoto: text('profile_photo'),
+  createdAt: timestamp('created_at').defaultNow(),
+  lastLoginAt: timestamp('last_login_at'),
   // Subscription fields - use subscriptionTier as DB column, maps to 'tier' concept
-  subscriptionTier: text("subscription_tier").notNull().default("free"),
-  stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
-  subscriptionStatus: text("subscription_status").default("active"),
-  casesCount: integer("cases_count").notNull().default(0),
-  violationsCountThisMonth: integer("violations_count_this_month").notNull().default(0),
-  billingCycleStart: date("billing_cycle_start"),
-  teamId: varchar("team_id"),
+  subscriptionTier: text('subscription_tier').notNull().default('free'),
+  stripeCustomerId: text('stripe_customer_id'),
+  stripeSubscriptionId: text('stripe_subscription_id'),
+  subscriptionStatus: text('subscription_status').default('active'),
+  casesCount: integer('cases_count').notNull().default(0),
+  violationsCountThisMonth: integer('violations_count_this_month').notNull().default(0),
+  billingCycleStart: date('billing_cycle_start'),
+  teamId: varchar('team_id'),
   // Voice & Media usage tracking
-  voiceTranscriptionsThisMonth: integer("voice_transcriptions_this_month").notNull().default(0),
-  mediaUploadsThisMonth: integer("media_uploads_this_month").notNull().default(0),
+  voiceTranscriptionsThisMonth: integer('voice_transcriptions_this_month').notNull().default(0),
+  mediaUploadsThisMonth: integer('media_uploads_this_month').notNull().default(0),
   // QuickBooks integration - per-user OAuth tokens (multi-tenant, encrypted at rest)
   // Access token with its own IV/authTag
-  qbAccessTokenEncrypted: text("qb_access_token_encrypted"),
-  qbAccessTokenIv: text("qb_access_token_iv"),
-  qbAccessTokenAuthTag: text("qb_access_token_auth_tag"),
+  qbAccessTokenEncrypted: text('qb_access_token_encrypted'),
+  qbAccessTokenIv: text('qb_access_token_iv'),
+  qbAccessTokenAuthTag: text('qb_access_token_auth_tag'),
   // Refresh token with its own IV/authTag (critical for independent decryption)
-  qbRefreshTokenEncrypted: text("qb_refresh_token_encrypted"),
-  qbRefreshTokenIv: text("qb_refresh_token_iv"),
-  qbRefreshTokenAuthTag: text("qb_refresh_token_auth_tag"),
-  qbRealmId: varchar("qb_realm_id", { length: 50 }),
-  qbTokenExpiresAt: timestamp("qb_token_expires_at"),
-  qbConnected: boolean("qb_connected").notNull().default(false),
-  qbScopes: text("qb_scopes").array(),
-  qbCompanyName: text("qb_company_name"),
-  qbConnectedAt: timestamp("qb_connected_at"),
-  qbLastSyncAt: timestamp("qb_last_sync_at"),
+  qbRefreshTokenEncrypted: text('qb_refresh_token_encrypted'),
+  qbRefreshTokenIv: text('qb_refresh_token_iv'),
+  qbRefreshTokenAuthTag: text('qb_refresh_token_auth_tag'),
+  qbRealmId: varchar('qb_realm_id', { length: 50 }),
+  qbTokenExpiresAt: timestamp('qb_token_expires_at'),
+  qbConnected: boolean('qb_connected').notNull().default(false),
+  qbScopes: text('qb_scopes').array(),
+  qbCompanyName: text('qb_company_name'),
+  qbConnectedAt: timestamp('qb_connected_at'),
+  qbLastSyncAt: timestamp('qb_last_sync_at'),
   // QuickBooks API rate limiting
-  qbApiCallsToday: integer("qb_api_calls_today").notNull().default(0),
-  qbDailyResetAt: text("qb_daily_reset_at"),
+  qbApiCallsToday: integer('qb_api_calls_today').notNull().default(0),
+  qbDailyResetAt: text('qb_daily_reset_at'),
   // Password reset
-  passwordResetToken: text("password_reset_token"),
-  passwordResetExpires: timestamp("password_reset_expires"),
+  passwordResetToken: text('password_reset_token'),
+  passwordResetExpires: timestamp('password_reset_expires'),
   // Phone number for 2FA (E.164 format: +1234567890)
-  phoneNumber: text("phone_number"),
-  phoneVerifiedAt: timestamp("phone_verified_at"),
+  phoneNumber: text('phone_number'),
+  phoneVerifiedAt: timestamp('phone_verified_at'),
   // 2FA settings
-  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
-  twoFactorMethod: text("two_factor_method").default("sms"), // 'sms' | 'authenticator'
+  twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
+  twoFactorMethod: text('two_factor_method').default('sms'), // 'sms' | 'authenticator'
   // Platform-level role for Super Admin console access
-  platformRole: varchar("platform_role", { length: 20 }), // 'super_admin' | 'support_admin' | null
+  platformRole: varchar('platform_role', { length: 20 }), // 'super_admin' | 'support_admin' | null
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  email: true,
-  password: true,
-  fullName: true,
-  role: true,
-  isAdmin: true,
-  status: true,
-  environment: true,
-  phoneNumber: true,
-  twoFactorEnabled: true,
-}).extend({
-  phoneVerified: z.boolean().optional(),
-});
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    email: true,
+    password: true,
+    fullName: true,
+    role: true,
+    isAdmin: true,
+    status: true,
+    environment: true,
+    phoneNumber: true,
+    twoFactorEnabled: true,
+  })
+  .extend({
+    phoneVerified: z.boolean().optional(),
+  });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 // Cases table for case management
-export const cases = pgTable("cases", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  title: text("title").notNull(),
-  caseNumber: text("case_number"),
-  court: text("court"),
-  opposingParty: text("opposing_party"),
-  status: text("status").notNull().default("active"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  environment: text("environment").notNull().default("demo"),
+export const cases = pgTable('cases', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  title: text('title').notNull(),
+  caseNumber: text('case_number'),
+  court: text('court'),
+  opposingParty: text('opposing_party'),
+  status: text('status').notNull().default('active'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  environment: text('environment').notNull().default('demo'),
 });
 
 export const insertCaseSchema = createInsertSchema(cases).omit({ id: true, createdAt: true });
@@ -358,15 +347,17 @@ export type InsertCase = z.infer<typeof insertCaseSchema>;
 export type Case = typeof cases.$inferSelect;
 
 // Teams table for Team/Enterprise tiers
-export const teams = pgTable("teams", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  ownerId: varchar("owner_id").notNull(),
-  tier: text("tier").notNull().default("team"),
-  stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
-  subscriptionStatus: text("subscription_status").default("active"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const teams = pgTable('teams', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  name: text('name').notNull(),
+  ownerId: varchar('owner_id').notNull(),
+  tier: text('tier').notNull().default('team'),
+  stripeCustomerId: text('stripe_customer_id'),
+  stripeSubscriptionId: text('stripe_subscription_id'),
+  subscriptionStatus: text('subscription_status').default('active'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).omit({ id: true, createdAt: true });
@@ -374,101 +365,111 @@ export type InsertTeam = z.infer<typeof insertTeamSchema>;
 export type Team = typeof teams.$inferSelect;
 
 // Tier limits table for subscription feature gating
-export const tierLimits = pgTable("tier_limits", {
-  tier: varchar("tier", { length: 20 }).primaryKey(),
-  maxCases: integer("max_cases"),
-  maxViolationsPerMonth: integer("max_violations_per_month"),
-  maxVoiceTranscriptions: integer("max_voice_transcriptions"),
-  maxMediaUploads: integer("max_media_uploads"),
-  aiClassificationEnabled: boolean("ai_classification_enabled").default(false),
-  priceMonthly: real("price_monthly").default(0),
+export const tierLimits = pgTable('tier_limits', {
+  tier: varchar('tier', { length: 20 }).primaryKey(),
+  maxCases: integer('max_cases'),
+  maxViolationsPerMonth: integer('max_violations_per_month'),
+  maxVoiceTranscriptions: integer('max_voice_transcriptions'),
+  maxMediaUploads: integer('max_media_uploads'),
+  aiClassificationEnabled: boolean('ai_classification_enabled').default(false),
+  priceMonthly: real('price_monthly').default(0),
 });
 
 export type TierLimit = typeof tierLimits.$inferSelect;
 
-export const transactions = pgTable("transactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  date: text("date").notNull(),
-  description: text("description").notNull(),
-  amount: integer("amount").notNull(),
-  category: text("category").notNull(),
-  type: text("type").notNull(),
-  vendor: text("vendor"),
-  documentId: varchar("document_id"),
-  environment: text("environment").notNull().default("demo"),
+export const transactions = pgTable('transactions', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  date: text('date').notNull(),
+  description: text('description').notNull(),
+  amount: integer('amount').notNull(),
+  category: text('category').notNull(),
+  type: text('type').notNull(),
+  vendor: text('vendor'),
+  documentId: varchar('document_id'),
+  environment: text('environment').notNull().default('demo'),
 });
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({ id: true });
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
 
-export const assets = pgTable("assets", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  name: text("name").notNull(),
-  category: text("category").notNull(),
-  value: integer("value").notNull(),
-  ownership: text("ownership").notNull(),
-  verified: boolean("verified").default(false),
-  vendor: text("vendor"),
-  documentId: varchar("document_id"),
-  acquiredDate: text("acquired_date"),
-  environment: text("environment").notNull().default("demo"),
+export const assets = pgTable('assets', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  name: text('name').notNull(),
+  category: text('category').notNull(),
+  value: integer('value').notNull(),
+  ownership: text('ownership').notNull(),
+  verified: boolean('verified').default(false),
+  vendor: text('vendor'),
+  documentId: varchar('document_id'),
+  acquiredDate: text('acquired_date'),
+  environment: text('environment').notNull().default('demo'),
 });
 
 export const insertAssetSchema = createInsertSchema(assets).omit({ id: true });
 export type InsertAsset = z.infer<typeof insertAssetSchema>;
 export type Asset = typeof assets.$inferSelect;
 
-export const debts = pgTable("debts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  name: text("name").notNull(),
-  category: text("category").notNull(),
-  amount: integer("amount").notNull(),
-  ownership: text("ownership").notNull(),
-  monthlyPayment: integer("monthly_payment"),
-  vendor: text("vendor"),
-  documentId: varchar("document_id"),
-  openedDate: text("opened_date"),
-  environment: text("environment").notNull().default("demo"),
+export const debts = pgTable('debts', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  name: text('name').notNull(),
+  category: text('category').notNull(),
+  amount: integer('amount').notNull(),
+  ownership: text('ownership').notNull(),
+  monthlyPayment: integer('monthly_payment'),
+  vendor: text('vendor'),
+  documentId: varchar('document_id'),
+  openedDate: text('opened_date'),
+  environment: text('environment').notNull().default('demo'),
 });
 
 export const insertDebtSchema = createInsertSchema(debts).omit({ id: true });
 export type InsertDebt = z.infer<typeof insertDebtSchema>;
 export type Debt = typeof debts.$inferSelect;
 
-export const incomes = pgTable("incomes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  source: text("source").notNull(),
-  amount: integer("amount").notNull(),
-  frequency: text("frequency").notNull(),
-  verified: boolean("verified").default(false),
-  owner: text("owner").notNull(),
-  vendor: text("vendor"),
-  documentId: varchar("document_id"),
-  startDate: text("start_date"),
-  environment: text("environment").notNull().default("demo"),
+export const incomes = pgTable('incomes', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  source: text('source').notNull(),
+  amount: integer('amount').notNull(),
+  frequency: text('frequency').notNull(),
+  verified: boolean('verified').default(false),
+  owner: text('owner').notNull(),
+  vendor: text('vendor'),
+  documentId: varchar('document_id'),
+  startDate: text('start_date'),
+  environment: text('environment').notNull().default('demo'),
 });
 
 export const insertIncomeSchema = createInsertSchema(incomes).omit({ id: true });
 export type InsertIncome = z.infer<typeof insertIncomeSchema>;
 export type Income = typeof incomes.$inferSelect;
 
-export const expenses = pgTable("expenses", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  category: text("category").notNull(),
-  description: text("description").notNull(),
-  amount: integer("amount").notNull(),
-  frequency: text("frequency").notNull(),
-  owner: text("owner").notNull(),
-  vendor: text("vendor"),
-  documentId: varchar("document_id"),
-  startDate: text("start_date"),
-  environment: text("environment").notNull().default("demo"),
+export const expenses = pgTable('expenses', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  category: text('category').notNull(),
+  description: text('description').notNull(),
+  amount: integer('amount').notNull(),
+  frequency: text('frequency').notNull(),
+  owner: text('owner').notNull(),
+  vendor: text('vendor'),
+  documentId: varchar('document_id'),
+  startDate: text('start_date'),
+  environment: text('environment').notNull().default('demo'),
 });
 
 export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true });
@@ -476,62 +477,74 @@ export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 export type Expense = typeof expenses.$inferSelect;
 
 // Reimbursements owed by category (manual input by user)
-export const reimbursements = pgTable("reimbursements", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  category: text("category").notNull(), // Document category (financial_statement, medical_record, etc.)
-  description: text("description").notNull(),
-  amount: integer("amount").notNull(), // Amount in cents
-  owedBy: text("owed_by").notNull(), // Who owes this (e.g., "Ex-Spouse", "Joint")
-  status: text("status").notNull().default("pending"), // pending, paid, disputed
-  dueDate: timestamp("due_date"),
-  notes: text("notes"),
-  linkedDocumentIds: text("linked_document_ids").array(), // Related document IDs
-  environment: text("environment").notNull().default("demo"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const reimbursements = pgTable('reimbursements', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  category: text('category').notNull(), // Document category (financial_statement, medical_record, etc.)
+  description: text('description').notNull(),
+  amount: integer('amount').notNull(), // Amount in cents
+  owedBy: text('owed_by').notNull(), // Who owes this (e.g., "Ex-Spouse", "Joint")
+  status: text('status').notNull().default('pending'), // pending, paid, disputed
+  dueDate: timestamp('due_date'),
+  notes: text('notes'),
+  linkedDocumentIds: text('linked_document_ids').array(), // Related document IDs
+  environment: text('environment').notNull().default('demo'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertReimbursementSchema = createInsertSchema(reimbursements).omit({ id: true, createdAt: true });
+export const insertReimbursementSchema = createInsertSchema(reimbursements).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertReimbursement = z.infer<typeof insertReimbursementSchema>;
 export type Reimbursement = typeof reimbursements.$inferSelect;
 
 // W2 Income Records for both parties
-export const w2Records = pgTable("w2_records", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  party: text("party").notNull(), // "self" or "spouse"
-  taxYear: integer("tax_year").notNull(),
-  employerName: text("employer_name").notNull(),
-  employerEin: text("employer_ein"), // Employer Identification Number
-  wagesAndTips: integer("wages_and_tips").notNull(), // Box 1 - in cents
-  federalWithheld: integer("federal_withheld"), // Box 2 - in cents
-  socialSecurityWages: integer("social_security_wages"), // Box 3 - in cents
-  socialSecurityWithheld: integer("social_security_withheld"), // Box 4 - in cents
-  medicareWages: integer("medicare_wages"), // Box 5 - in cents
-  medicareWithheld: integer("medicare_withheld"), // Box 6 - in cents
-  stateWages: integer("state_wages"), // Box 16 - in cents
-  stateWithheld: integer("state_withheld"), // Box 17 - in cents
-  otherCompensation: integer("other_compensation").default(0), // Box 14 - bonuses, commissions, tips in cents
-  notes: text("notes"),
-  documentId: varchar("document_id"), // Link to uploaded W2 document
-  verified: boolean("verified").default(false),
-  environment: text("environment").notNull().default("demo"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const w2Records = pgTable('w2_records', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  party: text('party').notNull(), // "self" or "spouse"
+  taxYear: integer('tax_year').notNull(),
+  employerName: text('employer_name').notNull(),
+  employerEin: text('employer_ein'), // Employer Identification Number
+  wagesAndTips: integer('wages_and_tips').notNull(), // Box 1 - in cents
+  federalWithheld: integer('federal_withheld'), // Box 2 - in cents
+  socialSecurityWages: integer('social_security_wages'), // Box 3 - in cents
+  socialSecurityWithheld: integer('social_security_withheld'), // Box 4 - in cents
+  medicareWages: integer('medicare_wages'), // Box 5 - in cents
+  medicareWithheld: integer('medicare_withheld'), // Box 6 - in cents
+  stateWages: integer('state_wages'), // Box 16 - in cents
+  stateWithheld: integer('state_withheld'), // Box 17 - in cents
+  otherCompensation: integer('other_compensation').default(0), // Box 14 - bonuses, commissions, tips in cents
+  notes: text('notes'),
+  documentId: varchar('document_id'), // Link to uploaded W2 document
+  verified: boolean('verified').default(false),
+  environment: text('environment').notNull().default('demo'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertW2RecordSchema = createInsertSchema(w2Records).omit({ id: true, createdAt: true });
+export const insertW2RecordSchema = createInsertSchema(w2Records).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertW2Record = z.infer<typeof insertW2RecordSchema>;
 export type W2Record = typeof w2Records.$inferSelect;
 
-export const alerts = pgTable("alerts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  type: text("type").notNull(),
-  severity: text("severity").notNull(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  isRead: boolean("is_read").default(false),
-  environment: text("environment").notNull().default("demo"),
+export const alerts = pgTable('alerts', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  type: text('type').notNull(),
+  severity: text('severity').notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  isRead: boolean('is_read').default(false),
+  environment: text('environment').notNull().default('demo'),
 });
 
 export const insertAlertSchema = createInsertSchema(alerts).omit({ id: true });
@@ -551,89 +564,106 @@ export type DashboardStats = {
   casesCount?: number;
 };
 
-export const violations = pgTable("violations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  caseId: varchar("case_id"),
-  type: text("type").notNull(),
-  description: text("description").notNull(),
-  timestamp: timestamp("timestamp").notNull().defaultNow(),
-  location: text("location"),
-  mediaUrls: text("media_urls").array(),
-  photoCount: integer("photo_count").default(0),
-  videoDuration: integer("video_duration"),
-  witnesses: text("witnesses").array(),
-  isDraft: boolean("is_draft").default(false),
-  status: text("status").notNull().default("pending"),
-  environment: text("environment").notNull().default("demo"),
+export const violations = pgTable('violations', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  caseId: varchar('case_id'),
+  type: text('type').notNull(),
+  description: text('description').notNull(),
+  timestamp: timestamp('timestamp').notNull().defaultNow(),
+  location: text('location'),
+  mediaUrls: text('media_urls').array(),
+  photoCount: integer('photo_count').default(0),
+  videoDuration: integer('video_duration'),
+  witnesses: text('witnesses').array(),
+  isDraft: boolean('is_draft').default(false),
+  status: text('status').notNull().default('pending'),
+  environment: text('environment').notNull().default('demo'),
   // Voice & AI classification fields
-  audioTranscript: text("audio_transcript"),
-  audioFileUrl: text("audio_file_url"),
-  aiClassification: text("ai_classification"),
-  aiConfidenceScore: real("ai_confidence_score"),
-  severityScore: integer("severity_score").default(0),
-  voiceNotes: text("voice_notes"),
-  mediaDescriptions: jsonb("media_descriptions"),
+  audioTranscript: text('audio_transcript'),
+  audioFileUrl: text('audio_file_url'),
+  aiClassification: text('ai_classification'),
+  aiConfidenceScore: real('ai_confidence_score'),
+  severityScore: integer('severity_score').default(0),
+  voiceNotes: text('voice_notes'),
+  mediaDescriptions: jsonb('media_descriptions'),
 });
 
-export const insertViolationSchema = createInsertSchema(violations).omit({ id: true, timestamp: true });
+export const insertViolationSchema = createInsertSchema(violations).omit({
+  id: true,
+  timestamp: true,
+});
 export type InsertViolation = z.infer<typeof insertViolationSchema>;
 export type Violation = typeof violations.$inferSelect;
 
-export const evidenceFiles = pgTable("evidence_files", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  violationId: varchar("violation_id").notNull(),
-  userId: varchar("user_id").notNull(),
-  fileName: text("file_name").notNull(),
-  fileType: text("file_type").notNull(),
-  fileSize: integer("file_size").notNull(),
-  objectPath: text("object_path").notNull(),
-  timestamp: timestamp("timestamp").notNull().defaultNow(),
-  deviceId: text("device_id"),
-  gpsLatitude: text("gps_latitude"),
-  gpsLongitude: text("gps_longitude"),
-  altitude: text("altitude"),
-  networkType: text("network_type"),
-  exifData: text("exif_data"),
-  sha256Hash: text("sha256_hash"),
-  isEncrypted: boolean("is_encrypted").default(false),
-  environment: text("environment").notNull().default("demo"),
-  evidenceSource: text("evidence_source"),
-  evidenceMetadata: jsonb("evidence_metadata"),
+export const evidenceFiles = pgTable('evidence_files', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  violationId: varchar('violation_id').notNull(),
+  userId: varchar('user_id').notNull(),
+  fileName: text('file_name').notNull(),
+  fileType: text('file_type').notNull(),
+  fileSize: integer('file_size').notNull(),
+  objectPath: text('object_path').notNull(),
+  timestamp: timestamp('timestamp').notNull().defaultNow(),
+  deviceId: text('device_id'),
+  gpsLatitude: text('gps_latitude'),
+  gpsLongitude: text('gps_longitude'),
+  altitude: text('altitude'),
+  networkType: text('network_type'),
+  exifData: text('exif_data'),
+  sha256Hash: text('sha256_hash'),
+  isEncrypted: boolean('is_encrypted').default(false),
+  environment: text('environment').notNull().default('demo'),
+  evidenceSource: text('evidence_source'),
+  evidenceMetadata: jsonb('evidence_metadata'),
 });
 
-export const insertEvidenceFileSchema = createInsertSchema(evidenceFiles).omit({ id: true, timestamp: true });
+export const insertEvidenceFileSchema = createInsertSchema(evidenceFiles).omit({
+  id: true,
+  timestamp: true,
+});
 export type InsertEvidenceFile = z.infer<typeof insertEvidenceFileSchema>;
 export type EvidenceFile = typeof evidenceFiles.$inferSelect;
 
-export const chainOfCustody = pgTable("chain_of_custody", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  evidenceId: varchar("evidence_id").notNull(),
-  userId: varchar("user_id").notNull(),
-  action: text("action").notNull(),
-  timestamp: timestamp("timestamp").notNull().defaultNow(),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  previousHash: text("previous_hash"),
-  entryHash: text("entry_hash"),
-  environment: text("environment").notNull().default("demo"),
+export const chainOfCustody = pgTable('chain_of_custody', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  evidenceId: varchar('evidence_id').notNull(),
+  userId: varchar('user_id').notNull(),
+  action: text('action').notNull(),
+  timestamp: timestamp('timestamp').notNull().defaultNow(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  previousHash: text('previous_hash'),
+  entryHash: text('entry_hash'),
+  environment: text('environment').notNull().default('demo'),
 });
 
-export const insertChainOfCustodySchema = createInsertSchema(chainOfCustody).omit({ id: true, timestamp: true });
+export const insertChainOfCustodySchema = createInsertSchema(chainOfCustody).omit({
+  id: true,
+  timestamp: true,
+});
 export type InsertChainOfCustody = z.infer<typeof insertChainOfCustodySchema>;
 export type ChainOfCustody = typeof chainOfCustody.$inferSelect;
 
-export const messages = pgTable("messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  senderId: varchar("sender_id").notNull(),
-  senderRole: text("sender_role").notNull(),
-  senderName: text("sender_name").notNull(),
-  content: text("content").notNull(),
-  timestamp: timestamp("timestamp").notNull().defaultNow(),
-  isRead: boolean("is_read").default(false),
-  attachmentUrl: text("attachment_url"),
-  attachmentName: text("attachment_name"),
-  environment: text("environment").notNull().default("demo"),
+export const messages = pgTable('messages', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  senderId: varchar('sender_id').notNull(),
+  senderRole: text('sender_role').notNull(),
+  senderName: text('sender_name').notNull(),
+  content: text('content').notNull(),
+  timestamp: timestamp('timestamp').notNull().defaultNow(),
+  isRead: boolean('is_read').default(false),
+  attachmentUrl: text('attachment_url'),
+  attachmentName: text('attachment_name'),
+  environment: text('environment').notNull().default('demo'),
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, timestamp: true });
@@ -641,76 +671,90 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
 
 // Usage audit table for tier analytics
-export const usageAudit = pgTable("usage_audit", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  tier: varchar("tier", { length: 50 }).notNull(),
-  violationsCount: integer("violations_count").default(0),
-  storageUsedMb: real("storage_used_mb").default(0),
-  mediaCount: integer("media_count").default(0),
-  activeCases: integer("active_cases").default(0),
-  recordedAt: timestamp("recorded_at").notNull().defaultNow(),
-  environment: text("environment").notNull().default("demo"),
+export const usageAudit = pgTable('usage_audit', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  tier: varchar('tier', { length: 50 }).notNull(),
+  violationsCount: integer('violations_count').default(0),
+  storageUsedMb: real('storage_used_mb').default(0),
+  mediaCount: integer('media_count').default(0),
+  activeCases: integer('active_cases').default(0),
+  recordedAt: timestamp('recorded_at').notNull().defaultNow(),
+  environment: text('environment').notNull().default('demo'),
 });
 
-export const insertUsageAuditSchema = createInsertSchema(usageAudit).omit({ id: true, recordedAt: true });
+export const insertUsageAuditSchema = createInsertSchema(usageAudit).omit({
+  id: true,
+  recordedAt: true,
+});
 export type InsertUsageAudit = z.infer<typeof insertUsageAuditSchema>;
 export type UsageAudit = typeof usageAudit.$inferSelect;
 
 // Billing records table for subscription billing
-export const billingRecords = pgTable("billing_records", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
-  tier: varchar("tier", { length: 50 }).notNull(),
-  periodStart: timestamp("period_start").notNull(),
-  periodEnd: timestamp("period_end").notNull(),
-  violationsRecorded: integer("violations_recorded").default(0),
-  storageUsedMb: real("storage_used_mb").default(0),
-  amountCents: integer("amount_cents").default(0),
-  status: varchar("status", { length: 20 }).notNull().default("pending"),
-  stripeInvoiceId: varchar("stripe_invoice_id"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const billingRecords = pgTable('billing_records', {
+  id: varchar('id').primaryKey(),
+  userId: varchar('user_id').notNull(),
+  tier: varchar('tier', { length: 50 }).notNull(),
+  periodStart: timestamp('period_start').notNull(),
+  periodEnd: timestamp('period_end').notNull(),
+  violationsRecorded: integer('violations_recorded').default(0),
+  storageUsedMb: real('storage_used_mb').default(0),
+  amountCents: integer('amount_cents').default(0),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  stripeInvoiceId: varchar('stripe_invoice_id'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertBillingRecordSchema = createInsertSchema(billingRecords).omit({ createdAt: true });
+export const insertBillingRecordSchema = createInsertSchema(billingRecords).omit({
+  createdAt: true,
+});
 export type InsertBillingRecord = z.infer<typeof insertBillingRecordSchema>;
 export type BillingRecord = typeof billingRecords.$inferSelect;
 
 // Tier migrations table for tracking subscription changes
-export const tierMigrations = pgTable("tier_migrations", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
-  fromTier: varchar("from_tier", { length: 50 }).notNull(),
-  toTier: varchar("to_tier", { length: 50 }).notNull(),
-  reason: text("reason").notNull(),
-  gracePeriodDays: integer("grace_period_days").default(0),
-  migratedAt: timestamp("migrated_at").notNull().defaultNow(),
-  effectiveAt: timestamp("effective_at").notNull(),
-  status: varchar("status", { length: 20 }).notNull().default("pending"),
+export const tierMigrations = pgTable('tier_migrations', {
+  id: varchar('id').primaryKey(),
+  userId: varchar('user_id').notNull(),
+  fromTier: varchar('from_tier', { length: 50 }).notNull(),
+  toTier: varchar('to_tier', { length: 50 }).notNull(),
+  reason: text('reason').notNull(),
+  gracePeriodDays: integer('grace_period_days').default(0),
+  migratedAt: timestamp('migrated_at').notNull().defaultNow(),
+  effectiveAt: timestamp('effective_at').notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
 });
 
-export const insertTierMigrationSchema = createInsertSchema(tierMigrations).omit({ migratedAt: true });
+export const insertTierMigrationSchema = createInsertSchema(tierMigrations).omit({
+  migratedAt: true,
+});
 export type InsertTierMigration = z.infer<typeof insertTierMigrationSchema>;
 export type TierMigration = typeof tierMigrations.$inferSelect;
 
 // Quota reset log table for tracking monthly resets
-export const quotaResetLog = pgTable("quota_reset_log", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  resetAt: timestamp("reset_at").notNull().defaultNow(),
-  resetMonth: varchar("reset_month", { length: 7 }).notNull(),
-  violationsCountBefore: integer("violations_count_before").default(0),
-  voiceTranscriptionsBefore: integer("voice_transcriptions_before").default(0),
-  mediaUploadsBefore: integer("media_uploads_before").default(0),
+export const quotaResetLog = pgTable('quota_reset_log', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  resetAt: timestamp('reset_at').notNull().defaultNow(),
+  resetMonth: varchar('reset_month', { length: 7 }).notNull(),
+  violationsCountBefore: integer('violations_count_before').default(0),
+  voiceTranscriptionsBefore: integer('voice_transcriptions_before').default(0),
+  mediaUploadsBefore: integer('media_uploads_before').default(0),
 });
 
-export const insertQuotaResetLogSchema = createInsertSchema(quotaResetLog).omit({ id: true, resetAt: true });
+export const insertQuotaResetLogSchema = createInsertSchema(quotaResetLog).omit({
+  id: true,
+  resetAt: true,
+});
 export type InsertQuotaResetLog = z.infer<typeof insertQuotaResetLogSchema>;
 export type QuotaResetLog = typeof quotaResetLog.$inferSelect;
 
-export const demoMeta = pgTable("demo_meta", {
-  id: integer("id").primaryKey(),
-  lastResetAt: timestamp("last_reset_at").notNull(),
+export const demoMeta = pgTable('demo_meta', {
+  id: integer('id').primaryKey(),
+  lastResetAt: timestamp('last_reset_at').notNull(),
 });
 
 export const insertDemoMetaSchema = createInsertSchema(demoMeta);
@@ -718,26 +762,31 @@ export type InsertDemoMeta = z.infer<typeof insertDemoMetaSchema>;
 export type DemoMeta = typeof demoMeta.$inferSelect;
 
 // Calendar events table
-export const calendarEvents = pgTable("calendar_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  eventType: text("event_type").notNull(),
-  startDate: timestamp("start_date").notNull(),
-  endDate: timestamp("end_date"),
-  allDay: boolean("all_day").default(false),
-  location: text("location"),
-  reminder: boolean("reminder").default(true),
-  reminderMinutes: integer("reminder_minutes").default(60),
-  isRecurring: boolean("is_recurring").default(false),
-  recurringPattern: text("recurring_pattern"),
-  status: text("status").notNull().default("scheduled"),
-  environment: text("environment").notNull().default("demo"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const calendarEvents = pgTable('calendar_events', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  eventType: text('event_type').notNull(),
+  startDate: timestamp('start_date').notNull(),
+  endDate: timestamp('end_date'),
+  allDay: boolean('all_day').default(false),
+  location: text('location'),
+  reminder: boolean('reminder').default(true),
+  reminderMinutes: integer('reminder_minutes').default(60),
+  isRecurring: boolean('is_recurring').default(false),
+  recurringPattern: text('recurring_pattern'),
+  status: text('status').notNull().default('scheduled'),
+  environment: text('environment').notNull().default('demo'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit({ id: true, createdAt: true });
+export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertCalendarEvent = z.infer<typeof insertCalendarEventSchema>;
 export type CalendarEvent = typeof calendarEvents.$inferSelect;
 
@@ -746,8 +795,11 @@ export const createCalendarEventSchema = z.object({
   title: z.string(),
   description: z.string().nullish(),
   eventType: z.string(),
-  startDate: z.string().transform(v => new Date(v)),
-  endDate: z.string().nullish().transform(v => v ? new Date(v) : null),
+  startDate: z.string().transform((v) => new Date(v)),
+  endDate: z
+    .string()
+    .nullish()
+    .transform((v) => (v ? new Date(v) : null)),
   allDay: z.boolean().optional(),
   location: z.string().nullish(),
   reminder: z.boolean().optional(),
@@ -757,50 +809,61 @@ export const createCalendarEventSchema = z.object({
 });
 
 // Legal documents table
-export const legalDocuments = pgTable("legal_documents", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  title: text("title").notNull(),
-  documentType: text("document_type").notNull(),
-  description: text("description"),
-  fileUrl: text("file_url"),
-  fileName: text("file_name"),
-  fileSize: integer("file_size"),
-  status: text("status").notNull().default("draft"),
-  courtCase: text("court_case"),
-  filingDate: timestamp("filing_date"),
-  effectiveDate: timestamp("effective_date"),
-  expirationDate: timestamp("expiration_date"),
-  parties: text("parties").array(),
-  tags: text("tags").array(),
-  environment: text("environment").notNull().default("demo"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+export const legalDocuments = pgTable('legal_documents', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  title: text('title').notNull(),
+  documentType: text('document_type').notNull(),
+  description: text('description'),
+  fileUrl: text('file_url'),
+  fileName: text('file_name'),
+  fileSize: integer('file_size'),
+  status: text('status').notNull().default('draft'),
+  courtCase: text('court_case'),
+  filingDate: timestamp('filing_date'),
+  effectiveDate: timestamp('effective_date'),
+  expirationDate: timestamp('expiration_date'),
+  parties: text('parties').array(),
+  tags: text('tags').array(),
+  environment: text('environment').notNull().default('demo'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export const insertLegalDocumentSchema = createInsertSchema(legalDocuments).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertLegalDocumentSchema = createInsertSchema(legalDocuments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 export type InsertLegalDocument = z.infer<typeof insertLegalDocumentSchema>;
 export type LegalDocument = typeof legalDocuments.$inferSelect;
 
 // Child support payments table
-export const childSupportPayments = pgTable("child_support_payments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  paymentType: text("payment_type").notNull(),
-  amount: integer("amount").notNull(),
-  dueDate: timestamp("due_date").notNull(),
-  paidDate: timestamp("paid_date"),
-  status: text("status").notNull().default("pending"),
-  paymentMethod: text("payment_method"),
-  referenceNumber: text("reference_number"),
-  notes: text("notes"),
-  childName: text("child_name"),
-  courtOrderId: varchar("court_order_id"),
-  environment: text("environment").notNull().default("demo"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const childSupportPayments = pgTable('child_support_payments', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  paymentType: text('payment_type').notNull(),
+  amount: integer('amount').notNull(),
+  dueDate: timestamp('due_date').notNull(),
+  paidDate: timestamp('paid_date'),
+  status: text('status').notNull().default('pending'),
+  paymentMethod: text('payment_method'),
+  referenceNumber: text('reference_number'),
+  notes: text('notes'),
+  childName: text('child_name'),
+  courtOrderId: varchar('court_order_id'),
+  environment: text('environment').notNull().default('demo'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertChildSupportPaymentSchema = createInsertSchema(childSupportPayments).omit({ id: true, createdAt: true });
+export const insertChildSupportPaymentSchema = createInsertSchema(childSupportPayments).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertChildSupportPayment = z.infer<typeof insertChildSupportPaymentSchema>;
 export type ChildSupportPayment = typeof childSupportPayments.$inferSelect;
 
@@ -808,8 +871,11 @@ export type ChildSupportPayment = typeof childSupportPayments.$inferSelect;
 export const createChildSupportPaymentSchema = z.object({
   paymentType: z.string(),
   amount: z.number(),
-  dueDate: z.string().transform(v => new Date(v)),
-  paidDate: z.string().nullish().transform(v => v ? new Date(v) : null),
+  dueDate: z.string().transform((v) => new Date(v)),
+  paidDate: z
+    .string()
+    .nullish()
+    .transform((v) => (v ? new Date(v) : null)),
   status: z.string().optional(),
   paymentMethod: z.string().nullish(),
   referenceNumber: z.string().nullish(),
@@ -821,422 +887,491 @@ export const createChildSupportPaymentSchema = z.object({
 export const updateChildSupportPaymentSchema = z.object({
   status: z.string().optional(),
   notes: z.string().nullish(),
-  paidDate: z.string().nullish().transform(v => v ? new Date(v) : null),
+  paidDate: z
+    .string()
+    .nullish()
+    .transform((v) => (v ? new Date(v) : null)),
   paymentMethod: z.string().nullish(),
 });
 
 // Document categories for AI sorting
 export const DOCUMENT_CATEGORIES = [
-  "financial_statement",
-  "tax_return",
-  "bank_statement",
-  "property_deed",
-  "court_order",
-  "custody_agreement",
-  "correspondence",
-  "evidence_photo",
-  "evidence_video",
-  "legal_filing",
-  "medical_record",
-  "employment_record",
-  "insurance_document",
-  "asset_valuation",
-  "debt_statement",
-  "other",
+  'financial_statement',
+  'tax_return',
+  'bank_statement',
+  'property_deed',
+  'court_order',
+  'custody_agreement',
+  'correspondence',
+  'evidence_photo',
+  'evidence_video',
+  'legal_filing',
+  'medical_record',
+  'employment_record',
+  'insurance_document',
+  'asset_valuation',
+  'debt_statement',
+  'other',
 ] as const;
 
-export type DocumentCategory = typeof DOCUMENT_CATEGORIES[number];
+export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number];
 
 // Documents/files table for general document management
-export const documents = pgTable("documents", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  title: text("title").notNull(),
-  category: text("category").notNull(),
-  description: text("description"),
-  fileUrl: text("file_url"),
-  fileName: text("file_name"),
-  fileType: text("file_type"),
-  fileSize: integer("file_size"),
-  tags: text("tags").array(),
-  isConfidential: boolean("is_confidential").default(false),
-  environment: text("environment").notNull().default("demo"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  aiCategory: text("ai_category"),
-  aiConfidence: real("ai_confidence"),
-  aiSummary: text("ai_summary"),
-  aiSuggestedTags: text("ai_suggested_tags").array(),
-  aiAnalysisStatus: text("ai_analysis_status").default("pending"),
-  aiAnalyzedAt: timestamp("ai_analyzed_at"),
-  mobileUploaded: boolean("mobile_uploaded").default(false),
-  aiExtractedText: text("ai_extracted_text"),
+export const documents = pgTable('documents', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  title: text('title').notNull(),
+  category: text('category').notNull(),
+  description: text('description'),
+  fileUrl: text('file_url'),
+  fileName: text('file_name'),
+  fileType: text('file_type'),
+  fileSize: integer('file_size'),
+  tags: text('tags').array(),
+  isConfidential: boolean('is_confidential').default(false),
+  environment: text('environment').notNull().default('demo'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  aiCategory: text('ai_category'),
+  aiConfidence: real('ai_confidence'),
+  aiSummary: text('ai_summary'),
+  aiSuggestedTags: text('ai_suggested_tags').array(),
+  aiAnalysisStatus: text('ai_analysis_status').default('pending'),
+  aiAnalyzedAt: timestamp('ai_analyzed_at'),
+  mobileUploaded: boolean('mobile_uploaded').default(false),
+  aiExtractedText: text('ai_extracted_text'),
 });
 
-export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, createdAt: true, updatedAt: true, aiAnalyzedAt: true });
+export const insertDocumentSchema = createInsertSchema(documents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  aiAnalyzedAt: true,
+});
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type Document = typeof documents.$inferSelect;
 
 // Canonical document types for forensic parsing
 export const CANONICAL_DOC_TYPES = [
-  "UTILITY_BILL",
-  "BANK_STATEMENT",
-  "CREDIT_CARD_STATEMENT",
-  "MORTGAGE_STATEMENT",
-  "LOAN_STATEMENT",
-  "PAY_STUB",
-  "GENERIC_FINANCIAL_EXPENSE",
-  "GENERIC_FINANCIAL_INCOME",
-  "PROPERTY_TAX",
-  "INSURANCE_POLICY",
-  "NON_FINANCIAL",
+  'UTILITY_BILL',
+  'BANK_STATEMENT',
+  'CREDIT_CARD_STATEMENT',
+  'MORTGAGE_STATEMENT',
+  'LOAN_STATEMENT',
+  'PAY_STUB',
+  'GENERIC_FINANCIAL_EXPENSE',
+  'GENERIC_FINANCIAL_INCOME',
+  'PROPERTY_TAX',
+  'INSURANCE_POLICY',
+  'NON_FINANCIAL',
 ] as const;
 
-export type CanonicalDocType = typeof CANONICAL_DOC_TYPES[number];
+export type CanonicalDocType = (typeof CANONICAL_DOC_TYPES)[number];
 
 // Document line items for fine-grain audit trail
-export const documentLineItems = pgTable("document_line_items", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  documentId: varchar("document_id").notNull(),
-  userId: varchar("user_id").notNull(),
-  lineItemIndex: integer("line_item_index").notNull(),
-  label: text("label").notNull(),
-  categoryHint: text("category_hint"),
-  amount: integer("amount").notNull(),
-  amountText: text("amount_text"),
-  isCreditOrRefund: boolean("is_credit_or_refund").default(false),
-  isRecurringGuess: boolean("is_recurring_guess").default(false),
-  pageNumber: integer("page_number"),
-  surroundingTextSnippet: text("surrounding_text_snippet"),
-  linkedRecordType: text("linked_record_type"),
-  linkedRecordId: varchar("linked_record_id"),
-  environment: text("environment").notNull().default("demo"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const documentLineItems = pgTable('document_line_items', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  documentId: varchar('document_id').notNull(),
+  userId: varchar('user_id').notNull(),
+  lineItemIndex: integer('line_item_index').notNull(),
+  label: text('label').notNull(),
+  categoryHint: text('category_hint'),
+  amount: integer('amount').notNull(),
+  amountText: text('amount_text'),
+  isCreditOrRefund: boolean('is_credit_or_refund').default(false),
+  isRecurringGuess: boolean('is_recurring_guess').default(false),
+  pageNumber: integer('page_number'),
+  surroundingTextSnippet: text('surrounding_text_snippet'),
+  linkedRecordType: text('linked_record_type'),
+  linkedRecordId: varchar('linked_record_id'),
+  environment: text('environment').notNull().default('demo'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertDocumentLineItemSchema = createInsertSchema(documentLineItems).omit({ id: true, createdAt: true });
+export const insertDocumentLineItemSchema = createInsertSchema(documentLineItems).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertDocumentLineItem = z.infer<typeof insertDocumentLineItemSchema>;
 export type DocumentLineItem = typeof documentLineItems.$inferSelect;
 
 // Document parse results for storing raw LLM output
-export const documentParseResults = pgTable("document_parse_results", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  documentId: varchar("document_id").notNull(),
-  userId: varchar("user_id").notNull(),
-  docType: text("doc_type").notNull(),
-  parseStatus: text("parse_status").notNull(),
-  language: text("language").default("en"),
-  currency: text("currency").default("USD"),
-  vendorName: text("vendor_name"),
-  accountNumber: text("account_number"),
-  billingPeriodStart: text("billing_period_start"),
-  billingPeriodEnd: text("billing_period_end"),
-  statementDate: text("statement_date"),
-  dueDate: text("due_date"),
-  totalAmountDue: integer("total_amount_due"),
-  totalAmountText: text("total_amount_text"),
-  customerName: text("customer_name"),
-  serviceAddress: text("service_address"),
-  mailingAddress: text("mailing_address"),
-  rawLlmResponse: jsonb("raw_llm_response"),
-  notes: text("notes").array(),
-  requestTokens: integer("request_tokens"),
-  responseTokens: integer("response_tokens"),
-  latencyMs: integer("latency_ms"),
-  environment: text("environment").notNull().default("demo"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const documentParseResults = pgTable('document_parse_results', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  documentId: varchar('document_id').notNull(),
+  userId: varchar('user_id').notNull(),
+  docType: text('doc_type').notNull(),
+  parseStatus: text('parse_status').notNull(),
+  language: text('language').default('en'),
+  currency: text('currency').default('USD'),
+  vendorName: text('vendor_name'),
+  accountNumber: text('account_number'),
+  billingPeriodStart: text('billing_period_start'),
+  billingPeriodEnd: text('billing_period_end'),
+  statementDate: text('statement_date'),
+  dueDate: text('due_date'),
+  totalAmountDue: integer('total_amount_due'),
+  totalAmountText: text('total_amount_text'),
+  customerName: text('customer_name'),
+  serviceAddress: text('service_address'),
+  mailingAddress: text('mailing_address'),
+  rawLlmResponse: jsonb('raw_llm_response'),
+  notes: text('notes').array(),
+  requestTokens: integer('request_tokens'),
+  responseTokens: integer('response_tokens'),
+  latencyMs: integer('latency_ms'),
+  environment: text('environment').notNull().default('demo'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertDocumentParseResultSchema = createInsertSchema(documentParseResults).omit({ id: true, createdAt: true });
+export const insertDocumentParseResultSchema = createInsertSchema(documentParseResults).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertDocumentParseResult = z.infer<typeof insertDocumentParseResultSchema>;
 export type DocumentParseResult = typeof documentParseResults.$inferSelect;
 
 // Mobile violation reports for quick violation creation
-export const mobileViolationReports = pgTable("mobile_violation_reports", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  title: text("title").notNull(),
-  violationType: text("violation_type").notNull(),
-  description: text("description").notNull(),
-  severity: text("severity").notNull().default("medium"),
-  location: text("location"),
-  occurredAt: timestamp("occurred_at").notNull().defaultNow(),
-  relatedDocumentIds: text("related_document_ids").array(),
-  witnesses: text("witnesses").array(),
-  status: text("status").notNull().default("draft"),
-  environment: text("environment").notNull().default("demo"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  submittedAt: timestamp("submitted_at"),
-  linkedViolationId: varchar("linked_violation_id"),
+export const mobileViolationReports = pgTable('mobile_violation_reports', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  title: text('title').notNull(),
+  violationType: text('violation_type').notNull(),
+  description: text('description').notNull(),
+  severity: text('severity').notNull().default('medium'),
+  location: text('location'),
+  occurredAt: timestamp('occurred_at').notNull().defaultNow(),
+  relatedDocumentIds: text('related_document_ids').array(),
+  witnesses: text('witnesses').array(),
+  status: text('status').notNull().default('draft'),
+  environment: text('environment').notNull().default('demo'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  submittedAt: timestamp('submitted_at'),
+  linkedViolationId: varchar('linked_violation_id'),
 });
 
-export const insertMobileViolationReportSchema = createInsertSchema(mobileViolationReports).omit({ id: true, createdAt: true, submittedAt: true });
+export const insertMobileViolationReportSchema = createInsertSchema(mobileViolationReports).omit({
+  id: true,
+  createdAt: true,
+  submittedAt: true,
+});
 export type InsertMobileViolationReport = z.infer<typeof insertMobileViolationReportSchema>;
 export type MobileViolationReport = typeof mobileViolationReports.$inferSelect;
 
 // QuickBooks sync audit log for multi-tenant tracking
-export const quickbooksSyncLog = pgTable("quickbooks_sync_log", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  action: varchar("action", { length: 100 }).notNull(),
-  qbEntityType: varchar("qb_entity_type", { length: 50 }),
-  qbEntityId: varchar("qb_entity_id", { length: 50 }),
-  requestMethod: varchar("request_method", { length: 10 }),
-  requestPath: text("request_path"),
-  responseStatus: integer("response_status"),
-  errorMessage: text("error_message"),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const quickbooksSyncLog = pgTable('quickbooks_sync_log', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  action: varchar('action', { length: 100 }).notNull(),
+  qbEntityType: varchar('qb_entity_type', { length: 50 }),
+  qbEntityId: varchar('qb_entity_id', { length: 50 }),
+  requestMethod: varchar('request_method', { length: 10 }),
+  requestPath: text('request_path'),
+  responseStatus: integer('response_status'),
+  errorMessage: text('error_message'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertQuickbooksSyncLogSchema = createInsertSchema(quickbooksSyncLog).omit({ id: true, createdAt: true });
+export const insertQuickbooksSyncLogSchema = createInsertSchema(quickbooksSyncLog).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertQuickbooksSyncLog = z.infer<typeof insertQuickbooksSyncLogSchema>;
 export type QuickbooksSyncLog = typeof quickbooksSyncLog.$inferSelect;
 
 // Data Quality Framework Tables
 
 // Quality rules definition table
-export const qualityRules = pgTable("quality_rules", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  description: text("description"),
-  ruleType: varchar("rule_type", { length: 50 }).notNull(), // 'expectation', 'reconciliation', 'freshness', 'schema'
-  targetSystem: varchar("target_system", { length: 50 }).notNull(), // 'app', 'warehouse', 'quickbooks'
-  targetTable: text("target_table").notNull(),
-  targetColumn: text("target_column"),
-  expectationType: varchar("expectation_type", { length: 100 }).notNull(), // 'not_null', 'unique', 'range', 'regex', 'referential', etc.
-  parameters: jsonb("parameters"), // JSON config for the expectation
-  severity: varchar("severity", { length: 20 }).notNull().default("warning"), // 'info', 'warning', 'critical'
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+export const qualityRules = pgTable('quality_rules', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  name: text('name').notNull(),
+  description: text('description'),
+  ruleType: varchar('rule_type', { length: 50 }).notNull(), // 'expectation', 'reconciliation', 'freshness', 'schema'
+  targetSystem: varchar('target_system', { length: 50 }).notNull(), // 'app', 'warehouse', 'quickbooks'
+  targetTable: text('target_table').notNull(),
+  targetColumn: text('target_column'),
+  expectationType: varchar('expectation_type', { length: 100 }).notNull(), // 'not_null', 'unique', 'range', 'regex', 'referential', etc.
+  parameters: jsonb('parameters'), // JSON config for the expectation
+  severity: varchar('severity', { length: 20 }).notNull().default('warning'), // 'info', 'warning', 'critical'
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export const insertQualityRuleSchema = createInsertSchema(qualityRules).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertQualityRuleSchema = createInsertSchema(qualityRules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 export type InsertQualityRule = z.infer<typeof insertQualityRuleSchema>;
 export type QualityRule = typeof qualityRules.$inferSelect;
 
 // Quality run tracking
-export const qualityRuns = pgTable("quality_runs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  runType: varchar("run_type", { length: 50 }).notNull(), // 'validation', 'profiling', 'reconciliation'
-  targetSystem: varchar("target_system", { length: 50 }).notNull(),
-  status: varchar("status", { length: 20 }).notNull().default("running"), // 'running', 'completed', 'failed'
-  totalChecks: integer("total_checks").default(0),
-  passedChecks: integer("passed_checks").default(0),
-  failedChecks: integer("failed_checks").default(0),
-  warningChecks: integer("warning_checks").default(0),
-  startedAt: timestamp("started_at").notNull().defaultNow(),
-  completedAt: timestamp("completed_at"),
-  metadata: jsonb("metadata"),
+export const qualityRuns = pgTable('quality_runs', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  runType: varchar('run_type', { length: 50 }).notNull(), // 'validation', 'profiling', 'reconciliation'
+  targetSystem: varchar('target_system', { length: 50 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('running'), // 'running', 'completed', 'failed'
+  totalChecks: integer('total_checks').default(0),
+  passedChecks: integer('passed_checks').default(0),
+  failedChecks: integer('failed_checks').default(0),
+  warningChecks: integer('warning_checks').default(0),
+  startedAt: timestamp('started_at').notNull().defaultNow(),
+  completedAt: timestamp('completed_at'),
+  metadata: jsonb('metadata'),
 });
 
-export const insertQualityRunSchema = createInsertSchema(qualityRuns).omit({ id: true, startedAt: true });
+export const insertQualityRunSchema = createInsertSchema(qualityRuns).omit({
+  id: true,
+  startedAt: true,
+});
 export type InsertQualityRun = z.infer<typeof insertQualityRunSchema>;
 export type QualityRun = typeof qualityRuns.$inferSelect;
 
 // Quality metrics for individual check results
-export const qualityMetrics = pgTable("quality_metrics", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  runId: varchar("run_id").notNull(),
-  ruleId: varchar("rule_id"),
-  checkName: text("check_name").notNull(),
-  tableName: text("table_name").notNull(),
-  columnName: text("column_name"),
-  expectationType: varchar("expectation_type", { length: 100 }).notNull(),
-  expectedValue: text("expected_value"),
-  actualValue: text("actual_value"),
-  passed: boolean("passed").notNull(),
-  severity: varchar("severity", { length: 20 }).notNull(),
-  message: text("message"),
-  metadata: jsonb("metadata"),
-  checkedAt: timestamp("checked_at").notNull().defaultNow(),
+export const qualityMetrics = pgTable('quality_metrics', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  runId: varchar('run_id').notNull(),
+  ruleId: varchar('rule_id'),
+  checkName: text('check_name').notNull(),
+  tableName: text('table_name').notNull(),
+  columnName: text('column_name'),
+  expectationType: varchar('expectation_type', { length: 100 }).notNull(),
+  expectedValue: text('expected_value'),
+  actualValue: text('actual_value'),
+  passed: boolean('passed').notNull(),
+  severity: varchar('severity', { length: 20 }).notNull(),
+  message: text('message'),
+  metadata: jsonb('metadata'),
+  checkedAt: timestamp('checked_at').notNull().defaultNow(),
 });
 
-export const insertQualityMetricSchema = createInsertSchema(qualityMetrics).omit({ id: true, checkedAt: true });
+export const insertQualityMetricSchema = createInsertSchema(qualityMetrics).omit({
+  id: true,
+  checkedAt: true,
+});
 export type InsertQualityMetric = z.infer<typeof insertQualityMetricSchema>;
 export type QualityMetric = typeof qualityMetrics.$inferSelect;
 
 // Data profiling results
-export const dataProfiles = pgTable("data_profiles", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  runId: varchar("run_id").notNull(),
-  tableName: text("table_name").notNull(),
-  columnName: text("column_name").notNull(),
-  dataType: varchar("data_type", { length: 50 }),
-  totalCount: integer("total_count").default(0),
-  nullCount: integer("null_count").default(0),
-  uniqueCount: integer("unique_count").default(0),
-  minValue: text("min_value"),
-  maxValue: text("max_value"),
-  meanValue: real("mean_value"),
-  stdDevValue: real("std_dev_value"),
-  percentiles: jsonb("percentiles"), // { p25, p50, p75, p90, p95, p99 }
-  topValues: jsonb("top_values"), // [{ value, count }]
-  profiledAt: timestamp("profiled_at").notNull().defaultNow(),
+export const dataProfiles = pgTable('data_profiles', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  runId: varchar('run_id').notNull(),
+  tableName: text('table_name').notNull(),
+  columnName: text('column_name').notNull(),
+  dataType: varchar('data_type', { length: 50 }),
+  totalCount: integer('total_count').default(0),
+  nullCount: integer('null_count').default(0),
+  uniqueCount: integer('unique_count').default(0),
+  minValue: text('min_value'),
+  maxValue: text('max_value'),
+  meanValue: real('mean_value'),
+  stdDevValue: real('std_dev_value'),
+  percentiles: jsonb('percentiles'), // { p25, p50, p75, p90, p95, p99 }
+  topValues: jsonb('top_values'), // [{ value, count }]
+  profiledAt: timestamp('profiled_at').notNull().defaultNow(),
 });
 
-export const insertDataProfileSchema = createInsertSchema(dataProfiles).omit({ id: true, profiledAt: true });
+export const insertDataProfileSchema = createInsertSchema(dataProfiles).omit({
+  id: true,
+  profiledAt: true,
+});
 export type InsertDataProfile = z.infer<typeof insertDataProfileSchema>;
 export type DataProfile = typeof dataProfiles.$inferSelect;
 
 // Anomaly detection results
-export const qualityAnomalies = pgTable("quality_anomalies", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  runId: varchar("run_id"),
-  tableName: text("table_name").notNull(),
-  columnName: text("column_name"),
-  anomalyType: varchar("anomaly_type", { length: 50 }).notNull(), // 'spike', 'drop', 'drift', 'outlier', 'missing_data'
-  severity: varchar("severity", { length: 20 }).notNull(),
-  description: text("description").notNull(),
-  expectedBaseline: text("expected_baseline"),
-  actualValue: text("actual_value"),
-  deviationScore: real("deviation_score"), // z-score or deviation percentage
-  detectedAt: timestamp("detected_at").notNull().defaultNow(),
-  isAcknowledged: boolean("is_acknowledged").default(false),
-  acknowledgedBy: varchar("acknowledged_by"),
-  acknowledgedAt: timestamp("acknowledged_at"),
+export const qualityAnomalies = pgTable('quality_anomalies', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  runId: varchar('run_id'),
+  tableName: text('table_name').notNull(),
+  columnName: text('column_name'),
+  anomalyType: varchar('anomaly_type', { length: 50 }).notNull(), // 'spike', 'drop', 'drift', 'outlier', 'missing_data'
+  severity: varchar('severity', { length: 20 }).notNull(),
+  description: text('description').notNull(),
+  expectedBaseline: text('expected_baseline'),
+  actualValue: text('actual_value'),
+  deviationScore: real('deviation_score'), // z-score or deviation percentage
+  detectedAt: timestamp('detected_at').notNull().defaultNow(),
+  isAcknowledged: boolean('is_acknowledged').default(false),
+  acknowledgedBy: varchar('acknowledged_by'),
+  acknowledgedAt: timestamp('acknowledged_at'),
 });
 
-export const insertQualityAnomalySchema = createInsertSchema(qualityAnomalies).omit({ id: true, detectedAt: true });
+export const insertQualityAnomalySchema = createInsertSchema(qualityAnomalies).omit({
+  id: true,
+  detectedAt: true,
+});
 export type InsertQualityAnomaly = z.infer<typeof insertQualityAnomalySchema>;
 export type QualityAnomaly = typeof qualityAnomalies.$inferSelect;
 
 // Reconciliation jobs
-export const reconciliationJobs = pgTable("reconciliation_jobs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  jobName: text("job_name").notNull(),
-  sourceSystem: varchar("source_system", { length: 50 }).notNull(), // 'app', 'warehouse', 'quickbooks'
-  targetSystem: varchar("target_system", { length: 50 }).notNull(),
-  reconciliationType: varchar("reconciliation_type", { length: 50 }).notNull(), // 'count', 'sum', 'hash', 'detailed'
-  sourceQuery: text("source_query"),
-  targetQuery: text("target_query"),
-  matchKeys: jsonb("match_keys"), // columns to match on
-  tolerancePercent: real("tolerance_percent").default(0),
-  isActive: boolean("is_active").default(true),
-  schedule: varchar("schedule", { length: 50 }), // cron expression
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const reconciliationJobs = pgTable('reconciliation_jobs', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  jobName: text('job_name').notNull(),
+  sourceSystem: varchar('source_system', { length: 50 }).notNull(), // 'app', 'warehouse', 'quickbooks'
+  targetSystem: varchar('target_system', { length: 50 }).notNull(),
+  reconciliationType: varchar('reconciliation_type', { length: 50 }).notNull(), // 'count', 'sum', 'hash', 'detailed'
+  sourceQuery: text('source_query'),
+  targetQuery: text('target_query'),
+  matchKeys: jsonb('match_keys'), // columns to match on
+  tolerancePercent: real('tolerance_percent').default(0),
+  isActive: boolean('is_active').default(true),
+  schedule: varchar('schedule', { length: 50 }), // cron expression
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertReconciliationJobSchema = createInsertSchema(reconciliationJobs).omit({ id: true, createdAt: true });
+export const insertReconciliationJobSchema = createInsertSchema(reconciliationJobs).omit({
+  id: true,
+  createdAt: true,
+});
 export type InsertReconciliationJob = z.infer<typeof insertReconciliationJobSchema>;
 export type ReconciliationJob = typeof reconciliationJobs.$inferSelect;
 
 // Reconciliation results
-export const reconciliationResults = pgTable("reconciliation_results", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  jobId: varchar("job_id").notNull(),
-  runId: varchar("run_id").notNull(),
-  status: varchar("status", { length: 20 }).notNull(), // 'matched', 'mismatched', 'error'
-  sourceCount: integer("source_count"),
-  targetCount: integer("target_count"),
-  matchedCount: integer("matched_count"),
-  mismatchedCount: integer("mismatched_count"),
-  sourceSum: real("source_sum"),
-  targetSum: real("target_sum"),
-  variance: real("variance"),
-  variancePercent: real("variance_percent"),
-  details: jsonb("details"), // detailed mismatch info
-  executedAt: timestamp("executed_at").notNull().defaultNow(),
+export const reconciliationResults = pgTable('reconciliation_results', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  jobId: varchar('job_id').notNull(),
+  runId: varchar('run_id').notNull(),
+  status: varchar('status', { length: 20 }).notNull(), // 'matched', 'mismatched', 'error'
+  sourceCount: integer('source_count'),
+  targetCount: integer('target_count'),
+  matchedCount: integer('matched_count'),
+  mismatchedCount: integer('mismatched_count'),
+  sourceSum: real('source_sum'),
+  targetSum: real('target_sum'),
+  variance: real('variance'),
+  variancePercent: real('variance_percent'),
+  details: jsonb('details'), // detailed mismatch info
+  executedAt: timestamp('executed_at').notNull().defaultNow(),
 });
 
-export const insertReconciliationResultSchema = createInsertSchema(reconciliationResults).omit({ id: true, executedAt: true });
+export const insertReconciliationResultSchema = createInsertSchema(reconciliationResults).omit({
+  id: true,
+  executedAt: true,
+});
 export type InsertReconciliationResult = z.infer<typeof insertReconciliationResultSchema>;
 export type ReconciliationResult = typeof reconciliationResults.$inferSelect;
 
 // Data quality alerts
-export const dqAlerts = pgTable("dq_alerts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  runId: varchar("run_id"),
-  metricId: varchar("metric_id"),
-  anomalyId: varchar("anomaly_id"),
-  reconciliationResultId: varchar("reconciliation_result_id"),
-  alertType: varchar("alert_type", { length: 50 }).notNull(), // 'validation_failed', 'anomaly_detected', 'reconciliation_mismatch'
-  severity: varchar("severity", { length: 20 }).notNull(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  affectedTable: text("affected_table"),
-  affectedColumn: text("affected_column"),
-  suggestedAction: text("suggested_action"),
-  isResolved: boolean("is_resolved").default(false),
-  resolvedBy: varchar("resolved_by"),
-  resolvedAt: timestamp("resolved_at"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const dqAlerts = pgTable('dq_alerts', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  runId: varchar('run_id'),
+  metricId: varchar('metric_id'),
+  anomalyId: varchar('anomaly_id'),
+  reconciliationResultId: varchar('reconciliation_result_id'),
+  alertType: varchar('alert_type', { length: 50 }).notNull(), // 'validation_failed', 'anomaly_detected', 'reconciliation_mismatch'
+  severity: varchar('severity', { length: 20 }).notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  affectedTable: text('affected_table'),
+  affectedColumn: text('affected_column'),
+  suggestedAction: text('suggested_action'),
+  isResolved: boolean('is_resolved').default(false),
+  resolvedBy: varchar('resolved_by'),
+  resolvedAt: timestamp('resolved_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
 export const insertDqAlertSchema = createInsertSchema(dqAlerts).omit({ id: true, createdAt: true });
 export type InsertDqAlert = z.infer<typeof insertDqAlertSchema>;
 export type DqAlert = typeof dqAlerts.$inferSelect;
 
-export type UserRole = "client" | "attorney" | "cpa" | "admin";
-export type Environment = "live" | "demo";
-export type AlertSeverity = "critical" | "warning" | "info";
-export type ViolationStatus = "pending" | "reviewed" | "approved";
+export type UserRole = 'client' | 'attorney' | 'cpa' | 'admin';
+export type Environment = 'live' | 'demo';
+export type AlertSeverity = 'critical' | 'warning' | 'info';
+export type ViolationStatus = 'pending' | 'reviewed' | 'approved';
 
 // ============================================
 // DATA WAREHOUSE - DIMENSION TABLES
 // ============================================
 
-export const dimDate = pgTable("drizzle_dim_date", {
-  dateId: integer("date_id").primaryKey(),
-  dateActual: date("date_actual").notNull(),
-  year: integer("year").notNull(),
-  quarter: integer("quarter").notNull(),
-  month: integer("month").notNull(),
-  dayOfMonth: integer("day_of_month").notNull(),
-  dayOfWeek: integer("day_of_week").notNull(),
-  isWeekend: boolean("is_weekend").default(false),
-  isHoliday: boolean("is_holiday").default(false),
-  weekOfYear: integer("week_of_year"),
-  monthName: varchar("month_name", { length: 20 }),
-  dayName: varchar("day_name", { length: 20 }),
+export const dimDate = pgTable('drizzle_dim_date', {
+  dateId: integer('date_id').primaryKey(),
+  dateActual: date('date_actual').notNull(),
+  year: integer('year').notNull(),
+  quarter: integer('quarter').notNull(),
+  month: integer('month').notNull(),
+  dayOfMonth: integer('day_of_month').notNull(),
+  dayOfWeek: integer('day_of_week').notNull(),
+  isWeekend: boolean('is_weekend').default(false),
+  isHoliday: boolean('is_holiday').default(false),
+  weekOfYear: integer('week_of_year'),
+  monthName: varchar('month_name', { length: 20 }),
+  dayName: varchar('day_name', { length: 20 }),
 });
 
 export type DimDate = typeof dimDate.$inferSelect;
 
-export const dimTier = pgTable("drizzle_dim_tier", {
-  tierId: varchar("tier_id").primaryKey(),
-  tierName: varchar("tier_name", { length: 50 }).notNull(),
-  priceUsdMonthly: integer("price_usd_monthly").notNull(),
-  apiLimitDaily: integer("api_limit_daily"),
-  storageGb: integer("storage_gb"),
-  maxCases: integer("max_cases"),
-  maxViolationsPerMonth: integer("max_violations_per_month"),
-  aiFeatures: boolean("ai_features").default(false),
-  prioritySupport: boolean("priority_support").default(false),
-  effectiveFrom: timestamp("effective_from").notNull().defaultNow(),
-  effectiveTo: timestamp("effective_to"),
+export const dimTier = pgTable('drizzle_dim_tier', {
+  tierId: varchar('tier_id').primaryKey(),
+  tierName: varchar('tier_name', { length: 50 }).notNull(),
+  priceUsdMonthly: integer('price_usd_monthly').notNull(),
+  apiLimitDaily: integer('api_limit_daily'),
+  storageGb: integer('storage_gb'),
+  maxCases: integer('max_cases'),
+  maxViolationsPerMonth: integer('max_violations_per_month'),
+  aiFeatures: boolean('ai_features').default(false),
+  prioritySupport: boolean('priority_support').default(false),
+  effectiveFrom: timestamp('effective_from').notNull().defaultNow(),
+  effectiveTo: timestamp('effective_to'),
 });
 
 export type DimTier = typeof dimTier.$inferSelect;
 
-export const dimUsers = pgTable("drizzle_dim_users", {
-  userId: varchar("user_id").primaryKey(),
-  userName: varchar("user_name", { length: 200 }),
-  email: varchar("email", { length: 255 }),
-  currentTier: varchar("current_tier", { length: 50 }),
-  tierStartDate: timestamp("tier_start_date"),
-  isActive: boolean("is_active").default(true),
-  createdDateId: integer("created_date_id"),
-  dbtValidFrom: timestamp("dbt_valid_from").notNull().defaultNow(),
-  dbtValidTo: timestamp("dbt_valid_to"),
-  isCurrent: boolean("is_current").default(true),
+export const dimUsers = pgTable('drizzle_dim_users', {
+  userId: varchar('user_id').primaryKey(),
+  userName: varchar('user_name', { length: 200 }),
+  email: varchar('email', { length: 255 }),
+  currentTier: varchar('current_tier', { length: 50 }),
+  tierStartDate: timestamp('tier_start_date'),
+  isActive: boolean('is_active').default(true),
+  createdDateId: integer('created_date_id'),
+  dbtValidFrom: timestamp('dbt_valid_from').notNull().defaultNow(),
+  dbtValidTo: timestamp('dbt_valid_to'),
+  isCurrent: boolean('is_current').default(true),
 });
 
 export type DimUsers = typeof dimUsers.$inferSelect;
 
-export const dimSubscription = pgTable("drizzle_dim_subscription", {
-  subscriptionId: varchar("subscription_id").primaryKey(),
-  userId: varchar("user_id").notNull(),
-  tierId: varchar("tier_id").notNull(),
-  status: varchar("status", { length: 30 }).notNull(),
-  startDateId: integer("start_date_id"),
-  endDateId: integer("end_date_id"),
-  billingCycle: varchar("billing_cycle", { length: 20 }),
-  priceAtSubscription: integer("price_at_subscription"),
-  dbtValidFrom: timestamp("dbt_valid_from").notNull().defaultNow(),
-  dbtValidTo: timestamp("dbt_valid_to"),
-  isCurrent: boolean("is_current").default(true),
+export const dimSubscription = pgTable('drizzle_dim_subscription', {
+  subscriptionId: varchar('subscription_id').primaryKey(),
+  userId: varchar('user_id').notNull(),
+  tierId: varchar('tier_id').notNull(),
+  status: varchar('status', { length: 30 }).notNull(),
+  startDateId: integer('start_date_id'),
+  endDateId: integer('end_date_id'),
+  billingCycle: varchar('billing_cycle', { length: 20 }),
+  priceAtSubscription: integer('price_at_subscription'),
+  dbtValidFrom: timestamp('dbt_valid_from').notNull().defaultNow(),
+  dbtValidTo: timestamp('dbt_valid_to'),
+  isCurrent: boolean('is_current').default(true),
 });
 
 export type DimSubscription = typeof dimSubscription.$inferSelect;
@@ -1245,81 +1380,101 @@ export type DimSubscription = typeof dimSubscription.$inferSelect;
 // DATA WAREHOUSE - FACT TABLES
 // ============================================
 
-export const factTransactions = pgTable("drizzle_fact_transactions", {
-  transactionId: varchar("transaction_id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  transactionDateId: integer("transaction_date_id").notNull(),
-  amountUsd: integer("amount_usd").notNull(),
-  transactionType: varchar("transaction_type", { length: 30 }).notNull(),
-  paymentMethod: varchar("payment_method", { length: 50 }),
-  stripePaymentIntentId: varchar("stripe_payment_intent_id"),
-  subscriptionId: varchar("subscription_id"),
-  tierId: varchar("tier_id"),
-  currency: varchar("currency", { length: 3 }).default("USD"),
-  status: varchar("status", { length: 30 }),
-  refundReason: text("refund_reason"),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const factTransactions = pgTable('drizzle_fact_transactions', {
+  transactionId: varchar('transaction_id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  transactionDateId: integer('transaction_date_id').notNull(),
+  amountUsd: integer('amount_usd').notNull(),
+  transactionType: varchar('transaction_type', { length: 30 }).notNull(),
+  paymentMethod: varchar('payment_method', { length: 50 }),
+  stripePaymentIntentId: varchar('stripe_payment_intent_id'),
+  subscriptionId: varchar('subscription_id'),
+  tierId: varchar('tier_id'),
+  currency: varchar('currency', { length: 3 }).default('USD'),
+  status: varchar('status', { length: 30 }),
+  refundReason: text('refund_reason'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertFactTransactionSchema = createInsertSchema(factTransactions).omit({ transactionId: true, createdAt: true });
+export const insertFactTransactionSchema = createInsertSchema(factTransactions).omit({
+  transactionId: true,
+  createdAt: true,
+});
 export type InsertFactTransaction = z.infer<typeof insertFactTransactionSchema>;
 export type FactTransaction = typeof factTransactions.$inferSelect;
 
-export const factViolations = pgTable("drizzle_fact_violations", {
-  violationId: varchar("violation_id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  violationDateId: integer("violation_date_id").notNull(),
-  violationType: varchar("violation_type", { length: 50 }).notNull(),
-  severity: varchar("severity", { length: 20 }).notNull(),
-  caseId: varchar("case_id"),
-  description: text("description"),
-  evidenceCount: integer("evidence_count").default(0),
-  isResolved: boolean("is_resolved").default(false),
-  resolvedDateId: integer("resolved_date_id"),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const factViolations = pgTable('drizzle_fact_violations', {
+  violationId: varchar('violation_id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  violationDateId: integer('violation_date_id').notNull(),
+  violationType: varchar('violation_type', { length: 50 }).notNull(),
+  severity: varchar('severity', { length: 20 }).notNull(),
+  caseId: varchar('case_id'),
+  description: text('description'),
+  evidenceCount: integer('evidence_count').default(0),
+  isResolved: boolean('is_resolved').default(false),
+  resolvedDateId: integer('resolved_date_id'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertFactViolationSchema = createInsertSchema(factViolations).omit({ violationId: true, createdAt: true });
+export const insertFactViolationSchema = createInsertSchema(factViolations).omit({
+  violationId: true,
+  createdAt: true,
+});
 export type InsertFactViolation = z.infer<typeof insertFactViolationSchema>;
 export type FactViolation = typeof factViolations.$inferSelect;
 
-export const factUsageMetrics = pgTable("drizzle_fact_usage_metrics", {
-  metricId: varchar("metric_id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  metricDateId: integer("metric_date_id").notNull(),
-  metricType: varchar("metric_type", { length: 50 }).notNull(),
-  metricValue: real("metric_value").notNull(),
-  unit: varchar("unit", { length: 30 }),
-  tierId: varchar("tier_id"),
-  quotaLimit: integer("quota_limit"),
-  percentageUsed: real("percentage_used"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const factUsageMetrics = pgTable('drizzle_fact_usage_metrics', {
+  metricId: varchar('metric_id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  metricDateId: integer('metric_date_id').notNull(),
+  metricType: varchar('metric_type', { length: 50 }).notNull(),
+  metricValue: real('metric_value').notNull(),
+  unit: varchar('unit', { length: 30 }),
+  tierId: varchar('tier_id'),
+  quotaLimit: integer('quota_limit'),
+  percentageUsed: real('percentage_used'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertFactUsageMetricSchema = createInsertSchema(factUsageMetrics).omit({ metricId: true, createdAt: true });
+export const insertFactUsageMetricSchema = createInsertSchema(factUsageMetrics).omit({
+  metricId: true,
+  createdAt: true,
+});
 export type InsertFactUsageMetric = z.infer<typeof insertFactUsageMetricSchema>;
 export type FactUsageMetric = typeof factUsageMetrics.$inferSelect;
 
-export const factFinancialSummary = pgTable("fact_financial_summary", {
-  summaryId: varchar("summary_id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  summaryDateId: integer("summary_date_id").notNull(),
-  caseId: varchar("case_id"),
-  totalAssets: integer("total_assets").default(0),
-  totalDebts: integer("total_debts").default(0),
-  totalIncome: integer("total_income").default(0),
-  totalExpenses: integer("total_expenses").default(0),
-  netWorth: integer("net_worth").default(0),
-  assetCount: integer("asset_count").default(0),
-  debtCount: integer("debt_count").default(0),
-  incomeSourceCount: integer("income_source_count").default(0),
-  expenseCount: integer("expense_count").default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const factFinancialSummary = pgTable('fact_financial_summary', {
+  summaryId: varchar('summary_id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  summaryDateId: integer('summary_date_id').notNull(),
+  caseId: varchar('case_id'),
+  totalAssets: integer('total_assets').default(0),
+  totalDebts: integer('total_debts').default(0),
+  totalIncome: integer('total_income').default(0),
+  totalExpenses: integer('total_expenses').default(0),
+  netWorth: integer('net_worth').default(0),
+  assetCount: integer('asset_count').default(0),
+  debtCount: integer('debt_count').default(0),
+  incomeSourceCount: integer('income_source_count').default(0),
+  expenseCount: integer('expense_count').default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const insertFactFinancialSummarySchema = createInsertSchema(factFinancialSummary).omit({ summaryId: true, createdAt: true });
+export const insertFactFinancialSummarySchema = createInsertSchema(factFinancialSummary).omit({
+  summaryId: true,
+  createdAt: true,
+});
 export type InsertFactFinancialSummary = z.infer<typeof insertFactFinancialSummarySchema>;
 export type FactFinancialSummary = typeof factFinancialSummary.$inferSelect;
 
@@ -1327,54 +1482,58 @@ export type FactFinancialSummary = typeof factFinancialSummary.$inferSelect;
 // IMPROVEMENT RECOMMENDATIONS (Demo Testing)
 // ============================================
 
-export const improvementRecommendations = pgTable("improvement_recommendations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  userEmail: text("user_email"),
-  title: text("title").notNull(),
-  body: text("body").notNull(),
-  inputType: text("input_type").notNull(), // 'voice', 'text', 'camera', 'file'
-  transcription: text("transcription"), // Voice transcription if applicable
-  mediaUrls: text("media_urls").array(), // Uploaded file/image URLs
+export const improvementRecommendations = pgTable('improvement_recommendations', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  userEmail: text('user_email'),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  inputType: text('input_type').notNull(), // 'voice', 'text', 'camera', 'file'
+  transcription: text('transcription'), // Voice transcription if applicable
+  mediaUrls: text('media_urls').array(), // Uploaded file/image URLs
   // Status workflow: submitted -> reviewing -> testing -> approved -> implemented (or rejected)
-  status: text("status").notNull().default("submitted"),
-  environment: text("environment").notNull().default("demo"),
+  status: text('status').notNull().default('submitted'),
+  environment: text('environment').notNull().default('demo'),
   // Admin editing fields
-  editedTitle: text("edited_title"), // Admin-corrected title
-  editedBody: text("edited_body"), // Admin-corrected body
-  adminNotes: text("admin_notes"), // Internal notes from admin
-  reviewedBy: text("reviewed_by"), // Admin email who reviewed
-  reviewedAt: timestamp("reviewed_at"),
+  editedTitle: text('edited_title'), // Admin-corrected title
+  editedBody: text('edited_body'), // Admin-corrected body
+  adminNotes: text('admin_notes'), // Internal notes from admin
+  reviewedBy: text('reviewed_by'), // Admin email who reviewed
+  reviewedAt: timestamp('reviewed_at'),
   // Testing workflow
-  testUserId: text("test_user_id"), // Test user assigned for approval
-  testUserEmail: text("test_user_email"),
-  testFeedback: text("test_feedback"), // Feedback from test user
-  testApproved: boolean("test_approved"),
-  testedAt: timestamp("tested_at"),
+  testUserId: text('test_user_id'), // Test user assigned for approval
+  testUserEmail: text('test_user_email'),
+  testFeedback: text('test_feedback'), // Feedback from test user
+  testApproved: boolean('test_approved'),
+  testedAt: timestamp('tested_at'),
   // Implementation tracking
-  implementedAt: timestamp("implemented_at"),
-  implementedBy: text("implemented_by"), // Admin who implemented
-  changelogEntry: text("changelog_entry"), // Public-facing description for changelog
-  changelogTranslations: jsonb("changelog_translations"), // AI translations { es: "...", fr: "...", etc }
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  implementedAt: timestamp('implemented_at'),
+  implementedBy: text('implemented_by'), // Admin who implemented
+  changelogEntry: text('changelog_entry'), // Public-facing description for changelog
+  changelogTranslations: jsonb('changelog_translations'), // AI translations { es: "...", fr: "...", etc }
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 export const RECOMMENDATION_STATUSES = {
-  submitted: "Submitted",
-  reviewing: "Under Review",
-  testing: "Testing",
-  approved: "Approved",
-  implemented: "Implemented",
-  rejected: "Rejected",
+  submitted: 'Submitted',
+  reviewing: 'Under Review',
+  testing: 'Testing',
+  approved: 'Approved',
+  implemented: 'Implemented',
+  rejected: 'Rejected',
 } as const;
 
 export type RecommendationStatus = keyof typeof RECOMMENDATION_STATUSES;
 
-export const insertImprovementRecommendationSchema = createInsertSchema(improvementRecommendations).omit({
+export const insertImprovementRecommendationSchema = createInsertSchema(
+  improvementRecommendations
+).omit({
   id: true,
   createdAt: true,
-  updatedAt: true
+  updatedAt: true,
 });
 export type InsertImprovementRecommendation = z.infer<typeof insertImprovementRecommendationSchema>;
 export type ImprovementRecommendation = typeof improvementRecommendations.$inferSelect;
@@ -1383,44 +1542,48 @@ export type ImprovementRecommendation = typeof improvementRecommendations.$infer
 // JOURNAL ENTRIES
 // ============================================
 
-export const journalEntries = pgTable("journal_entries", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  environment: text("environment").notNull().default("demo"),
-  title: text("title"),
-  content: text("content").notNull(),
-  inputType: text("input_type").notNull().default("text"), // 'text', 'voice', 'camera', 'file'
-  voiceTranscription: text("voice_transcription"), // AI transcription of voice input
-  mood: text("mood"), // Optional mood tag: 'positive', 'neutral', 'negative', 'mixed'
-  tags: text("tags").array(), // User-defined tags
-  isPrivate: boolean("is_private").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+export const journalEntries = pgTable('journal_entries', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  environment: text('environment').notNull().default('demo'),
+  title: text('title'),
+  content: text('content').notNull(),
+  inputType: text('input_type').notNull().default('text'), // 'text', 'voice', 'camera', 'file'
+  voiceTranscription: text('voice_transcription'), // AI transcription of voice input
+  mood: text('mood'), // Optional mood tag: 'positive', 'neutral', 'negative', 'mixed'
+  tags: text('tags').array(), // User-defined tags
+  isPrivate: boolean('is_private').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit({
   id: true,
   createdAt: true,
-  updatedAt: true
+  updatedAt: true,
 });
 export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
 export type JournalEntry = typeof journalEntries.$inferSelect;
 
-export const journalAttachments = pgTable("journal_attachments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  journalEntryId: varchar("journal_entry_id").notNull(),
-  userId: varchar("user_id").notNull(),
-  fileName: text("file_name").notNull(),
-  fileType: text("file_type").notNull(), // 'image', 'audio', 'video', 'document'
-  fileUrl: text("file_url").notNull(),
-  fileSizeBytes: integer("file_size_bytes"),
-  aiDescription: text("ai_description"), // AI-generated description of the attachment
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const journalAttachments = pgTable('journal_attachments', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  journalEntryId: varchar('journal_entry_id').notNull(),
+  userId: varchar('user_id').notNull(),
+  fileName: text('file_name').notNull(),
+  fileType: text('file_type').notNull(), // 'image', 'audio', 'video', 'document'
+  fileUrl: text('file_url').notNull(),
+  fileSizeBytes: integer('file_size_bytes'),
+  aiDescription: text('ai_description'), // AI-generated description of the attachment
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
 export const insertJournalAttachmentSchema = createInsertSchema(journalAttachments).omit({
   id: true,
-  createdAt: true
+  createdAt: true,
 });
 export type InsertJournalAttachment = z.infer<typeof insertJournalAttachmentSchema>;
 export type JournalAttachment = typeof journalAttachments.$inferSelect;
@@ -1429,85 +1592,95 @@ export type JournalAttachment = typeof journalAttachments.$inferSelect;
 // CONVERSATIONS & MESSAGING
 // ============================================
 
-export const conversations = pgTable("conversations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  creatorUserId: varchar("creator_user_id").notNull(),
-  environment: text("environment").notNull().default("demo"),
-  title: text("title"), // Optional conversation title
-  type: text("type").notNull().default("direct"), // 'direct', 'group', 'legal'
-  status: text("status").notNull().default("active"), // 'active', 'archived', 'reported'
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+export const conversations = pgTable('conversations', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  creatorUserId: varchar('creator_user_id').notNull(),
+  environment: text('environment').notNull().default('demo'),
+  title: text('title'), // Optional conversation title
+  type: text('type').notNull().default('direct'), // 'direct', 'group', 'legal'
+  status: text('status').notNull().default('active'), // 'active', 'archived', 'reported'
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 export const insertConversationSchema = createInsertSchema(conversations).omit({
   id: true,
   createdAt: true,
-  updatedAt: true
+  updatedAt: true,
 });
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Conversation = typeof conversations.$inferSelect;
 
-export const conversationParticipants = pgTable("conversation_participants", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull(),
-  userId: varchar("user_id"), // Null if invited by email but not yet registered
-  email: text("email").notNull(),
-  displayName: text("display_name").notNull(),
-  role: text("role").notNull().default("party"), // 'party', 'legal_counsel', 'mediator', 'therapist', 'observer'
-  status: text("status").notNull().default("active"), // 'active', 'invited', 'left', 'removed'
-  joinedAt: timestamp("joined_at").notNull().defaultNow(),
-  leftAt: timestamp("left_at"),
+export const conversationParticipants = pgTable('conversation_participants', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  conversationId: varchar('conversation_id').notNull(),
+  userId: varchar('user_id'), // Null if invited by email but not yet registered
+  email: text('email').notNull(),
+  displayName: text('display_name').notNull(),
+  role: text('role').notNull().default('party'), // 'party', 'legal_counsel', 'mediator', 'therapist', 'observer'
+  status: text('status').notNull().default('active'), // 'active', 'invited', 'left', 'removed'
+  joinedAt: timestamp('joined_at').notNull().defaultNow(),
+  leftAt: timestamp('left_at'),
 });
 
-export const insertConversationParticipantSchema = createInsertSchema(conversationParticipants).omit({
+export const insertConversationParticipantSchema = createInsertSchema(
+  conversationParticipants
+).omit({
   id: true,
-  joinedAt: true
+  joinedAt: true,
 });
 export type InsertConversationParticipant = z.infer<typeof insertConversationParticipantSchema>;
 export type ConversationParticipant = typeof conversationParticipants.$inferSelect;
 
-export const conversationMessages = pgTable("conversation_messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull(),
-  senderId: varchar("sender_id").notNull(),
-  senderEmail: text("sender_email").notNull(),
-  senderName: text("sender_name").notNull(),
-  content: text("content").notNull(),
-  inputType: text("input_type").notNull().default("text"), // 'text', 'voice', 'image'
-  voiceTranscription: text("voice_transcription"),
+export const conversationMessages = pgTable('conversation_messages', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  conversationId: varchar('conversation_id').notNull(),
+  senderId: varchar('sender_id').notNull(),
+  senderEmail: text('sender_email').notNull(),
+  senderName: text('sender_name').notNull(),
+  content: text('content').notNull(),
+  inputType: text('input_type').notNull().default('text'), // 'text', 'voice', 'image'
+  voiceTranscription: text('voice_transcription'),
   // Sentiment analysis fields
-  sentimentScore: real("sentiment_score"), // -1 to 1 scale
-  sentimentLabel: text("sentiment_label"), // 'positive', 'neutral', 'negative'
-  hasNegativeContent: boolean("has_negative_content").default(false),
-  negativeTopics: text("negative_topics").array(), // AI-extracted topics of negativity
-  isEdited: boolean("is_edited").notNull().default(false),
-  editedAt: timestamp("edited_at"),
-  isDeleted: boolean("is_deleted").notNull().default(false),
-  deletedAt: timestamp("deleted_at"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  sentimentScore: real('sentiment_score'), // -1 to 1 scale
+  sentimentLabel: text('sentiment_label'), // 'positive', 'neutral', 'negative'
+  hasNegativeContent: boolean('has_negative_content').default(false),
+  negativeTopics: text('negative_topics').array(), // AI-extracted topics of negativity
+  isEdited: boolean('is_edited').notNull().default(false),
+  editedAt: timestamp('edited_at'),
+  isDeleted: boolean('is_deleted').notNull().default(false),
+  deletedAt: timestamp('deleted_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
 export const insertConversationMessageSchema = createInsertSchema(conversationMessages).omit({
   id: true,
-  createdAt: true
+  createdAt: true,
 });
 export type InsertConversationMessage = z.infer<typeof insertConversationMessageSchema>;
 export type ConversationMessage = typeof conversationMessages.$inferSelect;
 
-export const messageAttachments = pgTable("message_attachments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  messageId: varchar("message_id").notNull(),
-  fileName: text("file_name").notNull(),
-  fileType: text("file_type").notNull(),
-  fileUrl: text("file_url").notNull(),
-  fileSizeBytes: integer("file_size_bytes"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const messageAttachments = pgTable('message_attachments', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  messageId: varchar('message_id').notNull(),
+  fileName: text('file_name').notNull(),
+  fileType: text('file_type').notNull(),
+  fileUrl: text('file_url').notNull(),
+  fileSizeBytes: integer('file_size_bytes'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
 export const insertMessageAttachmentSchema = createInsertSchema(messageAttachments).omit({
   id: true,
-  createdAt: true
+  createdAt: true,
 });
 export type InsertMessageAttachment = z.infer<typeof insertMessageAttachmentSchema>;
 export type MessageAttachment = typeof messageAttachments.$inferSelect;
@@ -1516,55 +1689,59 @@ export type MessageAttachment = typeof messageAttachments.$inferSelect;
 // SENTIMENT REPORTS
 // ============================================
 
-export const sentimentReports = pgTable("sentiment_reports", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull(),
-  generatedByUserId: varchar("generated_by_user_id").notNull(),
-  environment: text("environment").notNull().default("demo"),
-  title: text("title").notNull(),
-  reportType: text("report_type").notNull().default("negative_communication"), // 'negative_communication', 'conflict_summary', 'behavioral_pattern'
-  dateRangeStart: timestamp("date_range_start"),
-  dateRangeEnd: timestamp("date_range_end"),
-  totalMessagesAnalyzed: integer("total_messages_analyzed").notNull().default(0),
-  negativeMessageCount: integer("negative_message_count").notNull().default(0),
+export const sentimentReports = pgTable('sentiment_reports', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  conversationId: varchar('conversation_id').notNull(),
+  generatedByUserId: varchar('generated_by_user_id').notNull(),
+  environment: text('environment').notNull().default('demo'),
+  title: text('title').notNull(),
+  reportType: text('report_type').notNull().default('negative_communication'), // 'negative_communication', 'conflict_summary', 'behavioral_pattern'
+  dateRangeStart: timestamp('date_range_start'),
+  dateRangeEnd: timestamp('date_range_end'),
+  totalMessagesAnalyzed: integer('total_messages_analyzed').notNull().default(0),
+  negativeMessageCount: integer('negative_message_count').notNull().default(0),
   // Detailed breakdown stored as JSON
-  topicBreakdown: jsonb("topic_breakdown"), // { "finances": [...], "custody": [...], "communication": [...] }
-  participantBreakdown: jsonb("participant_breakdown"), // { "user1": { negativeCount: 5, topics: [...] }, ... }
-  summary: text("summary"), // AI-generated summary
-  recommendations: text("recommendations"), // AI-generated recommendations
+  topicBreakdown: jsonb('topic_breakdown'), // { "finances": [...], "custody": [...], "communication": [...] }
+  participantBreakdown: jsonb('participant_breakdown'), // { "user1": { negativeCount: 5, topics: [...] }, ... }
+  summary: text('summary'), // AI-generated summary
+  recommendations: text('recommendations'), // AI-generated recommendations
   // Export/sharing
-  pdfUrl: text("pdf_url"),
-  sharedWith: text("shared_with").array(), // Emails of people this was shared with
-  status: text("status").notNull().default("generated"), // 'generating', 'generated', 'shared', 'archived'
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  pdfUrl: text('pdf_url'),
+  sharedWith: text('shared_with').array(), // Emails of people this was shared with
+  status: text('status').notNull().default('generated'), // 'generating', 'generated', 'shared', 'archived'
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
 export const insertSentimentReportSchema = createInsertSchema(sentimentReports).omit({
   id: true,
-  createdAt: true
+  createdAt: true,
 });
 export type InsertSentimentReport = z.infer<typeof insertSentimentReportSchema>;
 export type SentimentReport = typeof sentimentReports.$inferSelect;
 
 // Stores individual negative message excerpts for reports
-export const sentimentReportItems = pgTable("sentiment_report_items", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  reportId: varchar("report_id").notNull(),
-  messageId: varchar("message_id").notNull(),
-  senderName: text("sender_name").notNull(),
-  senderEmail: text("sender_email").notNull(),
-  messageContent: text("message_content").notNull(),
-  messageTimestamp: timestamp("message_timestamp").notNull(),
-  sentimentScore: real("sentiment_score").notNull(),
-  primaryTopic: text("primary_topic").notNull(), // Main subject of negativity
-  secondaryTopics: text("secondary_topics").array(),
-  aiAnalysis: text("ai_analysis"), // AI explanation of why this is flagged
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const sentimentReportItems = pgTable('sentiment_report_items', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  reportId: varchar('report_id').notNull(),
+  messageId: varchar('message_id').notNull(),
+  senderName: text('sender_name').notNull(),
+  senderEmail: text('sender_email').notNull(),
+  messageContent: text('message_content').notNull(),
+  messageTimestamp: timestamp('message_timestamp').notNull(),
+  sentimentScore: real('sentiment_score').notNull(),
+  primaryTopic: text('primary_topic').notNull(), // Main subject of negativity
+  secondaryTopics: text('secondary_topics').array(),
+  aiAnalysis: text('ai_analysis'), // AI explanation of why this is flagged
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
 export const insertSentimentReportItemSchema = createInsertSchema(sentimentReportItems).omit({
   id: true,
-  createdAt: true
+  createdAt: true,
 });
 export type InsertSentimentReportItem = z.infer<typeof insertSentimentReportItemSchema>;
 export type SentimentReportItem = typeof sentimentReportItems.$inferSelect;
@@ -1574,165 +1751,177 @@ export type SentimentReportItem = typeof sentimentReportItems.$inferSelect;
 // ============================================
 
 // User devices - tracks all devices that have logged in
-export const userDevices = pgTable("user_devices", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
+export const userDevices = pgTable('user_devices', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
   // Device identification
-  deviceFingerprint: text("device_fingerprint").notNull(), // Hashed fingerprint
-  deviceName: text("device_name"), // User-friendly name like "Chrome on MacOS"
-  userAgent: text("user_agent").notNull(),
-  platform: text("platform"), // 'Windows', 'MacOS', 'iOS', 'Android', etc.
-  browser: text("browser"), // 'Chrome', 'Safari', 'Firefox', etc.
+  deviceFingerprint: text('device_fingerprint').notNull(), // Hashed fingerprint
+  deviceName: text('device_name'), // User-friendly name like "Chrome on MacOS"
+  userAgent: text('user_agent').notNull(),
+  platform: text('platform'), // 'Windows', 'MacOS', 'iOS', 'Android', etc.
+  browser: text('browser'), // 'Chrome', 'Safari', 'Firefox', etc.
   // Trust & status
-  isTrusted: boolean("is_trusted").notNull().default(false),
-  isBlocked: boolean("is_blocked").notNull().default(false),
+  isTrusted: boolean('is_trusted').notNull().default(false),
+  isBlocked: boolean('is_blocked').notNull().default(false),
   // Tracking
-  firstSeenAt: timestamp("first_seen_at").notNull().defaultNow(),
-  lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
-  lastIp: text("last_ip"),
-  lastLocation: text("last_location"), // Approximate location from IP
+  firstSeenAt: timestamp('first_seen_at').notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at').notNull().defaultNow(),
+  lastIp: text('last_ip'),
+  lastLocation: text('last_location'), // Approximate location from IP
 });
 
 export const insertUserDeviceSchema = createInsertSchema(userDevices).omit({
   id: true,
   firstSeenAt: true,
-  lastSeenAt: true
+  lastSeenAt: true,
 });
 export type InsertUserDevice = z.infer<typeof insertUserDeviceSchema>;
 export type UserDevice = typeof userDevices.$inferSelect;
 
 // Auth sessions - database-backed sessions with revocation support
-export const authSessions = pgTable("auth_sessions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  deviceId: varchar("device_id"), // FK to userDevices
+export const authSessions = pgTable('auth_sessions', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  deviceId: varchar('device_id'), // FK to userDevices
   // Token management
-  refreshTokenHash: text("refresh_token_hash").notNull(), // SHA-256 of refresh token
+  refreshTokenHash: text('refresh_token_hash').notNull(), // SHA-256 of refresh token
   // Session metadata
-  ipAddress: text("ip_address"),
-  ipHistory: jsonb("ip_history").$type<string[]>(), // Track IP changes
-  userAgent: text("user_agent"),
+  ipAddress: text('ip_address'),
+  ipHistory: jsonb('ip_history').$type<string[]>(), // Track IP changes
+  userAgent: text('user_agent'),
   // Flags
-  isRememberMe: boolean("is_remember_me").notNull().default(false),
-  mfaVerified: boolean("mfa_verified").notNull().default(false),
-  mfaVerifiedAt: timestamp("mfa_verified_at"),
+  isRememberMe: boolean('is_remember_me').notNull().default(false),
+  mfaVerified: boolean('mfa_verified').notNull().default(false),
+  mfaVerifiedAt: timestamp('mfa_verified_at'),
   // Lifecycle
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  expiresAt: timestamp("expires_at").notNull(),
-  lastActivityAt: timestamp("last_activity_at").notNull().defaultNow(),
-  revokedAt: timestamp("revoked_at"),
-  revokedReason: text("revoked_reason"), // 'logout', 'password_change', 'admin_revoke', 'suspicious'
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  expiresAt: timestamp('expires_at').notNull(),
+  lastActivityAt: timestamp('last_activity_at').notNull().defaultNow(),
+  revokedAt: timestamp('revoked_at'),
+  revokedReason: text('revoked_reason'), // 'logout', 'password_change', 'admin_revoke', 'suspicious'
 });
 
 export const insertAuthSessionSchema = createInsertSchema(authSessions).omit({
   id: true,
   createdAt: true,
-  lastActivityAt: true
+  lastActivityAt: true,
 });
 export type InsertAuthSession = z.infer<typeof insertAuthSessionSchema>;
 export type AuthSession = typeof authSessions.$inferSelect;
 
 // MFA challenges - tracks verification codes
-export const mfaChallenges = pgTable("mfa_challenges", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  sessionId: varchar("session_id"), // Pending session waiting for MFA
+export const mfaChallenges = pgTable('mfa_challenges', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  sessionId: varchar('session_id'), // Pending session waiting for MFA
   // Challenge details
-  codeHash: text("code_hash").notNull(), // SHA-256 of verification code
-  channel: text("channel").notNull().default("sms"), // 'sms' | 'email' | 'authenticator'
-  phoneNumber: text("phone_number"), // Masked phone number used
+  codeHash: text('code_hash').notNull(), // SHA-256 of verification code
+  channel: text('channel').notNull().default('sms'), // 'sms' | 'email' | 'authenticator'
+  phoneNumber: text('phone_number'), // Masked phone number used
   // Attempt tracking
-  attemptCount: integer("attempt_count").notNull().default(0),
-  maxAttempts: integer("max_attempts").notNull().default(5),
+  attemptCount: integer('attempt_count').notNull().default(0),
+  maxAttempts: integer('max_attempts').notNull().default(5),
   // Lifecycle
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  expiresAt: timestamp("expires_at").notNull(),
-  verifiedAt: timestamp("verified_at"),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  expiresAt: timestamp('expires_at').notNull(),
+  verifiedAt: timestamp('verified_at'),
   // Rate limiting
-  lastResendAt: timestamp("last_resend_at"),
-  resendCount: integer("resend_count").notNull().default(0),
+  lastResendAt: timestamp('last_resend_at'),
+  resendCount: integer('resend_count').notNull().default(0),
 });
 
 export const insertMfaChallengeSchema = createInsertSchema(mfaChallenges).omit({
   id: true,
   createdAt: true,
   attemptCount: true,
-  resendCount: true
+  resendCount: true,
 });
 export type InsertMfaChallenge = z.infer<typeof insertMfaChallengeSchema>;
 export type MfaChallenge = typeof mfaChallenges.$inferSelect;
 
 // Security events - comprehensive audit log
-export const securityEvents = pgTable("security_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id"), // Null for failed login attempts with unknown user
-  sessionId: varchar("session_id"),
-  deviceId: varchar("device_id"),
+export const securityEvents = pgTable('security_events', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id'), // Null for failed login attempts with unknown user
+  sessionId: varchar('session_id'),
+  deviceId: varchar('device_id'),
   // Event details
-  eventType: text("event_type").notNull(), // 'login', 'logout', 'mfa_sent', 'mfa_verified', 'mfa_failed', 'password_change', 'session_revoke', 'device_blocked', etc.
-  eventStatus: text("event_status").notNull().default("success"), // 'success', 'failed', 'pending'
+  eventType: text('event_type').notNull(), // 'login', 'logout', 'mfa_sent', 'mfa_verified', 'mfa_failed', 'password_change', 'session_revoke', 'device_blocked', etc.
+  eventStatus: text('event_status').notNull().default('success'), // 'success', 'failed', 'pending'
   // Context
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  location: text("location"),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  location: text('location'),
   // Additional data (event-specific)
-  metadata: jsonb("metadata"), // { reason: '...', targetDeviceId: '...', etc. }
+  metadata: jsonb('metadata'), // { reason: '...', targetDeviceId: '...', etc. }
   // Risk assessment
-  riskScore: integer("risk_score"), // 0-100
-  riskFactors: text("risk_factors").array(), // ['new_device', 'unusual_location', 'rapid_attempts']
+  riskScore: integer('risk_score'), // 0-100
+  riskFactors: text('risk_factors').array(), // ['new_device', 'unusual_location', 'rapid_attempts']
   // Timestamps
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
 export const insertSecurityEventSchema = createInsertSchema(securityEvents).omit({
   id: true,
-  createdAt: true
+  createdAt: true,
 });
 export type InsertSecurityEvent = z.infer<typeof insertSecurityEventSchema>;
 export type SecurityEvent = typeof securityEvents.$inferSelect;
 
 // SMS delivery tracking (for troubleshooting)
-export const smsDeliveries = pgTable("sms_deliveries", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  challengeId: varchar("challenge_id"),
+export const smsDeliveries = pgTable('sms_deliveries', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  challengeId: varchar('challenge_id'),
   // Delivery details
-  twilioMessageSid: text("twilio_message_sid"),
-  toPhoneNumber: text("to_phone_number").notNull(), // Masked
-  fromPhoneNumber: text("from_phone_number").notNull(),
+  twilioMessageSid: text('twilio_message_sid'),
+  toPhoneNumber: text('to_phone_number').notNull(), // Masked
+  fromPhoneNumber: text('from_phone_number').notNull(),
   // Status
-  status: text("status").notNull().default("sent"), // 'queued', 'sent', 'delivered', 'failed', 'undelivered'
-  errorCode: text("error_code"),
-  errorMessage: text("error_message"),
+  status: text('status').notNull().default('sent'), // 'queued', 'sent', 'delivered', 'failed', 'undelivered'
+  errorCode: text('error_code'),
+  errorMessage: text('error_message'),
   // Timestamps
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  deliveredAt: timestamp('delivered_at'),
 });
 
 export const insertSmsDeliverySchema = createInsertSchema(smsDeliveries).omit({
   id: true,
-  createdAt: true
+  createdAt: true,
 });
 export type InsertSmsDelivery = z.infer<typeof insertSmsDeliverySchema>;
 export type SmsDelivery = typeof smsDeliveries.$inferSelect;
 
 // Admin MFA challenges - for admin panel 2FA
-export const adminMfaChallenges = pgTable("admin_mfa_challenges", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: text("email").notNull(),
-  codeHash: text("code_hash").notNull(),
-  phoneNumber: text("phone_number").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  expiresAt: timestamp("expires_at").notNull(),
-  attemptCount: integer("attempt_count").notNull().default(0),
-  verifiedAt: timestamp("verified_at"),
+export const adminMfaChallenges = pgTable('admin_mfa_challenges', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  email: text('email').notNull(),
+  codeHash: text('code_hash').notNull(),
+  phoneNumber: text('phone_number').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  expiresAt: timestamp('expires_at').notNull(),
+  attemptCount: integer('attempt_count').notNull().default(0),
+  verifiedAt: timestamp('verified_at'),
 });
 
 export const insertAdminMfaChallengeSchema = createInsertSchema(adminMfaChallenges).omit({
   id: true,
   createdAt: true,
   attemptCount: true,
-  verifiedAt: true
+  verifiedAt: true,
 });
 export type InsertAdminMfaChallenge = z.infer<typeof insertAdminMfaChallengeSchema>;
 export type AdminMfaChallenge = typeof adminMfaChallenges.$inferSelect;
@@ -1741,19 +1930,21 @@ export type AdminMfaChallenge = typeof adminMfaChallenges.$inferSelect;
 // FIREFLY III INTEGRATION
 // ============================================
 
-export const fireflyConnections = pgTable("firefly_connections", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
-  environment: text("environment").notNull().default("demo"),
-  instanceUrl: text("instance_url").notNull(),
-  accessToken: text("access_token").notNull(),
-  instanceVersion: text("instance_version"),
-  isActive: boolean("is_active").notNull().default(true),
-  autoSyncEnabled: boolean("auto_sync_enabled").notNull().default(false),
-  lastSyncAt: timestamp("last_sync_at"),
-  lastSyncStatus: text("last_sync_status"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+export const fireflyConnections = pgTable('firefly_connections', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  environment: text('environment').notNull().default('demo'),
+  instanceUrl: text('instance_url').notNull(),
+  accessToken: text('access_token').notNull(),
+  instanceVersion: text('instance_version'),
+  isActive: boolean('is_active').notNull().default(true),
+  autoSyncEnabled: boolean('auto_sync_enabled').notNull().default(false),
+  lastSyncAt: timestamp('last_sync_at'),
+  lastSyncStatus: text('last_sync_status'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 export const insertFireflyConnectionSchema = createInsertSchema(fireflyConnections).omit({
@@ -1764,18 +1955,20 @@ export const insertFireflyConnectionSchema = createInsertSchema(fireflyConnectio
 export type InsertFireflyConnection = z.infer<typeof insertFireflyConnectionSchema>;
 export type FireflyConnection = typeof fireflyConnections.$inferSelect;
 
-export const fireflySyncLogs = pgTable("firefly_sync_logs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  connectionId: varchar("connection_id").notNull(),
-  userId: varchar("user_id").notNull(),
-  environment: text("environment").notNull().default("demo"),
-  syncType: text("sync_type").notNull(),
-  sourceType: text("source_type").notNull(),
-  sourceId: varchar("source_id").notNull(),
-  fireflyTransactionId: text("firefly_transaction_id"),
-  status: text("status").notNull().default("pending"),
-  errorMessage: text("error_message"),
-  syncedAt: timestamp("synced_at").notNull().defaultNow(),
+export const fireflySyncLogs = pgTable('firefly_sync_logs', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  connectionId: varchar('connection_id').notNull(),
+  userId: varchar('user_id').notNull(),
+  environment: text('environment').notNull().default('demo'),
+  syncType: text('sync_type').notNull(),
+  sourceType: text('source_type').notNull(),
+  sourceId: varchar('source_id').notNull(),
+  fireflyTransactionId: text('firefly_transaction_id'),
+  status: text('status').notNull().default('pending'),
+  errorMessage: text('error_message'),
+  syncedAt: timestamp('synced_at').notNull().defaultNow(),
 });
 
 export const insertFireflySyncLogSchema = createInsertSchema(fireflySyncLogs).omit({
@@ -1789,17 +1982,19 @@ export type FireflySyncLog = typeof fireflySyncLogs.$inferSelect;
 // SCHEDULED JOB RUNS - For live-mode idempotency and observability
 // ============================================
 
-export const scheduledJobRuns = pgTable("scheduled_job_runs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  jobName: text("job_name").notNull(),
-  idempotencyKey: text("idempotency_key").notNull().unique(),
-  status: text("status").notNull().default("pending"), // success, failure, skipped
-  startedAt: timestamp("started_at").notNull().defaultNow(),
-  completedAt: timestamp("completed_at"),
-  durationMs: integer("duration_ms"),
-  result: text("result"), // JSON string of job result
-  errorMessage: text("error_message"),
-  appMode: text("app_mode").notNull().default("live"),
+export const scheduledJobRuns = pgTable('scheduled_job_runs', {
+  id: varchar('id')
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  jobName: text('job_name').notNull(),
+  idempotencyKey: text('idempotency_key').notNull().unique(),
+  status: text('status').notNull().default('pending'), // success, failure, skipped
+  startedAt: timestamp('started_at').notNull().defaultNow(),
+  completedAt: timestamp('completed_at'),
+  durationMs: integer('duration_ms'),
+  result: text('result'), // JSON string of job result
+  errorMessage: text('error_message'),
+  appMode: text('app_mode').notNull().default('live'),
 });
 
 export const insertScheduledJobRunSchema = createInsertSchema(scheduledJobRuns).omit({
@@ -1812,16 +2007,16 @@ export type ScheduledJobRun = typeof scheduledJobRuns.$inferSelect;
 // DATA GOVERNANCE - RE-EXPORTS
 // ============================================
 
-export * from "./governance-schema";
+export * from './governance-schema';
 
 // ============================================
 // WORKSPACE - RE-EXPORTS
 // ============================================
 
-export * from "./workspace-schema";
+export * from './workspace-schema';
 
 // ============================================
 // PLATFORM ADMIN - RE-EXPORTS
 // ============================================
 
-export * from "./platform-admin-schema";
+export * from './platform-admin-schema';

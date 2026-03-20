@@ -21,7 +21,11 @@ interface UploadState {
   error: string | null;
 
   // Actions
-  uploadFile: (file: File, documentType?: string, metadata?: Record<string, any>) => Promise<string>;
+  uploadFile: (
+    file: File,
+    documentType?: string,
+    metadata?: Record<string, any>
+  ) => Promise<string>;
   removeUpload: (id: string) => void;
   fetchStorageUsage: () => Promise<void>;
   clearError: () => void;
@@ -128,9 +132,7 @@ export const useUploadStore = create<UploadState>((set, get) => ({
     } catch (error: any) {
       set((state) => ({
         uploads: state.uploads.map((upload) =>
-          upload.id === uploadId
-            ? { ...upload, status: 'failed', error: error.message }
-            : upload
+          upload.id === uploadId ? { ...upload, status: 'failed', error: error.message } : upload
         ),
         error: error.message,
       }));

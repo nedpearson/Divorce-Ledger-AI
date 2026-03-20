@@ -103,7 +103,7 @@ describe('Concurrency Management', () => {
 
   it('should cleanup old processings', async () => {
     registerProcessing('file1');
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 20));
     const cleaned = cleanupStaleProcessings(10);
     expect(cleaned).toBe(1);
     expect(getActiveProcessingCount()).toBe(0);
@@ -170,11 +170,9 @@ describe('Retry Policy', () => {
       return 'done';
     };
 
-    await withRetry(
-      operation,
-      { ...DEFAULT_RETRY_POLICY, baseDelayMs: 10 },
-      (attempt) => { retryAttempts.push(attempt); }
-    );
+    await withRetry(operation, { ...DEFAULT_RETRY_POLICY, baseDelayMs: 10 }, (attempt) => {
+      retryAttempts.push(attempt);
+    });
 
     expect(retryAttempts).toEqual([1, 2]);
   });
@@ -184,7 +182,7 @@ describe('Default Limits', () => {
   it('should have reasonable default values', () => {
     expect(DEFAULT_LIMITS.maxFileSizeMB).toBe(25);
     expect(DEFAULT_LIMITS.maxDailyProcessingsPerUser).toBe(50);
-    expect(DEFAULT_LIMITS.maxDailyCostPerUser).toBe(1.00);
+    expect(DEFAULT_LIMITS.maxDailyCostPerUser).toBe(1.0);
     expect(DEFAULT_LIMITS.maxConcurrentProcessings).toBe(3);
     expect(DEFAULT_LIMITS.maxRetries).toBe(3);
   });

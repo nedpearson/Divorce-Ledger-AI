@@ -2,8 +2,8 @@
 import sgMail from '@sendgrid/mail';
 import { getBaseUrl } from './lib/baseUrl';
 
-const ADMIN_EMAIL = "nedpearson@gmail.com";
-const DEFAULT_FROM_EMAIL = "noreply@divorceledger.live";
+const ADMIN_EMAIL = 'nedpearson@gmail.com';
+const DEFAULT_FROM_EMAIL = 'noreply@divorceledger.live';
 
 /**
  * Get SendGrid credentials from environment
@@ -32,16 +32,19 @@ async function getCredentials() {
         'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=sendgrid',
         {
           headers: {
-            'Accept': 'application/json',
-            'X_REPLIT_TOKEN': xReplitToken
-          }
+            Accept: 'application/json',
+            X_REPLIT_TOKEN: xReplitToken,
+          },
         }
       );
       const data = await response.json();
       const connectionSettings = data.items?.[0];
 
       if (connectionSettings?.settings?.api_key && connectionSettings?.settings?.from_email) {
-        return { apiKey: connectionSettings.settings.api_key, email: connectionSettings.settings.from_email };
+        return {
+          apiKey: connectionSettings.settings.api_key,
+          email: connectionSettings.settings.from_email,
+        };
       }
     } catch (error) {
       console.warn('[Email] Replit connector failed:', error);
@@ -56,7 +59,7 @@ async function getUncachableSendGridClient() {
   sgMail.setApiKey(apiKey);
   return {
     client: sgMail,
-    fromEmail: email
+    fromEmail: email,
   };
 }
 
@@ -85,7 +88,7 @@ export async function sendWelcomeEmail(userEmail: string, fullName: string): Pro
             &copy; Divorce Ledger - Forensic Financial & Legal Case Management
           </p>
         </div>
-      `
+      `,
     };
 
     await client.send(msg);
@@ -96,7 +99,11 @@ export async function sendWelcomeEmail(userEmail: string, fullName: string): Pro
   }
 }
 
-export async function sendPasswordResetEmail(userEmail: string, fullName: string, resetToken: string): Promise<void> {
+export async function sendPasswordResetEmail(
+  userEmail: string,
+  fullName: string,
+  resetToken: string
+): Promise<void> {
   try {
     const { client, fromEmail } = await getUncachableSendGridClient();
 
@@ -124,7 +131,7 @@ export async function sendPasswordResetEmail(userEmail: string, fullName: string
             &copy; Divorce Ledger - Forensic Financial & Legal Case Management
           </p>
         </div>
-      `
+      `,
     };
 
     await client.send(msg);
@@ -168,7 +175,7 @@ export async function sendWorkspaceInvitationEmail(
             &copy; Divorce Ledger - Forensic Financial & Legal Case Management
           </p>
         </div>
-      `
+      `,
     };
 
     await client.send(msg);
@@ -200,7 +207,7 @@ export async function sendWorkspaceNotificationEmail(
             &copy; Divorce Ledger - Forensic Financial & Legal Case Management
           </p>
         </div>
-      `
+      `,
     };
 
     await client.send(msg);
@@ -209,4 +216,3 @@ export async function sendWorkspaceNotificationEmail(
     console.error('Failed to send workspace notification email:', error);
   }
 }
-

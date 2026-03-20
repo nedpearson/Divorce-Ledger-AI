@@ -94,8 +94,8 @@ export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
                 storagePercentage > 90
                   ? 'bg-red-600'
                   : storagePercentage > 75
-                  ? 'bg-yellow-600'
-                  : 'bg-primary-600'
+                    ? 'bg-yellow-600'
+                    : 'bg-primary-600'
               }`}
               style={{ width: `${Math.min(storagePercentage, 100)}%` }}
             />
@@ -122,9 +122,7 @@ export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
                   </div>
                 )}
                 <div className="ml-3 flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {upload.filename}
-                  </p>
+                  <p className="text-sm font-medium text-gray-900 truncate">{upload.filename}</p>
                   <p className="text-xs text-gray-500 capitalize">{upload.status}</p>
                 </div>
               </div>

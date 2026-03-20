@@ -39,7 +39,9 @@ export class IntegrationService {
       .single();
 
     if (existing) {
-      throw new ConflictError(`Integration of type '${integration_type}' already exists for this user`);
+      throw new ConflictError(
+        `Integration of type '${integration_type}' already exists for this user`
+      );
     }
 
     // Create integration
@@ -61,7 +63,10 @@ export class IntegrationService {
       throw new ValidationError('Failed to create integration', { originalError: error });
     }
 
-    logger.info({ userId, integrationId: data.id, integrationType: integration_type }, 'Integration created');
+    logger.info(
+      { userId, integrationId: data.id, integrationType: integration_type },
+      'Integration created'
+    );
 
     return data;
   }
@@ -171,7 +176,10 @@ export class IntegrationService {
   /**
    * Test integration connection
    */
-  async testIntegration(userId: string, integrationId: string): Promise<{
+  async testIntegration(
+    userId: string,
+    integrationId: string
+  ): Promise<{
     success: boolean;
     message: string;
   }> {

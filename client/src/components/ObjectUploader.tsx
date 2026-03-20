@@ -1,12 +1,12 @@
-import { useState } from "react";
-import type { ReactNode } from "react";
-import Uppy from "@uppy/core";
-import type { UppyFile, UploadResult } from "@uppy/core";
-import DashboardModal from "@uppy/react/dashboard-modal";
-import "@uppy/core/css/style.min.css";
-import "@uppy/dashboard/css/style.min.css";
-import AwsS3 from "@uppy/aws-s3";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+import Uppy from '@uppy/core';
+import type { UppyFile, UploadResult } from '@uppy/core';
+import DashboardModal from '@uppy/react/dashboard-modal';
+import '@uppy/core/css/style.min.css';
+import '@uppy/dashboard/css/style.min.css';
+import AwsS3 from '@uppy/aws-s3';
+import { Button } from '@/components/ui/button';
 
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
@@ -19,13 +19,11 @@ interface ObjectUploaderProps {
   onGetUploadParameters: (
     file: UppyFile<Record<string, unknown>, Record<string, unknown>>
   ) => Promise<{
-    method: "PUT";
+    method: 'PUT';
     url: string;
     headers?: Record<string, string>;
   }>;
-  onComplete?: (
-    result: UploadResult<Record<string, unknown>, Record<string, unknown>>
-  ) => void;
+  onComplete?: (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => void;
   buttonClassName?: string;
   children: ReactNode;
 }
@@ -80,7 +78,7 @@ export function ObjectUploader({
         shouldUseMultipart: false,
         getUploadParameters: onGetUploadParameters,
       })
-      .on("complete", (result) => {
+      .on('complete', (result) => {
         onComplete?.(result);
       })
   );
@@ -100,4 +98,3 @@ export function ObjectUploader({
     </div>
   );
 }
-

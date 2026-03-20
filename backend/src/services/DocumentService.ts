@@ -97,7 +97,10 @@ export class DocumentService {
   /**
    * List documents for a user
    */
-  async listDocuments(userId: string, query: ListDocumentsQuery): Promise<{
+  async listDocuments(
+    userId: string,
+    query: ListDocumentsQuery
+  ): Promise<{
     documents: any[];
     total: number;
     page: number;
@@ -297,7 +300,10 @@ export class DocumentService {
       throw new ValidationError('Failed to create document version', { originalError: error });
     }
 
-    logger.info({ userId, documentId, versionNumber: newVersionNumber }, 'Document version created');
+    logger.info(
+      { userId, documentId, versionNumber: newVersionNumber },
+      'Document version created'
+    );
 
     return data;
   }

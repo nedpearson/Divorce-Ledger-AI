@@ -36,10 +36,10 @@ export const EventTopics = {
   CASE_STATUS_CHANGED: 'case.status_changed',
   PDF_EXPORTED: 'pdf.exported',
   AI_CLASSIFICATION: 'ai.classification',
-  VOICE_TRANSCRIPTION: 'voice.transcription'
+  VOICE_TRANSCRIPTION: 'voice.transcription',
 } as const;
 
-export type EventTopic = typeof EventTopics[keyof typeof EventTopics];
+export type EventTopic = (typeof EventTopics)[keyof typeof EventTopics];
 
 class EventProducer {
   async publish(
@@ -49,7 +49,7 @@ class EventProducer {
     options: EventOptions = {}
   ): Promise<PublishedEvent> {
     const correlationId = options.correlationId || this.generateCorrelationId();
-    
+
     const result = await safeQuery(
       getPool(),
       'events.publishEvent',
@@ -61,7 +61,7 @@ class EventProducer {
         options.partitionKey || 'default',
         correlationId,
         options.causationId || null,
-        JSON.stringify(options.metadata || {})
+        JSON.stringify(options.metadata || {}),
       ]
     );
 
@@ -78,7 +78,7 @@ class EventProducer {
       eventId,
       eventType,
       topic,
-      sequenceNumber: eventResult.rows[0]?.sequence_number || 0
+      sequenceNumber: eventResult.rows[0]?.sequence_number || 0,
     };
   }
 
@@ -89,7 +89,7 @@ class EventProducer {
     options: EventOptions = {}
   ): Promise<number> {
     const correlationId = options.correlationId || this.generateCorrelationId();
-    
+
     const result = await safeQuery(
       getPool(),
       'events.publishToOutbox',
@@ -103,7 +103,7 @@ class EventProducer {
         JSON.stringify(payload),
         JSON.stringify(options.metadata || {}),
         correlationId,
-        options.causationId || null
+        options.causationId || null,
       ]
     );
 
@@ -118,7 +118,7 @@ class EventProducer {
     options: EventOptions = {}
   ): Promise<number> {
     const correlationId = options.correlationId || this.generateCorrelationId();
-    
+
     const result = await safeQuery(
       client,
       'events.publishWithTransaction',
@@ -132,7 +132,7 @@ class EventProducer {
         JSON.stringify(payload),
         JSON.stringify(options.metadata || {}),
         correlationId,
-        options.causationId || null
+        options.causationId || null,
       ]
     );
 
@@ -166,7 +166,7 @@ class EventProducer {
         changedAt: new Date().toISOString(),
         isUpgrade: this.isUpgrade(previousTier, newTier),
         isDowngrade: this.isDowngrade(previousTier, newTier),
-        mrrChange: this.calculateMrrChange(previousTier, newTier)
+        mrrChange: this.calculateMrrChange(previousTier, newTier),
       },
       { ...options, partitionKey: userId }
     );
@@ -180,10 +180,9 @@ class EventProducer {
     status: 'succeeded' | 'failed',
     options: EventOptions = {}
   ): Promise<PublishedEvent> {
-    const topic = status === 'succeeded' 
-      ? EventTopics.BILLING_PAYMENT 
-      : EventTopics.BILLING_PAYMENT_FAILED;
-    
+    const topic =
+      status === 'succeeded' ? EventTopics.BILLING_PAYMENT : EventTopics.BILLING_PAYMENT_FAILED;
+
     return this.publish(
       status === 'succeeded' ? 'payment_succeeded' : 'payment_failed',
       topic,
@@ -193,7 +192,7 @@ class EventProducer {
         currency,
         stripePaymentIntentId,
         status,
-        processedAt: new Date().toISOString()
+        processedAt: new Date().toISOString(),
       },
       { ...options, partitionKey: userId }
     );
@@ -214,7 +213,7 @@ class EventProducer {
         violationId,
         category,
         severity,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       },
       { ...options, partitionKey: userId }
     );
@@ -237,7 +236,7 @@ class EventProducer {
         evidenceId,
         fileType,
         fileSize,
-        uploadedAt: new Date().toISOString()
+        uploadedAt: new Date().toISOString(),
       },
       { ...options, partitionKey: userId }
     );
@@ -258,7 +257,7 @@ class EventProducer {
         violationId,
         classification,
         confidence,
-        processedAt: new Date().toISOString()
+        processedAt: new Date().toISOString(),
       },
       { ...options, partitionKey: userId }
     );
@@ -270,11 +269,11 @@ class EventProducer {
 
   private getTierOrder(tier: string): number {
     const order: Record<string, number> = {
-      'free': 0,
-      'individual': 1,
-      'pro': 2,
-      'team': 3,
-      'enterprise': 4
+      free: 0,
+      individual: 1,
+      pro: 2,
+      team: 3,
+      enterprise: 4,
     };
     return order[tier] ?? 0;
   }
@@ -289,11 +288,11 @@ class EventProducer {
 
   private calculateMrrChange(from: string, to: string): number {
     const prices: Record<string, number> = {
-      'free': 0,
-      'individual': 1200,
-      'pro': 4900,
-      'team': 14900,
-      'enterprise': 39900
+      free: 0,
+      individual: 1200,
+      pro: 4900,
+      team: 14900,
+      enterprise: 39900,
     };
     return (prices[to] ?? 0) - (prices[from] ?? 0);
   }

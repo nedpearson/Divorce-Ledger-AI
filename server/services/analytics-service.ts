@@ -1,5 +1,13 @@
-import { db } from './db';
-import { users, violations, evidenceFiles, billingRecords, cases, type User, type BillingRecord } from '@shared/schema';
+import { db } from '../db';
+import {
+  users,
+  violations,
+  evidenceFiles,
+  billingRecords,
+  cases,
+  type User,
+  type BillingRecord,
+} from '@shared/schema';
 import { sql, gte, desc } from 'drizzle-orm';
 
 export interface AnalyticsMetrics {
@@ -95,17 +103,16 @@ export class AnalyticsService {
       // Calculate churn rate: users who downgraded to free or have no activity in 30 days
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const paidUsers = allUsers.filter((u: User) => 
-        u.subscriptionTier && u.subscriptionTier !== 'free'
+
+      const paidUsers = allUsers.filter(
+        (u: User) => u.subscriptionTier && u.subscriptionTier !== 'free'
       );
       const churnedUsers = paidUsers.filter((u: User) => {
         // Consider churned if downgraded to free (would need subscription history for full tracking)
         return false; // Placeholder - in production, track subscription cancellations
       });
-      const churnRatePercent = paidUsers.length > 0 
-        ? Math.round((churnedUsers.length / paidUsers.length) * 1000) / 10 
-        : 0;
+      const churnRatePercent =
+        paidUsers.length > 0 ? Math.round((churnedUsers.length / paidUsers.length) * 1000) / 10 : 0;
 
       return {
         totalUsers,
@@ -133,7 +140,9 @@ export class AnalyticsService {
       const tiers = ['free', 'individual', 'pro', 'team', 'enterprise'];
 
       for (const tier of tiers) {
-        const tierCount = allUsers.filter((u: User) => (u.subscriptionTier || 'free') === tier).length;
+        const tierCount = allUsers.filter(
+          (u: User) => (u.subscriptionTier || 'free') === tier
+        ).length;
         distribution[tier] = {
           count: tierCount,
           percentage: total > 0 ? Math.round((tierCount / total) * 100) : 0,
@@ -251,7 +260,9 @@ export class AnalyticsService {
     }
   }
 
-  async getUserGrowth(days: number = 30): Promise<Array<{ date: string; newUsers: number; totalUsers: number }>> {
+  async getUserGrowth(
+    days: number = 30
+  ): Promise<Array<{ date: string; newUsers: number; totalUsers: number }>> {
     try {
       const allUsers = await db.select().from(users);
       const totalUsers = allUsers.length;
@@ -274,12 +285,14 @@ export class AnalyticsService {
     }
   }
 
-  async getTopUsers(limit: number = 10): Promise<Array<{
-    userId: string;
-    tier: string;
-    violationsCount: number;
-    casesCount: number;
-  }>> {
+  async getTopUsers(limit: number = 10): Promise<
+    Array<{
+      userId: string;
+      tier: string;
+      violationsCount: number;
+      casesCount: number;
+    }>
+  > {
     try {
       const allUsers = await db.select().from(users).limit(limit);
 
@@ -302,17 +315,17 @@ export class AnalyticsService {
   async getCohortAnalysis(months: number = 12): Promise<UserCohortMetrics[]> {
     try {
       const allUsers = await db.select().from(users);
-      
+
       const cohortMap: Record<string, { users: User[]; activeCount: number }> = {};
-      
+
       for (const user of allUsers) {
         const createdAt = user.createdAt || new Date();
         const cohortMonth = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
-        
+
         if (!cohortMap[cohortMonth]) {
           cohortMap[cohortMonth] = { users: [], activeCount: 0 };
         }
-        
+
         cohortMap[cohortMonth].users.push(user);
         cohortMap[cohortMonth].activeCount += 1;
       }
@@ -320,17 +333,23 @@ export class AnalyticsService {
       const cohorts: UserCohortMetrics[] = Object.entries(cohortMap)
         .map(([month, data]) => {
           const tierValues: Record<string, number> = {
-            free: 0, individual: 1, pro: 2, team: 3, enterprise: 4
+            free: 0,
+            individual: 1,
+            pro: 2,
+            team: 3,
+            enterprise: 4,
           };
-          
-          const avgTierValue = data.users.reduce((sum, u) => {
-            return sum + (tierValues[u.subscriptionTier || 'free'] || 0);
-          }, 0) / data.users.length;
-          
-          const avgViolations = data.users.reduce((sum, u) => {
-            return sum + (u.violationsCountThisMonth || 0);
-          }, 0) / data.users.length;
-          
+
+          const avgTierValue =
+            data.users.reduce((sum, u) => {
+              return sum + (tierValues[u.subscriptionTier || 'free'] || 0);
+            }, 0) / data.users.length;
+
+          const avgViolations =
+            data.users.reduce((sum, u) => {
+              return sum + (u.violationsCountThisMonth || 0);
+            }, 0) / data.users.length;
+
           return {
             cohortMonth: month,
             usersInCohort: data.users.length,
@@ -358,28 +377,31 @@ export class AnalyticsService {
     return 'free';
   }
 
-  async getAtRiskUsers(): Promise<Array<{
-    userId: string;
-    email: string;
-    tier: string;
-    violationsUsed: number;
-    violationsLimit: number;
-    usagePercent: number;
-    casesUsed: number;
-    casesLimit: number;
-    storageUsedMB: number;
-    storageLimitMB: number;
-    riskLevel: 'high' | 'medium' | 'low';
-    suggestedUpgrade: string | null;
-  }>> {
+  async getAtRiskUsers(): Promise<
+    Array<{
+      userId: string;
+      email: string;
+      tier: string;
+      violationsUsed: number;
+      violationsLimit: number;
+      usagePercent: number;
+      casesUsed: number;
+      casesLimit: number;
+      storageUsedMB: number;
+      storageLimitMB: number;
+      riskLevel: 'high' | 'medium' | 'low';
+      suggestedUpgrade: string | null;
+    }>
+  > {
     try {
-      const TIER_LIMITS: Record<string, { violations: number; cases: number; storageMB: number }> = {
-        free: { violations: 10, cases: 1, storageMB: 100 },
-        individual: { violations: 20, cases: 1, storageMB: 500 },
-        pro: { violations: 50, cases: 999999, storageMB: 2048 },
-        team: { violations: 999999, cases: 999999, storageMB: 10240 },
-        enterprise: { violations: 999999, cases: 999999, storageMB: 999999 },
-      };
+      const TIER_LIMITS: Record<string, { violations: number; cases: number; storageMB: number }> =
+        {
+          free: { violations: 10, cases: 1, storageMB: 100 },
+          individual: { violations: 20, cases: 1, storageMB: 500 },
+          pro: { violations: 50, cases: 999999, storageMB: 2048 },
+          team: { violations: 999999, cases: 999999, storageMB: 10240 },
+          enterprise: { violations: 999999, cases: 999999, storageMB: 999999 },
+        };
 
       const UPGRADE_PATH: Record<string, string | null> = {
         free: 'individual',
@@ -395,23 +417,24 @@ export class AnalyticsService {
       for (const user of allUsers) {
         const tier = user.subscriptionTier || 'free';
         const limits = TIER_LIMITS[tier] || TIER_LIMITS.free;
-        
+
         const violationsUsed = user.violationsCountThisMonth || 0;
         const casesUsed = user.casesCount || 0;
-        
+
         const storageResult = await db
           .select({
             storageMB: sql<number>`COALESCE(SUM(file_size) / (1024.0 * 1024.0), 0)`,
           })
           .from(evidenceFiles)
           .where(sql`user_id = ${user.id}`);
-        
+
         const storageUsedMB = Number(storageResult[0]?.storageMB) || 0;
 
-        const violationPercent = limits.violations > 0 ? (violationsUsed / limits.violations) * 100 : 0;
+        const violationPercent =
+          limits.violations > 0 ? (violationsUsed / limits.violations) * 100 : 0;
         const casePercent = limits.cases > 0 ? (casesUsed / limits.cases) * 100 : 0;
         const storagePercent = limits.storageMB > 0 ? (storageUsedMB / limits.storageMB) * 100 : 0;
-        
+
         const maxUsagePercent = Math.max(violationPercent, casePercent, storagePercent);
 
         let riskLevel: 'high' | 'medium' | 'low' = 'low';

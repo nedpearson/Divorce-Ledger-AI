@@ -1,37 +1,37 @@
-import { useState } from "react";
-import { Link } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Mail } from "lucide-react";
+import { useState } from 'react';
+import { Link } from 'wouter';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, ArrowLeft, Mail } from 'lucide-react';
 
 export default function ForgotPassword() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       toast({
-        title: "Error",
-        description: "Please enter your email address",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Please enter your email address',
+        variant: 'destructive',
       });
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-      const response = await fetch("/api/auth/forgot-password", {
-        method: "POST",
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email }),
       });
@@ -39,19 +39,20 @@ export default function ForgotPassword() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to send reset email");
+        throw new Error(data.error || 'Failed to send reset email');
       }
 
       setIsSubmitted(true);
       toast({
-        title: "Check your email",
-        description: "If an account exists with this email, you will receive a password reset link.",
+        title: 'Check your email',
+        description:
+          'If an account exists with this email, you will receive a password reset link.',
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send reset email",
-        variant: "destructive",
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to send reset email',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -68,7 +69,8 @@ export default function ForgotPassword() {
             </div>
             <CardTitle data-testid="text-email-sent-title">Check Your Email</CardTitle>
             <CardDescription>
-              If an account exists with <strong>{email}</strong>, you will receive a password reset link within a few minutes.
+              If an account exists with <strong>{email}</strong>, you will receive a password reset
+              link within a few minutes.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -119,7 +121,7 @@ export default function ForgotPassword() {
                 data-testid="input-email"
               />
             </div>
-            
+
             <Button
               type="submit"
               className="w-full"
@@ -132,11 +134,11 @@ export default function ForgotPassword() {
                   Sending...
                 </>
               ) : (
-                "Send Reset Link"
+                'Send Reset Link'
               )}
             </Button>
           </form>
-          
+
           <div className="mt-4 text-center">
             <Link href="/">
               <Button variant="ghost" size="sm" data-testid="link-back-to-login-form">

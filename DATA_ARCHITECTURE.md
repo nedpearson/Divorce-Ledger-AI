@@ -1,5 +1,7 @@
 # Divorce Ledger Platform
+
 ## Data Architecture & Semi-Structured Data Design
+
 ### Version: 1.0.0 | Status: PRODUCTION READY
 
 ---
@@ -7,12 +9,14 @@
 ## EXECUTIVE SUMMARY
 
 Your platform successfully implements a **hybrid semi-structured data architecture** combining:
+
 - **Structured data** (PostgreSQL relational tables)
 - **Semi-structured data** (JSONB fields for flexible attributes)
 - **Time-series data** (usage metrics, audit logs)
 - **Event-driven data** (billing, migrations, violations)
 
 **Current State:**
+
 - 13ms database response times
 - 4/4 core tables operational
 - 2 pending billing records in pipeline
@@ -110,35 +114,38 @@ Your platform successfully implements a **hybrid semi-structured data architectu
 
 ## TIER CONFIGURATION
 
-| Tier | Price | Cases | Violations/mo | File Size | Storage |
-|------|-------|-------|---------------|-----------|---------|
-| Free | $0 | 1 | 10 | 10MB | 100MB |
-| Individual | $12/mo | 1 | 20 | 50MB | 500MB |
-| Pro | $49/mo | Unlimited | 50 | 100MB | 2GB |
-| Team | $149/mo | Unlimited | Unlimited | 250MB | 10GB |
-| Enterprise | $399/mo | Unlimited | Unlimited | 500MB | Unlimited |
+| Tier       | Price   | Cases     | Violations/mo | File Size | Storage   |
+| ---------- | ------- | --------- | ------------- | --------- | --------- |
+| Free       | $0      | 1         | 10            | 10MB      | 100MB     |
+| Individual | $12/mo  | 1         | 20            | 50MB      | 500MB     |
+| Pro        | $49/mo  | Unlimited | 50            | 100MB     | 2GB       |
+| Team       | $149/mo | Unlimited | Unlimited     | 250MB     | 10GB      |
+| Enterprise | $399/mo | Unlimited | Unlimited     | 500MB     | Unlimited |
 
 ---
 
 ## QUERY PATTERNS
 
 ### Quota Checks
+
 ```sql
 SELECT violations_count_this_month FROM users WHERE id = ?;
 ```
 
 ### Usage Trends
+
 ```sql
-SELECT DATE(created_at), COUNT(*) 
-FROM violations 
+SELECT DATE(created_at), COUNT(*)
+FROM violations
 WHERE created_at > NOW() - INTERVAL '30 days'
 GROUP BY DATE(created_at);
 ```
 
 ### Billing Status
+
 ```sql
-SELECT * FROM billing_records 
-WHERE status = 'pending' 
+SELECT * FROM billing_records
+WHERE status = 'pending'
 ORDER BY period_start;
 ```
 
@@ -223,7 +230,7 @@ AND grace_period_end <= NOW();
 INSERT INTO billing_records (
   user_id, period_start, period_end, amount_cents, status, payment_data
 )
-SELECT 
+SELECT
   u.id,
   DATE_TRUNC('month', NOW() - INTERVAL '1 month'),
   DATE_TRUNC('month', NOW()) - INTERVAL '1 day',
@@ -250,7 +257,7 @@ WHERE status = 'active';
 
 -- Log the reset in audit table
 INSERT INTO usage_audit (user_id, operation, recorded_at, audit_data)
-SELECT 
+SELECT
   id, 'quota_reset', NOW(),
   jsonb_build_object(
     'previous_count', violations_count_this_month,
@@ -265,8 +272,9 @@ FROM users WHERE status = 'active';
 ## ANALYTICS DATA QUERIES
 
 ### Platform Overview
+
 ```sql
-SELECT 
+SELECT
   COUNT(*) as total_users,
   COUNT(CASE WHEN status = 'active' THEN 1 END) as active_users,
   COALESCE(SUM(violations_count_this_month), 0) as total_violations_month
@@ -274,8 +282,9 @@ FROM users;
 ```
 
 ### Revenue by Tier
+
 ```sql
-SELECT 
+SELECT
   u.tier,
   COUNT(DISTINCT u.id) as user_count,
   ROUND(SUM(CASE WHEN b.status = 'charged' THEN b.amount_cents END) / 100.0, 2) as revenue_usd
@@ -286,8 +295,9 @@ ORDER BY revenue_usd DESC;
 ```
 
 ### At-Risk Users
+
 ```sql
-SELECT 
+SELECT
   u.id, u.email, u.tier, u.violations_count_this_month,
   ROUND(100.0 * u.violations_count_this_month / tier_limit, 1) as percent_of_limit
 FROM users u
@@ -303,41 +313,40 @@ ORDER BY percent_of_limit DESC;
 
 ```typescript
 const userMetadata = {
-  preferred_language: "en-US",
-  timezone: "America/New_York",
-  
+  preferred_language: 'en-US',
+  timezone: 'America/New_York',
+
   feature_flags: {
     beta_ai_classification: true,
     advanced_analytics: true,
-    api_access: false
+    api_access: false,
   },
-  
+
   notification_preferences: {
     email_on_violation: true,
     email_on_billing: true,
-    sms_alerts: false
+    sms_alerts: false,
   },
-  
+
   integration_settings: {
     quickbooks_connected: true,
-    zapier_token_hash: "abc123...",
-    custom_webhooks: [
-      { url: "https://...", events: ["violation", "billing"] }
-    ]
+    zapier_token_hash: 'abc123...',
+    custom_webhooks: [{ url: 'https://...', events: ['violation', 'billing'] }],
   },
-  
+
   migration_history: [
     {
-      from_tier: "individual",
-      to_tier: "pro",
-      date: "2025-12-15T10:30:00Z",
-      reason: "user_upgrade"
-    }
-  ]
+      from_tier: 'individual',
+      to_tier: 'pro',
+      date: '2025-12-15T10:30:00Z',
+      reason: 'user_upgrade',
+    },
+  ],
 };
 ```
 
 ### Benefits:
+
 - Flexible schema evolution without migrations
 - Store user preferences without table changes
 - Enable feature flags per user
@@ -401,12 +410,12 @@ Success?
 
 ### Billing Status Values
 
-| Status | Description |
-|--------|-------------|
-| pending | Record created, payment not yet attempted |
-| charged | Payment successful |
-| failed | Payment failed, requires retry or manual review |
-| refunded | Payment was refunded |
+| Status   | Description                                     |
+| -------- | ----------------------------------------------- |
+| pending  | Record created, payment not yet attempted       |
+| charged  | Payment successful                              |
+| failed   | Payment failed, requires retry or manual review |
+| refunded | Payment was refunded                            |
 
 ---
 
@@ -431,7 +440,7 @@ const TIER_CONFIG: Record<string, UserTier> = {
     violation_quota: 10,
     voice_media: 'limited',
     ai_classification: 'basic',
-    features: ['document_upload', 'basic_analysis']
+    features: ['document_upload', 'basic_analysis'],
   },
   individual: {
     tier: 'individual',
@@ -439,7 +448,7 @@ const TIER_CONFIG: Record<string, UserTier> = {
     violation_quota: 20,
     voice_media: 'unlimited',
     ai_classification: 'standard',
-    features: ['document_upload', 'voice_media', 'standard_analysis']
+    features: ['document_upload', 'voice_media', 'standard_analysis'],
   },
   pro: {
     tier: 'pro',
@@ -447,8 +456,14 @@ const TIER_CONFIG: Record<string, UserTier> = {
     violation_quota: 50,
     voice_media: 'unlimited',
     ai_classification: 'advanced',
-    features: ['document_upload', 'voice_media', 'advanced_analysis', 
-               'api_access', 'webhooks', 'priority_support']
+    features: [
+      'document_upload',
+      'voice_media',
+      'advanced_analysis',
+      'api_access',
+      'webhooks',
+      'priority_support',
+    ],
   },
   team: {
     tier: 'team',
@@ -456,8 +471,7 @@ const TIER_CONFIG: Record<string, UserTier> = {
     violation_quota: -1, // unlimited
     voice_media: 'unlimited',
     ai_classification: 'advanced',
-    features: ['everything_in_pro', 'team_management', 
-               'advanced_analytics', 'sso']
+    features: ['everything_in_pro', 'team_management', 'advanced_analytics', 'sso'],
   },
   enterprise: {
     tier: 'enterprise',
@@ -465,24 +479,23 @@ const TIER_CONFIG: Record<string, UserTier> = {
     violation_quota: -1, // unlimited
     voice_media: 'unlimited',
     ai_classification: 'advanced',
-    features: ['everything', 'dedicated_support', 'sla', 
-               'custom_integrations']
-  }
+    features: ['everything', 'dedicated_support', 'sla', 'custom_integrations'],
+  },
 };
 ```
 
 ### Tier Comparison Table
 
-| Feature | Free | Individual | Pro | Team | Enterprise |
-|---------|------|------------|-----|------|------------|
-| Price | $0 | $12/mo | $49/mo | $149/mo | $399/mo |
-| Violations/mo | 10 | 20 | 50 | Unlimited | Unlimited |
-| Cases | 1 | 1 | Unlimited | Unlimited | Unlimited |
-| Voice/Media | Limited | Unlimited | Unlimited | Unlimited | Unlimited |
-| AI Classification | Basic | Standard | Advanced | Advanced | Custom |
-| Storage | 100MB | 500MB | 2GB | 10GB | Unlimited |
-| PDF Watermark | Yes | No | No | No | No |
-| Priority Support | No | No | Yes | Yes | Yes |
+| Feature           | Free    | Individual | Pro       | Team      | Enterprise |
+| ----------------- | ------- | ---------- | --------- | --------- | ---------- |
+| Price             | $0      | $12/mo     | $49/mo    | $149/mo   | $399/mo    |
+| Violations/mo     | 10      | 20         | 50        | Unlimited | Unlimited  |
+| Cases             | 1       | 1          | Unlimited | Unlimited | Unlimited  |
+| Voice/Media       | Limited | Unlimited  | Unlimited | Unlimited | Unlimited  |
+| AI Classification | Basic   | Standard   | Advanced  | Advanced  | Custom     |
+| Storage           | 100MB   | 500MB      | 2GB       | 10GB      | Unlimited  |
+| PDF Watermark     | Yes     | No         | No        | No        | No         |
+| Priority Support  | No      | No         | Yes       | Yes       | Yes        |
 
 ### Quota Enforcement Logic
 
@@ -490,7 +503,7 @@ const TIER_CONFIG: Record<string, UserTier> = {
 async function enforceQuota(req: Request, res: Response, next: NextFunction) {
   const user = await getUser(req.user.id);
   const tierConfig = TIER_CONFIG[user.tier];
-  
+
   // Check if user is at quota
   if (user.violations_count_this_month >= tierConfig.violation_quota) {
     return res.status(429).json({
@@ -498,10 +511,10 @@ async function enforceQuota(req: Request, res: Response, next: NextFunction) {
       current: user.violations_count_this_month,
       limit: tierConfig.violation_quota,
       reset_date: getNextMonthStart(),
-      suggestion: 'Upgrade to higher tier'
+      suggestion: 'Upgrade to higher tier',
     });
   }
-  
+
   // Proceed with request
   next();
 }
@@ -545,9 +558,9 @@ SELECT
   u.tier,
   COUNT(DISTINCT u.id) as total_users,
   ROUND(AVG(u.violations_count_this_month), 1) as avg_violations_per_user,
-  COUNT(DISTINCT CASE WHEN ua.recorded_at > NOW() - INTERVAL '7 days' 
+  COUNT(DISTINCT CASE WHEN ua.recorded_at > NOW() - INTERVAL '7 days'
         THEN u.id END) as active_last_7d,
-  ROUND(100.0 * COUNT(DISTINCT CASE WHEN ua.recorded_at > NOW() - INTERVAL '7 days' 
+  ROUND(100.0 * COUNT(DISTINCT CASE WHEN ua.recorded_at > NOW() - INTERVAL '7 days'
         THEN u.id END) / COUNT(DISTINCT u.id), 1) as engagement_rate_pct
 FROM users u
 LEFT JOIN usage_audit ua ON u.id = ua.user_id
@@ -622,15 +635,15 @@ done
 
 Configure these via Replit Secrets or secure environment management:
 
-| Variable | Description |
-|----------|-------------|
-| `QB_CLIENT_ID` | QuickBooks OAuth client ID |
-| `QB_CLIENT_SECRET` | QuickBooks OAuth client secret |
-| `QB_REALM_ID` | QuickBooks company/realm ID |
-| `QB_ADMIN_USER_ID` | Admin user ID for credentials storage |
-| `QB_SERVICE_ITEM_ID` | Default service item ID in QB |
-| `QB_EXPENSE_ACCOUNT_ID` | Default expense account ID |
-| `QB_SYNC_ENABLED` | Enable/disable sync (true/false) |
+| Variable                | Description                           |
+| ----------------------- | ------------------------------------- |
+| `QB_CLIENT_ID`          | QuickBooks OAuth client ID            |
+| `QB_CLIENT_SECRET`      | QuickBooks OAuth client secret        |
+| `QB_REALM_ID`           | QuickBooks company/realm ID           |
+| `QB_ADMIN_USER_ID`      | Admin user ID for credentials storage |
+| `QB_SERVICE_ITEM_ID`    | Default service item ID in QB         |
+| `QB_EXPENSE_ACCOUNT_ID` | Default expense account ID            |
+| `QB_SYNC_ENABLED`       | Enable/disable sync (true/false)      |
 
 ### Sync Configuration
 

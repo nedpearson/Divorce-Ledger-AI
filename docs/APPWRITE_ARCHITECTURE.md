@@ -5,6 +5,7 @@
 This document describes the complete Appwrite-first architecture for financial document processing in the Divorce Ledger application. Every document flows through Appwrite for OCR, extraction, categorization, and approval before touching financial tables.
 
 **Non-Negotiable Requirements:**
+
 1. Every document must go through Appwrite
 2. No document is finalized without user approval
 3. Categorization must be editable before posting
@@ -262,16 +263,16 @@ STAGE 9: FINANCIAL POSTING           ▼
 // XHR upload with REAL byte progress (not simulated)
 const xhr = new XMLHttpRequest();
 
-xhr.upload.addEventListener("progress", (event) => {
+xhr.upload.addEventListener('progress', (event) => {
   if (event.lengthComputable) {
     // REAL progress: actual bytes uploaded / total bytes
     const percentComplete = Math.round((event.loaded / event.total) * 100);
     setUploadProgress(percentComplete);
-    
+
     if (percentComplete < 100) {
-      setUploadPhase("uploading");  // Still uploading
+      setUploadPhase('uploading'); // Still uploading
     } else {
-      setUploadPhase("processing"); // Upload done, server processing
+      setUploadPhase('processing'); // Upload done, server processing
     }
   }
 });
@@ -283,13 +284,13 @@ xhr.upload.addEventListener("progress", (event) => {
 // Status-to-progress mapping
 
 const STATUS_PROGRESS: Record<string, number> = {
-  'uploaded':    10,   // File in storage
-  'queued':      20,   // In processing queue
-  'extracting':  40,   // PDF/image analysis
-  'analyzing':   70,   // AI extraction running
-  'suggested':   90,   // Ready for approval
-  'finalized':  100,   // Complete
-  'error':        0,   // Failed
+  uploaded: 10, // File in storage
+  queued: 20, // In processing queue
+  extracting: 40, // PDF/image analysis
+  analyzing: 70, // AI extraction running
+  suggested: 90, // Ready for approval
+  finalized: 100, // Complete
+  error: 0, // Failed
 };
 ```
 
@@ -301,7 +302,7 @@ const STATUS_PROGRESS: Record<string, number> = {
 export function useAppwriteRealtime(userId: string | null) {
   useEffect(() => {
     const channel = `databases.${DATABASE_ID}.collections.${COLLECTIONS.FILES}.documents`;
-    
+
     // Subscribe to file status changes via Appwrite Realtime
     const unsubscribe = client.subscribe(channel, (event) => {
       // Automatic UI refresh when status changes
@@ -342,7 +343,7 @@ export async function withRetry<T>(
   policy = DEFAULT_RETRY_POLICY
 ): Promise<T> {
   let lastError: Error | null = null;
-  
+
   for (let attempt = 0; attempt <= policy.maxRetries; attempt++) {
     try {
       return await operation();
@@ -370,22 +371,22 @@ export async function withRetry<T>(
 ```typescript
 // Extracted by Gemini Vision API
 interface ExtractedFields {
-  vendor_name: string | null;      // "Walmart", "Amazon", "Shell"
-  payee: string | null;            // Who received payment
-  payer: string | null;            // Who paid
+  vendor_name: string | null; // "Walmart", "Amazon", "Shell"
+  payee: string | null; // Who received payment
+  payer: string | null; // Who paid
   total_amount: { value: number; currency: string } | null;
   // ... other fields
 }
 
 // Vendor-to-category mapping (extensible)
 const VENDOR_CATEGORY_MAP: Record<string, string> = {
-  'walmart': 'Groceries',
-  'amazon': 'Shopping',
-  'shell': 'Transportation/Gas',
-  'starbucks': 'Dining/Coffee',
-  'comcast': 'Utilities/Internet',
+  walmart: 'Groceries',
+  amazon: 'Shopping',
+  shell: 'Transportation/Gas',
+  starbucks: 'Dining/Coffee',
+  comcast: 'Utilities/Internet',
   'pg&e': 'Utilities/Electric',
-  'kaiser': 'Medical/Insurance',
+  kaiser: 'Medical/Insurance',
 };
 ```
 
@@ -397,16 +398,16 @@ function classifyTransaction(extracted: ExtractedFields, docType: string) {
   if (docType === 'paystub') {
     return { isExpense: false, isIncome: true };
   }
-  
+
   if (docType === 'receipt' || docType === 'invoice') {
     return { isExpense: true, isIncome: false };
   }
-  
+
   // Check for refunds/credits (negative amounts)
   if (extracted.total_amount?.value < 0) {
     return { isExpense: false, isIncome: true };
   }
-  
+
   // Default to expense
   return { isExpense: true, isIncome: false };
 }
@@ -418,25 +419,25 @@ function classifyTransaction(extracted: ExtractedFields, docType: string) {
 // Categories with top 3 candidates
 interface CategoryOutput {
   suggested_category: string;
-  confidence: number;  // 0.0 to 1.0
+  confidence: number; // 0.0 to 1.0
   category_candidates: [
     { category: string; score: number },
     { category: string; score: number },
-    { category: string; score: number }
+    { category: string; score: number },
   ];
   needs_user_review: boolean;
 }
 
 // Thresholds
-const CONFIDENCE_THRESHOLD = 0.85;           // Auto-accept if above
-const CATEGORY_CONFIDENCE_THRESHOLD = 0.90;  // High confidence required
+const CONFIDENCE_THRESHOLD = 0.85; // Auto-accept if above
+const CATEGORY_CONFIDENCE_THRESHOLD = 0.9; // High confidence required
 
 // Flag low-confidence for mandatory review
 function requiresApproval(output: CategoryOutput): boolean {
   return (
     output.confidence < CONFIDENCE_THRESHOLD ||
     output.needs_user_review ||
-    output.category_candidates[1]?.score > 0.70  // Close second choice
+    output.category_candidates[1]?.score > 0.7 // Close second choice
   );
 }
 ```
@@ -447,7 +448,7 @@ function requiresApproval(output: CategoryOutput): boolean {
 async function handleRecategorization(fileId: string, newCategory: string) {
   // 1. Update file record
   await updateFile(fileId, { finalizedCategory: newCategory });
-  
+
   // 2. If financial entry exists, update it
   const existingEntry = await findFinancialEntryByDocument(fileId);
   if (existingEntry) {
@@ -456,7 +457,7 @@ async function handleRecategorization(fileId: string, newCategory: string) {
       updatedReason: 'user_recategorization',
     });
   }
-  
+
   // 3. Recalculate category totals
   await recalculateCategoryTotals(existingEntry?.userId);
 }
@@ -504,30 +505,30 @@ async function handleRecategorization(fileId: string, newCategory: string) {
 interface AppwriteFile {
   $id: string;
   userId: string;
-  
+
   // Storage reference
   storageFileId: string;
   fileName: string;
-  fileType: string;  // MIME type
+  fileType: string; // MIME type
   fileSize: number;
-  fileHash: string;  // SHA-256 for dedup
-  
+  fileHash: string; // SHA-256 for dedup
+
   // Processing status
-  status: 'uploaded'|'queued'|'extracting'|'analyzing'|'suggested'|'finalized'|'error';
-  
+  status: 'uploaded' | 'queued' | 'extracting' | 'analyzing' | 'suggested' | 'finalized' | 'error';
+
   // AI suggestions (PRE-approval)
   suggestedCategory?: string;
-  extractedFields?: string;  // JSON
+  extractedFields?: string; // JSON
   aiSummary?: string;
   aiConfidence?: number;
-  
+
   // User finalized (POST-approval)
   finalizedCategory?: string;
   finalizedFields?: string;
   finalizedBy?: string;
   finalizedAt?: string;
   finalizedFromAnalysisRunId?: string;
-  
+
   // Metadata
   title?: string;
   description?: string;
@@ -565,7 +566,7 @@ interface Category {
 
 // Collection: idempotency_records
 interface IdempotencyRecord {
-  $id: string;  // = idempotencyKey
+  $id: string; // = idempotencyKey
   fileId: string;
   status: 'processing' | 'completed' | 'failed';
   analysisRunId?: string;
@@ -612,11 +613,11 @@ WHERE f.status != 'finalized';
 
 ### Test Documents
 
-| Document | Expected Output |
-|----------|-----------------|
+| Document            | Expected Output                                                          |
+| ------------------- | ------------------------------------------------------------------------ |
 | grocery_receipt.jpg | doc_type: "receipt", vendor: "Safeway", amount: $45.67, confidence: 0.92 |
-| bank_statement.pdf | doc_type: "bank_statement", period: Jan 2024, balance: $5,432.10 |
-| blurry_photo.jpg | confidence: 0.45, needs_user_review: true, warnings: ["blur detected"] |
+| bank_statement.pdf  | doc_type: "bank_statement", period: Jan 2024, balance: $5,432.10         |
+| blurry_photo.jpg    | confidence: 0.45, needs_user_review: true, warnings: ["blur detected"]   |
 
 ### Health Checks
 
@@ -672,13 +673,13 @@ GEMINI_API_KEY=<google-gemini-key>
 
 ### Scaling Limits (Appwrite Cloud)
 
-| Limit | Value |
-|-------|-------|
-| Max file size | 50MB |
-| Max files/user | 10,000 |
-| Monthly bandwidth | 10GB |
-| Database size | 1GB |
-| Realtime connections | 1,000 |
+| Limit                | Value  |
+| -------------------- | ------ |
+| Max file size        | 50MB   |
+| Max files/user       | 10,000 |
+| Monthly bandwidth    | 10GB   |
+| Database size        | 1GB    |
+| Realtime connections | 1,000  |
 
 ---
 
@@ -686,12 +687,12 @@ GEMINI_API_KEY=<google-gemini-key>
 
 ### Common Integration Failures
 
-| Issue | Symptom | Solution |
-|-------|---------|----------|
-| WebSocket drops | Realtime stops after 5min | Polling fallback |
-| Cold starts | First request slow (30s+) | Queue processor keeps warm |
-| CORS errors | Client SDK fails | Proxy through Express |
-| API key exposure | Security risk | Server SDK only |
+| Issue            | Symptom                   | Solution                   |
+| ---------------- | ------------------------- | -------------------------- |
+| WebSocket drops  | Realtime stops after 5min | Polling fallback           |
+| Cold starts      | First request slow (30s+) | Queue processor keeps warm |
+| CORS errors      | Client SDK fails          | Proxy through Express      |
+| API key exposure | Security risk             | Server SDK only            |
 
 ### Why Uploads Stall
 
@@ -720,19 +721,19 @@ GEMINI_API_KEY=<google-gemini-key>
 ```typescript
 async function handleUpload(file: File) {
   const xhr = new XMLHttpRequest();
-  
+
   xhr.upload.onprogress = (e) => {
     if (e.lengthComputable) {
       setProgress(Math.round((e.loaded / e.total) * 100));
     }
   };
-  
+
   xhr.onload = () => {
     if (xhr.status === 200) {
       // Realtime updates status as processing happens
     }
   };
-  
+
   const formData = new FormData();
   formData.append('file', file);
   xhr.open('POST', '/api/appwrite/files/upload');
@@ -745,14 +746,14 @@ async function handleUpload(file: File) {
 ```typescript
 async function analyzeFile(file: AppwriteFile) {
   await updateFile(file.$id, { status: 'extracting' });
-  
+
   const buffer = await getFileBuffer(file.storageFileId);
   const content = await extractContent(buffer, file.fileType);
-  
+
   await updateFile(file.$id, { status: 'analyzing' });
-  
+
   const result = await runTwoPassPipeline(content, file.$id);
-  
+
   await updateFile(file.$id, {
     status: result.needsReview ? 'awaiting_user' : 'suggested',
     suggestedCategory: result.category,
@@ -767,7 +768,7 @@ async function analyzeFile(file: AppwriteFile) {
 ```typescript
 router.post('/files/:id/approve', async (req, res) => {
   const { finalizedCategory, finalizedFields } = req.body;
-  
+
   // Finalize in Appwrite
   await updateFile(fileId, {
     status: 'finalized',
@@ -775,7 +776,7 @@ router.post('/files/:id/approve', async (req, res) => {
     finalizedFields: JSON.stringify(finalizedFields),
     finalizedAt: new Date().toISOString(),
   });
-  
+
   // NOW create financial entry
   await createFinancialEntry({
     category: finalizedCategory,
@@ -791,34 +792,34 @@ router.post('/files/:id/approve', async (req, res) => {
 
 ### What's Implemented (Working Today)
 
-| Feature | Status | Location |
-|---------|--------|----------|
-| File upload with real progress | ✅ Complete | `appwrite-file-upload.tsx` |
-| Appwrite Storage integration | ✅ Complete | `fileService.ts` |
-| Status state machine | ✅ Complete | `client.ts` (FILE_STATUS) |
-| Queue processor (15s poll) | ✅ Complete | `analysisService.ts` |
-| PDF analysis (digital/scanned) | ✅ Complete | `pdfAnalyzer.ts` |
-| Image quality detection | ✅ Complete | `imageQualityAnalyzer.ts` |
-| Two-pass Gemini extraction | ✅ Complete | `extractionPipeline.ts` |
-| Category candidates + confidence | ✅ Complete | `extractionTypes.ts` |
-| Approval UI (accept/edit/skip) | ✅ Complete | `appwrite-documents.tsx` |
-| Finalization endpoint | ✅ Complete | `appwrite.routes.ts` |
-| Financial posting on finalize | ✅ Complete | Creates expense/income in Postgres |
-| Idempotency + retry logic | ✅ Complete | `processingGuardrails.ts` |
-| Realtime invalidation | ✅ Complete | `use-appwrite-realtime.ts` |
-| Polling fallback | ✅ Complete | `useFileStatusPolling` hook |
-| Health checks + selftest | ✅ Complete | `selftest.ts` |
-| Stuck job cleanup | ✅ Complete | `cleanupStaleProcessings()` |
+| Feature                          | Status      | Location                           |
+| -------------------------------- | ----------- | ---------------------------------- |
+| File upload with real progress   | ✅ Complete | `appwrite-file-upload.tsx`         |
+| Appwrite Storage integration     | ✅ Complete | `fileService.ts`                   |
+| Status state machine             | ✅ Complete | `client.ts` (FILE_STATUS)          |
+| Queue processor (15s poll)       | ✅ Complete | `analysisService.ts`               |
+| PDF analysis (digital/scanned)   | ✅ Complete | `pdfAnalyzer.ts`                   |
+| Image quality detection          | ✅ Complete | `imageQualityAnalyzer.ts`          |
+| Two-pass Gemini extraction       | ✅ Complete | `extractionPipeline.ts`            |
+| Category candidates + confidence | ✅ Complete | `extractionTypes.ts`               |
+| Approval UI (accept/edit/skip)   | ✅ Complete | `appwrite-documents.tsx`           |
+| Finalization endpoint            | ✅ Complete | `appwrite.routes.ts`               |
+| Financial posting on finalize    | ✅ Complete | Creates expense/income in Postgres |
+| Idempotency + retry logic        | ✅ Complete | `processingGuardrails.ts`          |
+| Realtime invalidation            | ✅ Complete | `use-appwrite-realtime.ts`         |
+| Polling fallback                 | ✅ Complete | `useFileStatusPolling` hook        |
+| Health checks + selftest         | ✅ Complete | `selftest.ts`                      |
+| Stuck job cleanup                | ✅ Complete | `cleanupStaleProcessings()`        |
 
 ### What's Aspirational (Documented but Not Yet Implemented)
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| QuickBooks-style mapping | ⚠️ Partial | Category mapping exists, no QuickBooks export yet |
-| Stage-level realtime progress | ⚠️ Partial | Realtime invalidates list, not granular stage updates |
-| Mobile camera capture | ❌ Not started | PWA camera API not implemented |
-| Resumable uploads | ❌ Not started | Large file chunking not implemented |
-| Batch approval | ❌ Not started | Single-file approval only |
+| Feature                       | Status         | Notes                                                 |
+| ----------------------------- | -------------- | ----------------------------------------------------- |
+| QuickBooks-style mapping      | ⚠️ Partial     | Category mapping exists, no QuickBooks export yet     |
+| Stage-level realtime progress | ⚠️ Partial     | Realtime invalidates list, not granular stage updates |
+| Mobile camera capture         | ❌ Not started | PWA camera API not implemented                        |
+| Resumable uploads             | ❌ Not started | Large file chunking not implemented                   |
+| Batch approval                | ❌ Not started | Single-file approval only                             |
 
 ### How Financial Posting Works (Implemented)
 
@@ -858,6 +859,7 @@ if (isIncomeCategory(category)) {
 ```
 
 **Safety Features:**
+
 - **Controlled vocabulary**: Only exact category matches determine income vs expense
 - **Idempotency guard**: Checks for existing entries before creating (prevents duplicates on retry)
 - **Amount validation**: Rejects zero, negative, or non-numeric amounts
@@ -870,6 +872,7 @@ The financial entry includes `documentId` which links back to the Appwrite docum
 ## Summary
 
 This architecture ensures:
+
 - **100% Appwrite Processing**: Every document through Appwrite storage + OCR ✅
 - **Approval-First**: No financial entries until user approves ✅
 - **Real Progress**: XHR upload events are real; processing stages via polling ✅
@@ -880,6 +883,7 @@ This architecture ensures:
 Current implementation status: **~90% complete**
 
 Priority items to complete:
+
 1. Add vendor-to-category mapping table
 2. Implement mobile camera capture
 3. QuickBooks export integration

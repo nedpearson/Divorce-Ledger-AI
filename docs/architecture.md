@@ -84,6 +84,7 @@ Divorce Ledger AI is a cloud-native document management system designed for lega
 ## Technology Stack
 
 ### Frontend
+
 - **Framework**: Next.js 14.1.0 (React 18.2.0)
 - **Language**: TypeScript 5.3.3 (strict mode)
 - **Styling**: Tailwind CSS 3.4.1
@@ -95,6 +96,7 @@ Divorce Ledger AI is a cloud-native document management system designed for lega
 - **Date Formatting**: date-fns 3.3.1
 
 ### Backend
+
 - **Framework**: Fastify 4.25.2
 - **Language**: TypeScript 5.3.3 (strict mode)
 - **Runtime**: Node.js 18+
@@ -106,12 +108,14 @@ Divorce Ledger AI is a cloud-native document management system designed for lega
 - **Security**: helmet, cors, rate-limit
 
 ### Database & Storage
+
 - **Database**: PostgreSQL 15 (Supabase)
 - **Storage**: Supabase Storage (S3-compatible)
 - **Authentication**: Supabase Auth
 - **Real-time**: Supabase Realtime
 
 ### Infrastructure
+
 - **Hosting**: Railway (backend + frontend)
 - **Database/Auth/Storage**: Supabase Platform
 - **Edge Functions**: Supabase Edge Functions (Deno runtime)
@@ -365,12 +369,14 @@ public.jobs
 ### Authentication & Authorization
 
 **JWT-based Authentication:**
+
 - Supabase Auth issues JWT tokens on successful login
 - Access token (1 hour expiry) + Refresh token (30 days)
 - Frontend automatically refreshes expired tokens
 - Backend validates JWT signature using Supabase JWKS
 
 **Row Level Security (RLS):**
+
 - PostgreSQL RLS policies enforce data isolation
 - Users can only access their own documents
 - Service role bypasses RLS for admin operations
@@ -384,18 +390,21 @@ public.jobs
 ### Data Security
 
 **Encryption:**
+
 - TLS 1.3 for all network communication
 - Database encryption at rest (Supabase default)
 - Storage encryption at rest (S3-compatible)
 - Sensitive fields encrypted in database (credentials, tokens)
 
 **Access Control:**
+
 - Role-based access control (RBAC) via user_metadata
 - Tiered access (free, pro, enterprise)
 - Storage quotas enforced at application level
 - Rate limiting on all API endpoints
 
 **Audit Logging:**
+
 - All document operations logged to audit_logs table
 - IP address, user agent, timestamp captured
 - Critical events trigger webhooks/notifications
@@ -414,6 +423,7 @@ public.jobs
 ### Railway Deployment
 
 **Backend Service:**
+
 - Docker container built from Dockerfile
 - Environment variables configured in Railway dashboard
 - Automatic deployment on git push to main
@@ -421,6 +431,7 @@ public.jobs
 - Logs streamed to Railway dashboard
 
 **Frontend Service:**
+
 - Next.js standalone build
 - Environment variables baked into build
 - CDN for static assets
@@ -430,6 +441,7 @@ public.jobs
 ### Supabase Platform
 
 **Database:**
+
 - Managed PostgreSQL 15
 - Automatic backups (daily)
 - Point-in-time recovery available
@@ -437,6 +449,7 @@ public.jobs
 - Read replicas for scaling (enterprise)
 
 **Storage:**
+
 - S3-compatible object storage
 - CDN for global distribution
 - Signed URLs for secure uploads/downloads
@@ -444,6 +457,7 @@ public.jobs
 - Lifecycle policies for auto-deletion
 
 **Edge Functions:**
+
 - Deno runtime (TypeScript support)
 - Global distribution (low latency)
 - Automatic scaling
@@ -453,6 +467,7 @@ public.jobs
 ### CI/CD Pipeline
 
 **GitHub Actions:**
+
 1. **CI Workflow** (on PR + push):
    - Lint backend + frontend
    - Type check TypeScript
@@ -472,18 +487,21 @@ public.jobs
 ### Horizontal Scaling
 
 **Frontend:**
+
 - Stateless Next.js app (scales horizontally)
 - Railway supports multi-instance deployment
 - Session stored in Supabase (no server-side state)
 - CDN caches static assets
 
 **Backend:**
+
 - Stateless Fastify app (scales horizontally)
 - No in-memory session storage
 - All state in Supabase database
 - Connection pooling for database efficiency
 
 **Database:**
+
 - Vertical scaling (upgrade plan)
 - Read replicas for read-heavy workloads
 - Connection pooling (Supavisor)
@@ -492,11 +510,13 @@ public.jobs
 ### Caching Strategy
 
 **Current:**
+
 - Browser caching via Cache-Control headers
 - Next.js automatic code splitting
 - Supabase Storage CDN for files
 
 **Future Improvements:**
+
 - Redis cache for frequently accessed data
 - API response caching (GET endpoints)
 - Thumbnail caching in CDN
@@ -505,18 +525,21 @@ public.jobs
 ### Performance Optimization
 
 **Frontend:**
+
 - Code splitting (Next.js automatic)
 - Image optimization (Next.js Image component)
 - Lazy loading components
 - Zustand for efficient rerenders
 
 **Backend:**
+
 - Request validation at edge (Fastify hooks)
 - Parallel database queries where possible
 - Streaming large file downloads
 - Efficient pagination (cursor-based)
 
 **Database:**
+
 - Indexes on foreign keys
 - Indexes on commonly filtered columns
 - Materialized views for complex queries
@@ -527,12 +550,14 @@ public.jobs
 ### Application Monitoring
 
 **Railway Dashboard:**
+
 - Real-time logs (backend + frontend)
 - CPU, memory, network metrics
 - Deployment history and rollback
 - Error rate tracking
 
 **Supabase Dashboard:**
+
 - Database performance metrics
 - API request volume and latency
 - Storage usage by bucket
@@ -541,12 +566,14 @@ public.jobs
 ### Logging
 
 **Backend:**
+
 - Structured JSON logs (Pino)
 - Log levels: error, warn, info, debug
 - Sensitive data redaction (passwords, tokens, SSNs)
 - Request ID tracking across services
 
 **Edge Functions:**
+
 - Console logs streamed to Supabase dashboard
 - Error tracking with stack traces
 - Performance timing logs
@@ -554,11 +581,13 @@ public.jobs
 ### Alerting
 
 **Current:**
+
 - Manual monitoring via dashboards
 - Email notifications from Railway
 - Supabase status page subscriptions
 
 **Future Improvements:**
+
 - Sentry for error tracking
 - Datadog/New Relic for APM
 - PagerDuty for on-call alerting
@@ -637,6 +666,7 @@ public.jobs
 **Decision**: Use Supabase Platform for PostgreSQL, Auth, and Storage.
 
 **Rationale**:
+
 - Managed PostgreSQL with automatic backups
 - Built-in authentication with JWT
 - S3-compatible storage with CDN
@@ -645,6 +675,7 @@ public.jobs
 - Edge functions for serverless logic
 
 **Consequences**:
+
 - ✅ Faster development (no auth implementation)
 - ✅ Lower operational overhead
 - ✅ Better security defaults
@@ -657,6 +688,7 @@ public.jobs
 **Decision**: Use Railway for hosting Fastify backend and Next.js frontend.
 
 **Rationale**:
+
 - Simple git-based deployments
 - Automatic HTTPS
 - Environment variable management
@@ -665,6 +697,7 @@ public.jobs
 - Docker support
 
 **Consequences**:
+
 - ✅ Simple CI/CD pipeline
 - ✅ Fast deployments
 - ✅ Cost-effective
@@ -677,6 +710,7 @@ public.jobs
 **Decision**: Use Next.js 14 with App Router.
 
 **Rationale**:
+
 - Server-side rendering for better SEO
 - Automatic code splitting
 - Built-in image optimization
@@ -685,6 +719,7 @@ public.jobs
 - Vercel backing (stable roadmap)
 
 **Consequences**:
+
 - ✅ Better performance than SPA
 - ✅ SEO-friendly
 - ✅ Modern developer experience
@@ -697,6 +732,7 @@ public.jobs
 **Decision**: Use Zustand instead of Redux or Context API.
 
 **Rationale**:
+
 - Simpler API than Redux
 - Better performance than Context
 - Built-in persistence middleware
@@ -704,6 +740,7 @@ public.jobs
 - Smaller bundle size
 
 **Consequences**:
+
 - ✅ Easier to learn and use
 - ✅ Less boilerplate than Redux
 - ✅ Good performance

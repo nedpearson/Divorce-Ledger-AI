@@ -6,7 +6,7 @@ import {
   Query,
   Permission,
   Role,
-  initializeAppwrite
+  initializeAppwrite,
 } from './client';
 import crypto from 'crypto';
 
@@ -22,7 +22,7 @@ export interface ProcessingLimits {
 export const DEFAULT_LIMITS: ProcessingLimits = {
   maxFileSizeMB: 25,
   maxDailyProcessingsPerUser: 50,
-  maxDailyCostPerUser: 1.00,
+  maxDailyCostPerUser: 1.0,
   maxConcurrentProcessings: 3,
   maxRetries: 3,
   allowedMimeTypes: [
@@ -68,20 +68,24 @@ export function generateIdempotencyKey(fileId: string, userId: string): string {
   return crypto.createHash('sha256').update(input).digest('hex').substring(0, 32);
 }
 
-export function generateRetryIdempotencyKey(fileId: string, userId: string, retryNumber: number): string {
+export function generateRetryIdempotencyKey(
+  fileId: string,
+  userId: string,
+  retryNumber: number
+): string {
   const input = `${fileId}:${userId}:retry:${retryNumber}`;
   return crypto.createHash('sha256').update(input).digest('hex').substring(0, 32);
 }
 
 export async function checkIdempotency(idempotencyKey: string): Promise<IdempotencyRecord | null> {
   initializeAppwrite();
-  
+
   try {
     const result = await databases.listDocuments(DATABASE_ID, COLLECTIONS.IDEMPOTENCY, [
       Query.equal('idempotencyKey', idempotencyKey),
       Query.limit(1),
     ]);
-    
+
     if (result.documents.length > 0) {
       const record = result.documents[0] as unknown as IdempotencyRecord;
       const expiresAt = new Date(record.expiresAt);
@@ -102,10 +106,10 @@ export async function createIdempotencyRecord(
   userId: string
 ): Promise<IdempotencyRecord | null> {
   initializeAppwrite();
-  
+
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  
+
   try {
     const doc = await databases.createDocument(
       DATABASE_ID,
@@ -121,11 +125,14 @@ export async function createIdempotencyRecord(
       },
       [Permission.read(Role.user(userId))]
     );
-    
+
     return doc as unknown as IdempotencyRecord;
   } catch (error) {
     // Collection may not exist - log and return null to allow processing to continue
-    console.warn(`[Appwrite Idempotency] Failed to create idempotency record for file ${fileId}:`, (error as Error).message);
+    console.warn(
+      `[Appwrite Idempotency] Failed to create idempotency record for file ${fileId}:`,
+      (error as Error).message
+    );
     return null;
   }
 }
@@ -136,7 +143,7 @@ export async function updateIdempotencyRecord(
   analysisRunId?: string
 ): Promise<void> {
   initializeAppwrite();
-  
+
   await databases.updateDocument(DATABASE_ID, COLLECTIONS.IDEMPOTENCY, recordId, {
     status,
     analysisRunId,
@@ -145,20 +152,20 @@ export async function updateIdempotencyRecord(
 
 export async function getOrCreateDailyUsage(userId: string): Promise<UsageRecord> {
   initializeAppwrite();
-  
+
   const today = new Date().toISOString().split('T')[0];
-  
+
   try {
     const result = await databases.listDocuments(DATABASE_ID, COLLECTIONS.USAGE, [
       Query.equal('userId', userId),
       Query.equal('date', today),
       Query.limit(1),
     ]);
-    
+
     if (result.documents.length > 0) {
       return result.documents[0] as unknown as UsageRecord;
     }
-    
+
     const doc = await databases.createDocument(
       DATABASE_ID,
       COLLECTIONS.USAGE,
@@ -172,7 +179,7 @@ export async function getOrCreateDailyUsage(userId: string): Promise<UsageRecord
       },
       [Permission.read(Role.user(userId))]
     );
-    
+
     return doc as unknown as UsageRecord;
   } catch {
     return {
@@ -188,26 +195,32 @@ export async function getOrCreateDailyUsage(userId: string): Promise<UsageRecord
 
 export async function incrementUsage(userId: string, cost: number): Promise<UsageRecord> {
   initializeAppwrite();
-  
+
   const usage = await getOrCreateDailyUsage(userId);
-  
+
   if (!usage.$id) {
     return usage;
   }
-  
+
   const doc = await databases.updateDocument(DATABASE_ID, COLLECTIONS.USAGE, usage.$id, {
     processingsCount: usage.processingsCount + 1,
     totalCost: usage.totalCost + cost,
     lastUpdated: new Date().toISOString(),
   });
-  
+
   return doc as unknown as UsageRecord;
 }
 
 export interface GuardrailCheckResult {
   allowed: boolean;
   reason?: string;
-  code?: 'FILE_TOO_LARGE' | 'INVALID_TYPE' | 'DAILY_LIMIT' | 'COST_LIMIT' | 'CONCURRENCY_LIMIT' | 'RETRY_LIMIT';
+  code?:
+    | 'FILE_TOO_LARGE'
+    | 'INVALID_TYPE'
+    | 'DAILY_LIMIT'
+    | 'COST_LIMIT'
+    | 'CONCURRENCY_LIMIT'
+    | 'RETRY_LIMIT';
 }
 
 export async function checkFileGuardrails(
@@ -223,7 +236,7 @@ export async function checkFileGuardrails(
       code: 'FILE_TOO_LARGE',
     };
   }
-  
+
   if (!limits.allowedMimeTypes.includes(mimeType)) {
     return {
       allowed: false,
@@ -231,7 +244,7 @@ export async function checkFileGuardrails(
       code: 'INVALID_TYPE',
     };
   }
-  
+
   return { allowed: true };
 }
 
@@ -252,9 +265,9 @@ export async function checkProcessingGuardrails(
       code: 'RETRY_LIMIT',
     };
   }
-  
+
   const usage = await getOrCreateDailyUsage(userId);
-  
+
   if (usage.processingsCount >= limits.maxDailyProcessingsPerUser) {
     return {
       allowed: false,
@@ -262,7 +275,7 @@ export async function checkProcessingGuardrails(
       code: 'DAILY_LIMIT',
     };
   }
-  
+
   if (usage.totalCost >= limits.maxDailyCostPerUser) {
     return {
       allowed: false,
@@ -270,7 +283,7 @@ export async function checkProcessingGuardrails(
       code: 'COST_LIMIT',
     };
   }
-  
+
   const concurrentCount = activeProcessings.size;
   if (concurrentCount >= limits.maxConcurrentProcessings) {
     return {
@@ -279,7 +292,7 @@ export async function checkProcessingGuardrails(
       code: 'CONCURRENCY_LIMIT',
     };
   }
-  
+
   return { allowed: true };
 }
 
@@ -300,7 +313,7 @@ export function getActiveProcessingCount(): number {
 export function cleanupStaleProcessings(maxAgeMs: number = 5 * 60 * 1000): number {
   const now = Date.now();
   let cleaned = 0;
-  
+
   const entries = Array.from(activeProcessings.entries());
   for (const [id, data] of entries) {
     if (now - data.startTime > maxAgeMs) {
@@ -308,7 +321,7 @@ export function cleanupStaleProcessings(maxAgeMs: number = 5 * 60 * 1000): numbe
       cleaned++;
     }
   }
-  
+
   return cleaned;
 }
 
@@ -336,7 +349,7 @@ export function calculateBackoffDelay(
 }
 
 export async function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function withRetry<T>(
@@ -345,13 +358,13 @@ export async function withRetry<T>(
   onRetry?: (attempt: number, error: Error, delayMs: number) => void
 ): Promise<T> {
   let lastError: Error | null = null;
-  
+
   for (let attempt = 0; attempt <= policy.maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      
+
       if (attempt < policy.maxRetries) {
         const delay = calculateBackoffDelay(attempt, policy);
         onRetry?.(attempt + 1, lastError, delay);
@@ -359,7 +372,7 @@ export async function withRetry<T>(
       }
     }
   }
-  
+
   throw lastError;
 }
 
@@ -372,7 +385,7 @@ export interface GuardrailStats {
 
 export async function getGuardrailStats(userId: string): Promise<GuardrailStats> {
   const usage = await getOrCreateDailyUsage(userId);
-  
+
   return {
     activeProcessings: getActiveProcessingCount(),
     todayProcessings: usage.processingsCount,

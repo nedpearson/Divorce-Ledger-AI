@@ -44,7 +44,7 @@ interface WorkspaceState {
   setWorkspaces: (workspaces: WorkspaceMembership[]) => void;
   setActiveWorkspaceId: (workspaceId: string | null) => void;
   setLoading: (loading: boolean) => void;
-  
+
   // Async actions
   loadProfile: (userId: string) => Promise<void>;
   loadWorkspaces: (userId: string) => Promise<void>;
@@ -72,31 +72,31 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       initialized: false,
 
       setProfile: (profile) => set({ profile }),
-      
+
       setWorkspaces: (workspaces) => {
         const state = get();
         set({ workspaces });
-        
+
         // Auto-select workspace if none selected
         if (!state.activeWorkspaceId && workspaces.length > 0) {
-          const primary = workspaces.find(w => w.is_primary) || workspaces[0];
-          set({ 
+          const primary = workspaces.find((w) => w.is_primary) || workspaces[0];
+          set({
             activeWorkspaceId: primary.workspace_id,
-            activeWorkspace: primary 
+            activeWorkspace: primary,
           });
         } else if (state.activeWorkspaceId) {
           // Update active workspace data
-          const active = workspaces.find(w => w.workspace_id === state.activeWorkspaceId);
+          const active = workspaces.find((w) => w.workspace_id === state.activeWorkspaceId);
           set({ activeWorkspace: active || null });
         }
       },
 
       setActiveWorkspaceId: (workspaceId) => {
         const state = get();
-        const workspace = state.workspaces.find(w => w.workspace_id === workspaceId);
-        set({ 
+        const workspace = state.workspaces.find((w) => w.workspace_id === workspaceId);
+        set({
           activeWorkspaceId: workspaceId,
-          activeWorkspace: workspace || null 
+          activeWorkspace: workspace || null,
         });
       },
 
@@ -137,14 +137,14 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       switchWorkspace: (workspaceId: string) => {
         const state = get();
-        const workspace = state.workspaces.find(w => w.workspace_id === workspaceId);
-        
+        const workspace = state.workspaces.find((w) => w.workspace_id === workspaceId);
+
         if (workspace) {
-          set({ 
+          set({
             activeWorkspaceId: workspaceId,
-            activeWorkspace: workspace 
+            activeWorkspace: workspace,
           });
-          
+
           // Trigger page navigation based on workspace type
           if (typeof window !== 'undefined') {
             if (workspace.workspace_type === 'firm') {
@@ -161,10 +161,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
         set({ loading: true });
         try {
-          await Promise.all([
-            get().loadProfile(userId),
-            get().loadWorkspaces(userId)
-          ]);
+          await Promise.all([get().loadProfile(userId), get().loadWorkspaces(userId)]);
           set({ initialized: true, loading: false });
         } catch (error) {
           console.error('Failed to initialize workspace store:', error);
@@ -187,7 +184,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       // Computed properties
       isPlatformAdmin: () => {
         const { profile } = get();
-        return profile?.platform_role === 'super_admin' || profile?.platform_role === 'support_admin';
+        return (
+          profile?.platform_role === 'super_admin' || profile?.platform_role === 'support_admin'
+        );
       },
 
       isSuperAdmin: () => {
@@ -206,19 +205,22 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       canAccessFirmDashboard: () => {
         const { activeWorkspace } = get();
-        return activeWorkspace?.workspace_type === 'firm' && 
-               ['firm_owner', 'firm_admin', 'firm_staff'].includes(activeWorkspace.role);
+        return (
+          activeWorkspace?.workspace_type === 'firm' &&
+          ['firm_owner', 'firm_admin', 'firm_staff'].includes(activeWorkspace.role)
+        );
       },
 
       canAccessConsumerDashboard: () => {
         const { activeWorkspace } = get();
-        return activeWorkspace?.workspace_type === 'consumer' && 
-               activeWorkspace.role === 'consumer';
+        return (
+          activeWorkspace?.workspace_type === 'consumer' && activeWorkspace.role === 'consumer'
+        );
       },
     }),
     {
       name: 'workspace-storage',
-      partialize: (state) => ({ 
+      partialize: (state) => ({
         activeWorkspaceId: state.activeWorkspaceId,
         profile: state.profile,
       }),

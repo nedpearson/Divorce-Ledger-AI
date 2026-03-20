@@ -34,34 +34,34 @@ The ETL (Extract, Transform, Load) pipeline provides a complete data warehouse s
 
 ### Dimension Tables
 
-| Table | Description |
-|-------|-------------|
-| `dim_time` | Date/time dimension with day, week, month, quarter, year |
-| `dim_user` | User dimension with SCD Type 2 for tier changes |
-| `dim_subscription` | Subscription tier reference data |
-| `dim_violation_category` | Violation category taxonomy |
-| `dim_case` | Case dimension with status tracking |
-| `dim_payment_method` | Payment method reference |
-| `dim_media_type` | Evidence media type reference |
+| Table                    | Description                                              |
+| ------------------------ | -------------------------------------------------------- |
+| `dim_time`               | Date/time dimension with day, week, month, quarter, year |
+| `dim_user`               | User dimension with SCD Type 2 for tier changes          |
+| `dim_subscription`       | Subscription tier reference data                         |
+| `dim_violation_category` | Violation category taxonomy                              |
+| `dim_case`               | Case dimension with status tracking                      |
+| `dim_payment_method`     | Payment method reference                                 |
+| `dim_media_type`         | Evidence media type reference                            |
 
 ### Fact Tables
 
-| Table | Description |
-|-------|-------------|
-| `fact_user_activity` | User activity events |
-| `fact_billing_event` | Billing and payment events |
-| `fact_violation` | Violation records with enriched metadata |
-| `fact_financial_transaction` | Financial transactions across all types |
-| `fact_evidence_usage` | Evidence file usage metrics |
-| `fact_quickbooks_sync` | QuickBooks sync events |
+| Table                        | Description                              |
+| ---------------------------- | ---------------------------------------- |
+| `fact_user_activity`         | User activity events                     |
+| `fact_billing_event`         | Billing and payment events               |
+| `fact_violation`             | Violation records with enriched metadata |
+| `fact_financial_transaction` | Financial transactions across all types  |
+| `fact_evidence_usage`        | Evidence file usage metrics              |
+| `fact_quickbooks_sync`       | QuickBooks sync events                   |
 
 ### Control Tables
 
-| Table | Description |
-|-------|-------------|
-| `etl_job_log` | ETL job execution history |
-| `etl_data_quality_log` | Data quality check results |
-| `etl_watermark` | Incremental extraction watermarks |
+| Table                  | Description                       |
+| ---------------------- | --------------------------------- |
+| `etl_job_log`          | ETL job execution history         |
+| `etl_data_quality_log` | Data quality check results        |
+| `etl_watermark`        | Incremental extraction watermarks |
 
 ## API Endpoints
 
@@ -115,30 +115,31 @@ POST /api/etl/scheduler/disable/:jobName
 
 ## Scheduled Jobs
 
-| Job Name | Schedule | Description |
-|----------|----------|-------------|
-| `full_pipeline` | 2:00 AM daily | Full ETL with all sources |
-| `hourly_violations` | Every hour (0 min) | Incremental violations sync |
-| `hourly_users` | Every hour (30 min) | Incremental users sync |
+| Job Name            | Schedule            | Description                 |
+| ------------------- | ------------------- | --------------------------- |
+| `full_pipeline`     | 2:00 AM daily       | Full ETL with all sources   |
+| `hourly_violations` | Every hour (0 min)  | Incremental violations sync |
+| `hourly_users`      | Every hour (30 min) | Incremental users sync      |
 
 ## Error Handling
 
 ### Retry Logic
 
 The pipeline implements exponential backoff with jitter:
+
 - **Max Retries**: 3 attempts
 - **Base Delay**: 1 second
-- **Backoff**: 2^attempt * base + random(0-500ms)
+- **Backoff**: 2^attempt \* base + random(0-500ms)
 
 ### Data Quality Checks
 
-| Check Type | Severity | Description |
-|------------|----------|-------------|
-| `null_check` | critical | Required fields must not be null |
-| `row_count` | warning | Row count variance < 2% |
-| `referential` | critical | Foreign key integrity |
-| `freshness` | warning | Data < 2 hours old |
-| `range` | warning | Numeric values within bounds |
+| Check Type    | Severity | Description                      |
+| ------------- | -------- | -------------------------------- |
+| `null_check`  | critical | Required fields must not be null |
+| `row_count`   | warning  | Row count variance < 2%          |
+| `referential` | critical | Foreign key integrity            |
+| `freshness`   | warning  | Data < 2 hours old               |
+| `range`       | warning  | Numeric values within bounds     |
 
 ### Error Recovery
 
@@ -152,6 +153,7 @@ The pipeline implements exponential backoff with jitter:
 The pipeline handles semi-structured data from:
 
 ### Violations Metadata
+
 ```json
 {
   "ai_classification": "custody_violation",
@@ -162,12 +164,14 @@ The pipeline handles semi-structured data from:
 ```
 
 Transformed to:
+
 - `fact_violation.ai_classification`
 - `fact_violation.ai_confidence`
 - `fact_violation.evidence_count`
 - `fact_violation.location`
 
 ### Evidence Metadata
+
 ```json
 {
   "source": "mobile_upload",
@@ -177,6 +181,7 @@ Transformed to:
 ```
 
 Transformed to:
+
 - `fact_evidence_usage.evidence_source`
 - Flattened device info
 
@@ -208,6 +213,7 @@ curl http://localhost:5000/api/etl/status
 ```
 
 Response:
+
 ```json
 {
   "scheduler": {
@@ -229,7 +235,7 @@ Response:
 ### Quality Dashboard Query
 
 ```sql
-SELECT 
+SELECT
   check_name,
   check_type,
   COUNT(*) as total_checks,

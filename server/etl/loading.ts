@@ -22,7 +22,7 @@ export interface LoadResult {
 class LoadingService {
   async loadDimUsers(users: TransformedData['dimUsers']): Promise<number> {
     let loaded = 0;
-    
+
     for (const user of users) {
       try {
         await safeQuery(
@@ -35,26 +35,32 @@ class LoadingService {
              name = EXCLUDED.name,
              subscription_tier = EXCLUDED.subscription_tier,
              stripe_customer_id = EXCLUDED.stripe_customer_id`,
-          [user.userId, user.email, user.name, user.subscriptionTier, 
-           user.stripeCustomerId, user.createdAt]
+          [
+            user.userId,
+            user.email,
+            user.name,
+            user.subscriptionTier,
+            user.stripeCustomerId,
+            user.createdAt,
+          ]
         );
         loaded++;
       } catch (error) {
         logger.error(`Failed to load user ${user.userId}`, error as Error);
       }
     }
-    
+
     return loaded;
   }
 
   async loadFactViolations(violations: TransformedData['factViolations']): Promise<number> {
     let loaded = 0;
-    
+
     for (const v of violations) {
       try {
         const timeKey = await transformationService.getOrCreateTimeKey(v.violationDate);
         const userKey = await transformationService.getOrCreateUserKey(v.userId);
-        
+
         const categoryResult = await safeQuery(
           getPool(),
           'etl.loading:getCategoryKey',
@@ -73,9 +79,18 @@ class LoadingService {
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           ON CONFLICT DO NOTHING`,
           [
-            timeKey, userKey, categoryKey, v.violationId, v.severityScore,
-            v.aiClassification, v.aiConfidence, v.hasAudioTranscript, v.hasEvidence,
-            v.evidenceCount, v.location, v.violationDate
+            timeKey,
+            userKey,
+            categoryKey,
+            v.violationId,
+            v.severityScore,
+            v.aiClassification,
+            v.aiConfidence,
+            v.hasAudioTranscript,
+            v.hasEvidence,
+            v.evidenceCount,
+            v.location,
+            v.violationDate,
           ]
         );
         loaded++;
@@ -83,13 +98,13 @@ class LoadingService {
         logger.error(`Failed to load violation ${v.violationId}`, error as Error);
       }
     }
-    
+
     return loaded;
   }
 
   async loadFactTransactions(transactions: TransformedData['factTransactions']): Promise<number> {
     let loaded = 0;
-    
+
     for (const t of transactions) {
       try {
         const timeKey = await transformationService.getOrCreateTimeKey(t.transactionDate);
@@ -104,8 +119,17 @@ class LoadingService {
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           ON CONFLICT DO NOTHING`,
           [
-            timeKey, userKey, t.transactionType, t.category, t.amountCents,
-            t.ownership, t.isVerified, t.environment, t.sourceTable, t.sourceId, t.transactionDate
+            timeKey,
+            userKey,
+            t.transactionType,
+            t.category,
+            t.amountCents,
+            t.ownership,
+            t.isVerified,
+            t.environment,
+            t.sourceTable,
+            t.sourceId,
+            t.transactionDate,
           ]
         );
         loaded++;
@@ -113,18 +137,18 @@ class LoadingService {
         logger.error(`Failed to load transaction ${t.sourceId}`, error as Error);
       }
     }
-    
+
     return loaded;
   }
 
   async loadFactBillingEvents(events: TransformedData['factBillingEvents']): Promise<number> {
     let loaded = 0;
-    
+
     for (const e of events) {
       try {
         const timeKey = await transformationService.getOrCreateTimeKey(e.eventTimestamp);
         const userKey = await transformationService.getOrCreateUserKey(e.userId);
-        
+
         const subResult = await safeQuery(
           getPool(),
           'etl.loading:getSubscriptionKey',
@@ -142,8 +166,15 @@ class LoadingService {
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           ON CONFLICT DO NOTHING`,
           [
-            timeKey, userKey, subscriptionKey, e.eventType, e.amountCents,
-            e.currency, e.stripeInvoiceId, e.status, e.eventTimestamp
+            timeKey,
+            userKey,
+            subscriptionKey,
+            e.eventType,
+            e.amountCents,
+            e.currency,
+            e.stripeInvoiceId,
+            e.status,
+            e.eventTimestamp,
           ]
         );
         loaded++;
@@ -151,19 +182,31 @@ class LoadingService {
         logger.error(`Failed to load billing event`, error as Error);
       }
     }
-    
+
     return loaded;
   }
 
   async loadAll(data: TransformedData): Promise<LoadResult> {
     const errors: string[] = [];
-    
-    const [usersLoaded, violationsLoaded, transactionsLoaded, billingEventsLoaded] = 
+
+    const [usersLoaded, violationsLoaded, transactionsLoaded, billingEventsLoaded] =
       await Promise.all([
-        this.loadDimUsers(data.dimUsers).catch(e => { errors.push(`Users: ${e.message}`); return 0; }),
-        this.loadFactViolations(data.factViolations).catch(e => { errors.push(`Violations: ${e.message}`); return 0; }),
-        this.loadFactTransactions(data.factTransactions).catch(e => { errors.push(`Transactions: ${e.message}`); return 0; }),
-        this.loadFactBillingEvents(data.factBillingEvents).catch(e => { errors.push(`Billing: ${e.message}`); return 0; }),
+        this.loadDimUsers(data.dimUsers).catch((e) => {
+          errors.push(`Users: ${e.message}`);
+          return 0;
+        }),
+        this.loadFactViolations(data.factViolations).catch((e) => {
+          errors.push(`Violations: ${e.message}`);
+          return 0;
+        }),
+        this.loadFactTransactions(data.factTransactions).catch((e) => {
+          errors.push(`Transactions: ${e.message}`);
+          return 0;
+        }),
+        this.loadFactBillingEvents(data.factBillingEvents).catch((e) => {
+          errors.push(`Billing: ${e.message}`);
+          return 0;
+        }),
       ]);
 
     return {
@@ -171,7 +214,7 @@ class LoadingService {
       violationsLoaded,
       transactionsLoaded,
       billingEventsLoaded,
-      errors
+      errors,
     };
   }
 }

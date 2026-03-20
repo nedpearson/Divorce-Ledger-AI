@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'wouter';
 
 type LoopWatchdogOptions = {
   // Max allowed renders per route within timeWindowMs
@@ -11,9 +11,9 @@ type LoopWatchdogOptions = {
 };
 
 const DEFAULTS: Required<LoopWatchdogOptions> = {
-  maxRendersPerRoute: 40,   // generous to avoid false positives
-  timeWindowMs: 5000,       // 5 seconds
-  reportUrl: "/api/loop-watchdog",
+  maxRendersPerRoute: 40, // generous to avoid false positives
+  timeWindowMs: 5000, // 5 seconds
+  reportUrl: '/api/loop-watchdog',
 };
 
 export function useLoopWatchdog(options?: LoopWatchdogOptions) {
@@ -61,7 +61,7 @@ export function useLoopWatchdog(options?: LoopWatchdogOptions) {
       state.lastReportTs = now;
 
       const payload = {
-        type: "FRONTEND_RENDER_LOOP_SUSPECTED",
+        type: 'FRONTEND_RENDER_LOOP_SUSPECTED',
         path: state.currentPath,
         renderCount: state.renderCount,
         timeWindowMs: config.timeWindowMs,
@@ -70,15 +70,15 @@ export function useLoopWatchdog(options?: LoopWatchdogOptions) {
       };
 
       // 1) Log locally for you / Replit AI
-      // eslint-disable-next-line no-console
-      console.warn("[LoopWatchdog] Suspected render loop:", payload);
+
+      console.warn('[LoopWatchdog] Suspected render loop:', payload);
 
       // 2) Optionally send to backend (non-blocking, fire-and-forget)
       if (config.reportUrl) {
         try {
           void fetch(config.reportUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
             keepalive: true,
           });

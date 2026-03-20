@@ -7,14 +7,12 @@ export default function AuthCallback() {
 
   useEffect(() => {
     // Handle OAuth callback
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          // Redirect to documents page after successful OAuth
-          router.push('/documents');
-        }
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // Redirect to documents page after successful OAuth
+        router.push('/documents');
       }
-    );
+    });
 
     return () => {
       authListener?.subscription.unsubscribe();

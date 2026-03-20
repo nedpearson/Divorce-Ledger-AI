@@ -1,30 +1,42 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth";
-import { DrillDownValue } from "@/components/ui/drilldown-value";
-import { Home, Building, Car, DollarSign, TrendingUp, TrendingDown, PieChart, Loader2, CreditCard, Wallet, Download } from "lucide-react";
-import type { Asset, Debt } from "@shared/schema";
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/auth';
+import { DrillDownValue } from '@/components/ui/drilldown-value';
+import {
+  Home,
+  Building,
+  Car,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  PieChart,
+  Loader2,
+  CreditCard,
+  Wallet,
+  Download,
+} from 'lucide-react';
+import type { Asset, Debt } from '@shared/schema';
 
 function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 }
 
 function getAssetIcon(category: string) {
   switch (category.toLowerCase()) {
-    case "real_estate":
-    case "home":
+    case 'real_estate':
+    case 'home':
       return <Home className="h-5 w-5" />;
-    case "vehicle":
-    case "car":
+    case 'vehicle':
+    case 'car':
       return <Car className="h-5 w-5" />;
-    case "investment":
-    case "retirement":
+    case 'investment':
+    case 'retirement':
       return <TrendingUp className="h-5 w-5" />;
-    case "business":
+    case 'business':
       return <Building className="h-5 w-5" />;
     default:
       return <Wallet className="h-5 w-5" />;
@@ -48,11 +60,13 @@ function AssetCard({ asset }: { asset: Asset }) {
             </div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <Badge variant="outline">{asset.category}</Badge>
-              <Badge variant={asset.ownership === "joint" ? "default" : "secondary"}>
+              <Badge variant={asset.ownership === 'joint' ? 'default' : 'secondary'}>
                 {asset.ownership}
               </Badge>
               {asset.verified && (
-                <Badge variant="default" className="bg-green-500">Verified</Badge>
+                <Badge variant="default" className="bg-green-500">
+                  Verified
+                </Badge>
               )}
             </div>
           </div>
@@ -79,7 +93,7 @@ function DebtCard({ debt }: { debt: Debt }) {
             </div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <Badge variant="outline">{debt.category}</Badge>
-              <Badge variant={debt.ownership === "joint" ? "default" : "secondary"}>
+              <Badge variant={debt.ownership === 'joint' ? 'default' : 'secondary'}>
                 {debt.ownership}
               </Badge>
               {debt.monthlyPayment && (
@@ -99,11 +113,11 @@ export default function PropertyPage() {
   const { environment } = useAuth();
 
   const { data: assets, isLoading: assetsLoading } = useQuery<Asset[]>({
-    queryKey: ["/api/assets"],
+    queryKey: ['/api/assets'],
   });
 
   const { data: debts, isLoading: debtsLoading } = useQuery<Debt[]>({
-    queryKey: ["/api/debts"],
+    queryKey: ['/api/debts'],
   });
 
   const isLoading = assetsLoading || debtsLoading;
@@ -114,36 +128,55 @@ export default function PropertyPage() {
   const totalDebts = allDebts.reduce((sum, d) => sum + d.amount, 0);
   const netWorth = totalAssets - totalDebts;
 
-  const jointAssets = allAssets.filter((a) => a.ownership === "joint");
-  const separateAssets = allAssets.filter((a) => a.ownership !== "joint");
-  const jointDebts = allDebts.filter((d) => d.ownership === "joint");
-  const separateDebts = allDebts.filter((d) => d.ownership !== "joint");
+  const jointAssets = allAssets.filter((a) => a.ownership === 'joint');
+  const separateAssets = allAssets.filter((a) => a.ownership !== 'joint');
+  const jointDebts = allDebts.filter((d) => d.ownership === 'joint');
+  const separateDebts = allDebts.filter((d) => d.ownership !== 'joint');
 
   const jointAssetValue = jointAssets.reduce((sum, a) => sum + a.value, 0);
   const jointDebtValue = jointDebts.reduce((sum, d) => sum + d.amount, 0);
   const maritalNetWorth = jointAssetValue - jointDebtValue;
 
-  const assetsByCategory = allAssets.reduce((acc, asset) => {
-    if (!acc[asset.category]) acc[asset.category] = 0;
-    acc[asset.category] += asset.value;
-    return acc;
-  }, {} as Record<string, number>);
+  const assetsByCategory = allAssets.reduce(
+    (acc, asset) => {
+      if (!acc[asset.category]) acc[asset.category] = 0;
+      acc[asset.category] += asset.value;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const exportData = () => {
     if (allAssets.length === 0 && allDebts.length === 0) return;
-    const headers = ["Type", "Name", "Category", "Value/Amount", "Ownership", "Verified"];
+    const headers = ['Type', 'Name', 'Category', 'Value/Amount', 'Ownership', 'Verified'];
 
-    let csvContent = headers.join(",") + "\n";
-    allAssets.forEach(a => {
-      csvContent += ["Asset", `"${a.name.replace(/"/g, '""')}"`, a.category, (a.value / 100).toFixed(2), a.ownership, a.verified ? "Yes" : "No"].join(",") + "\n";
+    let csvContent = headers.join(',') + '\n';
+    allAssets.forEach((a) => {
+      csvContent +=
+        [
+          'Asset',
+          `"${a.name.replace(/"/g, '""')}"`,
+          a.category,
+          (a.value / 100).toFixed(2),
+          a.ownership,
+          a.verified ? 'Yes' : 'No',
+        ].join(',') + '\n';
     });
-    allDebts.forEach(d => {
-      csvContent += ["Debt", `"${d.name.replace(/"/g, '""')}"`, d.category, (d.amount / 100).toFixed(2), d.ownership, "-"].join(",") + "\n";
+    allDebts.forEach((d) => {
+      csvContent +=
+        [
+          'Debt',
+          `"${d.name.replace(/"/g, '""')}"`,
+          d.category,
+          (d.amount / 100).toFixed(2),
+          d.ownership,
+          '-',
+        ].join(',') + '\n';
     });
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
     a.download = `property_settlement_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
@@ -152,15 +185,22 @@ export default function PropertyPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6" data-testid="page-property">
-
-
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Property Settlement</h1>
-          <p className="text-sm text-muted-foreground">Manage asset division and equitable distribution tracking.</p>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">
+            Property Settlement
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Manage asset division and equitable distribution tracking.
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportData} disabled={allAssets.length === 0 && allDebts.length === 0}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportData}
+            disabled={allAssets.length === 0 && allDebts.length === 0}
+          >
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
@@ -182,7 +222,11 @@ export default function PropertyPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      <DrillDownValue type="assets" title="Total Assets" value={formatCurrency(totalAssets)} />
+                      <DrillDownValue
+                        type="assets"
+                        title="Total Assets"
+                        value={formatCurrency(totalAssets)}
+                      />
                     </p>
                     <p className="text-xs text-muted-foreground">Total Assets</p>
                   </div>
@@ -197,7 +241,11 @@ export default function PropertyPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                      <DrillDownValue type="debts" title="Total Debts" value={formatCurrency(totalDebts)} />
+                      <DrillDownValue
+                        type="debts"
+                        title="Total Debts"
+                        value={formatCurrency(totalDebts)}
+                      />
                     </p>
                     <p className="text-xs text-muted-foreground">Total Debts</p>
                   </div>
@@ -211,7 +259,9 @@ export default function PropertyPage() {
                     <DollarSign className="h-5 w-5 text-blue-500" />
                   </div>
                   <div>
-                    <p className={`text-2xl font-bold ${netWorth >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                    <p
+                      className={`text-2xl font-bold ${netWorth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                    >
                       {formatCurrency(netWorth)}
                     </p>
                     <p className="text-xs text-muted-foreground">Net Worth</p>
@@ -226,7 +276,9 @@ export default function PropertyPage() {
                     <PieChart className="h-5 w-5 text-purple-500" />
                   </div>
                   <div>
-                    <p className={`text-2xl font-bold ${maritalNetWorth >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                    <p
+                      className={`text-2xl font-bold ${maritalNetWorth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                    >
                       {formatCurrency(maritalNetWorth)}
                     </p>
                     <p className="text-xs text-muted-foreground">Marital Net Worth</p>
@@ -248,9 +300,13 @@ export default function PropertyPage() {
                   return (
                     <div key={category} className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="capitalize">{category.replace("_", " ")}</span>
+                        <span className="capitalize">{category.replace('_', ' ')}</span>
                         <span className="font-medium">
-                          <DrillDownValue type="assets" title={`${category.replace("_", " ")} Assets`} value={formatCurrency(value)} />
+                          <DrillDownValue
+                            type="assets"
+                            title={`${category.replace('_', ' ')} Assets`}
+                            value={formatCurrency(value)}
+                          />
                         </span>
                       </div>
                       <Progress value={percentage} className="h-2" />
@@ -258,7 +314,9 @@ export default function PropertyPage() {
                   );
                 })}
                 {Object.keys(assetsByCategory).length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">No assets recorded</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No assets recorded
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -273,25 +331,41 @@ export default function PropertyPage() {
                   <div className="flex justify-between text-sm text-foreground">
                     <span>Joint Assets</span>
                     <span className="font-medium">
-                      <DrillDownValue type="assets" title="Joint Assets" value={formatCurrency(jointAssetValue)} />
+                      <DrillDownValue
+                        type="assets"
+                        title="Joint Assets"
+                        value={formatCurrency(jointAssetValue)}
+                      />
                     </span>
                   </div>
                   <div className="flex justify-between text-sm text-foreground">
                     <span>Separate Assets</span>
                     <span className="font-medium">
-                      <DrillDownValue type="assets" title="Separate Assets" value={formatCurrency(separateAssets.reduce((s, a) => s + a.value, 0))} />
+                      <DrillDownValue
+                        type="assets"
+                        title="Separate Assets"
+                        value={formatCurrency(separateAssets.reduce((s, a) => s + a.value, 0))}
+                      />
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Joint Debts</span>
                     <span className="font-medium text-red-600">
-                      <DrillDownValue type="debts" title="Joint Debts" value={formatCurrency(jointDebtValue)} />
+                      <DrillDownValue
+                        type="debts"
+                        title="Joint Debts"
+                        value={formatCurrency(jointDebtValue)}
+                      />
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Separate Debts</span>
                     <span className="font-medium text-red-600">
-                      <DrillDownValue type="debts" title="Separate Debts" value={formatCurrency(separateDebts.reduce((s, d) => s + d.amount, 0))} />
+                      <DrillDownValue
+                        type="debts"
+                        title="Separate Debts"
+                        value={formatCurrency(separateDebts.reduce((s, d) => s + d.amount, 0))}
+                      />
                     </span>
                   </div>
                 </div>

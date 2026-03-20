@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   DollarSign,
   Building2,
@@ -30,10 +30,10 @@ import {
   Car,
   Briefcase,
   Eye,
-} from "lucide-react";
-import type { Income, Expense, Asset, Debt } from "@shared/schema";
+} from 'lucide-react';
+import type { Income, Expense, Asset, Debt } from '@shared/schema';
 
-type RecordType = "income" | "expense" | "asset" | "debt";
+type RecordType = 'income' | 'expense' | 'asset' | 'debt';
 type FinancialRecord = Income | Expense | Asset | Debt;
 
 interface Document {
@@ -54,25 +54,25 @@ interface RecordDetailDrawerProps {
 }
 
 function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(cents / 100);
 }
 
 function formatDate(dateString: string | null | undefined): string {
-  if (!dateString) return "Not specified";
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+  if (!dateString) return 'Not specified';
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   });
 }
 
 function formatFileSize(bytes: number | undefined): string {
-  if (!bytes) return "Unknown size";
+  if (!bytes) return 'Unknown size';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -80,56 +80,56 @@ function formatFileSize(bytes: number | undefined): string {
 
 function getRecordIcon(recordType: RecordType) {
   switch (recordType) {
-    case "income":
+    case 'income':
       return <Banknote className="h-5 w-5 text-green-500" />;
-    case "expense":
+    case 'expense':
       return <CreditCard className="h-5 w-5 text-red-500" />;
-    case "asset":
+    case 'asset':
       return <TrendingUp className="h-5 w-5 text-blue-500" />;
-    case "debt":
+    case 'debt':
       return <CreditCard className="h-5 w-5 text-orange-500" />;
   }
 }
 
 function getRecordTitle(recordType: RecordType, record: FinancialRecord): string {
-  if ("source" in record) return record.source;
-  if ("description" in record) return record.description;
-  if ("name" in record) return record.name;
-  return "Record Details";
+  if ('source' in record) return record.source;
+  if ('description' in record) return record.description;
+  if ('name' in record) return record.name;
+  return 'Record Details';
 }
 
 function getRecordAmount(recordType: RecordType, record: FinancialRecord): number {
-  if ("amount" in record) return record.amount;
-  if ("value" in record) return record.value;
+  if ('amount' in record) return record.amount;
+  if ('value' in record) return record.value;
   return 0;
 }
 
 function getRecordDate(recordType: RecordType, record: FinancialRecord): string | null {
-  if ("startDate" in record && record.startDate) return record.startDate as string;
-  if ("date" in record && record.date) return record.date as string;
-  if ("acquiredDate" in record && record.acquiredDate) return record.acquiredDate as string;
-  if ("openedDate" in record && record.openedDate) return record.openedDate as string;
+  if ('startDate' in record && record.startDate) return record.startDate as string;
+  if ('date' in record && record.date) return record.date as string;
+  if ('acquiredDate' in record && record.acquiredDate) return record.acquiredDate as string;
+  if ('openedDate' in record && record.openedDate) return record.openedDate as string;
   return null;
 }
 
 function getRecordVendor(record: FinancialRecord): string | null {
-  if ("vendor" in record) return record.vendor;
+  if ('vendor' in record) return record.vendor;
   return null;
 }
 
 function getRecordOwner(record: FinancialRecord): string | null {
-  if ("owner" in record) return record.owner;
-  if ("ownership" in record) return record.ownership;
+  if ('owner' in record) return record.owner;
+  if ('ownership' in record) return record.ownership;
   return null;
 }
 
 function isVerified(record: FinancialRecord): boolean {
-  if ("verified" in record) return record.verified === true;
+  if ('verified' in record) return record.verified === true;
   return false;
 }
 
 function getDocumentId(record: FinancialRecord): string | null {
-  if ("documentId" in record) return record.documentId as string | null;
+  if ('documentId' in record) return record.documentId as string | null;
   return null;
 }
 
@@ -139,12 +139,12 @@ export function RecordDetailDrawer({
   recordType,
   record,
 }: RecordDetailDrawerProps) {
-  const [activeTab, setActiveTab] = useState("details");
+  const [activeTab, setActiveTab] = useState('details');
 
   // Reset to details tab when drawer opens with a new record
   useEffect(() => {
     if (open) {
-      setActiveTab("details");
+      setActiveTab('details');
     }
   }, [open, record]);
 
@@ -166,13 +166,13 @@ export function RecordDetailDrawer({
 
   const handleDownload = () => {
     if (document?.fileUrl) {
-      window.open(document.fileUrl, "_blank");
+      window.open(document.fileUrl, '_blank');
     }
   };
 
   const handleView = () => {
     if (document?.fileUrl) {
-      window.open(document.fileUrl, "_blank");
+      window.open(document.fileUrl, '_blank');
     }
   };
 
@@ -184,9 +184,7 @@ export function RecordDetailDrawer({
             {getRecordIcon(recordType)}
             {title}
           </SheetTitle>
-          <SheetDescription>
-            Detailed information and supporting documents
-          </SheetDescription>
+          <SheetDescription>Detailed information and supporting documents</SheetDescription>
         </SheetHeader>
 
         <div className="mt-6">
@@ -198,7 +196,9 @@ export function RecordDetailDrawer({
               <TabsTrigger value="documents" data-testid="tab-documents">
                 Documents
                 {documentId && (
-                  <Badge variant="secondary" className="ml-2">1</Badge>
+                  <Badge variant="secondary" className="ml-2">
+                    1
+                  </Badge>
                 )}
               </TabsTrigger>
             </TabsList>
@@ -208,12 +208,14 @@ export function RecordDetailDrawer({
                 <div className="space-y-6 pr-4">
                   <div className="rounded-lg bg-muted p-4">
                     <p className="text-sm text-muted-foreground mb-1">
-                      {recordType === "income" || recordType === "expense" ? "Monthly Amount" : "Total Value"}
+                      {recordType === 'income' || recordType === 'expense'
+                        ? 'Monthly Amount'
+                        : 'Total Value'}
                     </p>
                     <p className="text-3xl font-bold tabular-nums" data-testid="record-amount">
                       {formatCurrency(amount)}
                     </p>
-                    {(recordType === "income" || recordType === "expense") && (
+                    {(recordType === 'income' || recordType === 'expense') && (
                       <p className="text-sm text-muted-foreground mt-1">
                         {formatCurrency(amount * 12)}/year
                       </p>
@@ -233,7 +235,10 @@ export function RecordDetailDrawer({
                           <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
                           <div>
                             <p className="text-sm font-medium">Vendor / Source</p>
-                            <p className="text-sm text-muted-foreground" data-testid="record-vendor">
+                            <p
+                              className="text-sm text-muted-foreground"
+                              data-testid="record-vendor"
+                            >
                               {vendor}
                             </p>
                           </div>
@@ -255,8 +260,11 @@ export function RecordDetailDrawer({
                           <User className="h-5 w-5 text-muted-foreground mt-0.5" />
                           <div>
                             <p className="text-sm font-medium">Ownership</p>
-                            <p className="text-sm text-muted-foreground capitalize" data-testid="record-owner">
-                              {owner === "you" ? "Your" : owner === "spouse" ? "Spouse's" : owner}
+                            <p
+                              className="text-sm text-muted-foreground capitalize"
+                              data-testid="record-owner"
+                            >
+                              {owner === 'you' ? 'Your' : owner === 'spouse' ? "Spouse's" : owner}
                             </p>
                           </div>
                         </div>
@@ -270,13 +278,16 @@ export function RecordDetailDrawer({
                         )}
                         <div>
                           <p className="text-sm font-medium">Verification Status</p>
-                          <p className="text-sm text-muted-foreground" data-testid="record-verified">
-                            {verified ? "Verified" : "Not verified"}
+                          <p
+                            className="text-sm text-muted-foreground"
+                            data-testid="record-verified"
+                          >
+                            {verified ? 'Verified' : 'Not verified'}
                           </p>
                         </div>
                       </div>
 
-                      {"category" in record && record.category && (
+                      {'category' in record && record.category && (
                         <div className="flex items-start gap-3">
                           <Briefcase className="h-5 w-5 text-muted-foreground mt-0.5" />
                           <div>
@@ -288,7 +299,7 @@ export function RecordDetailDrawer({
                         </div>
                       )}
 
-                      {"frequency" in record && record.frequency && (
+                      {'frequency' in record && record.frequency && (
                         <div className="flex items-start gap-3">
                           <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
                           <div>
@@ -300,7 +311,7 @@ export function RecordDetailDrawer({
                         </div>
                       )}
 
-                      {"interestRate" in record && record.interestRate ? (
+                      {'interestRate' in record && record.interestRate ? (
                         <div className="flex items-start gap-3">
                           <TrendingUp className="h-5 w-5 text-muted-foreground mt-0.5" />
                           <div>
@@ -312,7 +323,7 @@ export function RecordDetailDrawer({
                         </div>
                       ) : null}
 
-                      {"monthlyPayment" in record && record.monthlyPayment && (
+                      {'monthlyPayment' in record && record.monthlyPayment && (
                         <div className="flex items-start gap-3">
                           <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
                           <div>
@@ -326,7 +337,7 @@ export function RecordDetailDrawer({
                     </div>
                   </div>
 
-                  {"notes" in record && record.notes ? (
+                  {'notes' in record && record.notes ? (
                     <>
                       <Separator />
                       <div className="space-y-2">
@@ -362,7 +373,8 @@ export function RecordDetailDrawer({
                               {document.title || document.fileName}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {document.fileType?.toUpperCase()} - {formatFileSize(document.fileSize)}
+                              {document.fileType?.toUpperCase()} -{' '}
+                              {formatFileSize(document.fileSize)}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Uploaded {formatDate(document.uploadedAt)}
@@ -395,9 +407,7 @@ export function RecordDetailDrawer({
                     ) : (
                       <div className="rounded-lg border border-dashed p-6 text-center">
                         <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                        <p className="text-sm text-muted-foreground">
-                          Document not found
-                        </p>
+                        <p className="text-sm text-muted-foreground">Document not found</p>
                       </div>
                     )
                   ) : (
@@ -407,7 +417,12 @@ export function RecordDetailDrawer({
                       <p className="text-sm text-muted-foreground">
                         Upload a document to support this record
                       </p>
-                      <Button variant="outline" size="sm" className="mt-4" data-testid="button-upload-document">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-4"
+                        data-testid="button-upload-document"
+                      >
                         <ExternalLink className="mr-2 h-4 w-4" />
                         Upload Document
                       </Button>

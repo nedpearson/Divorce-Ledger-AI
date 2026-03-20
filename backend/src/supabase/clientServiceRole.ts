@@ -31,4 +31,3 @@ export function getSupabaseServiceRole(): SupabaseClient {
 
 // Export singleton
 export const supabaseServiceRole = getSupabaseServiceRole();
-

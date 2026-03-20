@@ -1,17 +1,48 @@
-import { useState, useDeferredValue } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/auth";
-import { Search, Users, Shield, ShieldCheck, Ban, CheckCircle, RefreshCw, Loader2, Crown, Download } from "lucide-react";
-import { format } from "date-fns";
+import { useState, useDeferredValue } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/auth';
+import {
+  Search,
+  Users,
+  Shield,
+  ShieldCheck,
+  Ban,
+  CheckCircle,
+  RefreshCw,
+  Loader2,
+  Crown,
+  Download,
+} from 'lucide-react';
+import { format } from 'date-fns';
 
 interface UserMetadata {
   id: string;
@@ -34,167 +65,204 @@ interface UserMetadata {
 export default function AdminUsers() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [tierFilter, setTierFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [tierFilter, setTierFilter] = useState<string>('all');
   const [selectedUser, setSelectedUser] = useState<UserMetadata | null>(null);
-  const [dialogAction, setDialogAction] = useState<"status" | "tier" | "role" | "reset" | null>(null);
-  const [newStatus, setNewStatus] = useState<string>("");
-  const [newTier, setNewTier] = useState<string>("");
+  const [dialogAction, setDialogAction] = useState<'status' | 'tier' | 'role' | 'reset' | null>(
+    null
+  );
+  const [newStatus, setNewStatus] = useState<string>('');
+  const [newTier, setNewTier] = useState<string>('');
   const [newIsAdmin, setNewIsAdmin] = useState<boolean>(false);
 
   const { data, isLoading, error } = useQuery<{ users: UserMetadata[] }>({
-    queryKey: ["/api/admin/users"],
+    queryKey: ['/api/admin/users'],
   });
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ userId, status }: { userId: string; status: string }) => {
-      return apiRequest("PATCH", `/api/admin/users/${userId}/status`, { status });
+      return apiRequest('PATCH', `/api/admin/users/${userId}/status`, { status });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({ title: "Status Updated", description: "User status has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({ title: 'Status Updated', description: 'User status has been updated successfully.' });
       closeDialog();
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to update status", variant: "destructive" });
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update status',
+        variant: 'destructive',
+      });
     },
   });
 
   const updateTierMutation = useMutation({
     mutationFn: async ({ userId, tier }: { userId: string; tier: string }) => {
-      return apiRequest("PATCH", `/api/admin/users/${userId}/tier`, { tier });
+      return apiRequest('PATCH', `/api/admin/users/${userId}/tier`, { tier });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({ title: "Tier Updated", description: "User subscription tier has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({
+        title: 'Tier Updated',
+        description: 'User subscription tier has been updated successfully.',
+      });
       closeDialog();
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to update tier", variant: "destructive" });
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update tier',
+        variant: 'destructive',
+      });
     },
   });
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, isAdmin }: { userId: string; isAdmin: boolean }) => {
-      return apiRequest("PATCH", `/api/admin/users/${userId}/role`, { isAdmin });
+      return apiRequest('PATCH', `/api/admin/users/${userId}/role`, { isAdmin });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({ title: "Role Updated", description: "User admin status has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({
+        title: 'Role Updated',
+        description: 'User admin status has been updated successfully.',
+      });
       closeDialog();
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to update role", variant: "destructive" });
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update role',
+        variant: 'destructive',
+      });
     },
   });
 
   const resetUsageMutation = useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
-      return apiRequest("POST", `/api/admin/users/${userId}/reset-usage`);
+      return apiRequest('POST', `/api/admin/users/${userId}/reset-usage`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({ title: "Usage Reset", description: "User monthly usage counts have been reset." });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({ title: 'Usage Reset', description: 'User monthly usage counts have been reset.' });
       closeDialog();
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to reset usage", variant: "destructive" });
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to reset usage',
+        variant: 'destructive',
+      });
     },
   });
 
   const closeDialog = () => {
     setSelectedUser(null);
     setDialogAction(null);
-    setNewStatus("");
-    setNewTier("");
+    setNewStatus('');
+    setNewTier('');
     setNewIsAdmin(false);
   };
 
   const openStatusDialog = (user: UserMetadata) => {
     setSelectedUser(user);
     setNewStatus(user.status);
-    setDialogAction("status");
+    setDialogAction('status');
   };
 
   const openTierDialog = (user: UserMetadata) => {
     setSelectedUser(user);
     setNewTier(user.subscriptionTier);
-    setDialogAction("tier");
+    setDialogAction('tier');
   };
 
   const openRoleDialog = (user: UserMetadata) => {
     setSelectedUser(user);
     setNewIsAdmin(user.isAdmin);
-    setDialogAction("role");
+    setDialogAction('role');
   };
 
   const openResetDialog = (user: UserMetadata) => {
     setSelectedUser(user);
-    setDialogAction("reset");
+    setDialogAction('reset');
   };
 
   const handleConfirmAction = () => {
     if (!selectedUser) return;
 
     switch (dialogAction) {
-      case "status":
+      case 'status':
         updateStatusMutation.mutate({ userId: selectedUser.id, status: newStatus });
         break;
-      case "tier":
+      case 'tier':
         updateTierMutation.mutate({ userId: selectedUser.id, tier: newTier });
         break;
-      case "role":
+      case 'role':
         updateRoleMutation.mutate({ userId: selectedUser.id, isAdmin: newIsAdmin });
         break;
-      case "reset":
+      case 'reset':
         resetUsageMutation.mutate({ userId: selectedUser.id });
         break;
     }
   };
 
-  const filteredUsers = data?.users?.filter((u) => {
-    const matchesSearch =
-      u.email.toLowerCase().includes(deferredSearchQuery.toLowerCase()) ||
-      u.fullName.toLowerCase().includes(deferredSearchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || u.status === statusFilter;
-    const matchesTier = tierFilter === "all" || u.subscriptionTier === tierFilter;
-    return matchesSearch && matchesStatus && matchesTier;
-  }) || [];
+  const filteredUsers =
+    data?.users?.filter((u) => {
+      const matchesSearch =
+        u.email.toLowerCase().includes(deferredSearchQuery.toLowerCase()) ||
+        u.fullName.toLowerCase().includes(deferredSearchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
+      const matchesTier = tierFilter === 'all' || u.subscriptionTier === tierFilter;
+      return matchesSearch && matchesStatus && matchesTier;
+    }) || [];
 
   const exportUsers = () => {
     if (!filteredUsers || filteredUsers.length === 0) return;
-    const headers = ["Name", "Email", "Status", "Tier", "Role", "Cases", "Violations/mo", "Joined"];
+    const headers = ['Name', 'Email', 'Status', 'Tier', 'Role', 'Cases', 'Violations/mo', 'Joined'];
     const csvContent = [
-      headers.join(","),
-      ...filteredUsers.map(u => [
-        `"${u.fullName.replace(/"/g, '""')}"`,
-        `"${u.email.replace(/"/g, '""')}"`,
-        u.status,
-        u.subscriptionTier,
-        u.isAdmin ? "Admin" : "Client",
-        u.casesCount,
-        u.violationsCountThisMonth,
-        u.createdAt ? format(new Date(u.createdAt), "yyyy-MM-dd") : "N/A"
-      ].join(","))
-    ].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      headers.join(','),
+      ...filteredUsers.map((u) =>
+        [
+          `"${u.fullName.replace(/"/g, '""')}"`,
+          `"${u.email.replace(/"/g, '""')}"`,
+          u.status,
+          u.subscriptionTier,
+          u.isAdmin ? 'Admin' : 'Client',
+          u.casesCount,
+          u.violationsCountThisMonth,
+          u.createdAt ? format(new Date(u.createdAt), 'yyyy-MM-dd') : 'N/A',
+        ].join(',')
+      ),
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `user_directory_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.download = `user_directory_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "active":
-        return <Badge variant="default" className="bg-green-600"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>;
-      case "suspended":
-        return <Badge variant="destructive"><Ban className="h-3 w-3 mr-1" />Suspended</Badge>;
-      case "pending":
+      case 'active':
+        return (
+          <Badge variant="default" className="bg-green-600">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Active
+          </Badge>
+        );
+      case 'suspended':
+        return (
+          <Badge variant="destructive">
+            <Ban className="h-3 w-3 mr-1" />
+            Suspended
+          </Badge>
+        );
+      case 'pending':
         return <Badge variant="secondary">Pending</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
@@ -203,14 +271,14 @@ export default function AdminUsers() {
 
   const getTierBadge = (tier: string) => {
     const tierColors: Record<string, string> = {
-      free: "bg-gray-500",
-      individual: "bg-blue-500",
-      pro: "bg-purple-500",
-      team: "bg-orange-500",
-      enterprise: "bg-yellow-600",
+      free: 'bg-gray-500',
+      individual: 'bg-blue-500',
+      pro: 'bg-purple-500',
+      team: 'bg-orange-500',
+      enterprise: 'bg-yellow-600',
     };
     return (
-      <Badge className={tierColors[tier] || "bg-gray-500"}>
+      <Badge className={tierColors[tier] || 'bg-gray-500'}>
         {tier.charAt(0).toUpperCase() + tier.slice(1)}
       </Badge>
     );
@@ -245,7 +313,12 @@ export default function AdminUsers() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportUsers} disabled={filteredUsers.length === 0}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportUsers}
+            disabled={filteredUsers.length === 0}
+          >
             <Download className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Export CSV</span>
           </Button>
@@ -260,7 +333,8 @@ export default function AdminUsers() {
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">User Directory</CardTitle>
           <CardDescription>
-            View and manage all registered users. Documents and private data are not visible to admins.
+            View and manage all registered users. Documents and private data are not visible to
+            admins.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -333,9 +407,7 @@ export default function AdminUsers() {
                           <div>
                             <div className="font-medium flex items-center gap-2">
                               {u.fullName}
-                              {u.isAdmin && (
-                                <Crown className="h-4 w-4 text-yellow-500" />
-                              )}
+                              {u.isAdmin && <Crown className="h-4 w-4 text-yellow-500" />}
                             </div>
                             <div className="text-sm text-muted-foreground">{u.email}</div>
                           </div>
@@ -361,7 +433,7 @@ export default function AdminUsers() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {u.createdAt ? format(new Date(u.createdAt), "MMM d, yyyy") : "N/A"}
+                          {u.createdAt ? format(new Date(u.createdAt), 'MMM d, yyyy') : 'N/A'}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1 flex-wrap">
@@ -415,10 +487,10 @@ export default function AdminUsers() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {dialogAction === "status" && "Update User Status"}
-              {dialogAction === "tier" && "Update Subscription Tier"}
-              {dialogAction === "role" && "Update Admin Role"}
-              {dialogAction === "reset" && "Reset Usage Counts"}
+              {dialogAction === 'status' && 'Update User Status'}
+              {dialogAction === 'tier' && 'Update Subscription Tier'}
+              {dialogAction === 'role' && 'Update Admin Role'}
+              {dialogAction === 'reset' && 'Reset Usage Counts'}
             </DialogTitle>
             <DialogDescription>
               {selectedUser && (
@@ -430,7 +502,7 @@ export default function AdminUsers() {
           </DialogHeader>
 
           <div className="py-4">
-            {dialogAction === "status" && (
+            {dialogAction === 'status' && (
               <Select value={newStatus} onValueChange={setNewStatus}>
                 <SelectTrigger data-testid="select-new-status">
                   <SelectValue placeholder="Select status" />
@@ -443,7 +515,7 @@ export default function AdminUsers() {
               </Select>
             )}
 
-            {dialogAction === "tier" && (
+            {dialogAction === 'tier' && (
               <Select value={newTier} onValueChange={setNewTier}>
                 <SelectTrigger data-testid="select-new-tier">
                   <SelectValue placeholder="Select tier" />
@@ -458,14 +530,14 @@ export default function AdminUsers() {
               </Select>
             )}
 
-            {dialogAction === "role" && (
+            {dialogAction === 'role' && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Admins can manage users, permissions, and plans but cannot see user documents.
                 </p>
                 <Select
-                  value={newIsAdmin ? "admin" : "client"}
-                  onValueChange={(v) => setNewIsAdmin(v === "admin")}
+                  value={newIsAdmin ? 'admin' : 'client'}
+                  onValueChange={(v) => setNewIsAdmin(v === 'admin')}
                 >
                   <SelectTrigger data-testid="select-new-role">
                     <SelectValue placeholder="Select role" />
@@ -478,10 +550,10 @@ export default function AdminUsers() {
               </div>
             )}
 
-            {dialogAction === "reset" && (
+            {dialogAction === 'reset' && (
               <p className="text-sm text-muted-foreground">
-                This will reset the user's monthly violation count and usage metrics to zero.
-                This action cannot be undone.
+                This will reset the user's monthly violation count and usage metrics to zero. This
+                action cannot be undone.
               </p>
             )}
           </div>
@@ -503,9 +575,7 @@ export default function AdminUsers() {
               {(updateStatusMutation.isPending ||
                 updateTierMutation.isPending ||
                 updateRoleMutation.isPending ||
-                resetUsageMutation.isPending) && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+                resetUsageMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirm
             </Button>
           </DialogFooter>

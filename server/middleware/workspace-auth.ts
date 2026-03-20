@@ -18,11 +18,7 @@ declare global {
  * Middleware to load workspace context from header or route params
  * Verifies user has access to the workspace
  */
-export const loadWorkspaceContext = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const loadWorkspaceContext = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' });
   }
@@ -108,11 +104,7 @@ export const requireWorkspaceType = (requiredType: 'consumer' | 'firm') => {
 /**
  * Middleware to load matter context and verify access
  */
-export const loadMatterContext = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const loadMatterContext = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' });
   }
@@ -209,14 +201,17 @@ export const requireMatterPermission = (permission: keyof MatterContext['permiss
 /**
  * Middleware to check entitlements before action
  */
-export const checkEntitlement = (action: 'create_matter' | 'add_seat' | 'consume_ai_credits' | 'upload_file') => {
+export const checkEntitlement = (
+  action: 'create_matter' | 'add_seat' | 'consume_ai_credits' | 'upload_file'
+) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (!req.workspace) {
       return res.status(403).json({ error: 'Workspace context required' });
     }
 
     try {
-      const { resolveEntitlements, canPerformAction } = await import('../services/entitlements.service');
+      const { resolveEntitlements, canPerformAction } =
+        await import('../services/entitlements.service');
 
       const entitlements = await resolveEntitlements(req.workspace.id);
       const check = canPerformAction(entitlements, action);
@@ -240,10 +235,7 @@ export const checkEntitlement = (action: 'create_matter' | 'add_seat' | 'consume
 /**
  * Convenience middleware combos
  */
-export const requireWorkspaceOwner = [
-  loadWorkspaceContext,
-  requireWorkspaceRole(['owner']),
-];
+export const requireWorkspaceOwner = [loadWorkspaceContext, requireWorkspaceRole(['owner'])];
 
 export const requireWorkspaceAdmin = [
   loadWorkspaceContext,
@@ -255,12 +247,6 @@ export const requireWorkspaceStaff = [
   requireWorkspaceRole(['owner', 'admin', 'staff']),
 ];
 
-export const requireFirmWorkspace = [
-  loadWorkspaceContext,
-  requireWorkspaceType('firm'),
-];
+export const requireFirmWorkspace = [loadWorkspaceContext, requireWorkspaceType('firm')];
 
-export const requireConsumerWorkspace = [
-  loadWorkspaceContext,
-  requireWorkspaceType('consumer'),
-];
+export const requireConsumerWorkspace = [loadWorkspaceContext, requireWorkspaceType('consumer')];

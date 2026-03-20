@@ -14,8 +14,16 @@ export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Public routes that don't require auth
-  const publicRoutes = ['/', '/auth/login', '/auth/signup', '/auth/callback', '/auth/reset-password'];
-  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith('/api/health'));
+  const publicRoutes = [
+    '/',
+    '/auth/login',
+    '/auth/signup',
+    '/auth/callback',
+    '/auth/reset-password',
+  ];
+  const isPublicRoute = publicRoutes.some(
+    (route) => pathname === route || pathname.startsWith('/api/health')
+  );
 
   // Redirect logged-in users away from auth pages
   if (session && pathname.startsWith('/auth/') && pathname !== '/auth/callback') {
@@ -44,7 +52,10 @@ export async function proxy(req: NextRequest) {
 
     // Super Admin routes
     if (pathname.startsWith('/superadmin')) {
-      if (!profile?.platform_role || !['super_admin', 'support_admin'].includes(profile.platform_role)) {
+      if (
+        !profile?.platform_role ||
+        !['super_admin', 'support_admin'].includes(profile.platform_role)
+      ) {
         return NextResponse.redirect(new URL('/', req.url));
       }
       return res;
@@ -121,7 +132,6 @@ export async function proxy(req: NextRequest) {
 
       return res;
     }
-
   } catch (error) {
     console.error('Proxy error:', error);
     // On error, redirect to login
@@ -132,7 +142,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|public/).*)'],
 };

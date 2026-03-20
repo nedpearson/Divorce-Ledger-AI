@@ -1,22 +1,26 @@
 # Appwrite M0 - Project Wiring Setup Guide
 
 ## Overview
+
 This document covers the complete Milestone M0 (Project Wiring) setup for the Appwrite integration in Divorce Ledger.
 
 ## 1. Environment Configuration
 
 ### Required Secrets (Replit Secrets Tab)
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
+
+| Secret Name        | Description                          | Example              |
+| ------------------ | ------------------------------------ | -------------------- |
 | `APPWRITE_API_KEY` | Server API key from Appwrite Console | `standard_abc123...` |
 
 ### Required Environment Variables (Replit Secrets Tab)
-| Variable Name | Description | Value |
-|---------------|-------------|-------|
-| `APPWRITE_ENDPOINT` | Appwrite Cloud or self-hosted endpoint | `https://nyc.cloud.appwrite.io/v1` |
-| `APPWRITE_PROJECT_ID` | Your Appwrite project ID | `696dc1cb0033cf776b3b` |
+
+| Variable Name         | Description                            | Value                              |
+| --------------------- | -------------------------------------- | ---------------------------------- |
+| `APPWRITE_ENDPOINT`   | Appwrite Cloud or self-hosted endpoint | `https://nyc.cloud.appwrite.io/v1` |
+| `APPWRITE_PROJECT_ID` | Your Appwrite project ID               | `696dc1cb0033cf776b3b`             |
 
 ### Current Configuration Status
+
 - APPWRITE_ENDPOINT: https://nyc.cloud.appwrite.io/v1
 - APPWRITE_PROJECT_ID: 696dc1cb0033cf776b3b
 - APPWRITE_API_KEY: (stored as secret)
@@ -24,6 +28,7 @@ This document covers the complete Milestone M0 (Project Wiring) setup for the Ap
 ## 2. Package Dependencies
 
 ### NPM Packages (package.json)
+
 ```json
 {
   "appwrite": "^21.5.0",
@@ -32,6 +37,7 @@ This document covers the complete Milestone M0 (Project Wiring) setup for the Ap
 ```
 
 Both packages are installed:
+
 - `appwrite` - Client-side SDK (for potential frontend Realtime subscriptions)
 - `node-appwrite` - Server-side SDK (for all backend operations)
 
@@ -40,6 +46,7 @@ Both packages are installed:
 ### File: `server/services/appwrite/client.ts`
 
 The client exports:
+
 - `initializeAppwrite()` - Initialize the SDK with environment variables
 - `isAppwriteConfigured()` - Check if all required env vars are set
 - `databases` - Appwrite Databases service
@@ -48,26 +55,34 @@ The client exports:
 - `ID`, `Query`, `Permission`, `Role` - Utility exports
 
 ### Constants
+
 ```typescript
-DATABASE_ID = 'divorce_ledger_db'
-STORAGE_BUCKET_ID = 'document_files'
+DATABASE_ID = 'divorce_ledger_db';
+STORAGE_BUCKET_ID = 'document_files';
 
 COLLECTIONS = {
   FILES: 'files',
   ANALYSIS_RUNS: 'analysis_runs',
   CATEGORIES: 'categories',
-  USER_OVERRIDES: 'user_overrides'
-}
+  USER_OVERRIDES: 'user_overrides',
+};
 
 FILE_STATUS = {
-  UPLOADED, QUEUED, EXTRACTING, ANALYZING,
-  SUGGESTED, AWAITING_USER, FINALIZED, ERROR
-}
+  UPLOADED,
+  QUEUED,
+  EXTRACTING,
+  ANALYZING,
+  SUGGESTED,
+  AWAITING_USER,
+  FINALIZED,
+  ERROR,
+};
 ```
 
 ## 4. Verification Checklist
 
 ### A. Appwrite Console Verification
+
 1. **Login to Appwrite Console**: https://cloud.appwrite.io
 2. **Select Project**: Navigate to project `696dc1cb0033cf776b3b`
 
@@ -97,6 +112,7 @@ FILE_STATUS = {
      - buckets.read, buckets.write
 
 ### B. Replit Console Commands
+
 Run these commands in the Replit Shell to verify the setup:
 
 ```bash
@@ -146,35 +162,42 @@ curl -s http://localhost:5000/api/appwrite/files \
 ### Common Issues
 
 **Issue: "Missing required environment variable"**
+
 - Ensure all three variables are set in Replit Secrets tab
 - Restart the workflow after adding secrets
 
 **Issue: "401 Unauthorized" from Appwrite**
+
 - Verify API key has correct scopes
 - Check API key hasn't expired
 - Ensure endpoint URL includes `/v1` suffix
 
 **Issue: "Database not found"**
+
 - Run setup script: `npx tsx server/services/appwrite/setup.ts`
 - Check Appwrite Console for database creation errors
 
 **Issue: "Storage bucket not found"**
+
 - Run setup script to create bucket
 - Verify bucket ID matches `document_files`
 
 ## 6. Security Notes
 
 ### Production Authentication
+
 - In production (`NODE_ENV=production`), all file endpoints require session authentication
 - Returns 401 Unauthorized if no session exists
 - No demo-user fallback in production
 
 ### Development Mode
+
 - Allows `X-User-Id` header override for testing
 - Falls back to `demo-user` if no header provided
 - Only active when `NODE_ENV=development`
 
 ### File Access Control
+
 - All file operations validate ownership (`file.userId === requestUserId`)
 - Returns 403 Forbidden for cross-tenant access attempts
 - Returns 404 for non-existent files
@@ -195,6 +218,7 @@ server/routes/
 ## 8. Next Steps (M1+)
 
 After M0 verification is complete:
+
 - M1: Frontend document upload UI
 - M2: Real-time status updates via Appwrite Realtime
 - M3: AI analysis queue processing

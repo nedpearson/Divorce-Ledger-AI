@@ -2,17 +2,17 @@
 
 ## Overview
 
-This directory contains production-ready Supabase Edge Functions  for the Divorce Ledger AI platform. Edge Functions run on Deno Deploy and provide server-side logic close to users.
+This directory contains production-ready Supabase Edge Functions for the Divorce Ledger AI platform. Edge Functions run on Deno Deploy and provide server-side logic close to users.
 
 ## Available Functions
 
-| Function | Purpose | Trigger |
-|----------|---------|---------|
-| `process-upload` | Validates uploads, creates jobs, triggers workflows | HTTP POST after file upload |
-| `classify-document` | AI-powered document classification | Job queue or HTTP POST |
-| `generate-thumbnail` | Creates document preview images | Job queue |
-| `sync-integrations` | Syncs with external services | Scheduled or HTTP POST |
-| `audit-log` | Centralizes audit logging | HTTP POST from backend |
+| Function             | Purpose                                             | Trigger                     |
+| -------------------- | --------------------------------------------------- | --------------------------- |
+| `process-upload`     | Validates uploads, creates jobs, triggers workflows | HTTP POST after file upload |
+| `classify-document`  | AI-powered document classification                  | Job queue or HTTP POST      |
+| `generate-thumbnail` | Creates document preview images                     | Job queue                   |
+| `sync-integrations`  | Syncs with external services                        | Scheduled or HTTP POST      |
+| `audit-log`          | Centralizes audit logging                           | HTTP POST from backend      |
 
 ## Prerequisites
 
@@ -112,45 +112,36 @@ if (error) {
 
 ```typescript
 // Trigger classification manually
-const { data, error } = await supabaseServiceRole.functions.invoke(
-  'classify-document',
-  {
-    body: {
-      document_id: documentId,
-      job_id: jobId, // Optional
-    },
-  }
-);
+const { data, error } = await supabaseServiceRole.functions.invoke('classify-document', {
+  body: {
+    document_id: documentId,
+    job_id: jobId, // Optional
+  },
+});
 ```
 
 ### 3. Generate Thumbnail
 
 ```typescript
 // Backend job worker calls this
-const { data, error } = await supabaseServiceRole.functions.invoke(
-  'generate-thumbnail',
-  {
-    body: {
-      document_id: documentId,
-      storage_path: 'user-id/doc-id/file.pdf',
-    },
-  }
-);
+const { data, error } = await supabaseServiceRole.functions.invoke('generate-thumbnail', {
+  body: {
+    document_id: documentId,
+    storage_path: 'user-id/doc-id/file.pdf',
+  },
+});
 ```
 
 ### 4. Sync Integrations (Scheduled via cron)
 
 ```typescript
 // Called by external cron job or Supabase scheduled function
-const { data, error } = await supabaseServiceRole.functions.invoke(
-  'sync-integrations',
-  {
-    body: {
-      integration_id: integrationId,
-      user_id: userId,
-    },
-  }
-);
+const { data, error } = await supabaseServiceRole.functions.invoke('sync-integrations', {
+  body: {
+    integration_id: integrationId,
+    user_id: userId,
+  },
+});
 ```
 
 ### 5. Audit Log (Centralized logging)
@@ -184,14 +175,17 @@ supabase functions logs process-upload --project-ref your-project-ref
 ### Common Issues
 
 #### Issue: Function times out
+
 - **Cause**: Operation taking > 30 seconds
 - **Solution**: Break into smaller chunks, use job queue for long operations
 
 #### Issue: CORS errors
+
 - **Cause**: Missing CORS headers
 - **Solution**: Ensure corsHeaders are returned in all responses including errors
 
 #### Issue: Service role key not working
+
 - **Cause**: Using anon key instead of service role key
 - **Solution**: Verify environment variables in Supabase dashboard
 
@@ -208,7 +202,7 @@ serve(async (req) => {
   if (!supabaseClient) {
     supabaseClient = createClient(/* ... */);
   }
-  
+
   // ... rest of handler
 });
 ```
@@ -217,10 +211,7 @@ serve(async (req) => {
 
 ```typescript
 // Process multiple items in one function call
-const { data: documents } = await supabase
-  .from('documents')
-  .select('*')
-  .in('id', documentIds);
+const { data: documents } = await supabase.from('documents').select('*').in('id', documentIds);
 
 for (const doc of documents) {
   await processDocument(doc);
@@ -241,11 +232,13 @@ for (const doc of documents) {
 ## Cost Optimization
 
 Edge Functions pricing (Supabase Pro plan):
+
 - First 500K requests/month: Free
 - Additional requests: $2 per 1M requests
 - Execution time: Free up to 400K GB-seconds/month
 
 Tips:
+
 - Batch operations to reduce function calls
 - Cache frequently accessed data
 - Use database functions for simple queries
@@ -269,12 +262,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
           version: latest
-      
+
       - name: Deploy Functions
         run: |
           supabase functions deploy process-upload \\
@@ -288,22 +281,26 @@ jobs:
 ## Troubleshooting Guide
 
 ### Logs show "Function not found"
+
 1. Verify function is deployed: `supabase functions list`
 2. Check function name spelling
 3. Ensure project-ref is correct
 
 ### Logs show "Unauthorized"
+
 1. Check Authorization header format: `Bearer <token>`
 2. Verify token is valid (not expired)
 3. For service operations, use service role key
 
 ### Logs show "Timeout"
+
 1. Check if operation is too slow
 2. Add progress logging to identify bottleneck
 3. Consider breaking into smaller operations
 4. Use job queue for long-running tasks
 
 ### Database queries fail
+
 1. Verify RLS policies allow service role
 2. Check database connection in logs
 3. Validate SQL syntax
@@ -318,6 +315,7 @@ jobs:
 ## Support
 
 For issues or questions:
+
 1. Check this README first
 2. Search Supabase Discord
 3. Create issue in project repository

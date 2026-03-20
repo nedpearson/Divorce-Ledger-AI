@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Plus,
   TrendingUp,
@@ -18,13 +18,13 @@ import {
   RefreshCw,
   Flame,
   Download,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -33,39 +33,39 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { FeedbackCTA } from "@/components/feedback-cta";
-import { FinancialExtractionDialog } from "@/components/financial-extraction-dialog";
-import type { Income, Expense, Asset, Debt } from "@shared/schema";
-import { useAuth } from "@/lib/auth";
-import { DrillDownValue } from "@/components/ui/drilldown-value";
-import { type DrilldownType } from "@/components/financial-drilldown-drawer";
-import { RecordDetailDrawer } from "@/components/record-detail-drawer";
+} from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { FeedbackCTA } from '@/components/feedback-cta';
+import { FinancialExtractionDialog } from '@/components/financial-extraction-dialog';
+import type { Income, Expense, Asset, Debt } from '@shared/schema';
+import { useAuth } from '@/lib/auth';
+import { DrillDownValue } from '@/components/ui/drilldown-value';
+import { type DrilldownType } from '@/components/financial-drilldown-drawer';
+import { RecordDetailDrawer } from '@/components/record-detail-drawer';
 
-type RecordType = "income" | "expense" | "asset" | "debt";
+type RecordType = 'income' | 'expense' | 'asset' | 'debt';
 type FinancialRecord = Income | Expense | Asset | Debt;
 
 function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(cents / 100);
@@ -96,17 +96,17 @@ function IncomeTab({ onRecordClick }: TabProps) {
   const { user, environment } = useAuth();
 
   const { data: incomes, isLoading } = useQuery<Income[]>({
-    queryKey: ["/api", "incomes", { environment, userId: user?.id }],
+    queryKey: ['/api', 'incomes', { environment, userId: user?.id }],
   });
 
   const { data: fireflyStatus } = useQuery<IncomeFireflyStatus>({
-    queryKey: ["/api", "firefly", "status", { environment, userId: user?.id }],
+    queryKey: ['/api', 'firefly', 'status', { environment, userId: user?.id }],
     queryFn: async () => {
-      const res = await fetch("/api/firefly/status", {
-        credentials: "include",
+      const res = await fetch('/api/firefly/status', {
+        credentials: 'include',
         headers: {
-          "X-Environment": environment,
-          "X-User-Id": user?.id || "",
+          'X-Environment': environment,
+          'X-User-Id': user?.id || '',
         },
       });
       if (!res.ok) return { connected: false, instanceUrl: null, autoSyncEnabled: false };
@@ -115,13 +115,13 @@ function IncomeTab({ onRecordClick }: TabProps) {
   });
 
   const { data: syncLogs } = useQuery<IncomeFireflySyncLog[]>({
-    queryKey: ["/api", "firefly", "sync-logs", { environment, userId: user?.id }],
+    queryKey: ['/api', 'firefly', 'sync-logs', { environment, userId: user?.id }],
     queryFn: async () => {
-      const res = await fetch("/api/firefly/sync-logs", {
-        credentials: "include",
+      const res = await fetch('/api/firefly/sync-logs', {
+        credentials: 'include',
         headers: {
-          "X-Environment": environment,
-          "X-User-Id": user?.id || "",
+          'X-Environment': environment,
+          'X-User-Id': user?.id || '',
         },
       });
       if (!res.ok) return [];
@@ -134,61 +134,64 @@ function IncomeTab({ onRecordClick }: TabProps) {
     mutationFn: async (incomeId: string) => {
       setSyncingIncomeId(incomeId);
       const res = await fetch(`/api/firefly/sync/income/${incomeId}`, {
-        method: "POST",
-        credentials: "include",
+        method: 'POST',
+        credentials: 'include',
         headers: {
-          "X-Environment": environment,
-          "X-User-Id": user?.id || "",
+          'X-Environment': environment,
+          'X-User-Id': user?.id || '',
         },
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to sync");
+        throw new Error(data.error || 'Failed to sync');
       }
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api", "firefly", "sync-logs", { environment, userId: user?.id }] });
-      toast({ title: "Income synced to Firefly III" });
+      queryClient.invalidateQueries({
+        queryKey: ['/api', 'firefly', 'sync-logs', { environment, userId: user?.id }],
+      });
+      toast({ title: 'Income synced to Firefly III' });
       setSyncingIncomeId(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Sync failed", description: error.message, variant: "destructive" });
+      toast({ title: 'Sync failed', description: error.message, variant: 'destructive' });
       setSyncingIncomeId(null);
     },
   });
 
   const addIncome = useMutation({
     mutationFn: async (data: Partial<Income>) => {
-      return apiRequest("POST", "/api/incomes", data);
+      return apiRequest('POST', '/api/incomes', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api", "incomes"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api', 'incomes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       setIsAddOpen(false);
-      toast({ title: "Income source added successfully" });
+      toast({ title: 'Income source added successfully' });
     },
   });
 
   const deleteIncome = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/incomes/${id}`);
+      return apiRequest('DELETE', `/api/incomes/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api", "incomes"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      toast({ title: "Income source removed" });
+      queryClient.invalidateQueries({ queryKey: ['/api', 'incomes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      toast({ title: 'Income source removed' });
     },
   });
 
   const getIncomeSyncStatus = (incomeId: string) => {
     if (!syncLogs) return null;
-    const log = syncLogs.find(log => log.sourceType === "income" && log.sourceId === incomeId);
-    return log && log.status === "success" ? log : null;
+    const log = syncLogs.find((log) => log.sourceType === 'income' && log.sourceId === incomeId);
+    return log && log.status === 'success' ? log : null;
   };
 
   const totalIncome = incomes?.reduce((sum, i) => sum + i.amount, 0) || 0;
-  const yourIncome = incomes?.filter((i) => i.owner === "you").reduce((sum, i) => sum + i.amount, 0) || 0;
+  const yourIncome =
+    incomes?.filter((i) => i.owner === 'you').reduce((sum, i) => sum + i.amount, 0) || 0;
 
   if (isLoading) {
     return (
@@ -217,10 +220,12 @@ function IncomeTab({ onRecordClick }: TabProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-sm font-medium truncate">
-                      {income.source} ({income.owner === "you" ? "Your" : "Spouse"})
+                      {income.source} ({income.owner === 'you' ? 'Your' : 'Spouse'})
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold tabular-nums">{formatCurrency(income.amount)}/mo</span>
+                      <span className="text-sm font-semibold tabular-nums">
+                        {formatCurrency(income.amount)}/mo
+                      </span>
                       {income.verified ? (
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
                       ) : (
@@ -231,11 +236,11 @@ function IncomeTab({ onRecordClick }: TabProps) {
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2 flex-wrap">
                     <div className="flex items-center gap-1">
                       <Building2 className="h-3 w-3" />
-                      <span>{income.vendor || "Not specified"}</span>
+                      <span>{income.vendor || 'Not specified'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      <span>{income.startDate || "No date"}</span>
+                      <span>{income.startDate || 'No date'}</span>
                     </div>
                     {income.documentId && (
                       <div className="flex items-center gap-1 text-primary">
@@ -250,15 +255,17 @@ function IncomeTab({ onRecordClick }: TabProps) {
                       </Badge>
                     )}
                   </div>
-                  <Progress
-                    value={(income.amount / totalIncome) * 100}
-                    className="h-2"
-                  />
+                  <Progress value={(income.amount / totalIncome) * 100} className="h-2" />
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" data-testid={`button-income-menu-${income.id}`} onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      data-testid={`button-income-menu-${income.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -315,13 +322,21 @@ function IncomeTab({ onRecordClick }: TabProps) {
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">TOTAL</span>
                 <span className="font-semibold tabular-nums">
-                  <DrillDownValue type="income" title="Monthly Income" value={`${formatCurrency(totalIncome)}/mo`} />
+                  <DrillDownValue
+                    type="income"
+                    title="Monthly Income"
+                    value={`${formatCurrency(totalIncome)}/mo`}
+                  />
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground mt-1">
                 <span>Your Portion</span>
                 <span className="tabular-nums">
-                  <DrillDownValue type="income" title="Your Income" value={`${formatCurrency(yourIncome)}/mo`} />
+                  <DrillDownValue
+                    type="income"
+                    title="Your Income"
+                    value={`${formatCurrency(yourIncome)}/mo`}
+                  />
                 </span>
               </div>
             </div>
@@ -345,25 +360,38 @@ function IncomeTab({ onRecordClick }: TabProps) {
                 onSubmit={(e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
-                  const dollarAmount = parseFloat(formData.get("amount") as string) || 0;
+                  const dollarAmount = parseFloat(formData.get('amount') as string) || 0;
                   addIncome.mutate({
-                    source: formData.get("source") as string,
+                    source: formData.get('source') as string,
                     amount: Math.round(dollarAmount * 100),
-                    frequency: formData.get("frequency") as string,
-                    owner: formData.get("owner") as string,
+                    frequency: formData.get('frequency') as string,
+                    owner: formData.get('owner') as string,
                     verified: false,
-                    userId: "demo-user",
+                    userId: 'demo-user',
                   });
                 }}
               >
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label htmlFor="source">Source</Label>
-                    <Input id="source" name="source" placeholder="e.g., Salary, Bonus, Rental" required data-testid="input-income-source" />
+                    <Input
+                      id="source"
+                      name="source"
+                      placeholder="e.g., Salary, Bonus, Rental"
+                      required
+                      data-testid="input-income-source"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="amount">Amount (Monthly)</Label>
-                    <Input id="amount" name="amount" type="number" placeholder="5000" required data-testid="input-income-amount" />
+                    <Input
+                      id="amount"
+                      name="amount"
+                      type="number"
+                      placeholder="5000"
+                      required
+                      data-testid="input-income-amount"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="frequency">Frequency</Label>
@@ -396,7 +424,11 @@ function IncomeTab({ onRecordClick }: TabProps) {
                   <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={addIncome.isPending} data-testid="button-submit-income">
+                  <Button
+                    type="submit"
+                    disabled={addIncome.isPending}
+                    data-testid="button-submit-income"
+                  >
                     {addIncome.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Add Income
                   </Button>
@@ -431,28 +463,28 @@ function ExpensesTab({ onRecordClick }: TabProps) {
   const { user, environment } = useAuth();
 
   const { data: expenses, isLoading } = useQuery<Expense[]>({
-    queryKey: ["/api", "expenses", { environment, userId: user?.id }],
+    queryKey: ['/api', 'expenses', { environment, userId: user?.id }],
     queryFn: async () => {
-      const res = await fetch("/api/expenses", {
-        credentials: "include",
+      const res = await fetch('/api/expenses', {
+        credentials: 'include',
         headers: {
-          "X-Environment": environment,
-          "X-User-Id": user?.id || "",
+          'X-Environment': environment,
+          'X-User-Id': user?.id || '',
         },
       });
-      if (!res.ok) throw new Error("Failed to fetch expenses");
+      if (!res.ok) throw new Error('Failed to fetch expenses');
       return res.json();
     },
   });
 
   const { data: fireflyStatus } = useQuery<FireflyStatus>({
-    queryKey: ["/api", "firefly", "status", { environment, userId: user?.id }],
+    queryKey: ['/api', 'firefly', 'status', { environment, userId: user?.id }],
     queryFn: async () => {
-      const res = await fetch("/api/firefly/status", {
-        credentials: "include",
+      const res = await fetch('/api/firefly/status', {
+        credentials: 'include',
         headers: {
-          "X-Environment": environment,
-          "X-User-Id": user?.id || "",
+          'X-Environment': environment,
+          'X-User-Id': user?.id || '',
         },
       });
       if (!res.ok) return { connected: false, instanceUrl: null, autoSyncEnabled: false };
@@ -461,13 +493,13 @@ function ExpensesTab({ onRecordClick }: TabProps) {
   });
 
   const { data: syncLogs } = useQuery<FireflySyncLog[]>({
-    queryKey: ["/api", "firefly", "sync-logs", { environment, userId: user?.id }],
+    queryKey: ['/api', 'firefly', 'sync-logs', { environment, userId: user?.id }],
     queryFn: async () => {
-      const res = await fetch("/api/firefly/sync-logs", {
-        credentials: "include",
+      const res = await fetch('/api/firefly/sync-logs', {
+        credentials: 'include',
         headers: {
-          "X-Environment": environment,
-          "X-User-Id": user?.id || "",
+          'X-Environment': environment,
+          'X-User-Id': user?.id || '',
         },
       });
       if (!res.ok) return [];
@@ -480,57 +512,59 @@ function ExpensesTab({ onRecordClick }: TabProps) {
     mutationFn: async (expenseId: string) => {
       setSyncingExpenseId(expenseId);
       const res = await fetch(`/api/firefly/sync/expense/${expenseId}`, {
-        method: "POST",
-        credentials: "include",
+        method: 'POST',
+        credentials: 'include',
         headers: {
-          "X-Environment": environment,
-          "X-User-Id": user?.id || "",
+          'X-Environment': environment,
+          'X-User-Id': user?.id || '',
         },
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to sync");
+        throw new Error(data.error || 'Failed to sync');
       }
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api", "firefly", "sync-logs", { environment, userId: user?.id }] });
-      toast({ title: "Synced to Firefly III" });
+      queryClient.invalidateQueries({
+        queryKey: ['/api', 'firefly', 'sync-logs', { environment, userId: user?.id }],
+      });
+      toast({ title: 'Synced to Firefly III' });
       setSyncingExpenseId(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Sync failed", description: error.message, variant: "destructive" });
+      toast({ title: 'Sync failed', description: error.message, variant: 'destructive' });
       setSyncingExpenseId(null);
     },
   });
 
   const addExpense = useMutation({
     mutationFn: async (data: Partial<Expense>) => {
-      return apiRequest("POST", "/api/expenses", data);
+      return apiRequest('POST', '/api/expenses', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api", "expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api', 'expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       setIsAddOpen(false);
-      toast({ title: "Expense added successfully" });
+      toast({ title: 'Expense added successfully' });
     },
   });
 
   const deleteExpense = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/expenses/${id}`);
+      return apiRequest('DELETE', `/api/expenses/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api", "expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      toast({ title: "Expense removed" });
+      queryClient.invalidateQueries({ queryKey: ['/api', 'expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      toast({ title: 'Expense removed' });
     },
   });
 
   const getSyncStatus = (expenseId: string) => {
     if (!syncLogs) return null;
-    const log = syncLogs.find(log => log.sourceType === "expense" && log.sourceId === expenseId);
-    return log && log.status === "success" ? log : null;
+    const log = syncLogs.find((log) => log.sourceType === 'expense' && log.sourceId === expenseId);
+    return log && log.status === 'success' ? log : null;
   };
 
   const totalExpenses = expenses?.reduce((sum, e) => sum + e.amount, 0) || 0;
@@ -562,17 +596,19 @@ function ExpensesTab({ onRecordClick }: TabProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="text-sm font-medium">{expense.category}</span>
-                    <span className="text-sm font-semibold tabular-nums">{formatCurrency(expense.amount)}/mo</span>
+                    <span className="text-sm font-semibold tabular-nums">
+                      {formatCurrency(expense.amount)}/mo
+                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground mb-2">{expense.description}</p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2 flex-wrap">
                     <div className="flex items-center gap-1">
                       <Building2 className="h-3 w-3" />
-                      <span>{expense.vendor || "Not specified"}</span>
+                      <span>{expense.vendor || 'Not specified'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      <span>{expense.startDate || "No date"}</span>
+                      <span>{expense.startDate || 'No date'}</span>
                     </div>
                     {expense.documentId && (
                       <div className="flex items-center gap-1 text-primary">
@@ -587,15 +623,17 @@ function ExpensesTab({ onRecordClick }: TabProps) {
                       </Badge>
                     )}
                   </div>
-                  <Progress
-                    value={(expense.amount / totalExpenses) * 100}
-                    className="h-2"
-                  />
+                  <Progress value={(expense.amount / totalExpenses) * 100} className="h-2" />
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" data-testid={`button-expense-menu-${expense.id}`} onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      data-testid={`button-expense-menu-${expense.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -652,7 +690,11 @@ function ExpensesTab({ onRecordClick }: TabProps) {
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">TOTAL EXPENSES</span>
                 <span className="font-semibold tabular-nums">
-                  <DrillDownValue type="expenses" title="Monthly Expenses" value={`${formatCurrency(totalExpenses)}/mo`} />
+                  <DrillDownValue
+                    type="expenses"
+                    title="Monthly Expenses"
+                    value={`${formatCurrency(totalExpenses)}/mo`}
+                  />
                 </span>
               </div>
             </div>
@@ -668,24 +710,22 @@ function ExpensesTab({ onRecordClick }: TabProps) {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add Expense</DialogTitle>
-                <DialogDescription>
-                  Add a new expense to track your spending.
-                </DialogDescription>
+                <DialogDescription>Add a new expense to track your spending.</DialogDescription>
               </DialogHeader>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
-                  const dollarAmount = parseFloat(formData.get("amount") as string) || 0;
+                  const dollarAmount = parseFloat(formData.get('amount') as string) || 0;
                   addExpense.mutate({
-                    category: formData.get("category") as string,
-                    description: formData.get("description") as string,
+                    category: formData.get('category') as string,
+                    description: formData.get('description') as string,
                     amount: Math.round(dollarAmount * 100),
-                    frequency: formData.get("frequency") as string,
-                    owner: formData.get("owner") as string,
-                    vendor: formData.get("vendor") as string,
-                    startDate: formData.get("startDate") as string,
-                    userId: "demo-user",
+                    frequency: formData.get('frequency') as string,
+                    owner: formData.get('owner') as string,
+                    vendor: formData.get('vendor') as string,
+                    startDate: formData.get('startDate') as string,
+                    userId: 'demo-user',
                   });
                 }}
               >
@@ -713,12 +753,25 @@ function ExpensesTab({ onRecordClick }: TabProps) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="description">Description</Label>
-                    <Input id="description" name="description" placeholder="e.g., Monthly rent payment" required data-testid="input-expense-description" />
+                    <Input
+                      id="description"
+                      name="description"
+                      placeholder="e.g., Monthly rent payment"
+                      required
+                      data-testid="input-expense-description"
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="amount">Amount ($)</Label>
-                      <Input id="amount" name="amount" type="number" placeholder="0" required data-testid="input-expense-amount" />
+                      <Input
+                        id="amount"
+                        name="amount"
+                        type="number"
+                        placeholder="0"
+                        required
+                        data-testid="input-expense-amount"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="frequency">Frequency</Label>
@@ -752,18 +805,32 @@ function ExpensesTab({ onRecordClick }: TabProps) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="vendor">Vendor/Payee</Label>
-                    <Input id="vendor" name="vendor" placeholder="e.g., ABC Property Management" data-testid="input-expense-vendor" />
+                    <Input
+                      id="vendor"
+                      name="vendor"
+                      placeholder="e.g., ABC Property Management"
+                      data-testid="input-expense-vendor"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="startDate">Start Date</Label>
-                    <Input id="startDate" name="startDate" type="date" data-testid="input-expense-date" />
+                    <Input
+                      id="startDate"
+                      name="startDate"
+                      type="date"
+                      data-testid="input-expense-date"
+                    />
                   </div>
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={addExpense.isPending} data-testid="button-submit-expense">
+                  <Button
+                    type="submit"
+                    disabled={addExpense.isPending}
+                    data-testid="button-submit-expense"
+                  >
                     {addExpense.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Add Expense
                   </Button>
@@ -783,29 +850,29 @@ function AssetsTab({ onRecordClick }: TabProps) {
   const { user, environment } = useAuth();
 
   const { data: assets, isLoading } = useQuery<Asset[]>({
-    queryKey: ["/api", "assets", { environment, userId: user?.id }],
+    queryKey: ['/api', 'assets', { environment, userId: user?.id }],
     queryFn: async () => {
-      const res = await fetch("/api/assets", {
-        credentials: "include",
+      const res = await fetch('/api/assets', {
+        credentials: 'include',
         headers: {
-          "X-Environment": environment,
-          "X-User-Id": user?.id || "",
+          'X-Environment': environment,
+          'X-User-Id': user?.id || '',
         },
       });
-      if (!res.ok) throw new Error("Failed to fetch assets");
+      if (!res.ok) throw new Error('Failed to fetch assets');
       return res.json();
     },
   });
 
   const addAsset = useMutation({
     mutationFn: async (data: Partial<Asset>) => {
-      return apiRequest("POST", "/api/assets", data);
+      return apiRequest('POST', '/api/assets', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api", "assets"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api', 'assets'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       setIsAddOpen(false);
-      toast({ title: "Asset added successfully" });
+      toast({ title: 'Asset added successfully' });
     },
   });
 
@@ -829,7 +896,11 @@ function AssetsTab({ onRecordClick }: TabProps) {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Total Assets</p>
             <p className="text-2xl font-semibold tabular-nums">
-              <DrillDownValue type="assets" title="Total Assets" value={formatCurrency(totalAssets)} />
+              <DrillDownValue
+                type="assets"
+                title="Total Assets"
+                value={formatCurrency(totalAssets)}
+              />
             </p>
           </CardContent>
         </Card>
@@ -837,7 +908,14 @@ function AssetsTab({ onRecordClick }: TabProps) {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Marital Assets</p>
             <p className="text-2xl font-semibold tabular-nums">
-              <DrillDownValue type="assets" title="Marital Assets" value={formatCurrency(assets?.filter((a) => a.ownership === "joint").reduce((s, a) => s + a.value, 0) || 0)} />
+              <DrillDownValue
+                type="assets"
+                title="Marital Assets"
+                value={formatCurrency(
+                  assets?.filter((a) => a.ownership === 'joint').reduce((s, a) => s + a.value, 0) ||
+                    0
+                )}
+              />
             </p>
           </CardContent>
         </Card>
@@ -845,7 +923,14 @@ function AssetsTab({ onRecordClick }: TabProps) {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Separate Assets</p>
             <p className="text-2xl font-semibold tabular-nums">
-              <DrillDownValue type="assets" title="Separate Assets" value={formatCurrency(assets?.filter((a) => a.ownership !== "joint").reduce((s, a) => s + a.value, 0) || 0)} />
+              <DrillDownValue
+                type="assets"
+                title="Separate Assets"
+                value={formatCurrency(
+                  assets?.filter((a) => a.ownership !== 'joint').reduce((s, a) => s + a.value, 0) ||
+                    0
+                )}
+              />
             </p>
           </CardContent>
         </Card>
@@ -873,11 +958,11 @@ function AssetsTab({ onRecordClick }: TabProps) {
                         <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
                           <div className="flex items-center gap-1">
                             <Building2 className="h-3 w-3" />
-                            <span>{asset.vendor || "Not specified"}</span>
+                            <span>{asset.vendor || 'Not specified'}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            <span>{asset.acquiredDate || "No date"}</span>
+                            <span>{asset.acquiredDate || 'No date'}</span>
                           </div>
                           {asset.documentId && (
                             <div className="flex items-center gap-1 text-primary">
@@ -922,30 +1007,34 @@ function AssetsTab({ onRecordClick }: TabProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Asset</DialogTitle>
-            <DialogDescription>
-              Add a new asset to track your net worth.
-            </DialogDescription>
+            <DialogDescription>Add a new asset to track your net worth.</DialogDescription>
           </DialogHeader>
           <form
             onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               addAsset.mutate({
-                name: formData.get("name") as string,
-                category: formData.get("category") as string,
-                value: parseInt(formData.get("value") as string),
-                ownership: formData.get("ownership") as string,
-                vendor: formData.get("vendor") as string,
-                acquiredDate: formData.get("acquiredDate") as string,
+                name: formData.get('name') as string,
+                category: formData.get('category') as string,
+                value: parseInt(formData.get('value') as string),
+                ownership: formData.get('ownership') as string,
+                vendor: formData.get('vendor') as string,
+                acquiredDate: formData.get('acquiredDate') as string,
                 verified: false,
-                userId: "demo-user",
+                userId: 'demo-user',
               });
             }}
           >
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Asset Name</Label>
-                <Input id="name" name="name" placeholder="e.g., Primary Residence" required data-testid="input-asset-name" />
+                <Input
+                  id="name"
+                  name="name"
+                  placeholder="e.g., Primary Residence"
+                  required
+                  data-testid="input-asset-name"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
@@ -967,7 +1056,14 @@ function AssetsTab({ onRecordClick }: TabProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="value">Value ($)</Label>
-                <Input id="value" name="value" type="number" placeholder="0" required data-testid="input-asset-value" />
+                <Input
+                  id="value"
+                  name="value"
+                  type="number"
+                  placeholder="0"
+                  required
+                  data-testid="input-asset-value"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ownership">Ownership</Label>
@@ -984,11 +1080,21 @@ function AssetsTab({ onRecordClick }: TabProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vendor">Institution/Location</Label>
-                <Input id="vendor" name="vendor" placeholder="e.g., First National Bank" data-testid="input-asset-vendor" />
+                <Input
+                  id="vendor"
+                  name="vendor"
+                  placeholder="e.g., First National Bank"
+                  data-testid="input-asset-vendor"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="acquiredDate">Acquired Date</Label>
-                <Input id="acquiredDate" name="acquiredDate" type="date" data-testid="input-asset-date" />
+                <Input
+                  id="acquiredDate"
+                  name="acquiredDate"
+                  type="date"
+                  data-testid="input-asset-date"
+                />
               </div>
             </div>
             <DialogFooter>
@@ -1013,29 +1119,29 @@ function DebtsTab({ onRecordClick }: TabProps) {
   const { user, environment } = useAuth();
 
   const { data: debts, isLoading } = useQuery<Debt[]>({
-    queryKey: ["/api", "debts", { environment, userId: user?.id }],
+    queryKey: ['/api', 'debts', { environment, userId: user?.id }],
     queryFn: async () => {
-      const res = await fetch("/api/debts", {
-        credentials: "include",
+      const res = await fetch('/api/debts', {
+        credentials: 'include',
         headers: {
-          "X-Environment": environment,
-          "X-User-Id": user?.id || "",
+          'X-Environment': environment,
+          'X-User-Id': user?.id || '',
         },
       });
-      if (!res.ok) throw new Error("Failed to fetch debts");
+      if (!res.ok) throw new Error('Failed to fetch debts');
       return res.json();
     },
   });
 
   const addDebt = useMutation({
     mutationFn: async (data: Partial<Debt>) => {
-      return apiRequest("POST", "/api/debts", data);
+      return apiRequest('POST', '/api/debts', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api", "debts"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api', 'debts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       setIsAddOpen(false);
-      toast({ title: "Debt added successfully" });
+      toast({ title: 'Debt added successfully' });
     },
   });
 
@@ -1066,7 +1172,11 @@ function DebtsTab({ onRecordClick }: TabProps) {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Monthly Payments</p>
             <p className="text-2xl font-semibold tabular-nums">
-              <DrillDownValue type="debts" title="Monthly Debt Payments" value={`${formatCurrency(totalMonthly)}/mo`} />
+              <DrillDownValue
+                type="debts"
+                title="Monthly Debt Payments"
+                value={`${formatCurrency(totalMonthly)}/mo`}
+              />
             </p>
           </CardContent>
         </Card>
@@ -1090,11 +1200,11 @@ function DebtsTab({ onRecordClick }: TabProps) {
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
                     <div className="flex items-center gap-1">
                       <Building2 className="h-3 w-3" />
-                      <span>{debt.vendor || "Not specified"}</span>
+                      <span>{debt.vendor || 'Not specified'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      <span>{debt.openedDate || "No date"}</span>
+                      <span>{debt.openedDate || 'No date'}</span>
                     </div>
                     {debt.documentId && (
                       <div className="flex items-center gap-1 text-primary">
@@ -1141,30 +1251,34 @@ function DebtsTab({ onRecordClick }: TabProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Debt</DialogTitle>
-            <DialogDescription>
-              Add a new debt to track your liabilities.
-            </DialogDescription>
+            <DialogDescription>Add a new debt to track your liabilities.</DialogDescription>
           </DialogHeader>
           <form
             onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               addDebt.mutate({
-                name: formData.get("name") as string,
-                category: formData.get("category") as string,
-                amount: parseInt(formData.get("amount") as string),
-                monthlyPayment: parseInt(formData.get("monthlyPayment") as string) || 0,
-                ownership: formData.get("ownership") as string,
-                vendor: formData.get("vendor") as string,
-                openedDate: formData.get("openedDate") as string,
-                userId: "demo-user",
+                name: formData.get('name') as string,
+                category: formData.get('category') as string,
+                amount: parseInt(formData.get('amount') as string),
+                monthlyPayment: parseInt(formData.get('monthlyPayment') as string) || 0,
+                ownership: formData.get('ownership') as string,
+                vendor: formData.get('vendor') as string,
+                openedDate: formData.get('openedDate') as string,
+                userId: 'demo-user',
               });
             }}
           >
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Debt Name</Label>
-                <Input id="name" name="name" placeholder="e.g., Home Mortgage" required data-testid="input-debt-name" />
+                <Input
+                  id="name"
+                  name="name"
+                  placeholder="e.g., Home Mortgage"
+                  required
+                  data-testid="input-debt-name"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
@@ -1187,11 +1301,24 @@ function DebtsTab({ onRecordClick }: TabProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="amount">Total Balance ($)</Label>
-                  <Input id="amount" name="amount" type="number" placeholder="0" required data-testid="input-debt-amount" />
+                  <Input
+                    id="amount"
+                    name="amount"
+                    type="number"
+                    placeholder="0"
+                    required
+                    data-testid="input-debt-amount"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="monthlyPayment">Monthly Payment ($)</Label>
-                  <Input id="monthlyPayment" name="monthlyPayment" type="number" placeholder="0" data-testid="input-debt-monthly" />
+                  <Input
+                    id="monthlyPayment"
+                    name="monthlyPayment"
+                    type="number"
+                    placeholder="0"
+                    data-testid="input-debt-monthly"
+                  />
                 </div>
               </div>
               <div className="space-y-2">
@@ -1209,11 +1336,21 @@ function DebtsTab({ onRecordClick }: TabProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vendor">Lender/Creditor</Label>
-                <Input id="vendor" name="vendor" placeholder="e.g., First National Bank" data-testid="input-debt-vendor" />
+                <Input
+                  id="vendor"
+                  name="vendor"
+                  placeholder="e.g., First National Bank"
+                  data-testid="input-debt-vendor"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="openedDate">Date Opened</Label>
-                <Input id="openedDate" name="openedDate" type="date" data-testid="input-debt-date" />
+                <Input
+                  id="openedDate"
+                  name="openedDate"
+                  type="date"
+                  data-testid="input-debt-date"
+                />
               </div>
             </div>
             <DialogFooter>
@@ -1236,7 +1373,7 @@ export default function Finances() {
   const { environment } = useAuth();
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<FinancialRecord | null>(null);
-  const [selectedRecordType, setSelectedRecordType] = useState<RecordType>("income");
+  const [selectedRecordType, setSelectedRecordType] = useState<RecordType>('income');
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
 
   const handleRecordClick = (record: FinancialRecord, type: RecordType) => {
@@ -1248,54 +1385,91 @@ export default function Finances() {
   const exportAllFinances = async () => {
     try {
       const [incRes, expRes, astRes, dbtRes] = await Promise.all([
-        fetch("/api/incomes"),
-        fetch("/api/expenses"),
-        fetch("/api/assets"),
-        fetch("/api/debts")
+        fetch('/api/incomes'),
+        fetch('/api/expenses'),
+        fetch('/api/assets'),
+        fetch('/api/debts'),
       ]);
       const [incomes, expenses, assets, debts] = await Promise.all([
-        incRes.json(), expRes.json(), astRes.json(), dbtRes.json()
+        incRes.json(),
+        expRes.json(),
+        astRes.json(),
+        dbtRes.json(),
       ]);
 
-      let csvContent = "";
-      csvContent += "=== INCOMES ===\n";
-      csvContent += ["Source", "Amount", "Frequency", "Owner", "Vendor", "StartDate"].join(",") + "\n";
-      (incomes || []).forEach((i: any) => csvContent += [i.source, i.amount / 100, i.frequency, i.owner, i.vendor || "", i.startDate || ""].map(v => `"${v}"`).join(",") + "\n");
+      let csvContent = '';
+      csvContent += '=== INCOMES ===\n';
+      csvContent +=
+        ['Source', 'Amount', 'Frequency', 'Owner', 'Vendor', 'StartDate'].join(',') + '\n';
+      (incomes || []).forEach(
+        (i: any) =>
+          (csvContent +=
+            [i.source, i.amount / 100, i.frequency, i.owner, i.vendor || '', i.startDate || '']
+              .map((v) => `"${v}"`)
+              .join(',') + '\n')
+      );
 
-      csvContent += "\n=== EXPENSES ===\n";
-      csvContent += ["Category", "Amount", "Frequency", "Owner", "Vendor", "Description", "StartDate"].join(",") + "\n";
-      (expenses || []).forEach((e: any) => csvContent += [e.category, e.amount / 100, e.frequency, e.owner, e.vendor || "", e.description || "", e.startDate || ""].map(v => `"${v}"`).join(",") + "\n");
+      csvContent += '\n=== EXPENSES ===\n';
+      csvContent +=
+        ['Category', 'Amount', 'Frequency', 'Owner', 'Vendor', 'Description', 'StartDate'].join(
+          ','
+        ) + '\n';
+      (expenses || []).forEach(
+        (e: any) =>
+          (csvContent +=
+            [
+              e.category,
+              e.amount / 100,
+              e.frequency,
+              e.owner,
+              e.vendor || '',
+              e.description || '',
+              e.startDate || '',
+            ]
+              .map((v) => `"${v}"`)
+              .join(',') + '\n')
+      );
 
-      csvContent += "\n=== ASSETS ===\n";
-      csvContent += ["Name", "AcquiredDate", "Value", "Institution"].join(",") + "\n";
-      (assets || []).forEach((a: any) => csvContent += [a.name, a.acquiredDate || "", a.value / 100, a.institution || ""].map(v => `"${v}"`).join(",") + "\n");
+      csvContent += '\n=== ASSETS ===\n';
+      csvContent += ['Name', 'AcquiredDate', 'Value', 'Institution'].join(',') + '\n';
+      (assets || []).forEach(
+        (a: any) =>
+          (csvContent +=
+            [a.name, a.acquiredDate || '', a.value / 100, a.institution || '']
+              .map((v) => `"${v}"`)
+              .join(',') + '\n')
+      );
 
-      csvContent += "\n=== DEBTS ===\n";
-      csvContent += ["Name", "Amount", "OpenedDate", "Vendor"].join(",") + "\n";
-      (debts || []).forEach((d: any) => csvContent += [d.name, d.amount / 100, d.openedDate || "", d.vendor || ""].map(v => `"${v}"`).join(",") + "\n");
+      csvContent += '\n=== DEBTS ===\n';
+      csvContent += ['Name', 'Amount', 'OpenedDate', 'Vendor'].join(',') + '\n';
+      (debts || []).forEach(
+        (d: any) =>
+          (csvContent +=
+            [d.name, d.amount / 100, d.openedDate || '', d.vendor || '']
+              .map((v) => `"${v}"`)
+              .join(',') + '\n')
+      );
 
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = `finances_export_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      console.error("Failed to export finances", e);
+      console.error('Failed to export finances', e);
     }
   };
 
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6">
-
-
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold mb-1" data-testid="text-page-title">Finances</h1>
-          <p className="text-sm text-muted-foreground">
-            Track income, expenses, assets, and debts
-          </p>
+          <h1 className="text-2xl font-semibold mb-1" data-testid="text-page-title">
+            Finances
+          </h1>
+          <p className="text-sm text-muted-foreground">Track income, expenses, assets, and debts</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={exportAllFinances}>
@@ -1315,23 +1489,31 @@ export default function Finances() {
 
       <Tabs defaultValue="income" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 max-w-md">
-          <TabsTrigger value="income" data-testid="tab-income">Income</TabsTrigger>
-          <TabsTrigger value="expenses" data-testid="tab-expenses">Expenses</TabsTrigger>
-          <TabsTrigger value="assets" data-testid="tab-assets">Assets</TabsTrigger>
-          <TabsTrigger value="debts" data-testid="tab-debts">Debts</TabsTrigger>
+          <TabsTrigger value="income" data-testid="tab-income">
+            Income
+          </TabsTrigger>
+          <TabsTrigger value="expenses" data-testid="tab-expenses">
+            Expenses
+          </TabsTrigger>
+          <TabsTrigger value="assets" data-testid="tab-assets">
+            Assets
+          </TabsTrigger>
+          <TabsTrigger value="debts" data-testid="tab-debts">
+            Debts
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="income">
-          <IncomeTab onRecordClick={(record) => handleRecordClick(record, "income")} />
+          <IncomeTab onRecordClick={(record) => handleRecordClick(record, 'income')} />
         </TabsContent>
         <TabsContent value="expenses">
-          <ExpensesTab onRecordClick={(record) => handleRecordClick(record, "expense")} />
+          <ExpensesTab onRecordClick={(record) => handleRecordClick(record, 'expense')} />
         </TabsContent>
         <TabsContent value="assets">
-          <AssetsTab onRecordClick={(record) => handleRecordClick(record, "asset")} />
+          <AssetsTab onRecordClick={(record) => handleRecordClick(record, 'asset')} />
         </TabsContent>
         <TabsContent value="debts">
-          <DebtsTab onRecordClick={(record) => handleRecordClick(record, "debt")} />
+          <DebtsTab onRecordClick={(record) => handleRecordClick(record, 'debt')} />
         </TabsContent>
       </Tabs>
 
@@ -1342,10 +1524,7 @@ export default function Finances() {
         record={selectedRecord}
       />
 
-      <FinancialExtractionDialog
-        open={scanDialogOpen}
-        onOpenChange={setScanDialogOpen}
-      />
+      <FinancialExtractionDialog open={scanDialogOpen} onOpenChange={setScanDialogOpen} />
 
       <div className="flex justify-center pt-4">
         <FeedbackCTA />

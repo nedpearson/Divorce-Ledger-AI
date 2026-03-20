@@ -33,7 +33,8 @@ async function testTierUpgradeFlow() {
     console.log('3. Testing violation creation...');
     const testViolation = {
       type: 'harassment',
-      description: 'Test violation for tier upgrade flow - verbal abuse recorded during custody exchange',
+      description:
+        'Test violation for tier upgrade flow - verbal abuse recorded during custody exchange',
       location: 'School parking lot',
       environment: 'demo',
     };
@@ -47,16 +48,17 @@ async function testTierUpgradeFlow() {
 
     if (createData.id) {
       console.log(`   Created violation: ${createData.id}`);
-      
+
       // 4. Test AI classification
       console.log('\n4. Testing AI classification...');
-      
+
       // First save a transcript
       const transcriptRes = await fetch(`${BASE_URL}/violations/${createData.id}/transcript`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          transcript: "You need to listen to me. I told you not to take the kids without my permission. This is getting out of control.",
+          transcript:
+            'You need to listen to me. I told you not to take the kids without my permission. This is getting out of control.',
         }),
       });
       const transcriptData = await transcriptRes.json();
@@ -68,12 +70,14 @@ async function testTierUpgradeFlow() {
         headers: { 'Content-Type': 'application/json' },
       });
       const classifyData = await classifyRes.json();
-      
+
       if (classifyData.success) {
         console.log(`   Classification: ${classifyData.data.type}`);
         console.log(`   Confidence: ${(classifyData.data.confidence * 100).toFixed(0)}%`);
         console.log(`   Severity: ${classifyData.data.severity}`);
-        console.log(`   Detected Patterns: ${classifyData.data.detectedPatterns?.join(', ') || 'None'}`);
+        console.log(
+          `   Detected Patterns: ${classifyData.data.detectedPatterns?.join(', ') || 'None'}`
+        );
       }
     } else {
       console.log(`   Skipped (limit reached or error): ${createData.message || createData.error}`);
@@ -99,9 +103,15 @@ async function testTierUpgradeFlow() {
     console.log(`   Current Tier: ${finalStats.currentTier}`);
     console.log(`   Recommended Tier: ${finalStats.recommendedTier}`);
     console.log(`   Usage:`);
-    console.log(`     - Violations: ${finalStats.usage.violationsThisMonth} (${finalStats.usage.violationsRemaining} remaining)`);
-    console.log(`     - Voice: ${finalStats.usage.voiceTranscriptionsThisMonth} (${finalStats.usage.voiceRemaining} remaining)`);
-    console.log(`     - Media: ${finalStats.usage.mediaUploadsThisMonth} (${finalStats.usage.mediaRemaining} remaining)`);
+    console.log(
+      `     - Violations: ${finalStats.usage.violationsThisMonth} (${finalStats.usage.violationsRemaining} remaining)`
+    );
+    console.log(
+      `     - Voice: ${finalStats.usage.voiceTranscriptionsThisMonth} (${finalStats.usage.voiceRemaining} remaining)`
+    );
+    console.log(
+      `     - Media: ${finalStats.usage.mediaUploadsThisMonth} (${finalStats.usage.mediaRemaining} remaining)`
+    );
     console.log(`   Tier Limits:`);
     console.log(`     - Max File Size: ${finalStats.tierLimits.maxFileSizeMb}MB`);
     console.log(`     - Max Violations/Month: ${finalStats.tierLimits.maxViolationsPerMonth}`);
@@ -110,7 +120,6 @@ async function testTierUpgradeFlow() {
 
     console.log('='.repeat(70));
     console.log('TIER UPGRADE FLOW TEST COMPLETED!\n');
-
   } catch (error: any) {
     console.error('TEST FAILED:');
     console.error(error.message);

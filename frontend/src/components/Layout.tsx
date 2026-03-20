@@ -52,9 +52,7 @@ export default function Layout({ children }: LayoutProps) {
                   key={item.name}
                   href={item.href}
                   className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                    isActive ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   <Icon className="w-5 h-5 mr-3" />
@@ -73,9 +71,7 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               </div>
               <div className="ml-3 flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {user?.email}
-                </p>
+                <p className="text-sm font-medium text-gray-900 truncate">{user?.email}</p>
                 <p className="text-xs text-gray-500 truncate">
                   {user?.user_metadata?.subscription_tier || 'Free'}
                 </p>

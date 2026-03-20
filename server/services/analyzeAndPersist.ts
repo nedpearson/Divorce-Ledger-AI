@@ -1,27 +1,21 @@
-import { db } from "../db";
-import { storage } from "../storage";
-import { eq, and } from "drizzle-orm";
-import { 
-  documentLineItems, 
-  documentParseResults,
-  expenses,
-  incomes,
-  debts 
-} from "@shared/schema";
-import { 
-  parseFinancialDocument, 
-  validateParseResult, 
-  mapDocTypeToFinanceCategory, 
+import { db } from '../db';
+import { storage } from '../storage';
+import { eq, and } from 'drizzle-orm';
+import { documentLineItems, documentParseResults, expenses, incomes, debts } from '@shared/schema';
+import {
+  parseFinancialDocument,
+  validateParseResult,
+  mapDocTypeToFinanceCategory,
   mapDocTypeToRecordType,
-  type ExpenseDocument
-} from "./parseDocument";
-import { FireflyIIIService } from "./firefly-iii.service";
-import { decryptToken } from "../lib/encryption";
-import { createTransactionFromParsedDocument, type ParsedDocument } from "./documentToTransaction";
-import { analyzeDocumentImage } from "./ai-capture.service";
+  type ExpenseDocument,
+} from './parseDocument';
+import { FireflyIIIService } from './firefly-iii.service';
+import { decryptToken } from '../lib/encryption';
+import { createTransactionFromParsedDocument, type ParsedDocument } from './documentToTransaction';
+import { analyzeDocumentImage } from './ai-capture.service';
 
 interface AnalyzeAndPersistOptions {
-  provider?: "openai" | "gemini";
+  provider?: 'openai' | 'gemini';
   createRecords?: boolean;
   forceReparse?: boolean;
   fireflyAccountIds?: {
@@ -48,46 +42,56 @@ interface AnalyzeAndPersistResult {
 }
 
 export async function analyzeAndPersist(
-  documentId: string, 
+  documentId: string,
   options: AnalyzeAndPersistOptions = {}
 ): Promise<AnalyzeAndPersistResult> {
-  const { provider = "openai", createRecords = true, forceReparse = false, fireflyAccountIds } = options;
-  
+  const {
+    provider = 'openai',
+    createRecords = true,
+    forceReparse = false,
+    fireflyAccountIds,
+  } = options;
+
   const startTime = Date.now();
-  
+
   try {
     const doc = await storage.getDocument(documentId);
     if (!doc) {
       return {
         success: false,
-        parseStatus: "error",
+        parseStatus: 'error',
         documentId,
         lineItemsCreated: 0,
         financialRecordsCreated: [],
-        validation: { isValid: false, errors: ["Document not found"], warnings: [] },
+        validation: { isValid: false, errors: ['Document not found'], warnings: [] },
         latencyMs: Date.now() - startTime,
-        error: "Document not found"
+        error: 'Document not found',
       };
     }
 
     const userId = doc.userId;
-    const environment = doc.environment || "demo";
+    const environment = doc.environment || 'demo';
 
-    const existingResults = await db.select()
+    const existingResults = await db
+      .select()
       .from(documentParseResults)
       .where(eq(documentParseResults.documentId, documentId))
       .limit(1);
-    
-    if (!forceReparse && existingResults.length > 0 && existingResults[0].parseStatus === "success") {
+
+    if (
+      !forceReparse &&
+      existingResults.length > 0 &&
+      existingResults[0].parseStatus === 'success'
+    ) {
       return {
         success: true,
-        parseStatus: "already_parsed",
+        parseStatus: 'already_parsed',
         documentId,
         parseResultId: existingResults[0].id,
         lineItemsCreated: 0,
         financialRecordsCreated: [],
-        validation: { isValid: true, errors: [], warnings: ["Document already parsed"] },
-        latencyMs: Date.now() - startTime
+        validation: { isValid: true, errors: [], warnings: ['Document already parsed'] },
+        latencyMs: Date.now() - startTime,
       };
     }
 
@@ -95,12 +99,12 @@ export async function analyzeAndPersist(
     await db.delete(expenses).where(eq(expenses.documentId, documentId));
     await db.delete(incomes).where(eq(incomes.documentId, documentId));
     await db.delete(debts).where(eq(debts.documentId, documentId));
-    
+
     if (existingResults.length > 0) {
       await db.delete(documentParseResults).where(eq(documentParseResults.documentId, documentId));
     }
 
-    let extractedText = doc.description || "";
+    let extractedText = doc.description || '';
     if (doc.title) {
       extractedText = `Title: ${doc.title}\n\n${extractedText}`;
     }
@@ -108,26 +112,29 @@ export async function analyzeAndPersist(
     let imageMimeType: string | undefined;
 
     // Fetch file from object storage or URL
-    let ocrExtractedText = "";
+    let ocrExtractedText = '';
     if (doc.fileUrl && doc.fileType) {
       try {
         console.log(`[analyzeAndPersist] Fetching file: ${doc.fileUrl}, type: ${doc.fileType}`);
-        
+
         if (doc.fileUrl.startsWith('/objects/')) {
           // Fetch from Replit object storage
-          const { ObjectStorageService } = await import("../replit_integrations/object_storage/objectStorage");
+          const { ObjectStorageService } =
+            await import('../replit_integrations/object_storage/objectStorage');
           const storageService = new ObjectStorageService();
           const objectFile = await storageService.getObjectEntityFile(doc.fileUrl);
           const [buffer] = await objectFile.download();
           imageBase64 = buffer.toString('base64');
           imageMimeType = doc.fileType;
-          console.log(`[analyzeAndPersist] Successfully fetched ${buffer.length} bytes from object storage`);
+          console.log(
+            `[analyzeAndPersist] Successfully fetched ${buffer.length} bytes from object storage`
+          );
         } else if (doc.fileUrl.startsWith('http')) {
           // Fetch from external URL
           const response = await fetch(doc.fileUrl);
           if (response.ok) {
             const arrayBuffer = await response.arrayBuffer();
-            imageBase64 = Buffer.from(arrayBuffer).toString("base64");
+            imageBase64 = Buffer.from(arrayBuffer).toString('base64');
             imageMimeType = doc.fileType;
             console.log(`[analyzeAndPersist] Successfully fetched from URL`);
           }
@@ -137,98 +144,118 @@ export async function analyzeAndPersist(
         if (imageBase64 && imageMimeType) {
           const isImageType = imageMimeType.startsWith('image/');
           const isPdfType = imageMimeType === 'application/pdf';
-          
+
           try {
             if (isImageType) {
               console.log(`[analyzeAndPersist] Running OCR on document image...`);
-              const ocrResult = await analyzeDocumentImage(imageBase64, imageMimeType, doc.fileName || "document");
-              ocrExtractedText = ocrResult.extractedText || "";
-              console.log(`[analyzeAndPersist] OCR extracted ${ocrExtractedText.length} characters`);
+              const ocrResult = await analyzeDocumentImage(
+                imageBase64,
+                imageMimeType,
+                doc.fileName || 'document'
+              );
+              ocrExtractedText = ocrResult.extractedText || '';
+              console.log(
+                `[analyzeAndPersist] OCR extracted ${ocrExtractedText.length} characters`
+              );
             } else if (isPdfType) {
               // For PDFs, use the vision API which can handle PDFs in some providers
               // Many vision models can process PDFs directly
               console.log(`[analyzeAndPersist] Attempting text extraction from PDF...`);
               try {
-                const ocrResult = await analyzeDocumentImage(imageBase64, imageMimeType, doc.fileName || "document.pdf");
-                ocrExtractedText = ocrResult.extractedText || "";
-                console.log(`[analyzeAndPersist] PDF extraction got ${ocrExtractedText.length} characters`);
+                const ocrResult = await analyzeDocumentImage(
+                  imageBase64,
+                  imageMimeType,
+                  doc.fileName || 'document.pdf'
+                );
+                ocrExtractedText = ocrResult.extractedText || '';
+                console.log(
+                  `[analyzeAndPersist] PDF extraction got ${ocrExtractedText.length} characters`
+                );
               } catch (pdfErr) {
-                console.warn(`[analyzeAndPersist] PDF extraction not supported, will rely on parsing: ${pdfErr}`);
+                console.warn(
+                  `[analyzeAndPersist] PDF extraction not supported, will rely on parsing: ${pdfErr}`
+                );
               }
             }
-            
+
             // Combine extracted text with existing description for better parsing
             if (ocrExtractedText) {
               extractedText = `${extractedText}\n\n[OCR Extracted Text]\n${ocrExtractedText}`;
             }
           } catch (ocrErr) {
-            console.error("[analyzeAndPersist] Text extraction failed:", ocrErr);
+            console.error('[analyzeAndPersist] Text extraction failed:', ocrErr);
           }
         }
       } catch (fetchErr) {
-        console.error("[analyzeAndPersist] Failed to fetch document file:", fetchErr);
+        console.error('[analyzeAndPersist] Failed to fetch document file:', fetchErr);
       }
     }
 
-    const parseResult = await parseFinancialDocument(
-      extractedText,
-      doc.fileName || "document",
-      { provider, imageBase64, imageMimeType }
-    );
+    const parseResult = await parseFinancialDocument(extractedText, doc.fileName || 'document', {
+      provider,
+      imageBase64,
+      imageMimeType,
+    });
 
     const validation = validateParseResult(parseResult.document);
 
-    const parseResultRecord = await db.insert(documentParseResults).values({
-      documentId: doc.id,
-      userId,
-      docType: parseResult.document.doc_type,
-      parseStatus: parseResult.document.parse_status,
-      language: parseResult.document.language,
-      currency: parseResult.document.currency || "USD",
-      vendorName: parseResult.document.vendor_name,
-      accountNumber: parseResult.document.account_number,
-      billingPeriodStart: parseResult.document.billing_period_start,
-      billingPeriodEnd: parseResult.document.billing_period_end,
-      statementDate: parseResult.document.statement_date,
-      dueDate: parseResult.document.due_date,
-      totalAmountDue: parseResult.document.total_amount_due 
-        ? Math.round(parseResult.document.total_amount_due * 100) 
-        : null,
-      totalAmountText: parseResult.document.total_amount_text,
-      customerName: parseResult.document.customer_name,
-      serviceAddress: parseResult.document.service_address,
-      mailingAddress: parseResult.document.mailing_address,
-      rawLlmResponse: parseResult.document as any,
-      notes: parseResult.document.notes,
-      requestTokens: parseResult.usage.requestTokens,
-      responseTokens: parseResult.usage.responseTokens,
-      latencyMs: parseResult.latencyMs,
-      environment,
-    }).returning();
+    const parseResultRecord = await db
+      .insert(documentParseResults)
+      .values({
+        documentId: doc.id,
+        userId,
+        docType: parseResult.document.doc_type,
+        parseStatus: parseResult.document.parse_status,
+        language: parseResult.document.language,
+        currency: parseResult.document.currency || 'USD',
+        vendorName: parseResult.document.vendor_name,
+        accountNumber: parseResult.document.account_number,
+        billingPeriodStart: parseResult.document.billing_period_start,
+        billingPeriodEnd: parseResult.document.billing_period_end,
+        statementDate: parseResult.document.statement_date,
+        dueDate: parseResult.document.due_date,
+        totalAmountDue: parseResult.document.total_amount_due
+          ? Math.round(parseResult.document.total_amount_due * 100)
+          : null,
+        totalAmountText: parseResult.document.total_amount_text,
+        customerName: parseResult.document.customer_name,
+        serviceAddress: parseResult.document.service_address,
+        mailingAddress: parseResult.document.mailing_address,
+        rawLlmResponse: parseResult.document as any,
+        notes: parseResult.document.notes,
+        requestTokens: parseResult.usage.requestTokens,
+        responseTokens: parseResult.usage.responseTokens,
+        latencyMs: parseResult.latencyMs,
+        environment,
+      })
+      .returning();
 
     const createdLineItems: any[] = [];
     for (let i = 0; i < parseResult.document.line_items.length; i++) {
       const item = parseResult.document.line_items[i];
-      const lineItem = await db.insert(documentLineItems).values({
-        documentId: doc.id,
-        userId,
-        lineItemIndex: i,
-        label: item.label,
-        categoryHint: item.category_hint,
-        amount: Math.round(item.amount * 100),
-        amountText: item.amount_text,
-        isCreditOrRefund: item.is_credit_or_refund,
-        isRecurringGuess: item.is_recurring_guess,
-        pageNumber: item.page_number,
-        surroundingTextSnippet: item.surrounding_text_snippet,
-        environment,
-      }).returning();
+      const lineItem = await db
+        .insert(documentLineItems)
+        .values({
+          documentId: doc.id,
+          userId,
+          lineItemIndex: i,
+          label: item.label,
+          categoryHint: item.category_hint,
+          amount: Math.round(item.amount * 100),
+          amountText: item.amount_text,
+          isCreditOrRefund: item.is_credit_or_refund,
+          isRecurringGuess: item.is_recurring_guess,
+          pageNumber: item.page_number,
+          surroundingTextSnippet: item.surrounding_text_snippet,
+          environment,
+        })
+        .returning();
       createdLineItems.push(lineItem[0]);
     }
 
     const createdFinancialRecords: Array<{ type: string; record: any }> = [];
-    
-    console.log("[analyzeAndPersist] Checking conditions for financial record creation:", {
+
+    console.log('[analyzeAndPersist] Checking conditions for financial record creation:', {
       documentId,
       createRecords,
       validationIsValid: validation.isValid,
@@ -239,68 +266,80 @@ export async function analyzeAndPersist(
       userId,
       environment,
     });
-    
-    const isFinancial = parseResult.document.doc_type !== "NON_FINANCIAL";
-    const hasData = (parseResult.document.total_amount_due !== null && parseResult.document.total_amount_due > 0) || (parseResult.document.line_items && parseResult.document.line_items.length > 0);
+
+    const isFinancial = parseResult.document.doc_type !== 'NON_FINANCIAL';
+    const hasData =
+      (parseResult.document.total_amount_due !== null &&
+        parseResult.document.total_amount_due > 0) ||
+      (parseResult.document.line_items && parseResult.document.line_items.length > 0);
 
     if (createRecords && isFinancial && hasData) {
       const recordType = mapDocTypeToRecordType(parseResult.document.doc_type);
       const financeCategory = mapDocTypeToFinanceCategory(parseResult.document.doc_type);
-      
-      console.log("[analyzeAndPersist] Creating financial record:", { recordType, financeCategory });
-      
+
+      console.log('[analyzeAndPersist] Creating financial record:', {
+        recordType,
+        financeCategory,
+      });
+
       // Fallback amount if total_amount_due is null but we have line items
-      let amountInCents = parseResult.document.total_amount_due 
-        ? Math.round(parseResult.document.total_amount_due * 100) 
+      let amountInCents = parseResult.document.total_amount_due
+        ? Math.round(parseResult.document.total_amount_due * 100)
         : 0;
-      
+
       if (amountInCents === 0 && parseResult.document.line_items.length > 0) {
-        amountInCents = parseResult.document.line_items.reduce((sum, li) => sum + Math.round(li.amount * 100), 0);
+        amountInCents = parseResult.document.line_items.reduce(
+          (sum, li) => sum + Math.round(li.amount * 100),
+          0
+        );
       }
 
       if (amountInCents > 0) {
-        const date = parseResult.document.statement_date || 
-                     parseResult.document.due_date || 
-                     new Date().toISOString().split("T")[0];
-        
+        const date =
+          parseResult.document.statement_date ||
+          parseResult.document.due_date ||
+          new Date().toISOString().split('T')[0];
+
         try {
           let record = null;
           switch (recordType) {
-            case "expense":
+            case 'expense':
               record = await storage.createExpense({
                 userId,
                 environment,
                 category: financeCategory,
-                description: `${parseResult.document.vendor_name || "Unknown"} - Parsed from document`,
+                description: `${parseResult.document.vendor_name || 'Unknown'} - Parsed from document`,
                 amount: amountInCents,
-                frequency: parseResult.document.line_items.some(li => li.is_recurring_guess) ? "monthly" : "one-time",
-                owner: "self",
+                frequency: parseResult.document.line_items.some((li) => li.is_recurring_guess)
+                  ? 'monthly'
+                  : 'one-time',
+                owner: 'self',
                 vendor: parseResult.document.vendor_name || null,
                 documentId: doc.id,
                 startDate: date,
               });
               break;
-            case "income":
+            case 'income':
               record = await storage.createIncome({
                 userId,
                 environment,
-                source: parseResult.document.vendor_name || "Unknown",
+                source: parseResult.document.vendor_name || 'Unknown',
                 amount: amountInCents,
-                frequency: "one-time",
-                owner: "self",
+                frequency: 'one-time',
+                owner: 'self',
                 vendor: parseResult.document.vendor_name || null,
                 documentId: doc.id,
                 startDate: date,
               });
               break;
-            case "debt":
+            case 'debt':
               record = await storage.createDebt({
                 userId,
                 environment,
-                name: parseResult.document.vendor_name || "Unknown Debt",
+                name: parseResult.document.vendor_name || 'Unknown Debt',
                 category: financeCategory,
                 amount: amountInCents,
-                ownership: "self",
+                ownership: 'self',
                 monthlyPayment: null,
                 vendor: parseResult.document.vendor_name || null,
                 documentId: doc.id,
@@ -308,7 +347,7 @@ export async function analyzeAndPersist(
               });
               break;
           }
-          
+
           if (record) {
             console.log(`[analyzeAndPersist] ✅ Created ${recordType} record:`, {
               recordId: record.id,
@@ -318,12 +357,13 @@ export async function analyzeAndPersist(
               environment,
             });
             createdFinancialRecords.push({ type: recordType, record });
-            
+
             for (const lineItemRecord of createdLineItems) {
-              await db.update(documentLineItems)
-                .set({ 
-                  linkedRecordType: recordType, 
-                  linkedRecordId: record.id 
+              await db
+                .update(documentLineItems)
+                .set({
+                  linkedRecordType: recordType,
+                  linkedRecordId: record.id,
                 })
                 .where(eq(documentLineItems.id, lineItemRecord.id));
             }
@@ -338,11 +378,11 @@ export async function analyzeAndPersist(
                   accessToken: decryptedToken,
                 });
 
-                if (recordType === "expense") {
+                if (recordType === 'expense') {
                   const syncResult = await fireflyService.syncExpense({
                     id: record.id,
                     documentId: doc.id,
-                    description: `${parseResult.document.vendor_name || "Unknown"} - Parsed from document`,
+                    description: `${parseResult.document.vendor_name || 'Unknown'} - Parsed from document`,
                     amountCents: amountInCents,
                     date: date,
                     vendor: parseResult.document.vendor_name || null,
@@ -352,38 +392,42 @@ export async function analyzeAndPersist(
                     connectionId: fireflyConnection.id,
                     userId,
                     environment,
-                    syncType: "auto",
-                    sourceType: "expense",
+                    syncType: 'auto',
+                    sourceType: 'expense',
                     sourceId: record.id,
                     fireflyTransactionId: syncResult.data.id,
-                    status: "success",
+                    status: 'success',
                   });
-                  console.log(`[analyzeAndPersist] ✅ Auto-synced expense to Firefly III: ${syncResult.data.id}`);
-                } else if (recordType === "income") {
+                  console.log(
+                    `[analyzeAndPersist] ✅ Auto-synced expense to Firefly III: ${syncResult.data.id}`
+                  );
+                } else if (recordType === 'income') {
                   const syncResult = await fireflyService.syncIncome({
                     id: record.id,
                     documentId: doc.id,
-                    source: parseResult.document.vendor_name || "Unknown",
+                    source: parseResult.document.vendor_name || 'Unknown',
                     amountCents: amountInCents,
                     date: date,
-                    description: parseResult.document.vendor_name || "Income",
+                    description: parseResult.document.vendor_name || 'Income',
                   });
                   await storage.createFireflySyncLog({
                     connectionId: fireflyConnection.id,
                     userId,
                     environment,
-                    syncType: "auto",
-                    sourceType: "income",
+                    syncType: 'auto',
+                    sourceType: 'income',
                     sourceId: record.id,
                     fireflyTransactionId: syncResult.data.id,
-                    status: "success",
+                    status: 'success',
                   });
-                  console.log(`[analyzeAndPersist] ✅ Auto-synced income to Firefly III: ${syncResult.data.id}`);
+                  console.log(
+                    `[analyzeAndPersist] ✅ Auto-synced income to Firefly III: ${syncResult.data.id}`
+                  );
                 }
 
                 await storage.updateFireflyConnection(fireflyConnection.id, {
                   lastSyncAt: new Date(),
-                  lastSyncStatus: "success",
+                  lastSyncStatus: 'success',
                 });
               }
             } catch (fireflyErr) {
@@ -391,52 +435,69 @@ export async function analyzeAndPersist(
             }
           }
         } catch (createErr) {
-          console.error("[analyzeAndPersist] Failed to create financial record:", createErr);
+          console.error('[analyzeAndPersist] Failed to create financial record:', createErr);
         }
       }
     }
 
     // Build a comprehensive extracted text for display
-    const displayExtractedText = ocrExtractedText || 
-      (parseResult.document.line_items.length > 0 
-        ? parseResult.document.line_items.map(li => `${li.label}: ${li.amount_text || li.amount}`).join('\n')
+    const displayExtractedText =
+      ocrExtractedText ||
+      (parseResult.document.line_items.length > 0
+        ? parseResult.document.line_items
+            .map((li) => `${li.label}: ${li.amount_text || li.amount}`)
+            .join('\n')
         : null);
 
     await storage.updateDocument(doc.id, {
       aiCategory: mapDocTypeToFinanceCategory(parseResult.document.doc_type),
       aiConfidence: parseResult.classification.confidence,
-      aiSummary: `${parseResult.document.doc_type}: ${parseResult.document.vendor_name || "Unknown"} - ${parseResult.document.currency} ${parseResult.document.total_amount_due || 0}`,
-      aiAnalysisStatus: parseResult.document.parse_status === "success" ? "completed" : "needs_review",
+      aiSummary: `${parseResult.document.doc_type}: ${parseResult.document.vendor_name || 'Unknown'} - ${parseResult.document.currency} ${parseResult.document.total_amount_due || 0}`,
+      aiAnalysisStatus:
+        parseResult.document.parse_status === 'success' ? 'completed' : 'needs_review',
       aiAnalyzedAt: new Date(),
       aiExtractedText: displayExtractedText,
     });
 
-    let fireflySyncResult: { success: boolean; fireflyTransactionId?: string; error?: string } | undefined;
-    
-    if (fireflyAccountIds && parseResult.document.parse_status === "success" && doc.fileUrl) {
+    let fireflySyncResult:
+      | { success: boolean; fireflyTransactionId?: string; error?: string }
+      | undefined;
+
+    if (fireflyAccountIds && parseResult.document.parse_status === 'success' && doc.fileUrl) {
       try {
         console.log(`[analyzeAndPersist] Direct Firefly sync with provided account IDs`);
-        fireflySyncResult = await createTransactionFromParsedDocument({
-          documentId: doc.id,
-          documentUrl: doc.fileUrl,
-          date: parseResult.document.statement_date || parseResult.document.billing_period_end || new Date().toISOString().split("T")[0],
-          amount: parseResult.document.total_amount_due || 0,
-          currencyCode: parseResult.document.currency || "USD",
-          merchantName: parseResult.document.vendor_name || undefined,
-          categoryName: mapDocTypeToFinanceCategory(parseResult.document.doc_type),
-          description: `${parseResult.document.vendor_name || "Document"} - ${parseResult.document.doc_type}`,
-          sourceAccountId: fireflyAccountIds.sourceAccountId,
-          destinationAccountId: fireflyAccountIds.destinationAccountId,
-          notes: "Created automatically from OCR; awaiting user review.",
-        }, userId, environment);
-        
+        fireflySyncResult = await createTransactionFromParsedDocument(
+          {
+            documentId: doc.id,
+            documentUrl: doc.fileUrl,
+            date:
+              parseResult.document.statement_date ||
+              parseResult.document.billing_period_end ||
+              new Date().toISOString().split('T')[0],
+            amount: parseResult.document.total_amount_due || 0,
+            currencyCode: parseResult.document.currency || 'USD',
+            merchantName: parseResult.document.vendor_name || undefined,
+            categoryName: mapDocTypeToFinanceCategory(parseResult.document.doc_type),
+            description: `${parseResult.document.vendor_name || 'Document'} - ${parseResult.document.doc_type}`,
+            sourceAccountId: fireflyAccountIds.sourceAccountId,
+            destinationAccountId: fireflyAccountIds.destinationAccountId,
+            notes: 'Created automatically from OCR; awaiting user review.',
+          },
+          userId,
+          environment
+        );
+
         if (fireflySyncResult.success) {
-          console.log(`[analyzeAndPersist] ✅ Direct Firefly sync: ${fireflySyncResult.fireflyTransactionId}`);
+          console.log(
+            `[analyzeAndPersist] ✅ Direct Firefly sync: ${fireflySyncResult.fireflyTransactionId}`
+          );
         } else {
-          console.warn(`[analyzeAndPersist] Direct Firefly sync failed: ${fireflySyncResult.error}`);
+          console.warn(
+            `[analyzeAndPersist] Direct Firefly sync failed: ${fireflySyncResult.error}`
+          );
         }
       } catch (syncErr) {
-        console.error("[analyzeAndPersist] Direct Firefly sync error:", syncErr);
+        console.error('[analyzeAndPersist] Direct Firefly sync error:', syncErr);
         fireflySyncResult = { success: false, error: (syncErr as Error).message };
       }
     }
@@ -461,18 +522,17 @@ export async function analyzeAndPersist(
       latencyMs: Date.now() - startTime,
       fireflySyncResult,
     };
-
   } catch (error) {
-    console.error("[analyzeAndPersist] Error:", error);
+    console.error('[analyzeAndPersist] Error:', error);
     return {
       success: false,
-      parseStatus: "error",
+      parseStatus: 'error',
       documentId,
       lineItemsCreated: 0,
       financialRecordsCreated: [],
       validation: { isValid: false, errors: [(error as Error).message], warnings: [] },
       latencyMs: Date.now() - startTime,
-      error: (error as Error).message
+      error: (error as Error).message,
     };
   }
 }
@@ -481,31 +541,34 @@ export async function syncParsedDocumentToFirefly(
   documentId: string,
   parseResult: ExpenseDocument,
   userId: string,
-  environment: string = "demo",
+  environment: string = 'demo',
   documentUrl: string,
   sourceAccountId: string,
   destinationAccountId: string
 ): Promise<{ success: boolean; fireflyTransactionId?: string; error?: string }> {
-  if (parseResult.parse_status !== "success") {
-    return { success: false, error: "Document not successfully parsed" };
+  if (parseResult.parse_status !== 'success') {
+    return { success: false, error: 'Document not successfully parsed' };
   }
-  
+
   if (parseResult.total_amount_due === null || parseResult.total_amount_due === undefined) {
-    return { success: false, error: "Document missing amount" };
+    return { success: false, error: 'Document missing amount' };
   }
 
   const parsedDoc: ParsedDocument = {
     documentId,
     documentUrl,
-    date: parseResult.statement_date || parseResult.billing_period_end || new Date().toISOString().split("T")[0],
+    date:
+      parseResult.statement_date ||
+      parseResult.billing_period_end ||
+      new Date().toISOString().split('T')[0],
     amount: parseResult.total_amount_due,
-    currencyCode: parseResult.currency || "USD",
+    currencyCode: parseResult.currency || 'USD',
     merchantName: parseResult.vendor_name || undefined,
     categoryName: mapDocTypeToFinanceCategory(parseResult.doc_type),
-    description: `${parseResult.vendor_name || "Document"} - ${parseResult.doc_type}`,
+    description: `${parseResult.vendor_name || 'Document'} - ${parseResult.doc_type}`,
     sourceAccountId,
     destinationAccountId,
-    notes: parseResult.notes?.join("\n") || undefined,
+    notes: parseResult.notes?.join('\n') || undefined,
   };
 
   return await createTransactionFromParsedDocument(parsedDoc, userId, environment);
@@ -513,35 +576,52 @@ export async function syncParsedDocumentToFirefly(
 
 export function isFinancialDocumentType(category: string | null, fileName: string | null): boolean {
   const financialCategories = [
-    "financial_statement", 
-    "bank_statement", 
-    "debt_statement", 
-    "credit_card",
-    "utility_bill",
-    "mortgage",
-    "loan",
-    "pay_stub",
-    "tax_document",
-    "insurance",
-    "receipt"
+    'financial_statement',
+    'bank_statement',
+    'debt_statement',
+    'credit_card',
+    'utility_bill',
+    'mortgage',
+    'loan',
+    'pay_stub',
+    'tax_document',
+    'insurance',
+    'receipt',
   ];
-  
-  if (category && financialCategories.some(fc => category.toLowerCase().includes(fc))) {
+
+  if (category && financialCategories.some((fc) => category.toLowerCase().includes(fc))) {
     return true;
   }
-  
+
   if (fileName) {
     const fnLower = fileName.toLowerCase();
     const financialKeywords = [
-      "bill", "statement", "invoice", "receipt", "payment",
-      "bank", "credit", "mortgage", "loan", "tax", "w2", "1099",
-      "utility", "electric", "gas", "water", "phone", "internet",
-      "insurance", "medical", "health"
+      'bill',
+      'statement',
+      'invoice',
+      'receipt',
+      'payment',
+      'bank',
+      'credit',
+      'mortgage',
+      'loan',
+      'tax',
+      'w2',
+      '1099',
+      'utility',
+      'electric',
+      'gas',
+      'water',
+      'phone',
+      'internet',
+      'insurance',
+      'medical',
+      'health',
     ];
-    if (financialKeywords.some(kw => fnLower.includes(kw))) {
+    if (financialKeywords.some((kw) => fnLower.includes(kw))) {
       return true;
     }
   }
-  
+
   return false;
 }

@@ -1,16 +1,28 @@
-import { useState, useRef, useCallback } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
-import { Upload, X, FileText, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { useState, useRef, useCallback } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
+import { Upload, X, FileText, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 
 interface UploadedFile {
   id: string;
@@ -39,49 +51,51 @@ interface FileUploadProps {
 export function AppwriteFileUpload({ onUploadComplete, className }: FileUploadProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadPhase, setUploadPhase] = useState<"idle" | "preparing" | "uploading" | "processing" | "complete" | "error">("idle");
+  const [uploadPhase, setUploadPhase] = useState<
+    'idle' | 'preparing' | 'uploading' | 'processing' | 'complete' | 'error'
+  >('idle');
   const [dialogOpen, setDialogOpen] = useState(false);
-  
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
   const [isConfidential, setIsConfidential] = useState(false);
 
   const { data: categoriesData } = useQuery<{ categories: AppwriteCategory[] }>({
-    queryKey: ["/api/appwrite/categories"],
+    queryKey: ['/api/appwrite/categories'],
   });
 
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
       return new Promise<UploadedFile>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        
-        xhr.upload.addEventListener("progress", (event) => {
+
+        xhr.upload.addEventListener('progress', (event) => {
           if (event.lengthComputable) {
             const percentComplete = Math.round((event.loaded / event.total) * 100);
             setUploadProgress(percentComplete);
             if (percentComplete < 100) {
-              setUploadPhase("uploading");
+              setUploadPhase('uploading');
             } else {
-              setUploadPhase("processing");
+              setUploadPhase('processing');
             }
           }
         });
 
-        xhr.addEventListener("load", () => {
+        xhr.addEventListener('load', () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               const response = JSON.parse(xhr.responseText);
               if (response.success) {
                 resolve(response.file);
               } else {
-                reject(new Error(response.error || "Upload failed"));
+                reject(new Error(response.error || 'Upload failed'));
               }
             } catch {
-              reject(new Error("Invalid response from server"));
+              reject(new Error('Invalid response from server'));
             }
           } else {
             try {
@@ -93,34 +107,34 @@ export function AppwriteFileUpload({ onUploadComplete, className }: FileUploadPr
           }
         });
 
-        xhr.addEventListener("error", () => {
-          reject(new Error("Network error during upload"));
+        xhr.addEventListener('error', () => {
+          reject(new Error('Network error during upload'));
         });
 
-        xhr.open("POST", "/api/appwrite/files/upload");
+        xhr.open('POST', '/api/appwrite/files/upload');
         xhr.send(formData);
       });
     },
     onSuccess: (file) => {
-      setUploadPhase("complete");
+      setUploadPhase('complete');
       toast({
-        title: "Upload Complete",
+        title: 'Upload Complete',
         description: `${file.fileName} has been uploaded successfully.`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/appwrite/files"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/appwrite/files'] });
       onUploadComplete?.(file);
-      
+
       setTimeout(() => {
         resetUpload();
         setDialogOpen(false);
       }, 1500);
     },
     onError: (error: Error) => {
-      setUploadPhase("error");
+      setUploadPhase('error');
       toast({
-        title: "Upload Failed",
+        title: 'Upload Failed',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     },
   });
@@ -129,7 +143,7 @@ export function AppwriteFileUpload({ onUploadComplete, className }: FileUploadPr
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      setTitle(file.name.replace(/\.[^/.]+$/, ""));
+      setTitle(file.name.replace(/\.[^/.]+$/, ''));
       setDialogOpen(true);
     }
   }, []);
@@ -139,7 +153,7 @@ export function AppwriteFileUpload({ onUploadComplete, className }: FileUploadPr
     const file = event.dataTransfer.files?.[0];
     if (file) {
       setSelectedFile(file);
-      setTitle(file.name.replace(/\.[^/.]+$/, ""));
+      setTitle(file.name.replace(/\.[^/.]+$/, ''));
       setDialogOpen(true);
     }
   }, []);
@@ -151,15 +165,15 @@ export function AppwriteFileUpload({ onUploadComplete, className }: FileUploadPr
   const handleUpload = () => {
     if (!selectedFile) return;
 
-    setUploadPhase("preparing");
+    setUploadPhase('preparing');
     setUploadProgress(0);
 
     const formData = new FormData();
-    formData.append("file", selectedFile);
-    formData.append("title", title || selectedFile.name);
-    if (description) formData.append("description", description);
-    if (category) formData.append("category", category);
-    formData.append("isConfidential", String(isConfidential));
+    formData.append('file', selectedFile);
+    formData.append('title', title || selectedFile.name);
+    if (description) formData.append('description', description);
+    if (category) formData.append('category', category);
+    formData.append('isConfidential', String(isConfidential));
 
     uploadMutation.mutate(formData);
   };
@@ -167,13 +181,13 @@ export function AppwriteFileUpload({ onUploadComplete, className }: FileUploadPr
   const resetUpload = () => {
     setSelectedFile(null);
     setUploadProgress(0);
-    setUploadPhase("idle");
-    setTitle("");
-    setDescription("");
-    setCategory("");
+    setUploadPhase('idle');
+    setTitle('');
+    setDescription('');
+    setCategory('');
     setIsConfidential(false);
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
 
@@ -185,12 +199,18 @@ export function AppwriteFileUpload({ onUploadComplete, className }: FileUploadPr
 
   const getPhaseText = () => {
     switch (uploadPhase) {
-      case "preparing": return "Preparing...";
-      case "uploading": return `Uploading: ${uploadProgress}%`;
-      case "processing": return "Processing...";
-      case "complete": return "Complete!";
-      case "error": return "Upload failed";
-      default: return "";
+      case 'preparing':
+        return 'Preparing...';
+      case 'uploading':
+        return `Uploading: ${uploadProgress}%`;
+      case 'processing':
+        return 'Processing...';
+      case 'complete':
+        return 'Complete!';
+      case 'error':
+        return 'Upload failed';
+      default:
+        return '';
     }
   };
 
@@ -223,12 +243,15 @@ export function AppwriteFileUpload({ onUploadComplete, className }: FileUploadPr
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={(open) => {
-        if (!open && uploadPhase !== "uploading" && uploadPhase !== "processing") {
-          resetUpload();
-        }
-        setDialogOpen(open);
-      }}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          if (!open && uploadPhase !== 'uploading' && uploadPhase !== 'processing') {
+            resetUpload();
+          }
+          setDialogOpen(open);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Upload Document</DialogTitle>
@@ -244,7 +267,7 @@ export function AppwriteFileUpload({ onUploadComplete, className }: FileUploadPr
                     {formatFileSize(selectedFile.size)}
                   </p>
                 </div>
-                {uploadPhase === "idle" && (
+                {uploadPhase === 'idle' && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -256,25 +279,25 @@ export function AppwriteFileUpload({ onUploadComplete, className }: FileUploadPr
                 )}
               </div>
 
-              {uploadPhase !== "idle" && (
+              {uploadPhase !== 'idle' && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span>{getPhaseText()}</span>
-                    {uploadPhase === "complete" && (
+                    {uploadPhase === 'complete' && (
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
                     )}
-                    {uploadPhase === "error" && (
+                    {uploadPhase === 'error' && (
                       <AlertCircle className="h-4 w-4 text-destructive" />
                     )}
-                    {(uploadPhase === "uploading" || uploadPhase === "processing" || uploadPhase === "preparing") && (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    )}
+                    {(uploadPhase === 'uploading' ||
+                      uploadPhase === 'processing' ||
+                      uploadPhase === 'preparing') && <Loader2 className="h-4 w-4 animate-spin" />}
                   </div>
-                  <Progress value={uploadPhase === "complete" ? 100 : uploadProgress} />
+                  <Progress value={uploadPhase === 'complete' ? 100 : uploadProgress} />
                 </div>
               )}
 
-              {uploadPhase === "idle" && (
+              {uploadPhase === 'idle' && (
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="title">Title</Label>
@@ -331,18 +354,26 @@ export function AppwriteFileUpload({ onUploadComplete, className }: FileUploadPr
           )}
 
           <DialogFooter>
-            {uploadPhase === "idle" && (
+            {uploadPhase === 'idle' && (
               <>
-                <Button variant="outline" onClick={() => setDialogOpen(false)} data-testid="button-cancel-upload">
+                <Button
+                  variant="outline"
+                  onClick={() => setDialogOpen(false)}
+                  data-testid="button-cancel-upload"
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleUpload} disabled={!selectedFile} data-testid="button-start-upload">
+                <Button
+                  onClick={handleUpload}
+                  disabled={!selectedFile}
+                  data-testid="button-start-upload"
+                >
                   <Upload className="h-4 w-4 mr-2" />
                   Upload
                 </Button>
               </>
             )}
-            {uploadPhase === "error" && (
+            {uploadPhase === 'error' && (
               <Button onClick={handleUpload} data-testid="button-retry-upload">
                 Retry Upload
               </Button>

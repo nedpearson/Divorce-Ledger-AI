@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -19,7 +19,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   FileText,
   Download,
@@ -30,9 +30,9 @@ import {
   XCircle,
   Loader2,
   ExternalLink,
-} from "lucide-react";
+} from 'lucide-react';
 
-export type DrilldownType = "assets" | "debts" | "income" | "expenses" | "transactions";
+export type DrilldownType = 'assets' | 'debts' | 'income' | 'expenses' | 'transactions';
 
 interface FinancialRecord {
   id: string;
@@ -64,16 +64,16 @@ interface FinancialDrilldownDrawerProps {
 }
 
 function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(cents / 100);
 }
 
 function getRecordName(record: FinancialRecord): string {
-  return record.name || record.source || record.description || record.category || "Unknown";
+  return record.name || record.source || record.description || record.category || 'Unknown';
 }
 
 function getRecordAmount(record: FinancialRecord): number {
@@ -81,7 +81,7 @@ function getRecordAmount(record: FinancialRecord): number {
 }
 
 function getRecordDate(record: FinancialRecord): string {
-  return record.date || record.acquiredDate || record.openedDate || record.startDate || "-";
+  return record.date || record.acquiredDate || record.openedDate || record.startDate || '-';
 }
 
 export function FinancialDrilldownDrawer({
@@ -91,7 +91,7 @@ export function FinancialDrilldownDrawer({
   title,
   environment,
 }: FinancialDrilldownDrawerProps) {
-  const [activeTab, setActiveTab] = useState("records");
+  const [activeTab, setActiveTab] = useState('records');
 
   const { data, isLoading } = useQuery<{ records: FinancialRecord[] }>({
     queryKey: [`/api/finances/${type}?env=${environment}`],
@@ -104,24 +104,33 @@ export function FinancialDrilldownDrawer({
 
   const exportData = () => {
     if (records.length === 0) return;
-    const headers = ["Name/Source", "Category", "Amount", "Date", "Vendor", "Verified", "Documented"];
+    const headers = [
+      'Name/Source',
+      'Category',
+      'Amount',
+      'Date',
+      'Vendor',
+      'Verified',
+      'Documented',
+    ];
 
-    let csvContent = headers.join(",") + "\\n";
-    records.forEach(r => {
-      csvContent += [
-        `"${getRecordName(r).replace(/"/g, '""')}"`,
-        r.category || "-",
-        (getRecordAmount(r) / 100).toFixed(2),
-        getRecordDate(r),
-        `"${(r.vendor || "-").replace(/"/g, '""')}"`,
-        r.verified ? "Yes" : "No",
-        r.documentId ? "Yes" : "No"
-      ].join(",") + "\\n";
+    let csvContent = headers.join(',') + '\\n';
+    records.forEach((r) => {
+      csvContent +=
+        [
+          `"${getRecordName(r).replace(/"/g, '""')}"`,
+          r.category || '-',
+          (getRecordAmount(r) / 100).toFixed(2),
+          getRecordDate(r),
+          `"${(r.vendor || '-').replace(/"/g, '""')}"`,
+          r.verified ? 'Yes' : 'No',
+          r.documentId ? 'Yes' : 'No',
+        ].join(',') + '\\n';
     });
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
     a.download = `drilldown_${type}_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
@@ -192,9 +201,7 @@ export function FinancialDrilldownDrawer({
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : records.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No records found
-                  </div>
+                  <div className="text-center py-8 text-muted-foreground">No records found</div>
                 ) : (
                   <div className="space-y-3">
                     {records.map((record) => (
@@ -205,9 +212,7 @@ export function FinancialDrilldownDrawer({
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
-                              {getRecordName(record)}
-                            </p>
+                            <p className="font-medium truncate">{getRecordName(record)}</p>
                             {record.category && (
                               <Badge variant="secondary" className="mt-1">
                                 {record.category}
@@ -224,9 +229,7 @@ export function FinancialDrilldownDrawer({
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <Building2 className="h-3.5 w-3.5" />
-                            <span className="truncate">
-                              {record.vendor || "Not specified"}
-                            </span>
+                            <span className="truncate">{record.vendor || 'Not specified'}</span>
                           </div>
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <Calendar className="h-3.5 w-3.5" />
@@ -308,7 +311,7 @@ export function FinancialDrilldownDrawer({
                                 <TableCell className="font-medium">
                                   {getRecordName(record)}
                                 </TableCell>
-                                <TableCell>{record.vendor || "-"}</TableCell>
+                                <TableCell>{record.vendor || '-'}</TableCell>
                                 <TableCell className="text-right">
                                   <Button
                                     variant="ghost"

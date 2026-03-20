@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { useAuth } from "@/lib/auth";
-import { useToast } from "@/hooks/use-toast";
-import type { Violation, Transaction } from "@shared/schema";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { useAuth } from '@/lib/auth';
+import { useToast } from '@/hooks/use-toast';
+import type { Violation, Transaction } from '@shared/schema';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertTriangle,
   DollarSign,
@@ -21,11 +21,11 @@ import {
   Zap,
   TrendingUp,
   Info,
-} from "lucide-react";
+} from 'lucide-react';
 
 type TimelineEvent = {
   id: string;
-  type: "violation" | "transaction" | "document";
+  type: 'violation' | 'transaction' | 'document';
   date: Date;
   title: string;
   description: string;
@@ -38,7 +38,7 @@ type TimelineEvent = {
 type Pattern = {
   type: string;
   description: string;
-  severity: "low" | "moderate" | "high" | "critical";
+  severity: 'low' | 'moderate' | 'high' | 'critical';
   count: number;
   recommendation: string;
   occurrences: Array<{ date: string; description: string }>;
@@ -55,25 +55,25 @@ export default function Timeline() {
   const [isExporting, setIsExporting] = useState(false);
 
   const { data: violations, isLoading: violationsLoading } = useQuery<Violation[]>({
-    queryKey: ["/api/violations", environment],
+    queryKey: ['/api/violations', environment],
     queryFn: async () => {
       const res = await fetch(`/api/violations?environment=${environment}`, {
-        credentials: "include",
-        headers: { "X-Environment": environment || "demo" },
+        credentials: 'include',
+        headers: { 'X-Environment': environment || 'demo' },
       });
-      if (!res.ok) throw new Error("Failed to fetch violations");
+      if (!res.ok) throw new Error('Failed to fetch violations');
       return res.json();
     },
   });
 
   const { data: transactions, isLoading: transactionsLoading } = useQuery<Transaction[]>({
-    queryKey: ["/api/transactions", environment],
+    queryKey: ['/api/transactions', environment],
     queryFn: async () => {
       const res = await fetch(`/api/transactions?environment=${environment}`, {
-        credentials: "include",
-        headers: { "X-Environment": environment || "demo" },
+        credentials: 'include',
+        headers: { 'X-Environment': environment || 'demo' },
       });
-      if (!res.ok) throw new Error("Failed to fetch transactions");
+      if (!res.ok) throw new Error('Failed to fetch transactions');
       return res.json();
     },
   });
@@ -88,21 +88,21 @@ export default function Timeline() {
     setIsExporting(true);
     try {
       const response = await fetch(`/api/filings/export?environment=${environment}`);
-      if (!response.ok) throw new Error("Export failed");
-      
+      if (!response.ok) throw new Error('Export failed');
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = `court-filing-${Date.now()}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      
-      toast({ title: "PDF exported successfully" });
+
+      toast({ title: 'PDF exported successfully' });
     } catch (error) {
-      toast({ title: "Failed to export PDF", variant: "destructive" });
+      toast({ title: 'Failed to export PDF', variant: 'destructive' });
     } finally {
       setIsExporting(false);
     }
@@ -114,9 +114,9 @@ export default function Timeline() {
     violations.forEach((v) => {
       events.push({
         id: `violation-${v.id}`,
-        type: "violation",
+        type: 'violation',
         date: new Date(v.timestamp),
-        title: v.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        title: v.type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
         description: v.description,
         status: v.status,
         location: v.location || undefined,
@@ -128,7 +128,7 @@ export default function Timeline() {
     transactions.forEach((t) => {
       events.push({
         id: `transaction-${t.id}`,
-        type: "transaction",
+        type: 'transaction',
         date: new Date(t.date),
         title: t.description,
         description: t.category,
@@ -142,11 +142,11 @@ export default function Timeline() {
 
   const getEventIcon = (type: string) => {
     switch (type) {
-      case "violation":
+      case 'violation':
         return <AlertTriangle className="h-4 w-4 text-destructive" />;
-      case "transaction":
+      case 'transaction':
         return <DollarSign className="h-4 w-4 text-primary" />;
-      case "document":
+      case 'document':
         return <FileText className="h-4 w-4 text-blue-500" />;
       default:
         return <Clock className="h-4 w-4" />;
@@ -156,11 +156,11 @@ export default function Timeline() {
   const getStatusBadge = (status?: string) => {
     if (!status) return null;
     switch (status) {
-      case "pending":
+      case 'pending':
         return <Badge variant="secondary">Pending</Badge>;
-      case "reviewed":
+      case 'reviewed':
         return <Badge variant="outline">Reviewed</Badge>;
-      case "approved":
+      case 'approved':
         return <Badge className="bg-green-600 text-white">Approved</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
@@ -169,21 +169,21 @@ export default function Timeline() {
 
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
-      case "critical":
+      case 'critical':
         return <Badge className="bg-red-600 text-white">Critical</Badge>;
-      case "high":
+      case 'high':
         return <Badge className="bg-orange-500 text-white">High</Badge>;
-      case "moderate":
+      case 'moderate':
         return <Badge className="bg-yellow-500 text-black">Moderate</Badge>;
-      case "low":
+      case 'low':
         return <Badge variant="secondary">Low</Badge>;
       default:
         return <Badge variant="secondary">{severity}</Badge>;
     }
   };
 
-  const approvedViolations = violations?.filter((v) => v.status === "approved").length || 0;
-  const pendingViolations = violations?.filter((v) => v.status === "pending").length || 0;
+  const approvedViolations = violations?.filter((v) => v.status === 'approved').length || 0;
+  const pendingViolations = violations?.filter((v) => v.status === 'pending').length || 0;
   const patterns = patternsData?.patterns || [];
 
   return (
@@ -198,11 +198,7 @@ export default function Timeline() {
             Complete chronological view of case evidence and financial activity
           </p>
         </div>
-        <Button 
-          onClick={handleExportPDF} 
-          disabled={isExporting}
-          data-testid="button-export-pdf"
-        >
+        <Button onClick={handleExportPDF} disabled={isExporting} data-testid="button-export-pdf">
           {isExporting ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
@@ -254,7 +250,9 @@ export default function Timeline() {
             <CardTitle className="text-base flex items-center gap-2">
               <Zap className="h-4 w-4 text-yellow-500" />
               AI Pattern Detection
-              <Badge variant="secondary" className="ml-1">{patterns.length} {patterns.length === 1 ? "Pattern" : "Patterns"}</Badge>
+              <Badge variant="secondary" className="ml-1">
+                {patterns.length} {patterns.length === 1 ? 'Pattern' : 'Patterns'}
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 space-y-3">
@@ -278,10 +276,11 @@ export default function Timeline() {
                 </div>
                 {pattern.occurrences.length > 0 && (
                   <div className="text-xs text-muted-foreground pl-6">
-                    Recent: {pattern.occurrences.slice(0, 2).map((o, i) => (
+                    Recent:{' '}
+                    {pattern.occurrences.slice(0, 2).map((o, i) => (
                       <span key={i}>
-                        {i > 0 && ", "}
-                        {format(new Date(o.date), "MMM d")}
+                        {i > 0 && ', '}
+                        {format(new Date(o.date), 'MMM d')}
                       </span>
                     ))}
                     {pattern.occurrences.length > 2 && ` +${pattern.occurrences.length - 2} more`}
@@ -322,7 +321,7 @@ export default function Timeline() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-sm">{event.title}</span>
                           {getStatusBadge(event.status)}
-                          {event.type === "violation" && (
+                          {event.type === 'violation' && (
                             <Badge variant="destructive" className="text-xs">
                               Violation
                             </Badge>
@@ -331,11 +330,11 @@ export default function Timeline() {
                         {event.amount !== undefined && (
                           <span
                             className={`font-medium text-sm ${
-                              event.amount > 0 ? "text-green-600" : "text-red-600"
+                              event.amount > 0 ? 'text-green-600' : 'text-red-600'
                             }`}
                           >
-                            {event.amount > 0 ? "+" : ""}
-                            ${Math.abs(event.amount / 100).toLocaleString()}
+                            {event.amount > 0 ? '+' : ''}$
+                            {Math.abs(event.amount / 100).toLocaleString()}
                           </span>
                         )}
                       </div>
@@ -343,7 +342,7 @@ export default function Timeline() {
                       <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {format(event.date, "MMM d, yyyy")}
+                          {format(event.date, 'MMM d, yyyy')}
                         </span>
                         {event.location && (
                           <span className="flex items-center gap-1">

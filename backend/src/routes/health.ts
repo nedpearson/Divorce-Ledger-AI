@@ -89,7 +89,10 @@ export async function healthRoutes(fastify: FastifyInstance) {
         supabaseServiceRole.from('users').select('id', { count: 'exact', head: true }),
         supabaseServiceRole.from('documents').select('id', { count: 'exact', head: true }),
         supabaseServiceRole.from('classifications').select('id', { count: 'exact', head: true }),
-        supabaseServiceRole.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'queued'),
+        supabaseServiceRole
+          .from('jobs')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'queued'),
       ]);
 
       dbStats = {

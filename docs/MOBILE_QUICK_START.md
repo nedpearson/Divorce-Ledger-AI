@@ -17,12 +17,14 @@ On desktop, open: **http://localhost:5000/mobile-install**
 ### 3. Install on Phone
 
 **iPhone**:
+
 - Open Camera → Scan QR code
 - Tap notification → Opens in Safari
 - Tap Share (□↑) → "Add to Home Screen"
 - Tap "Add"
 
 **Android**:
+
 - Open Camera → Scan QR code
 - Tap notification → Opens in Chrome
 - Tap banner "Install" or Menu (⋮) → "Install app"
@@ -44,13 +46,13 @@ It opens directly to **Quick Capture** page!
 
 ## ✨ Key Features
 
-| Feature | Description |
-|---------|-------------|
-| 📱 Quick Capture | Opens straight to capture page |
-| 🔌 Offline First | Works without internet |
-| 🔄 Auto Sync | Syncs when on same WiFi as desktop |
+| Feature          | Description                            |
+| ---------------- | -------------------------------------- |
+| 📱 Quick Capture | Opens straight to capture page         |
+| 🔌 Offline First | Works without internet                 |
+| 🔄 Auto Sync     | Syncs when on same WiFi as desktop     |
 | 📦 Local Storage | Stores documents on phone until synced |
-| 🎯 Native Feel | Installs like a real app |
+| 🎯 Native Feel   | Installs like a real app               |
 
 ---
 
@@ -64,6 +66,7 @@ Look in the app header (top right):
 - **Blue spinning** = Syncing now 🔄
 
 Tap the sync indicator to:
+
 - View pending items
 - Force manual sync
 - See last sync time
@@ -81,6 +84,7 @@ Phone must be on the **same WiFi network** for auto-sync to work!
 ### Public WiFi?
 
 Manual server URL:
+
 ```javascript
 // In mobile browser console
 localStorage.setItem('sync-server-url', 'http://your-desktop-ip:5000');
@@ -91,17 +95,20 @@ localStorage.setItem('sync-server-url', 'http://your-desktop-ip:5000');
 ## 🛠️ Troubleshooting
 
 ### "Can't Install"
+
 - **iOS**: Must use Safari (not Chrome)
 - **Android**: Must use Chrome (not Firefox)
 - Try refreshing the QR code page
 
 ### "Won't Sync"
+
 1. Check both devices on same WiFi
 2. Open `http://desktop-ip:5000/api/health` on phone browser
 3. Should return: `{"status": "healthy"}`
 4. Force sync: Tap sync indicator → "Sync Now"
 
 ### "Storage Full"
+
 - Delete old documents on phone
 - Sync more frequently
 - Browser will prompt for more storage
@@ -129,6 +136,7 @@ Phone (Offline)
 ```
 
 **Sync happens every 30 seconds when:**
+
 - Online status: ✅
 - On same network: ✅
 - Has pending items: ✅
@@ -162,29 +170,30 @@ Phone (Offline)
 
 ## 📱 Supported Devices
 
-| Platform | Browser | Version | Status |
-|----------|---------|---------|--------|
-| iOS | Safari | 11.3+ | ✅ Full support |
-| Android | Chrome | 68+ | ✅ Full support |
-| iOS | Chrome | Any | ⚠️ Can't install (use Safari) |
-| Android | Firefox | Any | ⚠️ Limited PWA support |
+| Platform | Browser | Version | Status                        |
+| -------- | ------- | ------- | ----------------------------- |
+| iOS      | Safari  | 11.3+   | ✅ Full support               |
+| Android  | Chrome  | 68+     | ✅ Full support               |
+| iOS      | Chrome  | Any     | ⚠️ Can't install (use Safari) |
+| Android  | Firefox | Any     | ⚠️ Limited PWA support        |
 
 ---
 
 ## 🔗 Important URLs
 
-| Page | URL | Purpose |
-|------|-----|---------|
-| QR Code | `/mobile-install` | Desktop page with QR code |
-| Quick Capture | `/home?source=pwa` | Direct link to capture |
-| Health Check | `/api/health` | Test server connection |
-| Network Info | `/api/network-info` | Get desktop IP address |
+| Page          | URL                 | Purpose                   |
+| ------------- | ------------------- | ------------------------- |
+| QR Code       | `/mobile-install`   | Desktop page with QR code |
+| Quick Capture | `/home?source=pwa`  | Direct link to capture    |
+| Health Check  | `/api/health`       | Test server connection    |
+| Network Info  | `/api/network-info` | Get desktop IP address    |
 
 ---
 
 ## 📚 Full Documentation
 
 See [MOBILE_OFFLINE_PWA.md](./MOBILE_OFFLINE_PWA.md) for:
+
 - Complete API reference
 - Technical architecture
 - Security considerations
@@ -195,9 +204,10 @@ See [MOBILE_OFFLINE_PWA.md](./MOBILE_OFFLINE_PWA.md) for:
 
 ## 🎉 You're Ready!
 
-The mobile app is now set up and ready to use! 
+The mobile app is now set up and ready to use!
 
 **Next steps**:
+
 1. Scan QR code with your phone
 2. Install the app
 3. Capture your first document

@@ -1,17 +1,30 @@
-import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/lib/auth";
-import { Link, useLocation, useSearch } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useState, useRef, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useAuth } from '@/lib/auth';
+import { Link, useLocation, useSearch } from 'wouter';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import {
   Camera,
   AlertTriangle,
@@ -30,16 +43,23 @@ import {
   Loader2,
   Square,
   Play,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { FeedbackCTA } from "@/components/feedback-cta";
-import type { Document, Violation } from "@shared/schema";
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { FeedbackCTA } from '@/components/feedback-cta';
+import type { Document, Violation } from '@shared/schema';
 
-type CaptureMode = null | "scan-doc" | "upload-doc" | "voice-doc" | "scan-violation" | "upload-violation" | "voice-violation";
+type CaptureMode =
+  | null
+  | 'scan-doc'
+  | 'upload-doc'
+  | 'voice-doc'
+  | 'scan-violation'
+  | 'upload-violation'
+  | 'voice-violation';
 
 interface CapturedData {
-  type: "document" | "violation";
-  source: "scan" | "upload" | "voice";
+  type: 'document' | 'violation';
+  source: 'scan' | 'upload' | 'voice';
   title: string;
   suggestedCategory: string;
   suggestedLink: string;
@@ -50,122 +70,122 @@ interface CapturedData {
 
 interface PendingFile {
   file: File;
-  type: "document" | "violation";
-  source: "scan" | "upload";
+  type: 'document' | 'violation';
+  source: 'scan' | 'upload';
 }
 
 const DOCUMENT_CATEGORIES = [
-  { value: "financial", label: "Financial Records" },
-  { value: "legal", label: "Legal Documents" },
-  { value: "evidence", label: "Evidence" },
-  { value: "correspondence", label: "Correspondence" },
-  { value: "medical", label: "Medical Records" },
-  { value: "property", label: "Property Documents" },
-  { value: "other", label: "Other" },
+  { value: 'financial', label: 'Financial Records' },
+  { value: 'legal', label: 'Legal Documents' },
+  { value: 'evidence', label: 'Evidence' },
+  { value: 'correspondence', label: 'Correspondence' },
+  { value: 'medical', label: 'Medical Records' },
+  { value: 'property', label: 'Property Documents' },
+  { value: 'other', label: 'Other' },
 ];
 
 const VIOLATION_TYPES = [
-  { value: "custody", label: "Custody Violation" },
-  { value: "financial_hiding", label: "Financial Misconduct" },
-  { value: "harassment", label: "Communication Violation" },
-  { value: "child_neglect", label: "Child Neglect" },
-  { value: "court_order", label: "Court Order Violation" },
-  { value: "property_damage", label: "Property Damage" },
-  { value: "other", label: "Other" },
+  { value: 'custody', label: 'Custody Violation' },
+  { value: 'financial_hiding', label: 'Financial Misconduct' },
+  { value: 'harassment', label: 'Communication Violation' },
+  { value: 'child_neglect', label: 'Child Neglect' },
+  { value: 'court_order', label: 'Court Order Violation' },
+  { value: 'property_damage', label: 'Property Damage' },
+  { value: 'other', label: 'Other' },
 ];
 
 const LINK_OPTIONS = [
-  { value: "case", label: "Main Case File" },
-  { value: "finances", label: "Financial Records" },
-  { value: "custody", label: "Custody Documentation" },
-  { value: "property", label: "Property Division" },
-  { value: "timeline", label: "Case Timeline" },
+  { value: 'case', label: 'Main Case File' },
+  { value: 'finances', label: 'Financial Records' },
+  { value: 'custody', label: 'Custody Documentation' },
+  { value: 'property', label: 'Property Division' },
+  { value: 'timeline', label: 'Case Timeline' },
 ];
 
 export default function Home() {
   const { environment, user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  
+
   const [captureMode, setCaptureMode] = useState<CaptureMode>(null);
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [capturedData, setCapturedData] = useState<CapturedData | null>(null);
-  const [editedTitle, setEditedTitle] = useState("");
-  const [editedCategory, setEditedCategory] = useState("");
-  const [editedTranscription, setEditedTranscription] = useState("");
-  const [editedLink, setEditedLink] = useState("case");
+  const [editedTitle, setEditedTitle] = useState('');
+  const [editedCategory, setEditedCategory] = useState('');
+  const [editedTranscription, setEditedTranscription] = useState('');
+  const [editedLink, setEditedLink] = useState('case');
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const { data: recentDocs = [] } = useQuery<Document[]>({
-    queryKey: ["/api", "documents", { environment, userId: user?.id }],
+    queryKey: ['/api', 'documents', { environment, userId: user?.id }],
     queryFn: async () => {
-      const res = await fetch("/api/documents", {
-        credentials: "include",
-        headers: { 
-          "X-Environment": environment || "demo",
-          "X-User-Id": user?.id || "",
+      const res = await fetch('/api/documents', {
+        credentials: 'include',
+        headers: {
+          'X-Environment': environment || 'demo',
+          'X-User-Id': user?.id || '',
         },
       });
-      if (!res.ok) throw new Error("Failed to fetch documents");
+      if (!res.ok) throw new Error('Failed to fetch documents');
       return res.json();
     },
     staleTime: 0,
-    refetchOnMount: "always",
+    refetchOnMount: 'always',
   });
 
   const { data: violations = [] } = useQuery<Violation[]>({
-    queryKey: ["/api", "violations", { environment, userId: user?.id }],
+    queryKey: ['/api', 'violations', { environment, userId: user?.id }],
     queryFn: async () => {
-      const res = await fetch("/api/violations", {
-        credentials: "include",
-        headers: { 
-          "X-Environment": environment || "demo",
-          "X-User-Id": user?.id || "",
+      const res = await fetch('/api/violations', {
+        credentials: 'include',
+        headers: {
+          'X-Environment': environment || 'demo',
+          'X-User-Id': user?.id || '',
         },
       });
-      if (!res.ok) throw new Error("Failed to fetch violations");
+      if (!res.ok) throw new Error('Failed to fetch violations');
       return res.json();
     },
     staleTime: 0,
-    refetchOnMount: "always",
+    refetchOnMount: 'always',
   });
 
   const createDocumentMutation = useMutation({
     mutationFn: async (data: { title: string; category: string; description: string }) => {
-      const res = await apiRequest("POST", "/api/documents", data);
+      const res = await apiRequest('POST', '/api/documents', data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api", "documents"] });
-      toast({ title: "Document Saved", description: "Your document has been saved to your case." });
+      queryClient.invalidateQueries({ queryKey: ['/api', 'documents'] });
+      toast({ title: 'Document Saved', description: 'Your document has been saved to your case.' });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to save document.", variant: "destructive" });
+      toast({ title: 'Error', description: 'Failed to save document.', variant: 'destructive' });
     },
   });
 
   const createViolationMutation = useMutation({
     mutationFn: async (data: { type: string; description: string }) => {
-      const res = await apiRequest("POST", "/api/violations", { 
-        ...data, 
+      const res = await apiRequest('POST', '/api/violations', {
+        ...data,
         timestamp: new Date().toISOString(),
-        status: "pending",
+        status: 'pending',
       });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/violations", environment] });
-      toast({ title: "Violation Reported", description: "Your violation report has been saved." });
+      queryClient.invalidateQueries({ queryKey: ['/api/violations', environment] });
+      toast({ title: 'Violation Reported', description: 'Your violation report has been saved.' });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to save violation.", variant: "destructive" });
+      toast({ title: 'Error', description: 'Failed to save violation.', variant: 'destructive' });
     },
   });
 
@@ -175,7 +195,7 @@ export default function Home() {
       reader.readAsDataURL(file);
       reader.onload = () => {
         const result = reader.result as string;
-        const base64 = result.split(",")[1];
+        const base64 = result.split(',')[1];
         resolve(base64);
       };
       reader.onerror = reject;
@@ -183,14 +203,14 @@ export default function Home() {
   };
 
   const analyzeWithAI = async (
-    base64Data: string, 
-    mimeType: string, 
-    fileName: string, 
-    captureType: "document" | "violation", 
-    source: "scan" | "upload" | "voice"
+    base64Data: string,
+    mimeType: string,
+    fileName: string,
+    captureType: 'document' | 'violation',
+    source: 'scan' | 'upload' | 'voice'
   ) => {
     try {
-      const res = await apiRequest("POST", "/api/capture/analyze", {
+      const res = await apiRequest('POST', '/api/capture/analyze', {
         base64Data,
         mimeType,
         fileName,
@@ -201,42 +221,47 @@ export default function Home() {
       if (result.success && result.data) {
         return result.data;
       }
-      throw new Error("Analysis failed");
+      throw new Error('Analysis failed');
     } catch (error) {
-      console.error("AI analysis error:", error);
+      console.error('AI analysis error:', error);
       return null;
     }
   };
 
-  const processFile = async (file: File, type: "document" | "violation", source: "scan" | "upload") => {
+  const processFile = async (
+    file: File,
+    type: 'document' | 'violation',
+    source: 'scan' | 'upload'
+  ) => {
     try {
       const base64 = await fileToBase64(file);
-      const isImage = file.type.startsWith("image/");
+      const isImage = file.type.startsWith('image/');
       let aiResult = null;
-      
+
       if (isImage) {
         aiResult = await analyzeWithAI(base64, file.type, file.name, type, source);
       }
-      
+
       const data: CapturedData = {
         type,
         source,
         file,
-        title: aiResult?.title || file.name.replace(/\.[^/.]+$/, ""),
-        suggestedCategory: aiResult?.category || (type === "document" ? "other" : "other"),
-        suggestedLink: aiResult?.suggestedLink || (type === "document" ? "finances" : "timeline"),
-        extractedText: aiResult?.extractedText || (source === "scan" ? "Document scanned - please review" : ""),
+        title: aiResult?.title || file.name.replace(/\.[^/.]+$/, ''),
+        suggestedCategory: aiResult?.category || (type === 'document' ? 'other' : 'other'),
+        suggestedLink: aiResult?.suggestedLink || (type === 'document' ? 'finances' : 'timeline'),
+        extractedText:
+          aiResult?.extractedText || (source === 'scan' ? 'Document scanned - please review' : ''),
       };
-      
+
       setCapturedData(data);
       setEditedTitle(data.title);
       setEditedCategory(data.suggestedCategory);
-      setEditedTranscription(data.extractedText || "");
+      setEditedTranscription(data.extractedText || '');
       setEditedLink(data.suggestedLink);
       setIsProcessing(false);
       setApprovalOpen(true);
     } catch (error) {
-      toast({ title: "Error", description: "Failed to analyze file", variant: "destructive" });
+      toast({ title: 'Error', description: 'Failed to analyze file', variant: 'destructive' });
       processNextFile();
     }
   };
@@ -245,7 +270,7 @@ export default function Home() {
     if (pendingFiles.length > 0) {
       const [nextFile, ...remaining] = pendingFiles;
       setPendingFiles(remaining);
-      setCurrentFileIndex(prev => prev + 1);
+      setCurrentFileIndex((prev) => prev + 1);
       setIsProcessing(true);
       processFile(nextFile.file, nextFile.type, nextFile.source);
     } else {
@@ -255,51 +280,57 @@ export default function Home() {
     }
   };
 
-  const handleCameraCapture = async (e: React.ChangeEvent<HTMLInputElement>, type: "document" | "violation") => {
+  const handleCameraCapture = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: 'document' | 'violation'
+  ) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
+
     const fileArray = Array.from(files);
     setTotalFiles(fileArray.length);
     setCurrentFileIndex(1);
     setCaptureMode(null);
-    
+
     if (fileArray.length === 1) {
       setIsProcessing(true);
-      processFile(fileArray[0], type, "scan");
+      processFile(fileArray[0], type, 'scan');
     } else {
       const [first, ...rest] = fileArray;
-      setPendingFiles(rest.map(f => ({ file: f, type, source: "scan" as const })));
+      setPendingFiles(rest.map((f) => ({ file: f, type, source: 'scan' as const })));
       setIsProcessing(true);
-      processFile(first, type, "scan");
+      processFile(first, type, 'scan');
     }
-    
+
     if (cameraInputRef.current) {
-      cameraInputRef.current.value = "";
+      cameraInputRef.current.value = '';
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "document" | "violation") => {
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: 'document' | 'violation'
+  ) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
+
     const fileArray = Array.from(files);
     setTotalFiles(fileArray.length);
     setCurrentFileIndex(1);
     setCaptureMode(null);
-    
+
     if (fileArray.length === 1) {
       setIsProcessing(true);
-      processFile(fileArray[0], type, "upload");
+      processFile(fileArray[0], type, 'upload');
     } else {
       const [first, ...rest] = fileArray;
-      setPendingFiles(rest.map(f => ({ file: f, type, source: "upload" as const })));
+      setPendingFiles(rest.map((f) => ({ file: f, type, source: 'upload' as const })));
       setIsProcessing(true);
-      processFile(first, type, "upload");
+      processFile(first, type, 'upload');
     }
-    
+
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
 
@@ -307,23 +338,24 @@ export default function Home() {
     setIsRecording(true);
   };
 
-  const handleVoiceRecordStop = (type: "document" | "violation") => {
+  const handleVoiceRecordStop = (type: 'document' | 'violation') => {
     setIsRecording(false);
     setIsProcessing(true);
-    
+
     const data: CapturedData = {
       type,
-      source: "voice",
-      title: "Voice Note",
-      suggestedCategory: type === "document" ? "correspondence" : "other",
-      suggestedLink: type === "document" ? "case" : "timeline",
-      transcription: "Voice recording captured. In a full implementation, this would be transcribed using AI. For now, please type your notes below.",
+      source: 'voice',
+      title: 'Voice Note',
+      suggestedCategory: type === 'document' ? 'correspondence' : 'other',
+      suggestedLink: type === 'document' ? 'case' : 'timeline',
+      transcription:
+        'Voice recording captured. In a full implementation, this would be transcribed using AI. For now, please type your notes below.',
     };
-    
+
     setCapturedData(data);
     setEditedTitle(data.title);
     setEditedCategory(data.suggestedCategory);
-    setEditedTranscription(data.transcription || "");
+    setEditedTranscription(data.transcription || '');
     setEditedLink(data.suggestedLink);
     setIsProcessing(false);
     setCaptureMode(null);
@@ -331,16 +363,16 @@ export default function Home() {
   };
 
   const getLinkLabel = (value: string) => {
-    const option = LINK_OPTIONS.find(o => o.value === value);
+    const option = LINK_OPTIONS.find((o) => o.value === value);
     return option?.label || value;
   };
 
   const handleApproveData = async () => {
     if (!capturedData) return;
-    
+
     const linkInfo = `[Linked to: ${getLinkLabel(editedLink)}]`;
-    
-    if (capturedData.type === "document") {
+
+    if (capturedData.type === 'document') {
       await createDocumentMutation.mutateAsync({
         title: editedTitle,
         category: editedCategory,
@@ -352,10 +384,10 @@ export default function Home() {
         description: `${editedTitle}\n\n${editedTranscription}\n\n${linkInfo}`,
       });
     }
-    
+
     setApprovalOpen(false);
     setCapturedData(null);
-    
+
     if (pendingFiles.length > 0) {
       setTimeout(() => processNextFile(), 300);
     }
@@ -364,7 +396,7 @@ export default function Home() {
   const handleSkipFile = () => {
     setApprovalOpen(false);
     setCapturedData(null);
-    
+
     if (pendingFiles.length > 0) {
       setTimeout(() => processNextFile(), 300);
     } else {
@@ -375,22 +407,34 @@ export default function Home() {
 
   const startCapture = (mode: CaptureMode) => {
     setCaptureMode(mode);
-    if (mode === "scan-doc" || mode === "scan-violation") {
+    if (mode === 'scan-doc' || mode === 'scan-violation') {
       setTimeout(() => cameraInputRef.current?.click(), 100);
-    } else if (mode === "upload-doc" || mode === "upload-violation") {
+    } else if (mode === 'upload-doc' || mode === 'upload-violation') {
       setTimeout(() => fileInputRef.current?.click(), 100);
     }
   };
 
   const { data: appwriteDocuments } = useQuery<any[]>({
-    queryKey: ["/api/appwrite/files"],
+    queryKey: ['/api/appwrite/files'],
   });
 
   const violationsCount = violations?.length || 0;
 
   const quickStats = [
-    { label: "Documents", value: appwriteDocuments?.length || 0, icon: FileText, color: "text-blue-400", bg: "bg-blue-500/20" },
-    { label: "Violations", value: violationsCount, icon: AlertTriangle, color: "text-orange-400", bg: "bg-orange-500/20" },
+    {
+      label: 'Documents',
+      value: appwriteDocuments?.length || 0,
+      icon: FileText,
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/20',
+    },
+    {
+      label: 'Violations',
+      value: violationsCount,
+      icon: AlertTriangle,
+      color: 'text-orange-400',
+      bg: 'bg-orange-500/20',
+    },
   ];
 
   const isPending = createDocumentMutation.isPending || createViolationMutation.isPending;
@@ -410,7 +454,7 @@ export default function Home() {
         <section className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => startCapture("scan-doc")}
+              onClick={() => startCapture('scan-doc')}
               className="group relative w-full overflow-hidden rounded-3xl p-[2px] bg-gradient-to-br from-blue-500 via-cyan-400 to-blue-600 shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-transform flex-1"
               data-testid="button-scan-document"
             >
@@ -424,14 +468,12 @@ export default function Home() {
                   Scan
                 </h3>
                 <p className="font-semibold">Documents</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Capture with camera
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Capture with camera</p>
               </div>
             </button>
 
             <button
-              onClick={() => startCapture("upload-doc")}
+              onClick={() => startCapture('upload-doc')}
               className="group w-full flex items-center gap-3 p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98] transition-all min-h-[72px]"
               data-testid="button-upload-document"
             >
@@ -446,7 +488,7 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => startCapture("voice-doc")}
+              onClick={() => startCapture('voice-doc')}
               className="group w-full flex items-center gap-3 p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98] transition-all min-h-[72px]"
               data-testid="button-voice-document"
             >
@@ -463,7 +505,7 @@ export default function Home() {
 
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => startCapture("scan-violation")}
+              onClick={() => startCapture('scan-violation')}
               className="group relative w-full overflow-hidden rounded-3xl p-[2px] bg-gradient-to-br from-orange-500 via-red-400 to-orange-600 shadow-lg shadow-orange-500/20 active:scale-[0.98] transition-transform flex-1"
               data-testid="button-report-violation"
             >
@@ -477,14 +519,12 @@ export default function Home() {
                   Report
                 </h3>
                 <p className="font-semibold">Violation</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Capture evidence
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Capture evidence</p>
               </div>
             </button>
 
             <button
-              onClick={() => startCapture("upload-violation")}
+              onClick={() => startCapture('upload-violation')}
               className="group w-full flex items-center gap-3 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 hover:border-orange-500/30 active:scale-[0.98] transition-all min-h-[72px]"
               data-testid="button-upload-violation"
             >
@@ -499,7 +539,7 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => startCapture("voice-violation")}
+              onClick={() => startCapture('voice-violation')}
               className="group w-full flex items-center gap-3 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 hover:border-orange-500/30 active:scale-[0.98] transition-all min-h-[72px]"
               data-testid="button-voice-violation"
             >
@@ -529,11 +569,11 @@ export default function Home() {
 
         <section className="grid grid-cols-2 gap-3">
           {quickStats.map((stat) => (
-            <Link key={stat.label} href={stat.label === "Documents" ? "/documents" : "/violations"}>
+            <Link key={stat.label} href={stat.label === 'Documents' ? '/documents' : '/violations'}>
               <Card className="border-0 bg-muted/50 hover-elevate">
                 <CardContent className="flex items-center gap-3 p-4">
-                  <div className={cn("p-2.5 rounded-xl", stat.bg)}>
-                    <stat.icon className={cn("w-5 h-5", stat.color)} />
+                  <div className={cn('p-2.5 rounded-xl', stat.bg)}>
+                    <stat.icon className={cn('w-5 h-5', stat.color)} />
                   </div>
                   <div>
                     <p className="text-2xl font-bold tabular-nums">{stat.value}</p>
@@ -590,7 +630,7 @@ export default function Home() {
         multiple
         className="hidden"
         onChange={(e) => {
-          const type = captureMode?.includes("doc") ? "document" : "violation";
+          const type = captureMode?.includes('doc') ? 'document' : 'violation';
           handleCameraCapture(e, type);
         }}
         data-testid="input-camera-capture"
@@ -603,57 +643,75 @@ export default function Home() {
         multiple
         className="hidden"
         onChange={(e) => {
-          const type = captureMode?.includes("doc") ? "document" : "violation";
+          const type = captureMode?.includes('doc') ? 'document' : 'violation';
           handleFileUpload(e, type);
         }}
         data-testid="input-file-upload"
       />
 
-      <Dialog open={captureMode?.includes("voice") || false} onOpenChange={(open) => !open && setCaptureMode(null)}>
+      <Dialog
+        open={captureMode?.includes('voice') || false}
+        onOpenChange={(open) => !open && setCaptureMode(null)}
+      >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Mic className={cn("w-5 h-5", captureMode?.includes("doc") ? "text-blue-400" : "text-orange-400")} />
+              <Mic
+                className={cn(
+                  'w-5 h-5',
+                  captureMode?.includes('doc') ? 'text-blue-400' : 'text-orange-400'
+                )}
+              />
               Voice Note
             </DialogTitle>
             <DialogDescription>
-              {captureMode?.includes("doc") 
-                ? "Describe your document and the AI will categorize it"
-                : "Describe the violation in detail"}
+              {captureMode?.includes('doc')
+                ? 'Describe your document and the AI will categorize it'
+                : 'Describe the violation in detail'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex flex-col items-center gap-4 py-6">
-            <div className={cn(
-              "w-24 h-24 rounded-full flex items-center justify-center transition-all",
-              isRecording 
-                ? "bg-red-500 animate-pulse shadow-lg shadow-red-500/50" 
-                : captureMode?.includes("doc") 
-                  ? "bg-blue-500/20" 
-                  : "bg-orange-500/20"
-            )}>
+            <div
+              className={cn(
+                'w-24 h-24 rounded-full flex items-center justify-center transition-all',
+                isRecording
+                  ? 'bg-red-500 animate-pulse shadow-lg shadow-red-500/50'
+                  : captureMode?.includes('doc')
+                    ? 'bg-blue-500/20'
+                    : 'bg-orange-500/20'
+              )}
+            >
               {isRecording ? (
                 <div className="w-8 h-8 bg-white rounded-sm" />
               ) : (
-                <Mic className={cn(
-                  "w-10 h-10",
-                  captureMode?.includes("doc") ? "text-blue-400" : "text-orange-400"
-                )} />
+                <Mic
+                  className={cn(
+                    'w-10 h-10',
+                    captureMode?.includes('doc') ? 'text-blue-400' : 'text-orange-400'
+                  )}
+                />
               )}
             </div>
-            
+
             <p className="text-sm text-muted-foreground text-center">
-              {isRecording ? "Recording... Tap to stop" : "Tap to start recording"}
+              {isRecording ? 'Recording... Tap to stop' : 'Tap to start recording'}
             </p>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setCaptureMode(null)} data-testid="button-voice-cancel">
+            <Button
+              variant="outline"
+              onClick={() => setCaptureMode(null)}
+              data-testid="button-voice-cancel"
+            >
               Cancel
             </Button>
             {isRecording ? (
-              <Button 
-                onClick={() => handleVoiceRecordStop(captureMode?.includes("doc") ? "document" : "violation")}
+              <Button
+                onClick={() =>
+                  handleVoiceRecordStop(captureMode?.includes('doc') ? 'document' : 'violation')
+                }
                 variant="destructive"
                 className="gap-2"
                 data-testid="button-voice-stop"
@@ -662,7 +720,7 @@ export default function Home() {
                 Stop Recording
               </Button>
             ) : (
-              <Button 
+              <Button
                 onClick={handleVoiceRecordStart}
                 className="gap-2"
                 data-testid="button-voice-start"
@@ -685,9 +743,7 @@ export default function Home() {
             </div>
             <div className="text-center space-y-1">
               <p className="font-semibold">Analyzing with AI</p>
-              <p className="text-sm text-muted-foreground">
-                Extracting text and categorizing...
-              </p>
+              <p className="text-sm text-muted-foreground">Extracting text and categorizing...</p>
               {totalFiles > 1 && (
                 <Badge variant="secondary" className="mt-2">
                   File {currentFileIndex} of {totalFiles}
@@ -713,10 +769,12 @@ export default function Home() {
               )}
             </DialogTitle>
             <DialogDescription>
-              Check that the AI correctly identified your {capturedData?.type === "document" ? "document" : "violation"}. Make changes if needed.
+              Check that the AI correctly identified your{' '}
+              {capturedData?.type === 'document' ? 'document' : 'violation'}. Make changes if
+              needed.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3">
               <p className="text-xs text-muted-foreground mb-1">AI Suggestion</p>
@@ -740,29 +798,37 @@ export default function Home() {
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(capturedData?.type === "document" ? DOCUMENT_CATEGORIES : VIOLATION_TYPES).map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
+                  {(capturedData?.type === 'document' ? DOCUMENT_CATEGORIES : VIOLATION_TYPES).map(
+                    (cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </SelectItem>
+                    )
+                  )}
                 </SelectContent>
               </Select>
             </div>
 
-            {(capturedData?.source === "voice" || capturedData?.source === "scan") && (
+            {(capturedData?.source === 'voice' || capturedData?.source === 'scan') && (
               <div className="space-y-2">
-                <Label>{capturedData.source === "voice" ? "Transcription" : "Extracted Text"}</Label>
+                <Label>
+                  {capturedData.source === 'voice' ? 'Transcription' : 'Extracted Text'}
+                </Label>
                 <Textarea
                   value={editedTranscription}
                   onChange={(e) => setEditedTranscription(e.target.value)}
-                  placeholder={capturedData.source === "voice" ? "Voice note transcription..." : "Text extracted from document..."}
+                  placeholder={
+                    capturedData.source === 'voice'
+                      ? 'Voice note transcription...'
+                      : 'Text extracted from document...'
+                  }
                   className="min-h-[80px]"
                   data-testid="textarea-approval-content"
                 />
                 <p className="text-xs text-muted-foreground">
-                  {capturedData.source === "voice" 
-                    ? "Edit if the transcription is incorrect" 
-                    : "Edit if the AI read the document incorrectly"}
+                  {capturedData.source === 'voice'
+                    ? 'Edit if the transcription is incorrect'
+                    : 'Edit if the AI read the document incorrectly'}
                 </p>
               </div>
             )}
@@ -789,7 +855,11 @@ export default function Home() {
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <div className="flex gap-2 w-full sm:w-auto">
-              <Button variant="outline" onClick={() => setApprovalOpen(false)} data-testid="button-approval-cancel">
+              <Button
+                variant="outline"
+                onClick={() => setApprovalOpen(false)}
+                data-testid="button-approval-cancel"
+              >
                 Cancel
               </Button>
               {pendingFiles.length > 0 && (
@@ -798,13 +868,18 @@ export default function Home() {
                 </Button>
               )}
             </div>
-            <Button onClick={handleApproveData} className="gap-2 w-full sm:w-auto" disabled={isPending} data-testid="button-approval-confirm">
+            <Button
+              onClick={handleApproveData}
+              className="gap-2 w-full sm:w-auto"
+              disabled={isPending}
+              data-testid="button-approval-confirm"
+            >
               {isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Check className="w-4 h-4" />
               )}
-              {pendingFiles.length > 0 ? "Save & Next" : "Approve & Save"}
+              {pendingFiles.length > 0 ? 'Save & Next' : 'Approve & Save'}
             </Button>
           </DialogFooter>
         </DialogContent>

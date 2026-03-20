@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import type { UppyFile } from "@uppy/core";
+import { useState, useCallback } from 'react';
+import type { UppyFile } from '@uppy/core';
 
 interface UploadMetadata {
   name: string;
@@ -60,49 +60,43 @@ export function useUpload(options: UseUploadOptions = {}) {
    * Request a presigned URL from the backend.
    * IMPORTANT: Send JSON metadata, NOT the file itself.
    */
-  const requestUploadUrl = useCallback(
-    async (file: File): Promise<UploadResponse> => {
-      const response = await fetch("/api/uploads/request-url", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: file.name,
-          size: file.size,
-          contentType: file.type || "application/octet-stream",
-        }),
-      });
+  const requestUploadUrl = useCallback(async (file: File): Promise<UploadResponse> => {
+    const response = await fetch('/api/uploads/request-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: file.name,
+        size: file.size,
+        contentType: file.type || 'application/octet-stream',
+      }),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to get upload URL");
-      }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to get upload URL');
+    }
 
-      return response.json();
-    },
-    []
-  );
+    return response.json();
+  }, []);
 
   /**
    * Upload a file directly to the presigned URL.
    */
-  const uploadToPresignedUrl = useCallback(
-    async (file: File, uploadURL: string): Promise<void> => {
-      const response = await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type || "application/octet-stream",
-        },
-      });
+  const uploadToPresignedUrl = useCallback(async (file: File, uploadURL: string): Promise<void> => {
+    const response = await fetch(uploadURL, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+      },
+    });
 
-      if (!response.ok) {
-        throw new Error("Failed to upload file to storage");
-      }
-    },
-    []
-  );
+    if (!response.ok) {
+      throw new Error('Failed to upload file to storage');
+    }
+  }, []);
 
   /**
    * Upload a file using the presigned URL flow.
@@ -123,34 +117,34 @@ export function useUpload(options: UseUploadOptions = {}) {
 
         // Step 2: Upload file directly to presigned URL
         setProgress(30);
-        
+
         return new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open("PUT", uploadResponse.uploadURL);
-          xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-          
+          xhr.open('PUT', uploadResponse.uploadURL);
+          xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+
           xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
               const percent = Math.round((event.loaded / event.total) * 70) + 30;
               setProgress(percent);
             }
           };
-          
+
           xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
               setProgress(100);
               options.onSuccess?.(uploadResponse);
               resolve(uploadResponse);
             } else {
-              reject(new Error("Failed to upload file to storage"));
+              reject(new Error('Failed to upload file to storage'));
             }
           };
-          
-          xhr.onerror = () => reject(new Error("Network error during upload"));
+
+          xhr.onerror = () => reject(new Error('Network error during upload'));
           xhr.send(file);
         });
       } catch (err) {
-        const error = err instanceof Error ? err : new Error("Upload failed");
+        const error = err instanceof Error ? err : new Error('Upload failed');
         setError(error);
         options.onError?.(error);
         return null;
@@ -178,32 +172,32 @@ export function useUpload(options: UseUploadOptions = {}) {
     async (
       file: UppyFile<Record<string, unknown>, Record<string, unknown>>
     ): Promise<{
-      method: "PUT";
+      method: 'PUT';
       url: string;
       headers?: Record<string, string>;
     }> => {
       // Use the actual file properties to request a per-file presigned URL
-      const response = await fetch("/api/uploads/request-url", {
-        method: "POST",
+      const response = await fetch('/api/uploads/request-url', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           name: file.name,
           size: file.size,
-          contentType: file.type || "application/octet-stream",
+          contentType: file.type || 'application/octet-stream',
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get upload URL");
+        throw new Error('Failed to get upload URL');
       }
 
       const data = await response.json();
       return {
-        method: "PUT",
+        method: 'PUT',
         url: data.uploadURL,
-        headers: { "Content-Type": file.type || "application/octet-stream" },
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
       };
     },
     []
@@ -217,4 +211,3 @@ export function useUpload(options: UseUploadOptions = {}) {
     progress,
   };
 }
-

@@ -19,9 +19,7 @@ export function useUpload() {
     }
   }, [storageUsage, fetchStorageUsage]);
 
-  const isStorageExceeded = storageUsage
-    ? storageUsage.used >= storageUsage.limit
-    : false;
+  const isStorageExceeded = storageUsage ? storageUsage.used >= storageUsage.limit : false;
 
   const storagePercentage = storageUsage ? storageUsage.percentage : 0;
 

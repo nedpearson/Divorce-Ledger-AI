@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db } from '../db';
 import { users, quotaResetLog, type QuotaResetLog as QuotaResetLogRow } from '@shared/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 
@@ -11,7 +11,7 @@ export interface QuotaReset {
   mediaUploadsBefore: number;
 }
 
-import { isDemoMode, getAppMode } from "./config";
+import { isDemoMode, getAppMode } from '../config';
 
 export class QuotaResetService {
   /**
@@ -22,7 +22,7 @@ export class QuotaResetService {
   async resetMonthlyQuotas(): Promise<{ reset: number; failed: number }> {
     const appMode = getAppMode();
     console.log(`[QUOTA] Starting monthly quota reset in ${appMode} mode...`);
-    
+
     try {
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -48,7 +48,8 @@ export class QuotaResetService {
               mediaUploadsBefore: user.mediaUploadsThisMonth || 0,
             });
 
-            await db.update(users)
+            await db
+              .update(users)
               .set({
                 violationsCountThisMonth: 0,
                 voiceTranscriptionsThisMonth: 0,
@@ -101,7 +102,8 @@ export class QuotaResetService {
         mediaUploadsBefore: quotaReset.mediaUploadsBefore,
       });
 
-      await db.update(users)
+      await db
+        .update(users)
         .set({
           violationsCountThisMonth: 0,
           voiceTranscriptionsThisMonth: 0,
@@ -214,17 +216,20 @@ export class QuotaResetService {
         ? recentResets.filter((r: QuotaResetLogRow) => r.resetMonth === lastResetMonth).length
         : 0;
 
-      const avgViolations = recentResets.length > 0
-        ? recentResets.reduce((sum: number, r: QuotaResetLogRow) => sum + (r.violationsCountBefore || 0), 0) / recentResets.length
-        : 0;
+      const avgViolations =
+        recentResets.length > 0
+          ? recentResets.reduce(
+              (sum: number, r: QuotaResetLogRow) => sum + (r.violationsCountBefore || 0),
+              0
+            ) / recentResets.length
+          : 0;
 
       return {
         last_reset_date: lastReset?.resetAt?.toISOString() || null,
         users_reset: usersResetLastMonth,
         users_skipped: totalUsers - usersResetLastMonth,
-        reset_coverage: totalUsers > 0 
-          ? parseFloat(((usersResetLastMonth / totalUsers) * 100).toFixed(1))
-          : 100,
+        reset_coverage:
+          totalUsers > 0 ? parseFloat(((usersResetLastMonth / totalUsers) * 100).toFixed(1)) : 100,
         avg_violations_before_reset: parseFloat(avgViolations.toFixed(1)),
         reset_history: resetHistory,
       };

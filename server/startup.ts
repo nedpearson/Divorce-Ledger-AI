@@ -102,7 +102,8 @@ class StartupService {
   private logResults(): void {
     console.log('\n=== Startup Health Check ===');
     for (const result of this.results) {
-      const icon = result.status === 'success' ? '[OK]' : result.status === 'warning' ? '[WARN]' : '[ERR]';
+      const icon =
+        result.status === 'success' ? '[OK]' : result.status === 'warning' ? '[WARN]' : '[ERR]';
       console.log(`${icon} ${result.name}: ${result.message}`);
     }
     console.log('============================\n');
@@ -113,7 +114,7 @@ class StartupService {
   }
 
   hasCriticalErrors(): boolean {
-    return this.results.some(r => r.status === 'error' && r.critical);
+    return this.results.some((r) => r.status === 'error' && r.critical);
   }
 
   isHealthy(): boolean {
@@ -121,7 +122,7 @@ class StartupService {
   }
 
   isDatabaseConnected(): boolean {
-    const dbResult = this.results.find(r => r.name === 'Database');
+    const dbResult = this.results.find((r) => r.name === 'Database');
     return dbResult?.status === 'success';
   }
 }

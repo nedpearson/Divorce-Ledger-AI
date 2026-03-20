@@ -26,7 +26,7 @@ class ETLScheduler {
       lastRun: null,
       nextRun: this.calculateNextRun('0 2 * * *'),
       enabled: true,
-      runNow: () => etlPipeline.runFullPipeline()
+      runNow: () => etlPipeline.runFullPipeline(),
     });
 
     this.jobs.set('hourly_violations', {
@@ -35,7 +35,7 @@ class ETLScheduler {
       lastRun: null,
       nextRun: this.calculateNextRun('0 * * * *'),
       enabled: true,
-      runNow: () => etlPipeline.runViolationsPipeline()
+      runNow: () => etlPipeline.runViolationsPipeline(),
     });
 
     this.jobs.set('hourly_users', {
@@ -44,7 +44,7 @@ class ETLScheduler {
       lastRun: null,
       nextRun: this.calculateNextRun('30 * * * *'),
       enabled: true,
-      runNow: () => etlPipeline.runUsersPipeline()
+      runNow: () => etlPipeline.runUsersPipeline(),
     });
   }
 
@@ -53,16 +53,16 @@ class ETLScheduler {
     const parts = cronExpression.split(' ');
     const minute = parseInt(parts[0]) || 0;
     const hour = parts[1] === '*' ? now.getHours() : parseInt(parts[1]);
-    
+
     const next = new Date(now);
     next.setMinutes(minute);
     next.setSeconds(0);
     next.setMilliseconds(0);
-    
+
     if (parts[1] !== '*') {
       next.setHours(hour);
     }
-    
+
     if (next <= now) {
       if (parts[1] === '*') {
         next.setHours(next.getHours() + 1);
@@ -70,16 +70,16 @@ class ETLScheduler {
         next.setDate(next.getDate() + 1);
       }
     }
-    
+
     return next;
   }
 
   async start(): Promise<void> {
     if (this.isRunning) return;
     this.isRunning = true;
-    
+
     console.log('[ETL Scheduler] Starting scheduler');
-    
+
     const fullPipelineInterval = setInterval(async () => {
       const now = new Date();
       if (now.getHours() === 2 && now.getMinutes() === 0) {
@@ -104,7 +104,7 @@ class ETLScheduler {
 
   stop(): void {
     this.isRunning = false;
-    Array.from(this.intervals.values()).forEach(interval => {
+    Array.from(this.intervals.values()).forEach((interval) => {
       clearInterval(interval);
     });
     this.intervals.clear();
@@ -124,18 +124,18 @@ class ETLScheduler {
     }
 
     console.log(`[ETL Scheduler] Running job: ${jobName}`);
-    
+
     try {
       const result = await job.runNow();
       job.lastRun = new Date();
       job.nextRun = this.calculateNextRun(job.cronExpression);
-      
+
       console.log(`[ETL Scheduler] Job ${jobName} completed:`, {
         status: result.status,
         rowsLoaded: result.rowsLoaded,
-        duration: result.duration
+        duration: result.duration,
       });
-      
+
       return result;
     } catch (error) {
       console.error(`[ETL Scheduler] Job ${jobName} failed:`, error);
@@ -155,12 +155,12 @@ class ETLScheduler {
       cronExpression: job.cronExpression,
       lastRun: job.lastRun,
       nextRun: job.nextRun,
-      enabled: job.enabled
+      enabled: job.enabled,
     }));
 
     return {
       isRunning: this.isRunning,
-      jobs: jobList
+      jobs: jobList,
     };
   }
 

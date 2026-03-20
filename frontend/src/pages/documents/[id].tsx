@@ -37,10 +37,7 @@ export default function DocumentDetailPage() {
 
     setDownloading(true);
     try {
-      const { data, error } = await storage.download(
-        'documents',
-        currentDocument.storage_path
-      );
+      const { data, error } = await storage.download('documents', currentDocument.storage_path);
 
       if (error) throw error;
 
@@ -63,11 +60,7 @@ export default function DocumentDetailPage() {
   const handleDelete = async () => {
     if (!currentDocument) return;
 
-    if (
-      !confirm(
-        'Are you sure you want to delete this document? This action cannot be undone.'
-      )
-    ) {
+    if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
       return;
     }
 
@@ -172,10 +165,10 @@ export default function DocumentDetailPage() {
                       currentDocument.status === 'classified'
                         ? 'bg-green-100 text-green-800'
                         : currentDocument.status === 'processing'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : currentDocument.status === 'failed'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : currentDocument.status === 'failed'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
                     }`}
                   >
                     {currentDocument.status}
@@ -278,16 +271,12 @@ export default function DocumentDetailPage() {
           {/* Classification Results */}
           {classification && (
             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Classification Results
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Classification Results</h2>
 
               <dl className="space-y-4">
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Primary Category</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {classification.primary_category}
-                  </dd>
+                  <dd className="mt-1 text-sm text-gray-900">{classification.primary_category}</dd>
                 </div>
 
                 <div>
@@ -309,9 +298,7 @@ export default function DocumentDetailPage() {
 
                 {classification.entities && classification.entities.length > 0 && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 mb-2">
-                      Extracted Entities
-                    </dt>
+                    <dt className="text-sm font-medium text-gray-500 mb-2">Extracted Entities</dt>
                     <dd className="mt-1">
                       <div className="bg-gray-50 rounded-lg p-4">
                         <pre className="text-sm text-gray-900 whitespace-pre-wrap">

@@ -22,9 +22,7 @@ export const FILE_STATUS = {
   ERROR: 'error',
 } as const;
 
-const client = new Client()
-  .setEndpoint(APPWRITE_ENDPOINT)
-  .setProject(APPWRITE_PROJECT_ID);
+const client = new Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
 
 export const databases = new Databases(client);
 

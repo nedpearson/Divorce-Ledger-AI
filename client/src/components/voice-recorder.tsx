@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Square, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Mic, MicOff, Square, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface VoiceRecorderProps {
   onTranscript: (transcript: string) => void;
@@ -33,7 +33,7 @@ interface SpeechRecognitionInstance {
 }
 
 interface SpeechRecognitionConstructor {
-  new(): SpeechRecognitionInstance;
+  new (): SpeechRecognitionInstance;
 }
 
 declare global {
@@ -48,48 +48,48 @@ export function VoiceRecorder({
   onRecordingComplete,
   disabled = false,
   className,
-  placeholder = "Click mic to start speaking...",
+  placeholder = 'Click mic to start speaking...',
 }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [transcript, setTranscript] = useState("");
-  const [interimTranscript, setInterimTranscript] = useState("");
+  const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(true);
 
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const transcriptRef = useRef("");
+  const transcriptRef = useRef('');
   const onTranscriptRef = useRef(onTranscript);
-  
+
   onTranscriptRef.current = onTranscript;
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setIsSupported(false);
-      setError("Voice input not supported in this browser");
+      setError('Voice input not supported in this browser');
     }
   }, []);
 
   const startRecording = useCallback(async () => {
     setError(null);
-    setTranscript("");
-    setInterimTranscript("");
+    setTranscript('');
+    setInterimTranscript('');
     audioChunksRef.current = [];
-    transcriptRef.current = "";
+    transcriptRef.current = '';
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setError("Voice input not supported");
+      setError('Voice input not supported');
       return;
     }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
-      
+
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
@@ -97,24 +97,24 @@ export function VoiceRecorder({
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         if (onRecordingComplete) {
           onRecordingComplete(audioBlob);
         }
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorderRef.current.start(1000);
     } catch (err) {
       if (import.meta.env.DEV) {
-        console.info("Audio recording not available, continuing with speech only");
+        console.info('Audio recording not available, continuing with speech only');
       }
     }
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    recognition.lang = 'en-US';
 
     recognition.onstart = () => {
       setIsRecording(true);
@@ -122,13 +122,13 @@ export function VoiceRecorder({
     };
 
     recognition.onresult = (event) => {
-      let finalTranscript = "";
-      let interim = "";
+      let finalTranscript = '';
+      let interim = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
-          finalTranscript += result[0].transcript + " ";
+          finalTranscript += result[0].transcript + ' ';
         } else {
           interim += result[0].transcript;
         }
@@ -143,15 +143,15 @@ export function VoiceRecorder({
     };
 
     let shouldRestart = true;
-    
+
     recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
+      console.error('Speech recognition error:', event.error);
       shouldRestart = false;
-      if (event.error === "not-allowed") {
-        setError("Microphone access denied. Please enable microphone permissions.");
-      } else if (event.error === "no-speech") {
+      if (event.error === 'not-allowed') {
+        setError('Microphone access denied. Please enable microphone permissions.');
+      } else if (event.error === 'no-speech') {
         shouldRestart = true;
-      } else if (event.error === "aborted") {
+      } else if (event.error === 'aborted') {
         shouldRestart = false;
       } else {
         setError(`Error: ${event.error}`);
@@ -178,25 +178,25 @@ export function VoiceRecorder({
 
   const stopRecording = useCallback(() => {
     setIsProcessing(true);
-    
+
     if (recognitionRef.current) {
       recognitionRef.current.onend = null;
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
 
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
 
     setIsRecording(false);
     setIsProcessing(false);
-    setInterimTranscript("");
+    setInterimTranscript('');
   }, []);
 
   if (!isSupported) {
     return (
-      <div className={cn("flex items-center gap-2 text-muted-foreground text-sm", className)}>
+      <div className={cn('flex items-center gap-2 text-muted-foreground text-sm', className)}>
         <MicOff className="h-4 w-4" />
         <span>Voice input not supported</span>
       </div>
@@ -204,12 +204,12 @@ export function VoiceRecorder({
   }
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn('space-y-2', className)}>
       <div className="flex items-center gap-2">
         <Button
           type="button"
           size="icon"
-          variant={isRecording ? "destructive" : "outline"}
+          variant={isRecording ? 'destructive' : 'outline'}
           onClick={isRecording ? stopRecording : startRecording}
           disabled={disabled || isProcessing}
           data-testid="button-voice-record"
@@ -222,7 +222,7 @@ export function VoiceRecorder({
             <Mic className="h-4 w-4" />
           )}
         </Button>
-        
+
         {isRecording && (
           <div className="flex items-center gap-2">
             <span className="relative flex h-3 w-3">
@@ -235,7 +235,9 @@ export function VoiceRecorder({
       </div>
 
       {error && (
-        <p className="text-sm text-destructive" data-testid="text-voice-error">{error}</p>
+        <p className="text-sm text-destructive" data-testid="text-voice-error">
+          {error}
+        </p>
       )}
 
       {(transcript || interimTranscript) && (
@@ -263,7 +265,7 @@ export function VoiceInputButton({
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
-  const accumulatedRef = useRef("");
+  const accumulatedRef = useRef('');
   const isRecordingRef = useRef(false);
 
   const toggleRecording = useCallback(() => {
@@ -282,20 +284,20 @@ export function VoiceInputButton({
       if (accumulatedRef.current.trim()) {
         onTranscript(accumulatedRef.current.trim());
       }
-      accumulatedRef.current = "";
+      accumulatedRef.current = '';
       setIsRecording(false);
     } else {
-      accumulatedRef.current = "";
+      accumulatedRef.current = '';
       isRecordingRef.current = true;
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = false;
-      recognition.lang = "en-US";
+      recognition.lang = 'en-US';
 
       recognition.onresult = (event) => {
         for (let i = event.resultIndex; i < event.results.length; i++) {
           if (event.results[i].isFinal) {
-            accumulatedRef.current += event.results[i][0].transcript + " ";
+            accumulatedRef.current += event.results[i][0].transcript + ' ';
           }
         }
       };
@@ -322,9 +324,10 @@ export function VoiceInputButton({
     }
   }, [onTranscript]);
 
-  const SpeechRecognition = typeof window !== "undefined" 
-    ? window.SpeechRecognition || window.webkitSpeechRecognition 
-    : null;
+  const SpeechRecognition =
+    typeof window !== 'undefined'
+      ? window.SpeechRecognition || window.webkitSpeechRecognition
+      : null;
 
   if (!SpeechRecognition) {
     return null;
@@ -334,7 +337,7 @@ export function VoiceInputButton({
     <Button
       type="button"
       size="icon"
-      variant={isRecording ? "destructive" : "ghost"}
+      variant={isRecording ? 'destructive' : 'ghost'}
       onClick={toggleRecording}
       disabled={disabled}
       className={className}

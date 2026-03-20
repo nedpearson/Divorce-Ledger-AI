@@ -55,10 +55,12 @@ npx tsx server/services/appwrite/golden-set/ci-validate.ts --update-baseline
 ### CI Integration
 
 The CI validation script exits with code 1 if:
+
 - Any metric regresses more than 2% from baseline
 - False finalization rate increases more than 1%
 
 Add to CI pipeline:
+
 ```yaml
 - name: Golden Set Validation
   run: npx tsx server/services/appwrite/golden-set/ci-validate.ts

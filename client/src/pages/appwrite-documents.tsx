@@ -1,25 +1,54 @@
-import { useState, useEffect, useMemo, useCallback, memo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useAppwriteRealtime, useFileStatusPolling } from "@/hooks/use-appwrite-realtime";
-import { useAuth } from "@/lib/auth";
-import { 
-  FileText, Loader2, File, Image, FileSpreadsheet, RefreshCw, Trash2, 
-  Eye, Lock, CheckCircle2, Clock, AlertTriangle, Sparkles, Check, X, Edit2, Wifi, WifiOff
-} from "lucide-react";
-import { AppwriteFileUpload } from "@/components/appwrite-file-upload";
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useAppwriteRealtime, useFileStatusPolling } from '@/hooks/use-appwrite-realtime';
+import { useAuth } from '@/lib/auth';
+import {
+  FileText,
+  Loader2,
+  File,
+  Image,
+  FileSpreadsheet,
+  RefreshCw,
+  Trash2,
+  Eye,
+  Lock,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  Sparkles,
+  Check,
+  X,
+  Edit2,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
+import { AppwriteFileUpload } from '@/components/appwrite-file-upload';
 
 interface AppwriteFile {
   $id: string;
@@ -51,19 +80,19 @@ interface ExtractedFields {
   [key: string]: string | number | boolean | null;
 }
 
-function getFileIcon(fileType: string | null, size: "sm" | "lg" = "sm") {
-  const sizeClass = size === "lg" ? "h-10 w-10" : "h-5 w-5";
+function getFileIcon(fileType: string | null, size: 'sm' | 'lg' = 'sm') {
+  const sizeClass = size === 'lg' ? 'h-10 w-10' : 'h-5 w-5';
   if (!fileType) return <File className={`${sizeClass} text-muted-foreground`} />;
-  if (fileType.includes("image")) return <Image className={`${sizeClass} text-blue-500`} />;
-  if (fileType.includes("pdf")) return <FileText className={`${sizeClass} text-red-500`} />;
-  if (fileType.includes("spreadsheet") || fileType.includes("excel") || fileType.includes("csv")) {
+  if (fileType.includes('image')) return <Image className={`${sizeClass} text-blue-500`} />;
+  if (fileType.includes('pdf')) return <FileText className={`${sizeClass} text-red-500`} />;
+  if (fileType.includes('spreadsheet') || fileType.includes('excel') || fileType.includes('csv')) {
     return <FileSpreadsheet className={`${sizeClass} text-green-500`} />;
   }
   return <File className={`${sizeClass} text-muted-foreground`} />;
 }
 
 function formatFileSize(bytes: number | null): string {
-  if (!bytes) return "Unknown size";
+  if (!bytes) return 'Unknown size';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -78,7 +107,7 @@ function formatRelativeTime(dateString: string): string {
   const diffHour = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHour / 24);
 
-  if (diffSec < 5) return "just now";
+  if (diffSec < 5) return 'just now';
   if (diffSec < 60) return `${diffSec}s ago`;
   if (diffMin < 60) return `${diffMin}m ago`;
   if (diffHour < 24) return `${diffHour}h ago`;
@@ -98,14 +127,14 @@ const STATUS_PROGRESS: Record<string, number> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  uploaded: "Queued for processing...",
-  queued: "Waiting in queue...",
-  extracting: "Extracting text from document...",
-  analyzing: "AI analyzing content...",
-  suggested: "Review required",
-  awaiting_user: "Awaiting your review",
-  finalized: "Complete",
-  error: "Processing failed",
+  uploaded: 'Queued for processing...',
+  queued: 'Waiting in queue...',
+  extracting: 'Extracting text from document...',
+  analyzing: 'AI analyzing content...',
+  suggested: 'Review required',
+  awaiting_user: 'Awaiting your review',
+  finalized: 'Complete',
+  error: 'Processing failed',
 };
 
 function getStatusProgress(status: string): number {
@@ -121,36 +150,39 @@ function isProcessingStatus(status: string): boolean {
 }
 
 function getStatusBadge(status: string) {
-  const statusConfig: Record<string, { variant: "default" | "secondary" | "outline" | "destructive"; icon: React.ReactNode }> = {
-    uploaded: { variant: "secondary", icon: <Clock className="h-3 w-3" /> },
-    queued: { variant: "secondary", icon: <Clock className="h-3 w-3" /> },
-    extracting: { variant: "default", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
-    analyzing: { variant: "default", icon: <Sparkles className="h-3 w-3" /> },
-    suggested: { variant: "outline", icon: <Eye className="h-3 w-3" /> },
-    awaiting_user: { variant: "outline", icon: <Eye className="h-3 w-3" /> },
-    finalized: { variant: "default", icon: <CheckCircle2 className="h-3 w-3" /> },
-    error: { variant: "destructive", icon: <AlertTriangle className="h-3 w-3" /> },
+  const statusConfig: Record<
+    string,
+    { variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: React.ReactNode }
+  > = {
+    uploaded: { variant: 'secondary', icon: <Clock className="h-3 w-3" /> },
+    queued: { variant: 'secondary', icon: <Clock className="h-3 w-3" /> },
+    extracting: { variant: 'default', icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+    analyzing: { variant: 'default', icon: <Sparkles className="h-3 w-3" /> },
+    suggested: { variant: 'outline', icon: <Eye className="h-3 w-3" /> },
+    awaiting_user: { variant: 'outline', icon: <Eye className="h-3 w-3" /> },
+    finalized: { variant: 'default', icon: <CheckCircle2 className="h-3 w-3" /> },
+    error: { variant: 'destructive', icon: <AlertTriangle className="h-3 w-3" /> },
   };
 
-  const config = statusConfig[status] || { variant: "secondary" as const, icon: null };
-  
+  const config = statusConfig[status] || { variant: 'secondary' as const, icon: null };
+
   return (
     <Badge variant={config.variant} className="flex items-center gap-1">
       {config.icon}
-      {status.replace("_", " ")}
+      {status.replace('_', ' ')}
     </Badge>
   );
 }
 
 const CATEGORIES = [
-  { value: "financial", label: "Financial" },
-  { value: "legal", label: "Legal" },
-  { value: "medical", label: "Medical" },
-  { value: "property", label: "Property" },
-  { value: "receipt", label: "Receipt" },
-  { value: "correspondence", label: "Correspondence" },
-  { value: "evidence", label: "Evidence" },
-  { value: "other", label: "Other" },
+  { value: 'financial', label: 'Financial' },
+  { value: 'legal', label: 'Legal' },
+  { value: 'medical', label: 'Medical' },
+  { value: 'property', label: 'Property' },
+  { value: 'receipt', label: 'Receipt' },
+  { value: 'correspondence', label: 'Correspondence' },
+  { value: 'evidence', label: 'Evidence' },
+  { value: 'other', label: 'Other' },
 ];
 
 function parseExtractedFields(fieldsJson?: string): ExtractedFields {
@@ -163,43 +195,48 @@ function parseExtractedFields(fieldsJson?: string): ExtractedFields {
 }
 
 function formatFieldValue(value: string | number | boolean | null): string {
-  if (value === null || value === undefined) return "";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   return String(value);
 }
 
 function formatFieldLabel(key: string): string {
-  return key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export default function AppwriteDocuments() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [overrideFile, setOverrideFile] = useState<AppwriteFile | null>(null);
-  const [overrideCategory, setOverrideCategory] = useState("");
+  const [overrideCategory, setOverrideCategory] = useState('');
   const [overrideFields, setOverrideFields] = useState<ExtractedFields>({});
-  const [overrideReason, setOverrideReason] = useState("");
+  const [overrideReason, setOverrideReason] = useState('');
   const [, setTick] = useState(0);
-  
+
   const userId = user?.id ? String(user.id) : null;
   const { isConnected: realtimeConnected } = useAppwriteRealtime(userId);
   const [processingFilesDetected, setProcessingFilesDetected] = useState(false);
 
-  const { data: filesData, isLoading, refetch, isRefetching } = useQuery<{ files: AppwriteFile[]; total: number }>({
-    queryKey: ["/api/appwrite/files"],
-    refetchInterval: processingFilesDetected ? 2000 : (realtimeConnected ? false : 10000),
+  const {
+    data: filesData,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useQuery<{ files: AppwriteFile[]; total: number }>({
+    queryKey: ['/api/appwrite/files'],
+    refetchInterval: processingFilesDetected ? 2000 : realtimeConnected ? false : 10000,
   });
 
   const files: AppwriteFile[] = filesData?.files || [];
   const hasProcessingFiles = files.some((f: AppwriteFile) => isProcessingStatus(f.status));
-  
+
   useEffect(() => {
     setProcessingFilesDetected(hasProcessingFiles);
   }, [hasProcessingFiles]);
-  
+
   const analyzeMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      const res = await apiRequest("POST", `/api/appwrite/files/${fileId}/analyze`);
+      const res = await apiRequest('POST', `/api/appwrite/files/${fileId}/analyze`);
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || `Analysis failed with status ${res.status}`);
@@ -207,20 +244,20 @@ export default function AppwriteDocuments() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Analysis Started", description: "Document is being analyzed." });
-      queryClient.invalidateQueries({ queryKey: ["/api/appwrite/files"] });
+      toast({ title: 'Analysis Started', description: 'Document is being analyzed.' });
+      queryClient.invalidateQueries({ queryKey: ['/api/appwrite/files'] });
     },
     onError: (error: Error) => {
-      toast({ title: "Analysis Failed", description: error.message, variant: "destructive" });
+      toast({ title: 'Analysis Failed', description: error.message, variant: 'destructive' });
     },
   });
-  
+
   useFileStatusPolling(hasProcessingFiles && !realtimeConnected, 3000);
-  
+
   useEffect(() => {
     const interval = setInterval(() => {
       if (hasProcessingFiles) {
-        setTick(t => t + 1);
+        setTick((t) => t + 1);
       }
     }, 5000);
     return () => clearInterval(interval);
@@ -228,7 +265,7 @@ export default function AppwriteDocuments() {
 
   const deleteMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      const res = await apiRequest("DELETE", `/api/appwrite/files/${fileId}`);
+      const res = await apiRequest('DELETE', `/api/appwrite/files/${fileId}`);
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || `Delete failed with status ${res.status}`);
@@ -236,45 +273,74 @@ export default function AppwriteDocuments() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "File Deleted", description: "The file has been removed." });
-      queryClient.invalidateQueries({ queryKey: ["/api/appwrite/files"] });
+      toast({ title: 'File Deleted', description: 'The file has been removed.' });
+      queryClient.invalidateQueries({ queryKey: ['/api/appwrite/files'] });
     },
     onError: (error: Error) => {
-      toast({ title: "Delete Failed", description: error.message || "Could not delete the file.", variant: "destructive" });
+      toast({
+        title: 'Delete Failed',
+        description: error.message || 'Could not delete the file.',
+        variant: 'destructive',
+      });
     },
   });
 
   const approveMutation = useMutation({
-    mutationFn: async ({ fileId, category, fields, reason }: { fileId: string; category: string; fields?: ExtractedFields; reason?: string }) => {
-      const res = await apiRequest("POST", `/api/appwrite/files/${fileId}/approve`, { category, fields, reason });
-      if (!res.ok) throw new Error("Approval failed");
+    mutationFn: async ({
+      fileId,
+      category,
+      fields,
+      reason,
+    }: {
+      fileId: string;
+      category: string;
+      fields?: ExtractedFields;
+      reason?: string;
+    }) => {
+      const res = await apiRequest('POST', `/api/appwrite/files/${fileId}/approve`, {
+        category,
+        fields,
+        reason,
+      });
+      if (!res.ok) throw new Error('Approval failed');
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Document Approved", description: "The document has been categorized and finalized." });
-      queryClient.invalidateQueries({ queryKey: ["/api/appwrite/files"] });
+      toast({
+        title: 'Document Approved',
+        description: 'The document has been categorized and finalized.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/appwrite/files'] });
       setOverrideFile(null);
-      setOverrideCategory("");
+      setOverrideCategory('');
       setOverrideFields({});
-      setOverrideReason("");
+      setOverrideReason('');
     },
     onError: () => {
-      toast({ title: "Approval Failed", description: "Could not approve the document.", variant: "destructive" });
+      toast({
+        title: 'Approval Failed',
+        description: 'Could not approve the document.',
+        variant: 'destructive',
+      });
     },
   });
 
   const retryMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      const res = await apiRequest("POST", `/api/appwrite/files/${fileId}/retry`);
-      if (!res.ok) throw new Error("Retry failed");
+      const res = await apiRequest('POST', `/api/appwrite/files/${fileId}/retry`);
+      if (!res.ok) throw new Error('Retry failed');
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Retry Queued", description: "The document will be reprocessed." });
-      queryClient.invalidateQueries({ queryKey: ["/api/appwrite/files"] });
+      toast({ title: 'Retry Queued', description: 'The document will be reprocessed.' });
+      queryClient.invalidateQueries({ queryKey: ['/api/appwrite/files'] });
     },
     onError: () => {
-      toast({ title: "Retry Failed", description: "Could not queue document for retry.", variant: "destructive" });
+      toast({
+        title: 'Retry Failed',
+        description: 'Could not queue document for retry.',
+        variant: 'destructive',
+      });
     },
   });
 
@@ -282,16 +348,16 @@ export default function AppwriteDocuments() {
     const extractedFields = parseExtractedFields(file.extractedFields);
     approveMutation.mutate({
       fileId: file.$id,
-      category: file.suggestedCategory || "other",
+      category: file.suggestedCategory || 'other',
       fields: extractedFields,
     });
   };
 
   const openOverrideDialog = (file: AppwriteFile) => {
     setOverrideFile(file);
-    setOverrideCategory(file.suggestedCategory || "");
+    setOverrideCategory(file.suggestedCategory || '');
     setOverrideFields(parseExtractedFields(file.extractedFields));
-    setOverrideReason("");
+    setOverrideReason('');
   };
 
   const handleOverrideSubmit = () => {
@@ -305,18 +371,27 @@ export default function AppwriteDocuments() {
   };
 
   const updateField = useCallback((key: string, value: string) => {
-    setOverrideFields(prev => ({ ...prev, [key]: value }));
+    setOverrideFields((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  const uploadedFiles = useMemo(() => files.filter(f => f.status === "uploaded" || f.status === "queued"), [files]);
-  const processingFiles = useMemo(() => files.filter(f => ["extracting", "analyzing"].includes(f.status)), [files]);
-  const pendingFiles = useMemo(() => files.filter(f => ["suggested", "awaiting_user"].includes(f.status)), [files]);
-  const completedFiles = useMemo(() => files.filter(f => f.status === "finalized"), [files]);
-  const errorFiles = useMemo(() => files.filter(f => f.status === "error"), [files]);
+  const uploadedFiles = useMemo(
+    () => files.filter((f) => f.status === 'uploaded' || f.status === 'queued'),
+    [files]
+  );
+  const processingFiles = useMemo(
+    () => files.filter((f) => ['extracting', 'analyzing'].includes(f.status)),
+    [files]
+  );
+  const pendingFiles = useMemo(
+    () => files.filter((f) => ['suggested', 'awaiting_user'].includes(f.status)),
+    [files]
+  );
+  const completedFiles = useMemo(() => files.filter((f) => f.status === 'finalized'), [files]);
+  const errorFiles = useMemo(() => files.filter((f) => f.status === 'error'), [files]);
 
   const renderFileCard = (file: AppwriteFile) => {
-    const isSuggested = file.status === "suggested" || file.status === "awaiting_user";
-    const isError = file.status === "error";
+    const isSuggested = file.status === 'suggested' || file.status === 'awaiting_user';
+    const isError = file.status === 'error';
     const isProcessing = isProcessingStatus(file.status);
     const confidencePercent = file.aiConfidence ? Math.round(file.aiConfidence * 100) : 0;
     const progress = getStatusProgress(file.status);
@@ -325,7 +400,7 @@ export default function AppwriteDocuments() {
       <Card key={file.$id} className="hover-elevate">
         <CardContent className="p-4">
           <div className="flex items-start gap-4">
-            {getFileIcon(file.fileType, "lg")}
+            {getFileIcon(file.fileType, 'lg')}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium truncate">{file.title || file.fileName}</span>
@@ -341,24 +416,24 @@ export default function AppwriteDocuments() {
                 {file.category && (
                   <>
                     <span>-</span>
-                    <Badge variant="outline" className="text-xs">{file.category}</Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {file.category}
+                    </Badge>
                   </>
                 )}
               </div>
-              
+
               {isProcessing && (
                 <div className="mt-2 space-y-1">
                   <Progress value={progress} className="h-2" />
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">
-                      {getStatusLabel(file.status)}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{getStatusLabel(file.status)}</p>
                     <span className="text-xs text-muted-foreground">{progress}%</span>
                   </div>
                 </div>
               )}
-              
-              {file.status === "uploaded" && !isProcessing && (
+
+              {file.status === 'uploaded' && !isProcessing && (
                 <div className="mt-2">
                   <Button
                     size="sm"
@@ -376,60 +451,69 @@ export default function AppwriteDocuments() {
                   </Button>
                 </div>
               )}
-              
-              {isSuggested && (() => {
-                const extractedFields = parseExtractedFields(file.extractedFields);
-                const fieldKeys = Object.keys(extractedFields);
-                return (
-                  <div className="mt-3 p-3 bg-muted/50 rounded-md space-y-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      <span className="font-medium">AI Suggestion:</span>
-                      <Badge variant="secondary">{file.suggestedCategory || "unknown"}</Badge>
-                      <span className="text-muted-foreground">
-                        ({confidencePercent}% confidence)
-                      </span>
-                    </div>
-                    {file.aiSummary && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">{file.aiSummary}</p>
-                    )}
-                    {fieldKeys.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        {fieldKeys.slice(0, 4).map(key => (
-                          <div key={key} className="flex flex-col">
-                            <span className="text-xs text-muted-foreground">{formatFieldLabel(key)}</span>
-                            <span className="font-medium truncate">{formatFieldValue(extractedFields[key])}</span>
-                          </div>
-                        ))}
-                        {fieldKeys.length > 4 && (
-                          <div className="text-xs text-muted-foreground">+{fieldKeys.length - 4} more fields</div>
-                        )}
+
+              {isSuggested &&
+                (() => {
+                  const extractedFields = parseExtractedFields(file.extractedFields);
+                  const fieldKeys = Object.keys(extractedFields);
+                  return (
+                    <div className="mt-3 p-3 bg-muted/50 rounded-md space-y-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <span className="font-medium">AI Suggestion:</span>
+                        <Badge variant="secondary">{file.suggestedCategory || 'unknown'}</Badge>
+                        <span className="text-muted-foreground">
+                          ({confidencePercent}% confidence)
+                        </span>
                       </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleApprove(file)}
-                        disabled={approveMutation.isPending}
-                        data-testid={`button-approve-${file.$id}`}
-                      >
-                        <Check className="h-4 w-4 mr-1" />
-                        Accept
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openOverrideDialog(file)}
-                        disabled={approveMutation.isPending}
-                        data-testid={`button-override-${file.$id}`}
-                      >
-                        <Edit2 className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
+                      {file.aiSummary && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {file.aiSummary}
+                        </p>
+                      )}
+                      {fieldKeys.length > 0 && (
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          {fieldKeys.slice(0, 4).map((key) => (
+                            <div key={key} className="flex flex-col">
+                              <span className="text-xs text-muted-foreground">
+                                {formatFieldLabel(key)}
+                              </span>
+                              <span className="font-medium truncate">
+                                {formatFieldValue(extractedFields[key])}
+                              </span>
+                            </div>
+                          ))}
+                          {fieldKeys.length > 4 && (
+                            <div className="text-xs text-muted-foreground">
+                              +{fieldKeys.length - 4} more fields
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleApprove(file)}
+                          disabled={approveMutation.isPending}
+                          data-testid={`button-approve-${file.$id}`}
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          Accept
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openOverrideDialog(file)}
+                          disabled={approveMutation.isPending}
+                          data-testid={`button-override-${file.$id}`}
+                        >
+                          <Edit2 className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })()}
+                  );
+                })()}
 
               {isError && (
                 <div className="mt-2 flex items-center gap-2">
@@ -464,18 +548,10 @@ export default function AppwriteDocuments() {
 
   const renderFileList = (fileList: AppwriteFile[], emptyMessage: string) => {
     if (fileList.length === 0) {
-      return (
-        <div className="text-center py-8 text-muted-foreground">
-          {emptyMessage}
-        </div>
-      );
+      return <div className="text-center py-8 text-muted-foreground">{emptyMessage}</div>;
     }
 
-    return (
-      <div className="space-y-2">
-        {fileList.map(renderFileCard)}
-      </div>
-    );
+    return <div className="space-y-2">{fileList.map(renderFileCard)}</div>;
   };
 
   return (
@@ -494,26 +570,30 @@ export default function AppwriteDocuments() {
               Live
             </Badge>
           ) : (
-            <Badge variant="outline" className="text-xs gap-1" data-testid="badge-connection-polling">
+            <Badge
+              variant="outline"
+              className="text-xs gap-1"
+              data-testid="badge-connection-polling"
+            >
               <WifiOff className="h-3 w-3 text-muted-foreground" />
               Polling
             </Badge>
           )}
-          <Button 
-            variant="outline" 
-            onClick={() => refetch()} 
+          <Button
+            variant="outline"
+            onClick={() => refetch()}
             disabled={isRefetching}
             data-testid="button-refresh-files"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
       </div>
 
-      <AppwriteFileUpload 
+      <AppwriteFileUpload
         onUploadComplete={() => {
-          queryClient.invalidateQueries({ queryKey: ["/api/appwrite/files"] });
+          queryClient.invalidateQueries({ queryKey: ['/api/appwrite/files'] });
         }}
       />
 
@@ -548,19 +628,19 @@ export default function AppwriteDocuments() {
           ) : (
             <>
               <TabsContent value="all" className="mt-0">
-                {renderFileList(files, "No documents uploaded yet")}
+                {renderFileList(files, 'No documents uploaded yet')}
               </TabsContent>
               <TabsContent value="pending" className="mt-0">
-                {renderFileList([...uploadedFiles, ...processingFiles], "No pending documents")}
+                {renderFileList([...uploadedFiles, ...processingFiles], 'No pending documents')}
               </TabsContent>
               <TabsContent value="review" className="mt-0">
-                {renderFileList(pendingFiles, "No documents awaiting review")}
+                {renderFileList(pendingFiles, 'No documents awaiting review')}
               </TabsContent>
               <TabsContent value="complete" className="mt-0">
-                {renderFileList(completedFiles, "No completed documents")}
+                {renderFileList(completedFiles, 'No completed documents')}
               </TabsContent>
               <TabsContent value="errors" className="mt-0">
-                {renderFileList(errorFiles, "No errors")}
+                {renderFileList(errorFiles, 'No errors')}
               </TabsContent>
             </>
           )}
@@ -580,7 +660,7 @@ export default function AppwriteDocuments() {
               <div className="p-3 bg-muted rounded-md">
                 <p className="font-medium">{overrideFile.title || overrideFile.fileName}</p>
                 <p className="text-sm text-muted-foreground">
-                  AI suggested: {overrideFile.suggestedCategory || "unknown"}
+                  AI suggested: {overrideFile.suggestedCategory || 'unknown'}
                 </p>
               </div>
               <div className="space-y-2">
@@ -598,7 +678,7 @@ export default function AppwriteDocuments() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               {Object.keys(overrideFields).length > 0 && (
                 <div className="space-y-3">
                   <Label>Extracted Fields</Label>
@@ -619,7 +699,7 @@ export default function AppwriteDocuments() {
                   </div>
                 </div>
               )}
-              
+
               <div className="space-y-2">
                 <Label htmlFor="reason">Change Reason (optional)</Label>
                 <Textarea
@@ -636,8 +716,8 @@ export default function AppwriteDocuments() {
             <Button variant="outline" onClick={() => setOverrideFile(null)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleOverrideSubmit} 
+            <Button
+              onClick={handleOverrideSubmit}
               disabled={!overrideCategory || approveMutation.isPending}
               data-testid="button-confirm-override"
             >

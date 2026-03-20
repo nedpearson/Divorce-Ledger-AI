@@ -46,7 +46,9 @@ export async function sendVerificationSms(
   code: string
 ): Promise<SendSmsResult> {
   if (!isTwilioConfigured()) {
-    console.log(`[SMS] Twilio not configured. Would send code ${code} to ${maskPhoneNumber(toPhoneNumber)}`);
+    console.log(
+      `[SMS] Twilio not configured. Would send code ${code} to ${maskPhoneNumber(toPhoneNumber)}`
+    );
     return { success: true, messageSid: 'demo-mode' };
   }
 
@@ -58,7 +60,9 @@ export async function sendVerificationSms(
       to: toPhoneNumber,
     });
 
-    console.log(`[SMS] Sent verification to ${maskPhoneNumber(toPhoneNumber)}, SID: ${message.sid}`);
+    console.log(
+      `[SMS] Sent verification to ${maskPhoneNumber(toPhoneNumber)}, SID: ${message.sid}`
+    );
     return { success: true, messageSid: message.sid };
   } catch (error: any) {
     console.error(`[SMS] Failed to send to ${maskPhoneNumber(toPhoneNumber)}:`, error.message);
@@ -99,7 +103,11 @@ export async function sendLoginAlertSms(
   }
 }
 
-export function parseUserAgent(ua: string): { browser: string; platform: string; deviceName: string } {
+export function parseUserAgent(ua: string): {
+  browser: string;
+  platform: string;
+  deviceName: string;
+} {
   let browser = 'Unknown Browser';
   let platform = 'Unknown Platform';
 

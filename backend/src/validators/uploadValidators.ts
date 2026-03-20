@@ -26,11 +26,9 @@ export const MAX_FILE_SIZES = {
 // Upload metadata schema
 export const uploadMetadataSchema = z.object({
   filename: z.string().min(1, 'Filename is required').max(255),
-  mimeType: z
-    .string()
-    .refine((val) => allowedMimeTypes.includes(val as any), {
-      message: `MIME type must be one of: ${allowedMimeTypes.join(', ')}`,
-    }),
+  mimeType: z.string().refine((val) => allowedMimeTypes.includes(val as any), {
+    message: `MIME type must be one of: ${allowedMimeTypes.join(', ')}`,
+  }),
   fileSize: z
     .number()
     .int()
@@ -55,7 +53,11 @@ export const initiateMultipartUploadSchema = z.object({
   filename: z.string().min(1).max(255),
   mimeType: z.string(),
   fileSize: z.number().int().positive(),
-  chunkSize: z.number().int().positive().default(5 * 1024 * 1024), // 5MB chunks
+  chunkSize: z
+    .number()
+    .int()
+    .positive()
+    .default(5 * 1024 * 1024), // 5MB chunks
   documentType: z
     .enum(['financial', 'legal', 'custody', 'property', 'communication', 'other'])
     .optional(),
@@ -91,7 +93,10 @@ export const storageUsageQuerySchema = z.object({
 export type StorageUsageQuery = z.infer<typeof storageUsageQuerySchema>;
 
 // Helper function to validate file type and size
-export function validateFileTypeAndSize(mimeType: string, fileSize: number): {
+export function validateFileTypeAndSize(
+  mimeType: string,
+  fileSize: number
+): {
   valid: boolean;
   error?: string;
 } {

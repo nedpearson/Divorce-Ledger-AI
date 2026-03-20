@@ -7,6 +7,7 @@
 Navigate to **Authentication → Providers** in Supabase Dashboard:
 
 #### Email/Password
+
 - ✅ **Enabled**: Yes
 - **Confirm Email**: Required
 - **Double Confirm Email Change**: Yes
@@ -14,26 +15,28 @@ Navigate to **Authentication → Providers** in Supabase Dashboard:
 - **Minimum Password Length**: 8 characters
 
 #### Google OAuth
+
 - ✅ **Enabled**: Yes
 - **Client ID**: `{YOUR_GOOGLE_OAUTH_CLIENT_ID}`
 - **Client Secret**: `{YOUR_GOOGLE_OAUTH_CLIENT_SECRET}`
 - **Authorized Redirect URIs**:
   - Local Dev: `http://localhost:3000/auth/callback`
-  - Production: `https://app.divorcedger.com/auth/callback` *(replace with your Railway domain)*
+  - Production: `https://app.divorcedger.com/auth/callback` _(replace with your Railway domain)_
 
 #### GitHub OAuth
+
 - ✅ **Enabled**: Yes
 - **Client ID**: `{YOUR_GITHUB_OAUTH_CLIENT_ID}`
 - **Client Secret**: `{YOUR_GITHUB_OAUTH_CLIENT_SECRET}`
 - **Authorized Redirect URIs**:
   - Local Dev: `http://localhost:3000/auth/callback`
-  - Production: `https://app.divorcedger.com/auth/callback` *(replace with your Railway domain)*
+  - Production: `https://app.divorcedger.com/auth/callback` _(replace with your Railway domain)_
 
 ### 2. Site URL Configuration
 
 Navigate to **Authentication → URL Configuration**:
 
-- **Site URL** (Production): `https://app.divorcedger.com` *(replace with your Railway frontend URL)*
+- **Site URL** (Production): `https://app.divorcedger.com` _(replace with your Railway frontend URL)_
 - **Redirect URLs** (allowed):
   ```
   http://localhost:3000/**
@@ -47,6 +50,7 @@ Navigate to **Authentication → URL Configuration**:
 Navigate to **Authentication → Email Templates**:
 
 #### Confirm Signup
+
 ```html
 <h2>Confirm Your Email</h2>
 <p>Thank you for signing up to Divorce Ledger AI!</p>
@@ -56,6 +60,7 @@ Navigate to **Authentication → Email Templates**:
 ```
 
 #### Reset Password
+
 ```html
 <h2>Reset Your Password</h2>
 <p>We received a request to reset your password.</p>
@@ -66,6 +71,7 @@ Navigate to **Authentication → Email Templates**:
 ```
 
 #### Change Email
+
 ```html
 <h2>Confirm Email Change</h2>
 <p>Click the link below to confirm your new email address:</p>
@@ -89,7 +95,7 @@ Navigate to **Settings → API**:
 // 1. User submits email + password
 const { data, error } = await supabase.auth.signInWithPassword({
   email: 'user@example.com',
-  password: 'password123'
+  password: 'password123',
 });
 
 // 2. On success, session is automatically stored
@@ -109,10 +115,10 @@ const { data, error } = await supabase.auth.signUp({
   options: {
     data: {
       full_name: 'John Doe',
-      avatar_url: ''
+      avatar_url: '',
     },
-    emailRedirectTo: `${window.location.origin}/auth/callback`
-  }
+    emailRedirectTo: `${window.location.origin}/auth/callback`,
+  },
 });
 
 // 2. User receives confirmation email
@@ -128,8 +134,8 @@ const { data, error } = await supabase.auth.signInWithOAuth({
   provider: 'google',
   options: {
     redirectTo: `${window.location.origin}/auth/callback`,
-    scopes: 'email profile'
-  }
+    scopes: 'email profile',
+  },
 });
 
 // 2. User redirected to Google consent screen
@@ -160,18 +166,15 @@ const { data, error } = await supabase.auth.refreshSession();
 
 ```typescript
 // 1. User requests password reset
-const { data, error } = await supabase.auth.resetPasswordForEmail(
-  'user@example.com',
-  {
-    redirectTo: `${window.location.origin}/auth/reset-password`
-  }
-);
+const { data, error } = await supabase.auth.resetPasswordForEmail('user@example.com', {
+  redirectTo: `${window.location.origin}/auth/reset-password`,
+});
 
 // 2. User clicks link in email
 // 3. Redirected to /auth/reset-password with access token
 // 4. User submits new password
 const { data, error } = await supabase.auth.updateUser({
-  password: 'newpassword123'
+  password: 'newpassword123',
 });
 ```
 
@@ -210,8 +213,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
-  }
+    detectSessionInUrl: true,
+  },
 });
 
 // Listen for auth state changes
@@ -235,7 +238,10 @@ supabase.auth.onAuthStateChange((event, session) => {
 const token = request.headers.get('Authorization')?.replace('Bearer ', '');
 
 // Verify and decode JWT
-const { data: { user }, error } = await supabaseServiceRole.auth.getUser(token);
+const {
+  data: { user },
+  error,
+} = await supabaseServiceRole.auth.getUser(token);
 
 if (error || !user) {
   return new Response('Unauthorized', { status: 401 });
@@ -256,16 +262,19 @@ if (error || !user) {
 ## Troubleshooting
 
 ### Issue: OAuth redirect fails
+
 - Verify redirect URL is in allowed list
 - Check OAuth provider configuration
 - Ensure site URL matches production domain
 
 ### Issue: Session expires too quickly
+
 - Check JWT expiry setting in dashboard
 - Verify auto-refresh is enabled in client
 - Check for CORS issues
 
 ### Issue: Email confirmation not working
+
 - Verify SMTP settings in Supabase
 - Check email templates are configured
 - Ensure confirmation URL matches site URL
@@ -273,12 +282,14 @@ if (error || !user) {
 ## Environment Variables
 
 Required in frontend (.env.local):
+
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...
 ```
 
 Required in backend (.env):
+
 ```bash
 SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_ANON_KEY=eyJhbG...

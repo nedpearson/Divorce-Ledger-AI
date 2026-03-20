@@ -1,12 +1,17 @@
 import { Fragment } from 'react';
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon, BuildingOfficeIcon, UserIcon, CheckIcon } from '@heroicons/react/24/outline';
+import {
+  ChevronDownIcon,
+  BuildingOfficeIcon,
+  UserIcon,
+  CheckIcon,
+} from '@heroicons/react/24/outline';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 
 export default function WorkspaceSwitcher() {
   const { workspaces, activeWorkspaceId, switchWorkspace } = useWorkspaceStore();
 
-  const activeWorkspace = workspaces.find(w => w.workspace_id === activeWorkspaceId);
+  const activeWorkspace = workspaces.find((w) => w.workspace_id === activeWorkspaceId);
 
   if (workspaces.length === 0) {
     return null;
@@ -37,7 +42,9 @@ export default function WorkspaceSwitcher() {
             ) : (
               <UserIcon className="w-5 h-5 mr-2 text-gray-400" />
             )}
-            <span className="truncate">{activeWorkspace?.workspace_name || 'Select Workspace'}</span>
+            <span className="truncate">
+              {activeWorkspace?.workspace_name || 'Select Workspace'}
+            </span>
           </div>
           <ChevronDownIcon className="ml-2 h-5 w-5 text-gray-400" aria-hidden="true" />
         </Menu.Button>

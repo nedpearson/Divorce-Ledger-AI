@@ -1,9 +1,9 @@
-import { Link } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Sparkles, ArrowRight, Crown } from "lucide-react";
-import { useSubscription, getTierBadgeColor } from "@/lib/subscription";
+import { Link } from 'wouter';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { AlertCircle, Sparkles, ArrowRight, Crown } from 'lucide-react';
+import { useSubscription, getTierBadgeColor } from '@/lib/subscription';
 
 interface UpgradePromptProps {
   feature: string;
@@ -13,11 +13,14 @@ interface UpgradePromptProps {
 
 export function UpgradePrompt({ feature, reason, compact = false }: UpgradePromptProps) {
   const { data } = useSubscription();
-  const currentTier = data?.tier || "free";
+  const currentTier = data?.tier || 'free';
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md" data-testid="upgrade-prompt-compact">
+      <div
+        className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md"
+        data-testid="upgrade-prompt-compact"
+      >
         <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
         <span className="text-sm text-amber-800 dark:text-amber-200 flex-1">{reason}</span>
         <Link href="/pricing">
@@ -30,7 +33,10 @@ export function UpgradePrompt({ feature, reason, compact = false }: UpgradePromp
   }
 
   return (
-    <Card className="border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30" data-testid="upgrade-prompt-card">
+    <Card
+      className="border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30"
+      data-testid="upgrade-prompt-card"
+    >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -52,9 +58,7 @@ export function UpgradePrompt({ feature, reason, compact = false }: UpgradePromp
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </Link>
-          <span className="text-sm text-muted-foreground">
-            Starting at $12/month
-          </span>
+          <span className="text-sm text-muted-foreground">Starting at $12/month</span>
         </div>
       </CardContent>
     </Card>
@@ -91,21 +95,26 @@ export function UsageLimitBar({ current, max, label, warningThreshold = 0.8 }: U
     <div className="space-y-1" data-testid="usage-limit-bar">
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{label}</span>
-        <span className={`font-medium ${isAtLimit ? "text-red-600 dark:text-red-400" : isWarning ? "text-amber-600 dark:text-amber-400" : ""}`}>
+        <span
+          className={`font-medium ${isAtLimit ? 'text-red-600 dark:text-red-400' : isWarning ? 'text-amber-600 dark:text-amber-400' : ''}`}
+        >
           {current} / {max}
         </span>
       </div>
       <div className="h-2 bg-muted rounded-full overflow-hidden">
-        <div 
+        <div
           className={`h-full rounded-full transition-all ${
-            isAtLimit ? "bg-red-500" : isWarning ? "bg-amber-500" : "bg-green-500"
+            isAtLimit ? 'bg-red-500' : isWarning ? 'bg-amber-500' : 'bg-green-500'
           }`}
           style={{ width: `${percentage}%` }}
         />
       </div>
       {isAtLimit && (
         <p className="text-xs text-red-600 dark:text-red-400">
-          Limit reached. <Link href="/pricing" className="underline">Upgrade to continue</Link>
+          Limit reached.{' '}
+          <Link href="/pricing" className="underline">
+            Upgrade to continue
+          </Link>
         </p>
       )}
     </div>
@@ -114,11 +123,11 @@ export function UsageLimitBar({ current, max, label, warningThreshold = 0.8 }: U
 
 export function SubscriptionBadge() {
   const { data } = useSubscription();
-  const tier = data?.tier || "free";
-  
+  const tier = data?.tier || 'free';
+
   return (
     <Link href="/pricing">
-      <Badge 
+      <Badge
         className={`cursor-pointer ${getTierBadgeColor(tier)}`}
         data-testid="badge-subscription-tier"
       >

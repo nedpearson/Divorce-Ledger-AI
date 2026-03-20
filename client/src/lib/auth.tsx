@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import type { User, Environment } from "@shared/schema";
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { User, Environment } from '@shared/schema';
 
 // Generate a stable device fingerprint for trusted device tracking
 function getDeviceFingerprint(): string {
@@ -22,10 +22,16 @@ function getDeviceFingerprint(): string {
 
   // Create a simple hash of the components
   const fingerprint = components.join('|');
-  const hash = fingerprint.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0);
-    return a & a;
-  }, 0).toString(36) + '-' + Date.now().toString(36);
+  const hash =
+    fingerprint
+      .split('')
+      .reduce((a, b) => {
+        a = (a << 5) - a + b.charCodeAt(0);
+        return a & a;
+      }, 0)
+      .toString(36) +
+    '-' +
+    Date.now().toString(36);
 
   localStorage.setItem('deviceFingerprint', hash);
   return hash;
@@ -37,14 +43,25 @@ export { getDeviceFingerprint };
 export type LoginResult =
   | { success: true }
   | { success: false; error: string }
-  | { requires2fa: true; userId: string; maskedPhone: string; environment: string; rememberMe: boolean };
+  | {
+      requires2fa: true;
+      userId: string;
+      maskedPhone: string;
+      environment: string;
+      rememberMe: boolean;
+    };
 
 type AuthContextType = {
   user: User | null;
   environment: Environment;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, env: Environment, rememberMe?: boolean) => Promise<LoginResult>;
+  login: (
+    email: string,
+    password: string,
+    env: Environment,
+    rememberMe?: boolean
+  ) => Promise<LoginResult>;
   completeLogin: (user: User, env: Environment) => void;
   logout: () => void;
   setEnvironment: (env: Environment) => void;
@@ -54,8 +71,8 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function getInitialEnvironment(): Environment {
-  if (typeof window === "undefined") return "demo";
-  return (localStorage.getItem("environment") as Environment) || "demo";
+  if (typeof window === 'undefined') return 'demo';
+  return (localStorage.getItem('environment') as Environment) || 'demo';
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -67,22 +84,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkSession = useCallback(async () => {
     try {
-      const response = await fetch("/api/auth/session", { credentials: 'include' });
+      const response = await fetch('/api/auth/session', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
         setEnvironmentState(data.environment || getInitialEnvironment());
-        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem('user', JSON.stringify(data.user));
         if (data.environment) {
-          localStorage.setItem("environment", data.environment);
+          localStorage.setItem('environment', data.environment);
         }
       } else {
         setUser(null);
-        localStorage.removeItem("user");
+        localStorage.removeItem('user');
       }
     } catch (e) {
       setUser(null);
-      localStorage.removeItem("user");
+      localStorage.removeItem('user');
     }
   }, []);
 
@@ -96,69 +113,83 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [checkSession]);
 
-  const login = useCallback(async (email: string, password: string, env: Environment, rememberMe = false): Promise<LoginResult> => {
-    setIsLoading(true);
-    try {
-      const deviceFingerprint = getDeviceFingerprint();
-      const normalizedEmail = email.trim().toLowerCase();
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalizedEmail, password, environment: env, rememberMe, deviceFingerprint }),
-        credentials: 'include'
-      });
+  const login = useCallback(
+    async (
+      email: string,
+      password: string,
+      env: Environment,
+      rememberMe = false
+    ): Promise<LoginResult> => {
+      setIsLoading(true);
+      try {
+        const deviceFingerprint = getDeviceFingerprint();
+        const normalizedEmail = email.trim().toLowerCase();
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: normalizedEmail,
+            password,
+            environment: env,
+            rememberMe,
+            deviceFingerprint,
+          }),
+          credentials: 'include',
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
+        if (!response.ok) {
+          setIsLoading(false);
+          return { success: false, error: data.error || 'Login failed' };
+        }
+
+        // Check if 2FA is required
+        if (data.requires2fa) {
+          setIsLoading(false);
+          return {
+            requires2fa: true,
+            userId: data.userId,
+            maskedPhone: data.maskedPhone,
+            environment: data.environment,
+            rememberMe: data.rememberMe,
+          };
+        }
+
+        // Direct login success
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('environment', data.environment || env);
+        setUser(data.user);
+        setEnvironmentState(data.environment || env);
         setIsLoading(false);
-        return { success: false, error: data.error || "Login failed" };
-      }
-
-      // Check if 2FA is required
-      if (data.requires2fa) {
+        return { success: true };
+      } catch {
         setIsLoading(false);
-        return {
-          requires2fa: true,
-          userId: data.userId,
-          maskedPhone: data.maskedPhone,
-          environment: data.environment,
-          rememberMe: data.rememberMe,
-        };
+        return { success: false, error: 'Login failed' };
       }
-
-      // Direct login success
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("environment", data.environment || env);
-      setUser(data.user);
-      setEnvironmentState(data.environment || env);
-      setIsLoading(false);
-      return { success: true };
-    } catch {
-      setIsLoading(false);
-      return { success: false, error: "Login failed" };
-    }
-  }, []);
+    },
+    []
+  );
 
   const completeLogin = useCallback((user: User, env: Environment) => {
-    localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("environment", env);
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('environment', env);
     setUser(user);
     setEnvironmentState(env);
   }, []);
 
   const logout = useCallback(async () => {
     try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: 'include'
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
       });
-    } catch { }
-    localStorage.removeItem("user");
-    localStorage.removeItem("environment");
+    } catch {}
+    localStorage.removeItem('user');
+    localStorage.removeItem('environment');
     setUser(null);
-    if (window.location.pathname !== "/") {
-      window.location.href = "/";
+    if (window.location.pathname !== '/') {
+      window.location.href = '/';
     }
   }, []);
 
@@ -167,17 +198,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      environment,
-      isAuthenticated,
-      isLoading,
-      login,
-      completeLogin,
-      logout,
-      setEnvironment,
-      checkSession
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        environment,
+        isAuthenticated,
+        isLoading,
+        login,
+        completeLogin,
+        logout,
+        setEnvironment,
+        checkSession,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -186,7 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }

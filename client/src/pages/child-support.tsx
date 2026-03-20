@@ -1,73 +1,105 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/auth";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Users, Plus, DollarSign, Calendar, CheckCircle, Clock, AlertTriangle, Loader2, TrendingUp, TrendingDown, Download } from "lucide-react";
-import type { ChildSupportPayment } from "@shared/schema";
-import { DrillDownValue } from "@/components/ui/drilldown-value";
-import { format } from "date-fns";
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/auth';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import {
+  Users,
+  Plus,
+  DollarSign,
+  Calendar,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  Loader2,
+  TrendingUp,
+  TrendingDown,
+  Download,
+} from 'lucide-react';
+import type { ChildSupportPayment } from '@shared/schema';
+import { DrillDownValue } from '@/components/ui/drilldown-value';
+import { format } from 'date-fns';
 
 const paymentTypes = [
-  { value: "child_support", label: "Child Support" },
-  { value: "medical", label: "Medical Expenses" },
-  { value: "education", label: "Education" },
-  { value: "extracurricular", label: "Extracurricular Activities" },
-  { value: "childcare", label: "Childcare" },
-  { value: "other", label: "Other" },
+  { value: 'child_support', label: 'Child Support' },
+  { value: 'medical', label: 'Medical Expenses' },
+  { value: 'education', label: 'Education' },
+  { value: 'extracurricular', label: 'Extracurricular Activities' },
+  { value: 'childcare', label: 'Childcare' },
+  { value: 'other', label: 'Other' },
 ];
 
 const paymentMethods = [
-  { value: "direct_deposit", label: "Direct Deposit" },
-  { value: "check", label: "Check" },
-  { value: "cash", label: "Cash" },
-  { value: "wage_garnishment", label: "Wage Garnishment" },
-  { value: "child_support_agency", label: "Child Support Agency" },
-  { value: "other", label: "Other" },
+  { value: 'direct_deposit', label: 'Direct Deposit' },
+  { value: 'check', label: 'Check' },
+  { value: 'cash', label: 'Cash' },
+  { value: 'wage_garnishment', label: 'Wage Garnishment' },
+  { value: 'child_support_agency', label: 'Child Support Agency' },
+  { value: 'other', label: 'Other' },
 ];
 
 function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 }
 
 function AddPaymentDialog({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [paymentType, setPaymentType] = useState("child_support");
-  const [amount, setAmount] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [paidDate, setPaidDate] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
-  const [childName, setChildName] = useState("");
-  const [notes, setNotes] = useState("");
+  const [paymentType, setPaymentType] = useState('child_support');
+  const [amount, setAmount] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [paidDate, setPaidDate] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [childName, setChildName] = useState('');
+  const [notes, setNotes] = useState('');
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/child-support-payments", data);
+      const res = await apiRequest('POST', '/api/child-support-payments', data);
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Payment Recorded", description: "Child support payment has been recorded." });
+      toast({ title: 'Payment Recorded', description: 'Child support payment has been recorded.' });
       setOpen(false);
-      setPaymentType("child_support");
-      setAmount("");
-      setDueDate("");
-      setPaidDate("");
-      setPaymentMethod("");
-      setChildName("");
-      setNotes("");
+      setPaymentType('child_support');
+      setAmount('');
+      setDueDate('');
+      setPaidDate('');
+      setPaymentMethod('');
+      setChildName('');
+      setNotes('');
       onSuccess();
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to record payment.", variant: "destructive" });
+      toast({ title: 'Error', description: 'Failed to record payment.', variant: 'destructive' });
     },
   });
 
@@ -81,7 +113,7 @@ function AddPaymentDialog({ onSuccess }: { onSuccess: () => void }) {
       paymentMethod: paymentMethod || null,
       childName: childName || null,
       notes: notes || null,
-      status: paidDate ? "paid" : "pending",
+      status: paidDate ? 'paid' : 'pending',
     });
   };
 
@@ -189,7 +221,9 @@ function AddPaymentDialog({ onSuccess }: { onSuccess: () => void }) {
           </div>
         </div>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
           <Button
             onClick={handleSubmit}
             disabled={!amount || !dueDate || createMutation.isPending}
@@ -206,12 +240,27 @@ function AddPaymentDialog({ onSuccess }: { onSuccess: () => void }) {
 
 function getStatusBadge(status: string) {
   switch (status) {
-    case "paid":
-      return <Badge variant="default" className="flex items-center gap-1"><CheckCircle className="h-3 w-3" />Paid</Badge>;
-    case "pending":
-      return <Badge variant="outline" className="flex items-center gap-1"><Clock className="h-3 w-3" />Pending</Badge>;
-    case "overdue":
-      return <Badge variant="destructive" className="flex items-center gap-1"><AlertTriangle className="h-3 w-3" />Overdue</Badge>;
+    case 'paid':
+      return (
+        <Badge variant="default" className="flex items-center gap-1">
+          <CheckCircle className="h-3 w-3" />
+          Paid
+        </Badge>
+      );
+    case 'pending':
+      return (
+        <Badge variant="outline" className="flex items-center gap-1">
+          <Clock className="h-3 w-3" />
+          Pending
+        </Badge>
+      );
+    case 'overdue':
+      return (
+        <Badge variant="destructive" className="flex items-center gap-1">
+          <AlertTriangle className="h-3 w-3" />
+          Overdue
+        </Badge>
+      );
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }
@@ -221,83 +270,103 @@ export default function ChildSupportPage() {
   const { environment } = useAuth();
   const { toast } = useToast();
 
-  const { data: payments, isLoading, refetch } = useQuery<ChildSupportPayment[]>({
-    queryKey: ["/api/child-support-payments"],
+  const {
+    data: payments,
+    isLoading,
+    refetch,
+  } = useQuery<ChildSupportPayment[]>({
+    queryKey: ['/api/child-support-payments'],
   });
 
   const allPayments = payments || [];
 
   const totalPaid = allPayments
-    .filter((p) => p.status === "paid")
+    .filter((p) => p.status === 'paid')
     .reduce((sum, p) => sum + p.amount, 0);
 
   const totalPending = allPayments
-    .filter((p) => p.status === "pending")
+    .filter((p) => p.status === 'pending')
     .reduce((sum, p) => sum + p.amount, 0);
 
   const overduePayments = allPayments.filter(
-    (p) => p.status === "pending" && new Date(p.dueDate) < new Date()
+    (p) => p.status === 'pending' && new Date(p.dueDate) < new Date()
   );
 
   const totalOverdue = overduePayments.reduce((sum, p) => sum + p.amount, 0);
 
   const markAsPaid = useMutation({
     mutationFn: async (id: string) => {
-      const res = await apiRequest("PATCH", `/api/child-support-payments/${id}`, {
-        status: "paid",
+      const res = await apiRequest('PATCH', `/api/child-support-payments/${id}`, {
+        status: 'paid',
         paidDate: new Date().toISOString(),
       });
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Payment Updated", description: "Payment marked as paid." });
+      toast({ title: 'Payment Updated', description: 'Payment marked as paid.' });
       refetch();
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to update payment.", variant: "destructive" });
+      toast({ title: 'Error', description: 'Failed to update payment.', variant: 'destructive' });
     },
   });
 
   const exportData = () => {
     if (!allPayments || allPayments.length === 0) return;
-    const headers = ["Type", "Amount", "Due Date", "Paid Date", "Status", "Method", "Child", "Notes"];
+    const headers = [
+      'Type',
+      'Amount',
+      'Due Date',
+      'Paid Date',
+      'Status',
+      'Method',
+      'Child',
+      'Notes',
+    ];
     const csvContent = [
-      headers.join(","),
-      ...allPayments.map(p => {
-        const isOverdue = p.status === "pending" && new Date(p.dueDate) < new Date();
-        const displayStatus = isOverdue ? "overdue" : p.status;
+      headers.join(','),
+      ...allPayments.map((p) => {
+        const isOverdue = p.status === 'pending' && new Date(p.dueDate) < new Date();
+        const displayStatus = isOverdue ? 'overdue' : p.status;
         return [
-          paymentTypes.find(t => t.value === p.paymentType)?.label || p.paymentType,
+          paymentTypes.find((t) => t.value === p.paymentType)?.label || p.paymentType,
           (p.amount / 100).toFixed(2),
-          format(new Date(p.dueDate), "yyyy-MM-dd"),
-          p.paidDate ? format(new Date(p.paidDate), "yyyy-MM-dd") : "",
+          format(new Date(p.dueDate), 'yyyy-MM-dd'),
+          p.paidDate ? format(new Date(p.paidDate), 'yyyy-MM-dd') : '',
           displayStatus,
-          paymentMethods.find(m => m.value === p.paymentMethod)?.label || p.paymentMethod || "",
-          `"${(p.childName || "").replace(/"/g, '""')}"`,
-          `"${(p.notes || "").replace(/"/g, '""')}"`
-        ].join(",");
-      })
-    ].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+          paymentMethods.find((m) => m.value === p.paymentMethod)?.label || p.paymentMethod || '',
+          `"${(p.childName || '').replace(/"/g, '""')}"`,
+          `"${(p.notes || '').replace(/"/g, '""')}"`,
+        ].join(',');
+      }),
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `child_support_payments_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.download = `child_support_payments_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6" data-testid="page-child-support">
-
-
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Child Support</h1>
-          <p className="text-sm text-muted-foreground">Track child support payments, modifications, and custody arrangements.</p>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">
+            Child Support
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Track child support payments, modifications, and custody arrangements.
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportData} disabled={allPayments.length === 0}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportData}
+            disabled={allPayments.length === 0}
+          >
             <Download className="mr-2 h-4 w-4" />
             Export CSV
           </Button>
@@ -314,7 +383,11 @@ export default function ChildSupportPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  <DrillDownValue type="transactions" title="Total Paid" value={formatCurrency(totalPaid)} />
+                  <DrillDownValue
+                    type="transactions"
+                    title="Total Paid"
+                    value={formatCurrency(totalPaid)}
+                  />
                 </p>
                 <p className="text-xs text-muted-foreground">Total Paid</p>
               </div>
@@ -329,7 +402,11 @@ export default function ChildSupportPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  <DrillDownValue type="transactions" title="Pending" value={formatCurrency(totalPending)} />
+                  <DrillDownValue
+                    type="transactions"
+                    title="Pending"
+                    value={formatCurrency(totalPending)}
+                  />
                 </p>
                 <p className="text-xs text-muted-foreground">Pending</p>
               </div>
@@ -344,7 +421,11 @@ export default function ChildSupportPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  <DrillDownValue type="transactions" title="Overdue" value={formatCurrency(totalOverdue)} />
+                  <DrillDownValue
+                    type="transactions"
+                    title="Overdue"
+                    value={formatCurrency(totalOverdue)}
+                  />
                 </p>
                 <p className="text-xs text-muted-foreground">Overdue</p>
               </div>
@@ -404,28 +485,33 @@ export default function ChildSupportPage() {
               </TableHeader>
               <TableBody>
                 {allPayments.map((payment) => {
-                  const isOverdue = payment.status === "pending" && new Date(payment.dueDate) < new Date();
-                  const displayStatus = isOverdue ? "overdue" : payment.status;
+                  const isOverdue =
+                    payment.status === 'pending' && new Date(payment.dueDate) < new Date();
+                  const displayStatus = isOverdue ? 'overdue' : payment.status;
 
                   return (
                     <TableRow key={payment.id} data-testid={`row-payment-${payment.id}`}>
                       <TableCell>
-                        {paymentTypes.find((t) => t.value === payment.paymentType)?.label || payment.paymentType}
+                        {paymentTypes.find((t) => t.value === payment.paymentType)?.label ||
+                          payment.paymentType}
                         {payment.childName && (
                           <p className="text-xs text-muted-foreground">{payment.childName}</p>
                         )}
                       </TableCell>
-                      <TableCell className="font-medium">{formatCurrency(payment.amount)}</TableCell>
-                      <TableCell>{format(new Date(payment.dueDate), "MMM d, yyyy")}</TableCell>
+                      <TableCell className="font-medium">
+                        {formatCurrency(payment.amount)}
+                      </TableCell>
+                      <TableCell>{format(new Date(payment.dueDate), 'MMM d, yyyy')}</TableCell>
                       <TableCell>
-                        {payment.paidDate ? format(new Date(payment.paidDate), "MMM d, yyyy") : "-"}
+                        {payment.paidDate ? format(new Date(payment.paidDate), 'MMM d, yyyy') : '-'}
                       </TableCell>
                       <TableCell>{getStatusBadge(displayStatus)}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {paymentMethods.find((m) => m.value === payment.paymentMethod)?.label || "-"}
+                        {paymentMethods.find((m) => m.value === payment.paymentMethod)?.label ||
+                          '-'}
                       </TableCell>
                       <TableCell>
-                        {payment.status === "pending" && (
+                        {payment.status === 'pending' && (
                           <Button
                             variant="ghost"
                             size="sm"

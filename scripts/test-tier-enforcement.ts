@@ -17,8 +17,12 @@ async function testTierEnforcement() {
     const metrics = metricsData.data;
 
     console.log(`   Tier: ${metrics.metrics.tier}`);
-    console.log(`   Violations: ${metrics.metrics.violationsThisMonth} (${metrics.usagePercentage.violations}%)`);
-    console.log(`   Storage: ${metrics.metrics.storageUsedMB.toFixed(1)}MB / ${metrics.tierLimits.maxStorageMB}MB (${metrics.usagePercentage.storage}%)`);
+    console.log(
+      `   Violations: ${metrics.metrics.violationsThisMonth} (${metrics.usagePercentage.violations}%)`
+    );
+    console.log(
+      `   Storage: ${metrics.metrics.storageUsedMB.toFixed(1)}MB / ${metrics.tierLimits.maxStorageMB}MB (${metrics.usagePercentage.storage}%)`
+    );
     console.log(`   Cases: ${metrics.metrics.casesActive} (${metrics.usagePercentage.cases}%)\n`);
 
     // 2. Check if can upload file (small)
@@ -90,13 +94,16 @@ async function testTierEnforcement() {
     console.log(`   Tier Limits:`);
     console.log(`     - Max File: ${metrics.tierLimits.maxFileSizeMB}MB`);
     console.log(`     - Max Storage: ${metrics.tierLimits.maxStorageMB || 'Unlimited'}MB`);
-    console.log(`     - Max Violations: ${metrics.tierLimits.maxViolationsPerMonth || 'Unlimited'}`);
+    console.log(
+      `     - Max Violations: ${metrics.tierLimits.maxViolationsPerMonth || 'Unlimited'}`
+    );
     console.log(`     - Max Cases: ${metrics.tierLimits.maxCases || 'Unlimited'}`);
     console.log(`   Upload Checks:`);
     console.log(`     - 5MB file: ${checkSmallData.data.allowed ? 'Allowed' : 'Blocked'}`);
     console.log(`     - 200MB file: ${checkLargeData.data.allowed ? 'Allowed' : 'Blocked'}`);
-    console.log(`   Next Action: ${rec.currentTier !== rec.recommendedTier ? `Consider upgrading to ${rec.recommendedTier}` : 'No upgrade needed'}`);
-
+    console.log(
+      `   Next Action: ${rec.currentTier !== rec.recommendedTier ? `Consider upgrading to ${rec.recommendedTier}` : 'No upgrade needed'}`
+    );
   } catch (error: any) {
     console.error('TEST FAILED:');
     console.error(error.message);

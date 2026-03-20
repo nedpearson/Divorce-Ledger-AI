@@ -2,127 +2,127 @@ version: 2
 
 models:
   - name: fact_transactions
-    description: "Core transaction events (billing, charges, refunds)"
+    description: 'Core transaction events (billing, charges, refunds)'
     columns:
       - name: transaction_id
-        description: "Unique transaction identifier"
+        description: 'Unique transaction identifier'
         tests:
           - unique
           - not_null
       - name: user_id
-        description: "Foreign key to dim_users"
+        description: 'Foreign key to dim_users'
         tests:
           - not_null
       - name: transaction_date_id
-        description: "Foreign key to dim_date"
+        description: 'Foreign key to dim_date'
       - name: amount_cents
-        description: "Transaction amount in cents (divide by 100 for USD)"
+        description: 'Transaction amount in cents (divide by 100 for USD)'
         tests:
           - not_null
       - name: transaction_type
-        description: "Type: charge, refund, adjustment"
+        description: 'Type: charge, refund, adjustment'
         tests:
           - accepted_values:
               values: ['charge', 'refund', 'adjustment', 'credit']
 
   - name: fact_violations
-    description: "Court order violations with evidence tracking"
+    description: 'Court order violations with evidence tracking'
     columns:
       - name: violation_id
-        description: "Unique violation identifier"
+        description: 'Unique violation identifier'
         tests:
           - unique
           - not_null
       - name: user_id
-        description: "Foreign key to dim_users"
+        description: 'Foreign key to dim_users'
         tests:
           - not_null
       - name: violation_date_id
-        description: "Foreign key to dim_date"
+        description: 'Foreign key to dim_date'
       - name: violation_type
-        description: "Type of violation"
+        description: 'Type of violation'
       - name: severity
-        description: "Critical, High, Medium, Low"
+        description: 'Critical, High, Medium, Low'
         tests:
           - accepted_values:
               values: ['critical', 'high', 'medium', 'low']
       - name: media_count
-        description: "Number of media attachments as evidence"
+        description: 'Number of media attachments as evidence'
       - name: ai_classification
-        description: "AI-generated classification of violation"
+        description: 'AI-generated classification of violation'
 
   - name: fact_usage_metrics
-    description: "Daily usage metrics per user"
+    description: 'Daily usage metrics per user'
     columns:
       - name: metric_id
-        description: "Unique metric record identifier (surrogate key)"
+        description: 'Unique metric record identifier (surrogate key)'
         tests:
           - unique
           - not_null
       - name: user_id
-        description: "Foreign key to dim_users"
+        description: 'Foreign key to dim_users'
         tests:
           - not_null
       - name: metric_type
-        description: "Type of usage metric"
+        description: 'Type of usage metric'
       - name: percentage_used
-        description: "Percentage of quota consumed"
+        description: 'Percentage of quota consumed'
 
   - name: fact_financial_summary
-    description: "Daily financial summaries per user"
+    description: 'Daily financial summaries per user'
     columns:
       - name: summary_id
-        description: "Unique summary identifier (surrogate key)"
+        description: 'Unique summary identifier (surrogate key)'
         tests:
           - unique
           - not_null
       - name: user_id
-        description: "Foreign key to dim_users"
+        description: 'Foreign key to dim_users'
         tests:
           - not_null
       - name: net_worth_cents
-        description: "Assets minus debts in cents (divide by 100 for USD)"
+        description: 'Assets minus debts in cents (divide by 100 for USD)'
       - name: total_assets_dollars
-        description: "Total assets in USD"
+        description: 'Total assets in USD'
       - name: total_debts_dollars
-        description: "Total debts in USD"
+        description: 'Total debts in USD'
 
   - name: dim_users
-    description: "User dimension with SCD Type 2 history tracking"
+    description: 'User dimension with SCD Type 2 history tracking'
     columns:
       - name: user_id
-        description: "User identifier (not unique due to SCD2)"
+        description: 'User identifier (not unique due to SCD2)'
         tests:
           - not_null
       - name: user_name
-        description: "User display name"
+        description: 'User display name'
       - name: email
-        description: "User email (masked in reports)"
+        description: 'User email (masked in reports)'
       - name: current_tier
-        description: "Subscription tier at this version"
+        description: 'Subscription tier at this version'
       - name: tier_start_date
-        description: "When user moved to this tier"
+        description: 'When user moved to this tier'
       - name: is_active
-        description: "Whether user was active at this version"
+        description: 'Whether user was active at this version'
       - name: created_date_id
-        description: "Foreign key to dim_date"
+        description: 'Foreign key to dim_date'
       - name: dbt_valid_from
-        description: "SCD Type 2 valid from timestamp"
+        description: 'SCD Type 2 valid from timestamp'
       - name: dbt_valid_to
-        description: "SCD Type 2 valid to timestamp (null if current)"
+        description: 'SCD Type 2 valid to timestamp (null if current)'
       - name: is_current
-        description: "True if this is the current version"
+        description: 'True if this is the current version'
 
   - name: dim_date
-    description: "Date dimension for time-based analysis"
+    description: 'Date dimension for time-based analysis'
     columns:
       - name: date_id
-        description: "YYYYMMDD format integer"
+        description: 'YYYYMMDD format integer'
         tests:
           - unique
           - not_null
       - name: date_actual
-        description: "Actual date"
+        description: 'Actual date'
       - name: year
       - name: quarter
       - name: month
@@ -132,18 +132,18 @@ models:
       - name: is_holiday
 
   - name: dim_tier
-    description: "Subscription tier dimension with pricing"
+    description: 'Subscription tier dimension with pricing'
     columns:
       - name: tier_id
-        description: "Unique tier identifier"
+        description: 'Unique tier identifier'
         tests:
           - unique
           - not_null
       - name: tier_name
-        description: "Display name: Free, Individual, Pro, Team, Enterprise"
+        description: 'Display name: Free, Individual, Pro, Team, Enterprise'
       - name: price_usd_monthly
-        description: "Monthly price in USD"
+        description: 'Monthly price in USD'
       - name: api_limit_daily
-        description: "Daily API call limit (-1 = unlimited)"
+        description: 'Daily API call limit (-1 = unlimited)'
       - name: storage_gb
-        description: "Storage allocation in GB (-1 = unlimited)"
+        description: 'Storage allocation in GB (-1 = unlimited)'

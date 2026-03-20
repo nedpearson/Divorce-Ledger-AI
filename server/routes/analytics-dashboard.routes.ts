@@ -2,7 +2,14 @@ import { Router, Request, Response } from 'express';
 import { db, getPool } from '../db';
 import { safeQuery } from '../lib/safeQuery';
 import { handleRouteError } from '../lib/errorHandler';
-import { users, violations, billingRecords, cases, type User, type Violation } from '@shared/schema';
+import {
+  users,
+  violations,
+  billingRecords,
+  cases,
+  type User,
+  type Violation,
+} from '@shared/schema';
 import { sql, gte, lte, desc, count, sum, eq, and } from 'drizzle-orm';
 
 const router = Router();
@@ -107,7 +114,7 @@ router.get('/revenue', async (req: Request, res: Response) => {
         const tier = user.subscriptionTier || 'free';
         tierUserCounts[tier] = (tierUserCounts[tier] || 0) + 1;
       }
-      
+
       for (const [tier, userCount] of Object.entries(tierUserCounts)) {
         if (!tierBreakdown[tier] && tier !== 'free') {
           const tierRevenue = userCount * (TIER_PRICES[tier] || 0);
@@ -130,7 +137,7 @@ router.get('/revenue', async (req: Request, res: Response) => {
 
     const currentMrr = mrrData[mrrData.length - 1]?.mrr || 0;
     const prevMrr = mrrData[mrrData.length - 2]?.mrr || 0;
-    
+
     res.json({
       summary: {
         currentMrr,
@@ -149,7 +156,7 @@ router.get('/revenue', async (req: Request, res: Response) => {
 router.get('/cohorts', async (req: Request, res: Response) => {
   try {
     const pool = getPool();
-    
+
     const cohortResult = await safeQuery(
       pool,
       'analytics:cohorts',
@@ -188,7 +195,9 @@ router.get('/cohorts', async (req: Request, res: Response) => {
       month2: Math.round((parseInt(row.active_m2) / Math.max(parseInt(row.total_users), 1)) * 100),
       month3: Math.round((parseInt(row.active_m3) / Math.max(parseInt(row.total_users), 1)) * 100),
       month6: Math.round((parseInt(row.active_m6) / Math.max(parseInt(row.total_users), 1)) * 100),
-      month12: Math.round((parseInt(row.active_m12) / Math.max(parseInt(row.total_users), 1)) * 100),
+      month12: Math.round(
+        (parseInt(row.active_m12) / Math.max(parseInt(row.total_users), 1)) * 100
+      ),
     }));
 
     res.json({ cohorts });
@@ -211,8 +220,10 @@ router.get('/churn-ltv', async (req: Request, res: Response) => {
       const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
       const allUsers: User[] = await db.select().from(users);
-      const paidUsers = allUsers.filter((u: User) => u.subscriptionTier && u.subscriptionTier !== 'free');
-      
+      const paidUsers = allUsers.filter(
+        (u: User) => u.subscriptionTier && u.subscriptionTier !== 'free'
+      );
+
       const thirtyDaysAgo = new Date(date);
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -232,7 +243,11 @@ router.get('/churn-ltv', async (req: Request, res: Response) => {
       const retainedCount = paidUsers.length - churnedCount;
       const churnRate = paidUsers.length > 0 ? (churnedCount / paidUsers.length) * 100 : 0;
 
-      const avgRevenue = paidUsers.reduce((acc: number, u: User) => acc + (TIER_PRICES[u.subscriptionTier || 'free'] || 0), 0) / Math.max(paidUsers.length, 1);
+      const avgRevenue =
+        paidUsers.reduce(
+          (acc: number, u: User) => acc + (TIER_PRICES[u.subscriptionTier || 'free'] || 0),
+          0
+        ) / Math.max(paidUsers.length, 1);
       const avgLifetime = 12;
       const ltv = avgRevenue * avgLifetime;
 
@@ -246,7 +261,7 @@ router.get('/churn-ltv', async (req: Request, res: Response) => {
     }
 
     const currentChurn = churnData[churnData.length - 1];
-    
+
     res.json({
       summary: {
         currentChurnRate: currentChurn?.churnRate || 0,
@@ -500,7 +515,9 @@ router.get('/tier-migrations', async (req: Request, res: Response) => {
 
     const allUsersForMigration: User[] = await db.select().from(users);
     const totalUsers = allUsersForMigration.length;
-    const paidUsers = allUsersForMigration.filter((u: User) => u.subscriptionTier !== 'free').length;
+    const paidUsers = allUsersForMigration.filter(
+      (u: User) => u.subscriptionTier !== 'free'
+    ).length;
 
     res.json({
       summary: {
@@ -521,16 +538,29 @@ router.get('/summary', async (req: Request, res: Response) => {
   try {
     // Filter by environment from cookie - demo mode should only show demo data
     const environment = req.cookies?.environment || 'demo';
-    
-    const allUsers: User[] = await db.select().from(users).where(eq(users.environment, environment));
-    const paidUsers = allUsers.filter((u: User) => u.subscriptionTier && u.subscriptionTier !== 'free');
-    
-    const currentMrr = paidUsers.reduce((acc: number, u: User) => acc + (TIER_PRICES[u.subscriptionTier || 'free'] || 0), 0);
 
-    const allViolations: Violation[] = await db.select().from(violations).where(eq(violations.environment, environment));
+    const allUsers: User[] = await db
+      .select()
+      .from(users)
+      .where(eq(users.environment, environment));
+    const paidUsers = allUsers.filter(
+      (u: User) => u.subscriptionTier && u.subscriptionTier !== 'free'
+    );
+
+    const currentMrr = paidUsers.reduce(
+      (acc: number, u: User) => acc + (TIER_PRICES[u.subscriptionTier || 'free'] || 0),
+      0
+    );
+
+    const allViolations: Violation[] = await db
+      .select()
+      .from(violations)
+      .where(eq(violations.environment, environment));
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const recentViolations = allViolations.filter((v: Violation) => new Date(v.timestamp) >= thirtyDaysAgo);
+    const recentViolations = allViolations.filter(
+      (v: Violation) => new Date(v.timestamp) >= thirtyDaysAgo
+    );
 
     const atRiskCount = await getAtRiskUserCount();
 
@@ -552,7 +582,8 @@ router.get('/summary', async (req: Request, res: Response) => {
         avgPerUser: allUsers.length > 0 ? allViolations.length / allUsers.length : 0,
       },
       tierDistribution: {
-        free: allUsers.filter((u: User) => !u.subscriptionTier || u.subscriptionTier === 'free').length,
+        free: allUsers.filter((u: User) => !u.subscriptionTier || u.subscriptionTier === 'free')
+          .length,
         individual: allUsers.filter((u: User) => u.subscriptionTier === 'individual').length,
         pro: allUsers.filter((u: User) => u.subscriptionTier === 'pro').length,
         team: allUsers.filter((u: User) => u.subscriptionTier === 'team').length,

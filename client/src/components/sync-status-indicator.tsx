@@ -2,35 +2,19 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Cloud, 
-  CloudOff, 
-  RefreshCw, 
-  CheckCircle2, 
-  AlertCircle, 
-  Wifi, 
-  WifiOff 
-} from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, CheckCircle2, AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { 
-  getSyncStatus, 
-  onSyncStatusChange, 
-  syncOfflineData, 
-  type SyncStatus 
+  getSyncStatus,
+  onSyncStatusChange,
+  syncOfflineData,
+  type SyncStatus,
 } from '@/lib/wifi-sync';
-import {
-  getUnsyncedDocuments,
-  getUnsyncedViolations,
-  getSyncQueue,
-} from '@/lib/offline-db';
+import { getUnsyncedDocuments, getUnsyncedViolations, getSyncQueue } from '@/lib/offline-db';
 
 /**
  * Sync Status Indicator
- * 
+ *
  * Shows:
  * - Online/offline status
  * - Pending sync count
@@ -61,11 +45,11 @@ export function SyncStatusIndicator() {
     try {
       // Subscribe to status changes
       const unsubscribe = onSyncStatusChange(setStatus);
-      
+
       // Update pending counts
       updatePendingCounts();
       const interval = setInterval(updatePendingCounts, 5000);
-      
+
       return () => {
         unsubscribe();
         clearInterval(interval);
@@ -148,7 +132,7 @@ export function SyncStatusIndicator() {
     const minutes = Math.floor(ago / 60000);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) return `${days}d ago`;
     if (hours > 0) return `${hours}h ago`;
     if (minutes > 0) return `${minutes}m ago`;
@@ -158,11 +142,7 @@ export function SyncStatusIndicator() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="relative gap-2"
-        >
+        <Button variant="ghost" size="sm" className="relative gap-2">
           <div className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
           {getStatusIcon()}
           {hasPending && (
@@ -183,14 +163,10 @@ export function SyncStatusIndicator() {
                 ) : (
                   <WifiOff className="h-4 w-4 text-gray-400" />
                 )}
-                <span className="text-sm text-muted-foreground">
-                  {getStatusText()}
-                </span>
+                <span className="text-sm text-muted-foreground">{getStatusText()}</span>
               </div>
             </div>
-            <CardDescription className="text-xs">
-              Last sync: {formatLastSync()}
-            </CardDescription>
+            <CardDescription className="text-xs">Last sync: {formatLastSync()}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Pending Items */}
@@ -242,7 +218,7 @@ export function SyncStatusIndicator() {
               size="sm"
               className="w-full"
             >
-              {(syncing || status.isSyncing) ? (
+              {syncing || status.isSyncing ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   Syncing...
@@ -256,9 +232,7 @@ export function SyncStatusIndicator() {
             </Button>
 
             {!status.isOnline && (
-              <p className="text-xs text-center text-muted-foreground">
-                Connect to WiFi to sync
-              </p>
+              <p className="text-xs text-center text-muted-foreground">Connect to WiFi to sync</p>
             )}
           </CardContent>
         </Card>

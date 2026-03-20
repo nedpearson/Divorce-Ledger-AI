@@ -22,9 +22,9 @@ export class StripeService {
   }
 
   async createCheckoutSession(
-    customerId: string, 
-    priceId: string, 
-    successUrl: string, 
+    customerId: string,
+    priceId: string,
+    successUrl: string,
     cancelUrl: string,
     userId: string,
     tier: string

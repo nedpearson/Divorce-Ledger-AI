@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  compareDate, 
-  compareAmount, 
+import {
+  compareDate,
+  compareAmount,
   compareEntity,
   evaluateDocument,
   aggregateResults,
@@ -33,20 +33,20 @@ describe('Golden Set Comparators', () => {
 
   describe('compareAmount', () => {
     it('should match exact amounts', () => {
-      expect(compareAmount(100.00, 100.00)).toBe(true);
+      expect(compareAmount(100.0, 100.0)).toBe(true);
     });
 
     it('should match amounts within tolerance', () => {
-      expect(compareAmount(100.00, 100.50)).toBe(true);
-      expect(compareAmount(100.00, 101.00)).toBe(true);
+      expect(compareAmount(100.0, 100.5)).toBe(true);
+      expect(compareAmount(100.0, 101.0)).toBe(true);
     });
 
     it('should reject amounts outside tolerance', () => {
-      expect(compareAmount(100.00, 110.00)).toBe(false);
+      expect(compareAmount(100.0, 110.0)).toBe(false);
     });
 
     it('should handle undefined actual', () => {
-      expect(compareAmount(100.00, undefined)).toBe(false);
+      expect(compareAmount(100.0, undefined)).toBe(false);
     });
 
     it('should handle zero amounts', () => {
@@ -80,7 +80,7 @@ describe('Golden Set Fixtures', () => {
   });
 
   it('should have unique IDs', () => {
-    const ids = GOLDEN_SET_DOCUMENTS.map(d => d.id);
+    const ids = GOLDEN_SET_DOCUMENTS.map((d) => d.id);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
   });
@@ -99,7 +99,7 @@ describe('Golden Set Fixtures', () => {
   });
 
   it('should have some documents requiring review', () => {
-    const requireReview = GOLDEN_SET_DOCUMENTS.filter(d => !d.shouldAutoFinalize);
+    const requireReview = GOLDEN_SET_DOCUMENTS.filter((d) => !d.shouldAutoFinalize);
     expect(requireReview.length).toBeGreaterThan(0);
   });
 });
@@ -120,27 +120,27 @@ describe('Document Evaluation', () => {
     const golden = GOLDEN_SET_DOCUMENTS[0];
     const mockExtraction = createMockExtraction(golden);
     mockExtraction.suggested_category = 'wrong_category';
-    
+
     const result = evaluateDocument(golden, mockExtraction);
-    
+
     expect(result.metrics.categoryAccuracy).toBe(false);
-    expect(result.errors.some(e => e.includes('Category mismatch'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('Category mismatch'))).toBe(true);
   });
 
   it('should detect false finalization', () => {
-    const golden = GOLDEN_SET_DOCUMENTS.find(d => !d.shouldAutoFinalize)!;
+    const golden = GOLDEN_SET_DOCUMENTS.find((d) => !d.shouldAutoFinalize)!;
     const mockExtraction = createMockExtraction(golden);
     mockExtraction.needs_user_review = false;
-    
+
     const result = evaluateDocument(golden, mockExtraction);
-    
+
     expect(result.metrics.falseFinalization).toBe(true);
   });
 });
 
 describe('Report Generation', () => {
   it('should generate a valid report', () => {
-    const results = GOLDEN_SET_DOCUMENTS.slice(0, 3).map(golden => {
+    const results = GOLDEN_SET_DOCUMENTS.slice(0, 3).map((golden) => {
       const mockExtraction = createMockExtraction(golden);
       return evaluateDocument(golden, mockExtraction);
     });
@@ -156,7 +156,7 @@ describe('Report Generation', () => {
   });
 
   it('should calculate false finalization rate', () => {
-    const results = GOLDEN_SET_DOCUMENTS.map(golden => {
+    const results = GOLDEN_SET_DOCUMENTS.map((golden) => {
       const mockExtraction = createMockExtraction(golden);
       return evaluateDocument(golden, mockExtraction);
     });
@@ -167,7 +167,7 @@ describe('Report Generation', () => {
   });
 
   it('should format report summary', () => {
-    const results = GOLDEN_SET_DOCUMENTS.slice(0, 3).map(golden => {
+    const results = GOLDEN_SET_DOCUMENTS.slice(0, 3).map((golden) => {
       const mockExtraction = createMockExtraction(golden);
       return evaluateDocument(golden, mockExtraction);
     });
@@ -185,7 +185,7 @@ describe('Report Generation', () => {
 
 describe('Aggregate Metrics', () => {
   it('should aggregate results correctly', () => {
-    const results = GOLDEN_SET_DOCUMENTS.slice(0, 5).map(golden => {
+    const results = GOLDEN_SET_DOCUMENTS.slice(0, 5).map((golden) => {
       const mockExtraction = createMockExtraction(golden);
       return evaluateDocument(golden, mockExtraction);
     });

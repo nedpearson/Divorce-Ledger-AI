@@ -7,6 +7,7 @@ All notable changes to the Divorce Ledger project will be documented in this fil
 ### Changed
 
 #### Product Naming
+
 - **Normalized all product names** from "Divorce Ledger AI", "DivorceASE AI", "DivorceAES-AI", and "Divorce Forensic" to the canonical name: **"Divorce Ledger"**
 - Updated user-facing text in:
   - Page titles (`client/index.html`)
@@ -22,6 +23,7 @@ All notable changes to the Divorce Ledger project will be documented in this fil
   - Main project README (`replit.md`)
 
 #### URL Configuration
+
 - **Canonical URLs established**:
   - Dev/Preview: `https://divorceledger.replit.app`
   - Production: `https://divorceledger.live`
@@ -37,6 +39,7 @@ All notable changes to the Divorce Ledger project will be documented in this fil
   - Fallback: `http://localhost:5000`
 
 ### Architecture (Unchanged)
+
 - **Appwrite remains the universal file analyzer/filer** - all documents and pictures flow through Appwrite for:
   - Storage
   - OCR and text extraction
@@ -45,6 +48,7 @@ All notable changes to the Divorce Ledger project will be documented in this fil
 - Express continues to serve as the primary backend API layer
 
 ### Technical Notes
+
 - Internal identifiers like `divorce-ledger-expense-*`, `divorce-ledger-income-*` remain unchanged for backward compatibility
 - Demo email credentials (`demo@divorcease.ai`) unchanged as they are internal test fixtures
 - PostCSS warning about `from` option is a known Vite 7.x limitation and cannot be fixed without upstream changes

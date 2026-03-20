@@ -16,7 +16,13 @@ import {
 import { resolveEntitlements } from '../services/entitlements.service';
 import { getAICreditBalance, getAICreditHistory } from '../services/ai-credits.service';
 import { db } from '../db';
-import { workspaces, workspaceMembers, matters, matterMembers, invitations } from '@shared/workspace-schema';
+import {
+  workspaces,
+  workspaceMembers,
+  matters,
+  matterMembers,
+  invitations,
+} from '@shared/workspace-schema';
 import { eq, and, or, sql } from 'drizzle-orm';
 import { sendWorkspaceInvitationEmail } from '../email';
 import crypto from 'crypto';
@@ -60,10 +66,7 @@ router.post('/billing/portal', requireAuth, loadWorkspaceContext, async (req, re
   try {
     const workspaceId = req.workspace!.id;
 
-    const { portalUrl } = await createCustomerPortalSession(
-      req.user!.id,
-      workspaceId
-    );
+    const { portalUrl } = await createCustomerPortalSession(req.user!.id, workspaceId);
 
     res.json({ portalUrl });
   } catch (error: any) {
@@ -76,45 +79,60 @@ router.post('/billing/portal', requireAuth, loadWorkspaceContext, async (req, re
  * GET /api/workspaces/:workspaceId/billing
  * Get workspace billing summary
  */
-router.get('/workspaces/:workspaceId/billing', requireAuth, loadWorkspaceContext, async (req, res) => {
-  try {
-    const summary = await getWorkspaceBillingSummary(req.workspace!.id);
-    res.json(summary);
-  } catch (error: any) {
-    console.error('Error getting billing summary:', error);
-    res.status(500).json({ error: error.message || 'Failed to get billing summary' });
+router.get(
+  '/workspaces/:workspaceId/billing',
+  requireAuth,
+  loadWorkspaceContext,
+  async (req, res) => {
+    try {
+      const summary = await getWorkspaceBillingSummary(req.workspace!.id);
+      res.json(summary);
+    } catch (error: any) {
+      console.error('Error getting billing summary:', error);
+      res.status(500).json({ error: error.message || 'Failed to get billing summary' });
+    }
   }
-});
+);
 
 /**
  * GET /api/workspaces/:workspaceId/entitlements
  * Get workspace entitlements and usage
  */
-router.get('/workspaces/:workspaceId/entitlements', requireAuth, loadWorkspaceContext, async (req, res) => {
-  try {
-    const entitlements = await resolveEntitlements(req.workspace!.id);
-    res.json(entitlements);
-  } catch (error: any) {
-    console.error('Error getting entitlements:', error);
-    res.status(500).json({ error: error.message || 'Failed to get entitlements' });
+router.get(
+  '/workspaces/:workspaceId/entitlements',
+  requireAuth,
+  loadWorkspaceContext,
+  async (req, res) => {
+    try {
+      const entitlements = await resolveEntitlements(req.workspace!.id);
+      res.json(entitlements);
+    } catch (error: any) {
+      console.error('Error getting entitlements:', error);
+      res.status(500).json({ error: error.message || 'Failed to get entitlements' });
+    }
   }
-});
+);
 
 /**
  * GET /api/workspaces/:workspaceId/ai-credits
  * Get AI credits balance and history
  */
-router.get('/workspaces/:workspaceId/ai-credits', requireAuth, loadWorkspaceContext, async (req, res) => {
-  try {
-    const balance = await getAICreditBalance(req.workspace!.id);
-    const history = await getAICreditHistory(req.workspace!.id, 20);
+router.get(
+  '/workspaces/:workspaceId/ai-credits',
+  requireAuth,
+  loadWorkspaceContext,
+  async (req, res) => {
+    try {
+      const balance = await getAICreditBalance(req.workspace!.id);
+      const history = await getAICreditHistory(req.workspace!.id, 20);
 
-    res.json({ balance, history });
-  } catch (error: any) {
-    console.error('Error getting AI credits:', error);
-    res.status(500).json({ error: error.message || 'Failed to get AI credits' });
+      res.json({ balance, history });
+    } catch (error: any) {
+      console.error('Error getting AI credits:', error);
+      res.status(500).json({ error: error.message || 'Failed to get AI credits' });
+    }
   }
-});
+);
 
 // ============================================================================
 // WORKSPACE ROUTES
@@ -133,11 +151,13 @@ router.get('/workspaces', requireAuth, async (req, res) => {
       },
     });
 
-    res.json(userWorkspaces.map(m => ({
-      ...(m.workspace as any),
-      role: m.role,
-      joinedAt: m.joinedAt,
-    })));
+    res.json(
+      userWorkspaces.map((m) => ({
+        ...(m.workspace as any),
+        role: m.role,
+        joinedAt: m.joinedAt,
+      }))
+    );
   } catch (error: any) {
     console.error('Error getting workspaces:', error);
     res.status(500).json({ error: 'Failed to get workspaces' });
@@ -146,7 +166,7 @@ router.get('/workspaces', requireAuth, async (req, res) => {
 
 /**
  * POST /api/workspaces
- * @deprecated Migrated to Python Core 
+ * @deprecated Migrated to Python Core
  */
 router.post('/workspaces', requireAuth, async (req, res) => {
   try {
@@ -232,45 +252,54 @@ router.patch('/workspaces/:workspaceId', ...requireWorkspaceAdmin, async (req, r
  * GET /api/workspaces/:workspaceId/members
  * Get workspace members
  */
-router.get('/workspaces/:workspaceId/members', requireAuth, loadWorkspaceContext, async (req, res) => {
-  try {
-    const members = await db.query.workspaceMembers.findMany({
-      where: eq(workspaceMembers.workspaceId, req.workspace!.id),
-      with: {
-        user: true,
-      },
-    });
+router.get(
+  '/workspaces/:workspaceId/members',
+  requireAuth,
+  loadWorkspaceContext,
+  async (req, res) => {
+    try {
+      const members = await db.query.workspaceMembers.findMany({
+        where: eq(workspaceMembers.workspaceId, req.workspace!.id),
+        with: {
+          user: true,
+        },
+      });
 
-    res.json(members);
-  } catch (error: any) {
-    console.error('Error getting members:', error);
-    res.status(500).json({ error: 'Failed to get members' });
+      res.json(members);
+    } catch (error: any) {
+      console.error('Error getting members:', error);
+      res.status(500).json({ error: 'Failed to get members' });
+    }
   }
-});
+);
 
 /**
  * DELETE /api/workspaces/:workspaceId/members/:userId
  * Remove member from workspace
  */
-router.delete('/workspaces/:workspaceId/members/:userId', ...requireWorkspaceAdmin, async (req, res) => {
-  try {
-    const { userId } = req.params;
+router.delete(
+  '/workspaces/:workspaceId/members/:userId',
+  ...requireWorkspaceAdmin,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
 
-    await db
-      .delete(workspaceMembers)
-      .where(
-        and(
-          eq(workspaceMembers.workspaceId, req.workspace!.id),
-          eq(workspaceMembers.userId, userId)
-        )
-      );
+      await db
+        .delete(workspaceMembers)
+        .where(
+          and(
+            eq(workspaceMembers.workspaceId, req.workspace!.id),
+            eq(workspaceMembers.userId, userId)
+          )
+        );
 
-    res.json({ success: true });
-  } catch (error: any) {
-    console.error('Error removing member:', error);
-    res.status(500).json({ error: 'Failed to remove member' });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error removing member:', error);
+      res.status(500).json({ error: 'Failed to remove member' });
+    }
   }
-});
+);
 
 // ============================================================================
 // MATTERS ROUTES (Firm Only)
@@ -283,10 +312,7 @@ router.delete('/workspaces/:workspaceId/members/:userId', ...requireWorkspaceAdm
 router.get('/workspaces/:workspaceId/matters', ...requireFirmWorkspace, async (req, res) => {
   try {
     const mattersList = await db.query.matters.findMany({
-      where: and(
-        eq(matters.workspaceId, req.workspace!.id),
-        sql`${matters.status} != 'archived'`
-      ),
+      where: and(eq(matters.workspaceId, req.workspace!.id), sql`${matters.status} != 'archived'`),
       orderBy: (matters, { desc }) => [desc(matters.createdAt)],
     });
 
@@ -386,18 +412,12 @@ router.post('/matters/:matterId/invite', requireAuth, async (req, res) => {
       .returning();
 
     const workspace = await db.query.workspaces.findFirst({
-      where: eq(workspaces.id, matter.workspaceId)
+      where: eq(workspaces.id, matter.workspaceId),
     });
 
     if (workspace && req.user) {
       const inviterName = (req.user as any).fullName || 'A team member';
-      await sendWorkspaceInvitationEmail(
-        email,
-        inviterName,
-        workspace.name,
-        'client',
-        token
-      );
+      await sendWorkspaceInvitationEmail(email, inviterName, workspace.name, 'client', token);
     }
 
     res.json(invitation);

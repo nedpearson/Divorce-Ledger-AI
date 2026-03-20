@@ -24,6 +24,6 @@ export function createDemoResult(message: string): any {
     passed: true,
     actualValue: 'demo_mode',
     expectedValue: 'demo_mode',
-    message: `[Demo Mode] ${message}`
+    message: `[Demo Mode] ${message}`,
   };
 }

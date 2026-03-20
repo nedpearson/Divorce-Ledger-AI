@@ -1,35 +1,30 @@
-import { z } from "zod";
-import OpenAI from "openai";
-import { GoogleGenAI } from "@google/genai";
+import { z } from 'zod';
+import OpenAI from 'openai';
+import { GoogleGenAI } from '@google/genai';
 
 // ============================================================================
 // CANONICAL SCHEMAS - Single Source of Truth
 // ============================================================================
 
-export const ParseStatus = z.enum([
-  "success",
-  "no_data",
-  "layout_not_supported",
-  "low_confidence",
-]);
+export const ParseStatus = z.enum(['success', 'no_data', 'layout_not_supported', 'low_confidence']);
 export type ParseStatus = z.infer<typeof ParseStatus>;
 
 export const DocType = z.enum([
-  "UTILITY_BILL",
-  "BANK_STATEMENT",
-  "CREDIT_CARD_STATEMENT",
-  "MORTGAGE_STATEMENT",
-  "LOAN_STATEMENT",
-  "PAY_STUB",
-  "GENERIC_FINANCIAL_EXPENSE",
-  "GENERIC_FINANCIAL_INCOME",
-  "PROPERTY_TAX",
-  "INSURANCE_POLICY",
-  "NON_FINANCIAL",
+  'UTILITY_BILL',
+  'BANK_STATEMENT',
+  'CREDIT_CARD_STATEMENT',
+  'MORTGAGE_STATEMENT',
+  'LOAN_STATEMENT',
+  'PAY_STUB',
+  'GENERIC_FINANCIAL_EXPENSE',
+  'GENERIC_FINANCIAL_INCOME',
+  'PROPERTY_TAX',
+  'INSURANCE_POLICY',
+  'NON_FINANCIAL',
 ]);
 export type DocType = z.infer<typeof DocType>;
 
-export const Language = z.enum(["en", "es", "other"]);
+export const Language = z.enum(['en', 'es', 'other']);
 export type Language = z.infer<typeof Language>;
 
 export const LineItemSchema = z.object({
@@ -54,7 +49,7 @@ export const ExpenseDocumentSchema = z.object({
   billing_period_end: z.string().nullable(),
   statement_date: z.string().nullable(),
   due_date: z.string().nullable(),
-  currency: z.string().nullable().catch("USD"),
+  currency: z.string().nullable().catch('USD'),
   total_amount_due: z.number().nullable(),
   total_amount_text: z.string().nullable(),
   customer_name: z.string().nullable(),
@@ -201,7 +196,7 @@ EXAMPLE OUTPUT for a utility bill:
 // ============================================================================
 
 export class OpenAIProvider implements LLMProvider {
-  name = "openai";
+  name = 'openai';
   private client: OpenAI;
 
   constructor() {
@@ -218,44 +213,44 @@ export class OpenAIProvider implements LLMProvider {
     imageMimeType?: string
   ): Promise<{ result: ExpenseDocument; usage: TokenUsage }> {
     const userPrompt = this.buildUserPrompt(extractedText, docTypeHint);
-    console.log("[OpenAIProvider] Sending prompt to LLM:", userPrompt);
+    console.log('[OpenAIProvider] Sending prompt to LLM:', userPrompt);
 
     const messages: OpenAI.ChatCompletionMessageParam[] = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: 'system', content: SYSTEM_PROMPT },
     ];
 
     if (imageBase64 && imageMimeType) {
       messages.push({
-        role: "user",
+        role: 'user',
         content: [
           {
-            type: "image_url",
+            type: 'image_url',
             image_url: {
               url: `data:${imageMimeType};base64,${imageBase64}`,
             },
           },
-          { type: "text", text: userPrompt },
+          { type: 'text', text: userPrompt },
         ],
       });
     } else {
-      messages.push({ role: "user", content: userPrompt });
+      messages.push({ role: 'user', content: userPrompt });
     }
 
     const response = await this.client.chat.completions.create({
-      model: imageBase64 ? "gpt-4o" : "gpt-4o-mini",
+      model: imageBase64 ? 'gpt-4o' : 'gpt-4o-mini',
       messages,
-      response_format: { type: "json_object" },
+      response_format: { type: 'json_object' },
       temperature: 0.1,
       max_tokens: 4096,
     });
 
-    const content = response.choices[0]?.message?.content || "{}";
-    console.log("[OpenAIProvider] Raw LLM response:", content);
+    const content = response.choices[0]?.message?.content || '{}';
+    console.log('[OpenAIProvider] Raw LLM response:', content);
     let parsed;
     try {
       parsed = JSON.parse(content);
     } catch (e) {
-      console.error("[OpenAIProvider] Failed to parse JSON content:", content);
+      console.error('[OpenAIProvider] Failed to parse JSON content:', content);
       throw e;
     }
     const validated = ExpenseDocumentSchema.parse(parsed);
@@ -269,10 +264,7 @@ export class OpenAIProvider implements LLMProvider {
     };
   }
 
-  private buildUserPrompt(
-    extractedText: string,
-    docTypeHint?: DocType | null
-  ): string {
+  private buildUserPrompt(extractedText: string, docTypeHint?: DocType | null): string {
     let prompt = `Parse the following financial document and return JSON matching this schema:\n\n${getSchemaForPrompt()}\n\n${EXAMPLE_OUTPUT}\n\n`;
 
     if (docTypeHint) {
@@ -290,14 +282,14 @@ export class OpenAIProvider implements LLMProvider {
 // ============================================================================
 
 export class GeminiProvider implements LLMProvider {
-  name = "gemini";
+  name = 'gemini';
   private client: GoogleGenAI;
 
   constructor() {
     this.client = new GoogleGenAI({
       apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
       httpOptions: {
-        apiVersion: "",
+        apiVersion: '',
         baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
       },
     });
@@ -310,7 +302,7 @@ export class GeminiProvider implements LLMProvider {
     imageMimeType?: string
   ): Promise<{ result: ExpenseDocument; usage: TokenUsage }> {
     const userPrompt = this.buildUserPrompt(extractedText, docTypeHint);
-    console.log("[OpenAIProvider] Sending prompt to LLM:", userPrompt);
+    console.log('[OpenAIProvider] Sending prompt to LLM:', userPrompt);
 
     const parts: any[] = [];
 
@@ -326,12 +318,12 @@ export class GeminiProvider implements LLMProvider {
     parts.push({ text: `${SYSTEM_PROMPT}\n\n${userPrompt}` });
 
     const response = await this.client.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [{ role: "user", parts }],
+      model: 'gemini-2.0-flash',
+      contents: [{ role: 'user', parts }],
     });
 
-    const content = response.text || "{}";
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, "").trim();
+    const content = response.text || '{}';
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const parsed = JSON.parse(cleanedContent);
     const validated = ExpenseDocumentSchema.parse(parsed);
 
@@ -344,10 +336,7 @@ export class GeminiProvider implements LLMProvider {
     };
   }
 
-  private buildUserPrompt(
-    extractedText: string,
-    docTypeHint?: DocType | null
-  ): string {
+  private buildUserPrompt(extractedText: string, docTypeHint?: DocType | null): string {
     let prompt = `Parse the following financial document and return JSON matching this schema:\n\n${getSchemaForPrompt()}\n\n${EXAMPLE_OUTPUT}\n\n`;
 
     if (docTypeHint) {
@@ -367,20 +356,20 @@ export class GeminiProvider implements LLMProvider {
 export function normalizeAmount(amountText: string): number | null {
   if (!amountText) return null;
 
-  let cleaned = amountText.replace(/[^0-9.,\-]/g, "");
-  
-  if (cleaned.includes(",") && cleaned.includes(".")) {
-    if (cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")) {
-      cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+  let cleaned = amountText.replace(/[^0-9.,\-]/g, '');
+
+  if (cleaned.includes(',') && cleaned.includes('.')) {
+    if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
     } else {
-      cleaned = cleaned.replace(/,/g, "");
+      cleaned = cleaned.replace(/,/g, '');
     }
-  } else if (cleaned.includes(",")) {
-    const parts = cleaned.split(",");
+  } else if (cleaned.includes(',')) {
+    const parts = cleaned.split(',');
     if (parts.length === 2 && parts[1].length <= 2) {
-      cleaned = cleaned.replace(",", ".");
+      cleaned = cleaned.replace(',', '.');
     } else {
-      cleaned = cleaned.replace(/,/g, "");
+      cleaned = cleaned.replace(/,/g, '');
     }
   }
 
@@ -397,24 +386,24 @@ export function normalizeDate(dateStr: string | null): string | null {
   const usMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const [, month, day, year] = usMatch;
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
 
   const euMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (euMatch) {
     const [, day, month, year] = euMatch;
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
 
   return null;
 }
 
 export function detectCurrency(text: string): string {
-  if (text.includes("€") || text.includes("EUR")) return "EUR";
-  if (text.includes("£") || text.includes("GBP")) return "GBP";
-  if (text.includes("MXN") || text.includes("MX$")) return "MXN";
-  if (text.includes("CAD") || text.includes("C$")) return "CAD";
-  return "USD";
+  if (text.includes('€') || text.includes('EUR')) return 'EUR';
+  if (text.includes('£') || text.includes('GBP')) return 'GBP';
+  if (text.includes('MXN') || text.includes('MX$')) return 'MXN';
+  if (text.includes('CAD') || text.includes('C$')) return 'CAD';
+  return 'USD';
 }
 
 // ============================================================================
@@ -425,52 +414,110 @@ export function classifyDocument(
   fileName: string,
   extractedText: string
 ): { docType: DocType; confidence: number } {
-  const text = (fileName + " " + extractedText).toLowerCase();
+  const text = (fileName + ' ' + extractedText).toLowerCase();
 
   const patterns: { type: DocType; keywords: string[]; weight: number }[] = [
     {
-      type: "UTILITY_BILL",
-      keywords: ["utility", "electric", "gas", "water", "kwh", "therms", "meter reading", "pge", "con edison"],
+      type: 'UTILITY_BILL',
+      keywords: [
+        'utility',
+        'electric',
+        'gas',
+        'water',
+        'kwh',
+        'therms',
+        'meter reading',
+        'pge',
+        'con edison',
+      ],
       weight: 1,
     },
     {
-      type: "BANK_STATEMENT",
-      keywords: ["bank statement", "checking", "savings", "balance", "deposits", "withdrawals", "bank of", "chase", "wells fargo"],
+      type: 'BANK_STATEMENT',
+      keywords: [
+        'bank statement',
+        'checking',
+        'savings',
+        'balance',
+        'deposits',
+        'withdrawals',
+        'bank of',
+        'chase',
+        'wells fargo',
+      ],
       weight: 1,
     },
     {
-      type: "CREDIT_CARD_STATEMENT",
-      keywords: ["credit card", "minimum payment", "credit limit", "apr", "visa", "mastercard", "amex"],
+      type: 'CREDIT_CARD_STATEMENT',
+      keywords: [
+        'credit card',
+        'minimum payment',
+        'credit limit',
+        'apr',
+        'visa',
+        'mastercard',
+        'amex',
+      ],
       weight: 1,
     },
     {
-      type: "MORTGAGE_STATEMENT",
-      keywords: ["mortgage", "principal", "escrow", "loan balance", "property address", "home loan"],
+      type: 'MORTGAGE_STATEMENT',
+      keywords: [
+        'mortgage',
+        'principal',
+        'escrow',
+        'loan balance',
+        'property address',
+        'home loan',
+      ],
       weight: 1,
     },
     {
-      type: "LOAN_STATEMENT",
-      keywords: ["loan statement", "loan balance", "payment due", "interest rate", "student loan", "auto loan"],
+      type: 'LOAN_STATEMENT',
+      keywords: [
+        'loan statement',
+        'loan balance',
+        'payment due',
+        'interest rate',
+        'student loan',
+        'auto loan',
+      ],
       weight: 1,
     },
     {
-      type: "PAY_STUB",
-      keywords: ["pay stub", "paycheck", "gross pay", "net pay", "withholding", "fica", "federal tax", "earnings"],
+      type: 'PAY_STUB',
+      keywords: [
+        'pay stub',
+        'paycheck',
+        'gross pay',
+        'net pay',
+        'withholding',
+        'fica',
+        'federal tax',
+        'earnings',
+      ],
       weight: 1,
     },
     {
-      type: "PROPERTY_TAX",
-      keywords: ["property tax", "assessed value", "tax bill", "parcel", "county tax", "real estate tax"],
+      type: 'PROPERTY_TAX',
+      keywords: [
+        'property tax',
+        'assessed value',
+        'tax bill',
+        'parcel',
+        'county tax',
+        'real estate tax',
+      ],
       weight: 1,
     },
     {
-      type: "INSURANCE_POLICY",
-      keywords: ["insurance", "policy", "premium", "coverage", "deductible", "beneficiary"],
+      type: 'INSURANCE_POLICY',
+      keywords: ['insurance', 'policy', 'premium', 'coverage', 'deductible', 'beneficiary'],
       weight: 1,
     },
   ];
 
-  let bestMatch: DocType = "GENERIC_FINANCIAL_EXPENSE";
+  let bestMatch: DocType = 'GENERIC_FINANCIAL_EXPENSE';
   let bestScore = 0;
 
   for (const pattern of patterns) {
@@ -489,10 +536,10 @@ export function classifyDocument(
   const confidence = Math.min(bestScore / 3, 1);
 
   if (confidence < 0.3) {
-    if (text.includes("income") || text.includes("payment received") || text.includes("deposit")) {
-      return { docType: "GENERIC_FINANCIAL_INCOME", confidence: 0.5 };
+    if (text.includes('income') || text.includes('payment received') || text.includes('deposit')) {
+      return { docType: 'GENERIC_FINANCIAL_INCOME', confidence: 0.5 };
     }
-    return { docType: "GENERIC_FINANCIAL_EXPENSE", confidence: 0.4 };
+    return { docType: 'GENERIC_FINANCIAL_EXPENSE', confidence: 0.4 };
   }
 
   return { docType: bestMatch, confidence };
@@ -503,7 +550,7 @@ export function classifyDocument(
 // ============================================================================
 
 export interface ParseDocumentOptions {
-  provider?: "openai" | "gemini";
+  provider?: 'openai' | 'gemini';
   docTypeHint?: DocType | null;
   imageBase64?: string;
   imageMimeType?: string;
@@ -528,7 +575,7 @@ export async function parseFinancialDocument(
     : classifyDocument(fileName, extractedText);
 
   const provider: LLMProvider =
-    options.provider === "gemini" ? new GeminiProvider() : new OpenAIProvider();
+    options.provider === 'gemini' ? new GeminiProvider() : new OpenAIProvider();
 
   const { result, usage } = await provider.parseDocument(
     extractedText,
@@ -558,7 +605,7 @@ export function validateParseResult(doc: ExpenseDocument): {
   const warnings: string[] = [];
 
   if (doc.total_amount_due !== null && doc.total_amount_due < 0) {
-    warnings.push("Total amount is negative - verify if this is a refund");
+    warnings.push('Total amount is negative - verify if this is a refund');
   }
 
   for (let i = 0; i < doc.line_items.length; i++) {
@@ -572,12 +619,12 @@ export function validateParseResult(doc: ExpenseDocument): {
     const start = new Date(doc.billing_period_start);
     const end = new Date(doc.billing_period_end);
     if (start > end) {
-      errors.push("Billing period start date is after end date");
+      errors.push('Billing period start date is after end date');
     }
   }
 
-  if (doc.doc_type !== "NON_FINANCIAL" && doc.line_items.length === 0) {
-    warnings.push("No line items extracted from financial document");
+  if (doc.doc_type !== 'NON_FINANCIAL' && doc.line_items.length === 0) {
+    warnings.push('No line items extracted from financial document');
   }
 
   return {
@@ -593,29 +640,29 @@ export function validateParseResult(doc: ExpenseDocument): {
 
 export function mapDocTypeToFinanceCategory(docType: DocType): string {
   const mapping: Record<DocType, string> = {
-    UTILITY_BILL: "utility_bill",
-    BANK_STATEMENT: "bank_statement",
-    CREDIT_CARD_STATEMENT: "debt_statement",
-    MORTGAGE_STATEMENT: "debt_statement",
-    LOAN_STATEMENT: "debt_statement",
-    PAY_STUB: "employment_record",
-    GENERIC_FINANCIAL_EXPENSE: "financial_statement",
-    GENERIC_FINANCIAL_INCOME: "financial_statement",
-    PROPERTY_TAX: "tax_return",
-    INSURANCE_POLICY: "insurance_document",
-    NON_FINANCIAL: "other",
+    UTILITY_BILL: 'utility_bill',
+    BANK_STATEMENT: 'bank_statement',
+    CREDIT_CARD_STATEMENT: 'debt_statement',
+    MORTGAGE_STATEMENT: 'debt_statement',
+    LOAN_STATEMENT: 'debt_statement',
+    PAY_STUB: 'employment_record',
+    GENERIC_FINANCIAL_EXPENSE: 'financial_statement',
+    GENERIC_FINANCIAL_INCOME: 'financial_statement',
+    PROPERTY_TAX: 'tax_return',
+    INSURANCE_POLICY: 'insurance_document',
+    NON_FINANCIAL: 'other',
   };
-  return mapping[docType] || "other";
+  return mapping[docType] || 'other';
 }
 
-import { 
+import {
   CoreLedgerBucket,
   mapDocTypeToInternalBucket,
   mapDocTypeToInternalCategory,
   mapCoreBucketToRecordType,
-} from "./financeMappings";
+} from './financeMappings';
 
-export function mapDocTypeToRecordType(docType: DocType): "expense" | "income" | "asset" | "debt" {
+export function mapDocTypeToRecordType(docType: DocType): 'expense' | 'income' | 'asset' | 'debt' {
   const coreBucket = mapDocTypeToInternalBucket(docType);
   return mapCoreBucketToRecordType(coreBucket);
 }

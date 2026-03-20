@@ -1,5 +1,5 @@
-import { Building, User, Check, ChevronsUpDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Building, User, Check, ChevronsUpDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,14 +7,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 
 interface Workspace {
   id: string;
   name: string;
-  type: "consumer" | "firm";
-  role: "owner" | "admin" | "staff" | "client";
+  type: 'consumer' | 'firm';
+  role: 'owner' | 'admin' | 'staff' | 'client';
 }
 
 interface WorkspaceSwitcherProps {
@@ -23,28 +23,28 @@ interface WorkspaceSwitcherProps {
   onSwitch: (workspaceId: string) => void;
 }
 
-export function WorkspaceSwitcher({ currentWorkspace, workspaces, onSwitch }: WorkspaceSwitcherProps) {
+export function WorkspaceSwitcher({
+  currentWorkspace,
+  workspaces,
+  onSwitch,
+}: WorkspaceSwitcherProps) {
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case "owner":
-        return "default";
-      case "admin":
-        return "secondary";
+      case 'owner':
+        return 'default';
+      case 'admin':
+        return 'secondary';
       default:
-        return "outline";
+        return 'outline';
     }
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          className="w-full justify-between"
-        >
+        <Button variant="outline" role="combobox" className="w-full justify-between">
           <div className="flex items-center gap-2 overflow-hidden">
-            {currentWorkspace.type === "firm" ? (
+            {currentWorkspace.type === 'firm' ? (
               <Building className="h-4 w-4 shrink-0" />
             ) : (
               <User className="h-4 w-4 shrink-0" />
@@ -64,7 +64,7 @@ export function WorkspaceSwitcher({ currentWorkspace, workspaces, onSwitch }: Wo
             className="flex items-center justify-between cursor-pointer"
           >
             <div className="flex items-center gap-2 overflow-hidden">
-              {workspace.type === "firm" ? (
+              {workspace.type === 'firm' ? (
                 <Building className="h-4 w-4 shrink-0" />
               ) : (
                 <User className="h-4 w-4 shrink-0" />
@@ -75,9 +75,7 @@ export function WorkspaceSwitcher({ currentWorkspace, workspaces, onSwitch }: Wo
               <Badge variant={getRoleBadgeVariant(workspace.role)} className="text-xs">
                 {workspace.role}
               </Badge>
-              {workspace.id === currentWorkspace.id && (
-                <Check className="h-4 w-4" />
-              )}
+              {workspace.id === currentWorkspace.id && <Check className="h-4 w-4" />}
             </div>
           </DropdownMenuItem>
         ))}

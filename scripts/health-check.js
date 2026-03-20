@@ -5,17 +5,25 @@ console.log('='.repeat(50));
 
 const checks = {
   'Node.js': { cmd: 'node --version', critical: true },
-  'npm': { cmd: 'npm --version', critical: true },
-  'TypeScript': { cmd: 'npx tsc --version', critical: true },
+  npm: { cmd: 'npm --version', critical: true },
+  TypeScript: { cmd: 'npx tsc --version', critical: true },
 };
 
 const envVars = {
-  'PORT': { critical: false, isSet: !!process.env.PORT, display: process.env.PORT },
-  'NODE_ENV': { critical: true, isSet: !!process.env.NODE_ENV, display: process.env.NODE_ENV },
-  'STRIPE_MODE': { critical: true, isSet: !!process.env.STRIPE_MODE, display: process.env.STRIPE_MODE },
-  'STRIPE_SECRET_KEY': { critical: false, isSet: !!process.env.STRIPE_SECRET_KEY, display: '***HIDDEN***' },
-  'DATABASE_URL': { critical: true, isSet: !!process.env.DATABASE_URL, display: '***HIDDEN***' },
-  'SESSION_SECRET': { critical: true, isSet: !!process.env.SESSION_SECRET, display: '***HIDDEN***' },
+  PORT: { critical: false, isSet: !!process.env.PORT, display: process.env.PORT },
+  NODE_ENV: { critical: true, isSet: !!process.env.NODE_ENV, display: process.env.NODE_ENV },
+  STRIPE_MODE: {
+    critical: true,
+    isSet: !!process.env.STRIPE_MODE,
+    display: process.env.STRIPE_MODE,
+  },
+  STRIPE_SECRET_KEY: {
+    critical: false,
+    isSet: !!process.env.STRIPE_SECRET_KEY,
+    display: '***HIDDEN***',
+  },
+  DATABASE_URL: { critical: true, isSet: !!process.env.DATABASE_URL, display: '***HIDDEN***' },
+  SESSION_SECRET: { critical: true, isSet: !!process.env.SESSION_SECRET, display: '***HIDDEN***' },
 };
 
 console.log('\n Installed Tools:');

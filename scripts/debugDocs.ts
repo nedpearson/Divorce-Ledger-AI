@@ -1,10 +1,10 @@
-import { db } from "../server/db";
-import { documents, documentParseResults } from "../shared/schema";
-import { desc, sql } from "drizzle-orm";
+import { db } from '../server/db';
+import { documents, documentParseResults } from '../shared/schema';
+import { desc, sql } from 'drizzle-orm';
 
 async function debugDocs() {
-  console.log("=== DEBUG: Recent Documents ===\n");
-  
+  console.log('=== DEBUG: Recent Documents ===\n');
+
   try {
     const recentDocs = await db
       .select({
@@ -21,9 +21,9 @@ async function debugDocs() {
       .orderBy(desc(documents.createdAt))
       .limit(5);
 
-    console.log("Recent Documents (5 most recent):");
-    console.log("─".repeat(80));
-    
+    console.log('Recent Documents (5 most recent):');
+    console.log('─'.repeat(80));
+
     for (const doc of recentDocs) {
       console.log(`ID: ${doc.id}`);
       console.log(`  User ID: ${doc.userId}`);
@@ -33,11 +33,11 @@ async function debugDocs() {
       console.log(`  Analysis Status: ${doc.aiAnalysisStatus}`);
       console.log(`  Environment: ${doc.environment}`);
       console.log(`  Created At: ${doc.createdAt}`);
-      console.log("");
+      console.log('');
     }
 
-    console.log("\n=== DEBUG: Recent Parse Results ===\n");
-    
+    console.log('\n=== DEBUG: Recent Parse Results ===\n');
+
     const recentParseResults = await db
       .select({
         id: documentParseResults.id,
@@ -55,27 +55,28 @@ async function debugDocs() {
       .orderBy(desc(documentParseResults.createdAt))
       .limit(5);
 
-    console.log("Recent Parse Results (5 most recent):");
-    console.log("─".repeat(80));
-    
+    console.log('Recent Parse Results (5 most recent):');
+    console.log('─'.repeat(80));
+
     for (const result of recentParseResults) {
       console.log(`ID: ${result.id}`);
       console.log(`  Document ID: ${result.documentId}`);
       console.log(`  User ID: ${result.userId}`);
       console.log(`  Doc Type: ${result.docType}`);
       console.log(`  Parse Status: ${result.parseStatus}`);
-      console.log(`  Total Amount Due: ${result.totalAmountDue ? (result.totalAmountDue / 100).toFixed(2) : "null"} (cents: ${result.totalAmountDue})`);
+      console.log(
+        `  Total Amount Due: ${result.totalAmountDue ? (result.totalAmountDue / 100).toFixed(2) : 'null'} (cents: ${result.totalAmountDue})`
+      );
       console.log(`  Vendor Name: ${result.vendorName}`);
       console.log(`  Currency: ${result.currency}`);
       console.log(`  Environment: ${result.environment}`);
       console.log(`  Created At: ${result.createdAt}`);
-      console.log("");
+      console.log('');
     }
-
   } catch (error) {
-    console.error("Error querying database:", error);
+    console.error('Error querying database:', error);
   }
-  
+
   process.exit(0);
 }
 

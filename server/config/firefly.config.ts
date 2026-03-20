@@ -1,13 +1,13 @@
 /**
  * Firefly III Configuration Module
- * 
+ *
  * This module handles configuration for Firefly III integration.
- * 
+ *
  * PRIMARY APPROACH (Per-User, Recommended):
  * - Each user connects their own Firefly III instance via /api/firefly/connect
  * - Tokens are encrypted with AES-256-GCM and stored in the database
  * - This is more secure than global environment variables
- * 
+ *
  * FALLBACK APPROACH (Global, Optional):
  * - Set FIREFLY_BASE_URL and FIREFLY_ACCESS_TOKEN as environment variables
  * - Used only when per-user connection is not available
@@ -78,7 +78,7 @@ export function validateFireflyEnv(): {
   if (!config.isConfigured) {
     warnings.push(
       'Global Firefly III environment variables not configured. ' +
-      'Users can connect their own Firefly III instances via Settings > Integrations.'
+        'Users can connect their own Firefly III instances via Settings > Integrations.'
     );
   }
 
@@ -94,7 +94,7 @@ export function logFireflyConfigStatus(): void {
   const config = getFireflyEnvConfig();
 
   console.log('[Firefly Config] Startup validation:');
-  
+
   if (config.isConfigured) {
     console.log(`  ✓ Global config: ${config.baseUrl}`);
   } else {
@@ -110,7 +110,9 @@ export function logFireflyConfigStatus(): void {
   }
 
   if (!validation.valid) {
-    console.error('[Firefly Config] Configuration errors detected. Please fix before using global Firefly integration.');
+    console.error(
+      '[Firefly Config] Configuration errors detected. Please fix before using global Firefly integration.'
+    );
   }
 }
 

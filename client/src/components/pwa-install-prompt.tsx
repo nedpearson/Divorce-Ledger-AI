@@ -6,7 +6,7 @@ import { Download, X, Smartphone } from 'lucide-react';
 
 /**
  * PWA Install Prompt Component
- * 
+ *
  * Shows a dismissible banner prompting users to install the app
  * Only shown on mobile devices when installation is available
  */
@@ -20,7 +20,9 @@ export function PWAInstallPrompt() {
     try {
       // Check if on mobile
       const checkMobile = () => {
-        const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        );
         const smallScreen = window.innerWidth < 768;
         setIsMobile(mobile || smallScreen);
       };
@@ -40,7 +42,7 @@ export function PWAInstallPrompt() {
       const dismissedAt = localStorage.getItem('pwa-install-dismissed');
       if (dismissedAt) {
         const dismissedTime = parseInt(dismissedAt);
-        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
         if (dismissedTime > sevenDaysAgo) {
           setDismissed(true);
         }
@@ -88,31 +90,18 @@ export function PWAInstallPrompt() {
                 </CardDescription>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0"
-              onClick={handleDismiss}
-            >
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleDismiss}>
               <X className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="flex gap-2">
-            <Button
-              onClick={handleInstall}
-              size="sm"
-              className="flex-1"
-            >
+            <Button onClick={handleInstall} size="sm" className="flex-1">
               <Download className="h-4 w-4 mr-2" />
               Install
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDismiss}
-            >
+            <Button variant="outline" size="sm" onClick={handleDismiss}>
               Later
             </Button>
           </div>

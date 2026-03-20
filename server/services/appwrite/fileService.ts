@@ -10,7 +10,7 @@ import {
   Permission,
   Role,
   initializeAppwrite,
-  type FileStatus
+  type FileStatus,
 } from './client';
 import crypto from 'crypto';
 
@@ -19,7 +19,12 @@ export const ALLOWED_TRANSITIONS: Record<FileStatus, FileStatus[]> = {
   [FILE_STATUS.QUEUED]: [FILE_STATUS.EXTRACTING, FILE_STATUS.ERROR],
   [FILE_STATUS.EXTRACTING]: [FILE_STATUS.ANALYZING, FILE_STATUS.ERROR],
   [FILE_STATUS.ANALYZING]: [FILE_STATUS.SUGGESTED, FILE_STATUS.FINALIZED, FILE_STATUS.ERROR],
-  [FILE_STATUS.SUGGESTED]: [FILE_STATUS.FINALIZED, FILE_STATUS.AWAITING_USER, FILE_STATUS.ANALYZING, FILE_STATUS.ERROR],
+  [FILE_STATUS.SUGGESTED]: [
+    FILE_STATUS.FINALIZED,
+    FILE_STATUS.AWAITING_USER,
+    FILE_STATUS.ANALYZING,
+    FILE_STATUS.ERROR,
+  ],
   [FILE_STATUS.AWAITING_USER]: [FILE_STATUS.FINALIZED, FILE_STATUS.ANALYZING, FILE_STATUS.ERROR],
   [FILE_STATUS.FINALIZED]: [],
   [FILE_STATUS.ERROR]: [FILE_STATUS.UPLOADED, FILE_STATUS.QUEUED],
@@ -120,7 +125,7 @@ export async function uploadFile(
   initializeAppwrite();
 
   const fileHash = computeFileHash(fileBuffer);
-  
+
   const storageFile = await storage.createFile(
     STORAGE_BUCKET_ID,
     ID.unique(),
@@ -211,7 +216,7 @@ export async function updateFile(fileId: string, data: UpdateFileInput): Promise
 export async function deleteFile(fileId: string): Promise<{ success: boolean; error?: string }> {
   initializeAppwrite();
   const file = await getFile(fileId);
-  
+
   if (!file) {
     return { success: true }; // Already deleted or doesn't exist
   }
@@ -229,9 +234,9 @@ export async function deleteFile(fileId: string): Promise<{ success: boolean; er
       // Storage deletion failed - do NOT delete DB record to avoid orphaning data
       const errorMsg = storageError instanceof Error ? storageError.message : String(storageError);
       console.error(`[Appwrite] Failed to delete storage file ${file.storageFileId}: ${errorMsg}`);
-      return { 
-        success: false, 
-        error: `Failed to delete file from storage: ${errorMsg}. Database record preserved to prevent orphaned data.` 
+      return {
+        success: false,
+        error: `Failed to delete file from storage: ${errorMsg}. Database record preserved to prevent orphaned data.`,
       };
     }
   }
@@ -245,10 +250,12 @@ export async function deleteFile(fileId: string): Promise<{ success: boolean; er
     const errorMsg = dbError instanceof Error ? dbError.message : String(dbError);
     console.error(`[Appwrite] Failed to delete database record ${fileId}: ${errorMsg}`);
     // Storage was deleted but DB wasn't - log for manual cleanup
-    console.error(`[Appwrite] ORPHAN WARNING: Storage file ${file.storageFileId} was deleted but DB record ${fileId} remains`);
-    return { 
-      success: false, 
-      error: `Storage deleted but database record deletion failed: ${errorMsg}` 
+    console.error(
+      `[Appwrite] ORPHAN WARNING: Storage file ${file.storageFileId} was deleted but DB record ${fileId} remains`
+    );
+    return {
+      success: false,
+      error: `Storage deleted but database record deletion failed: ${errorMsg}`,
     };
   }
 }
@@ -301,17 +308,13 @@ export async function transitionFileStatus(
   };
 
   const updatedFile = await updateFile(fileId, updateData);
-  
-  emitFileStatusChange(createStatusChangeEvent(
-    fileId,
-    file.userId,
-    fromStatus,
-    toStatus,
-    {
+
+  emitFileStatusChange(
+    createStatusChangeEvent(fileId, file.userId, fromStatus, toStatus, {
       analysisRunId: additionalData?.latestAnalysisRunId,
       confidence: additionalData?.aiConfidence,
-    }
-  ));
+    })
+  );
 
   return updatedFile;
 }

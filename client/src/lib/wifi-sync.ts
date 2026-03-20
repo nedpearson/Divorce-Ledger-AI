@@ -1,6 +1,6 @@
 /**
  * WiFi Sync Service
- * 
+ *
  * Automatically syncs offline data when on the same network as the desktop
  * Uses local network discovery and background sync
  */
@@ -39,7 +39,7 @@ let syncStatus: SyncStatus = {
   isOnline: navigator.onLine,
   isSyncing: false,
   lastSyncTime: null,
-  pendingCount: 0, 
+  pendingCount: 0,
   error: null,
 };
 
@@ -74,12 +74,12 @@ async function getServerUrl(): Promise<string> {
   // Try localStorage first
   const stored = localStorage.getItem('sync-server-url');
   if (stored) return stored;
-  
+
   // Try to detect from current origin
   if (window.location.hostname !== 'localhost' && !window.location.hostname.startsWith('192.168')) {
     return window.location.origin;
   }
-  
+
   // Default to localhost in development
   return 'http://localhost:5000';
 }
@@ -95,18 +95,18 @@ async function syncDocument(doc: OfflineDocument): Promise<boolean> {
   try {
     const serverUrl = await getServerUrl();
     const formData = new FormData();
-    
+
     formData.append('file', doc.fileData, doc.fileName);
     formData.append('title', doc.title);
     formData.append('category', doc.category);
     formData.append('timestamp', doc.timestamp.toString());
-    
+
     const response = await fetch(`${serverUrl}/api/documents`, {
       method: 'POST',
       body: formData,
       credentials: 'include',
     });
-    
+
     if (response.ok) {
       await markDocumentSynced(doc.id);
       return true;
@@ -125,26 +125,26 @@ async function syncViolation(violation: OfflineViolation): Promise<boolean> {
   try {
     const serverUrl = await getServerUrl();
     const formData = new FormData();
-    
+
     formData.append('type', violation.type);
     formData.append('description', violation.description);
     formData.append('timestamp', violation.timestamp.toString());
-    
+
     if (violation.location) {
       formData.append('location', JSON.stringify(violation.location));
     }
-    
+
     // Attach media files
     violation.mediaFiles.forEach((media, index) => {
       formData.append(`media_${index}`, media.blob, media.name);
     });
-    
+
     const response = await fetch(`${serverUrl}/api/violations`, {
       method: 'POST',
       body: formData,
       credentials: 'include',
     });
-    
+
     if (response.ok) {
       await markViolationSynced(violation.id);
       return true;
@@ -162,7 +162,7 @@ async function syncViolation(violation: OfflineViolation): Promise<boolean> {
 async function syncQueuedMutations(): Promise<number> {
   const queue = await getSyncQueue();
   let synced = 0;
-  
+
   for (const item of queue) {
     try {
       const serverUrl = await getServerUrl();
@@ -175,7 +175,7 @@ async function syncQueuedMutations(): Promise<number> {
         body: item.body ? JSON.stringify(item.body) : undefined,
         credentials: 'include',
       });
-      
+
       if (response.ok) {
         await removeSyncQueueItem(item.id);
         synced++;
@@ -184,7 +184,7 @@ async function syncQueuedMutations(): Promise<number> {
       console.error('[WiFi Sync] Failed to sync queue item:', error);
     }
   }
-  
+
   return synced;
 }
 
@@ -201,7 +201,7 @@ export async function syncOfflineData(): Promise<SyncResult> {
       errors: ['Sync already in progress'],
     };
   }
-  
+
   const result: SyncResult = {
     success: true,
     documentsSynced: 0,
@@ -209,11 +209,11 @@ export async function syncOfflineData(): Promise<SyncResult> {
     queueItemsSynced: 0,
     errors: [],
   };
-  
+
   try {
     syncInProgress = true;
     updateStatus({ isSyncing: true, error: null });
-    
+
     // Check if we're on the same network
     const canSync = await isOnSameNetwork();
     if (!canSync) {
@@ -222,7 +222,7 @@ export async function syncOfflineData(): Promise<SyncResult> {
       updateStatus({ error: 'Not connected to desktop network' });
       return result;
     }
-    
+
     // Sync documents
     const unsyncedDocs = await getUnsyncedDocuments();
     for (const doc of unsyncedDocs) {
@@ -232,7 +232,7 @@ export async function syncOfflineData(): Promise<SyncResult> {
         result.errors.push(`Failed to sync document: ${doc.title}`);
       }
     }
-    
+
     // Sync violations
     const unsyncedViols = await getUnsyncedViolations();
     for (const viol of unsyncedViols) {
@@ -242,23 +242,22 @@ export async function syncOfflineData(): Promise<SyncResult> {
         result.errors.push(`Failed to sync violation: ${viol.type}`);
       }
     }
-    
+
     // Sync queued mutations
     result.queueItemsSynced = await syncQueuedMutations();
-    
+
     // Update metadata
     await setSyncMetadata({
       lastSyncTimestamp: Date.now(),
       serverUrl: await getServerUrl(),
       pendingCount: 0,
     });
-    
+
     updateStatus({
       lastSyncTime: Date.now(),
       pendingCount: 0,
       error: null,
     });
-    
   } catch (error) {
     result.success = false;
     result.errors.push(error instanceof Error ? error.message : 'Unknown sync error');
@@ -267,7 +266,7 @@ export async function syncOfflineData(): Promise<SyncResult> {
     syncInProgress = false;
     updateStatus({ isSyncing: false });
   }
-  
+
   return result;
 }
 
@@ -283,12 +282,12 @@ let autoSyncInterval: number | null = null;
  */
 export function startAutoSync(intervalMs: number = 30000): void {
   if (autoSyncInterval) return;
-  
+
   console.log('[WiFi Sync] Auto-sync started');
-  
+
   // Initial sync attempt
   setTimeout(() => syncOfflineData(), 2000);
-  
+
   // Set up interval
   autoSyncInterval = window.setInterval(async () => {
     if (!syncInProgress && navigator.onLine) {
@@ -296,16 +295,16 @@ export function startAutoSync(intervalMs: number = 30000): void {
       const unsyncedDocs = await getUnsyncedDocuments();
       const unsyncedViols = await getUnsyncedViolations();
       const queue = await getSyncQueue();
-      
+
       const pendingCount = unsyncedDocs.length + unsyncedViols.length + queue.length;
-      
+
       if (pendingCount > 0) {
         console.log(`[WiFi Sync] ${pendingCount} items pending, attempting sync...`);
         await syncOfflineData();
       }
     }
   }, intervalMs);
-  
+
   // Listen to online/offline events
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
@@ -340,7 +339,7 @@ function handleOffline() {
 
 function updateStatus(updates: Partial<SyncStatus>): void {
   syncStatus = { ...syncStatus, ...updates };
-  statusListeners.forEach(listener => listener(syncStatus));
+  statusListeners.forEach((listener) => listener(syncStatus));
 }
 
 export function getSyncStatus(): SyncStatus {
@@ -350,7 +349,7 @@ export function getSyncStatus(): SyncStatus {
 export function onSyncStatusChange(listener: (status: SyncStatus) => void): () => void {
   statusListeners.push(listener);
   return () => {
-    statusListeners = statusListeners.filter(l => l !== listener);
+    statusListeners = statusListeners.filter((l) => l !== listener);
   };
 }
 
@@ -394,7 +393,7 @@ if (typeof window !== 'undefined') {
       // Don't break the app if sync initialization fails
     }
   })();
-  
+
   // Listen for messages from service worker
   navigator.serviceWorker?.addEventListener('message', (event) => {
     if (event.data.type === 'BACKGROUND_SYNC_START') {
@@ -413,7 +412,7 @@ export async function registerBackgroundSync(): Promise<void> {
     console.log('[WiFi Sync] Service Worker not supported');
     return;
   }
-  
+
   try {
     const registration = await navigator.serviceWorker.ready;
     // Background Sync API is not in TypeScript types yet, use type assertion

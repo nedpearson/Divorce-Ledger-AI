@@ -114,7 +114,7 @@ async function generateImageThumbnail(file: Blob, mimeType: string): Promise<Blo
   // Placeholder: In production, resize image to 300x300
   // For now, return original (simplified implementation)
   console.log('Generating image thumbnail (placeholder implementation)');
-  
+
   // In real implementation, use Deno's image processing or external service
   // For now, we'll just return a smaller version indication
   return file;
@@ -126,7 +126,7 @@ async function generateImageThumbnail(file: Blob, mimeType: string): Promise<Blo
  */
 async function generatePdfThumbnail(file: Blob): Promise<Blob> {
   console.log('Generating PDF thumbnail (placeholder implementation)');
-  
+
   // In real implementation:
   // 1. Use pdf-lib to load PDF
   // 2. Render first page to canvas
@@ -140,10 +140,10 @@ async function generatePdfThumbnail(file: Blob): Promise<Blob> {
  */
 async function generatePlaceholderThumbnail(mimeType: string): Promise<Blob> {
   console.log(`Generating placeholder thumbnail for ${mimeType}`);
-  
+
   const label = mimeType.split('/')[1]?.toUpperCase() || 'FILE';
   const color = '#6B7280'; // Gray for unknown types
-  
+
   return createPlaceholderBlob(label, color);
 }
 
@@ -161,6 +161,6 @@ function createPlaceholderBlob(label: string, color: string): Blob {
       </text>
     </svg>
   `;
-  
+
   return new Blob([svg], { type: 'image/svg+xml' });
 }

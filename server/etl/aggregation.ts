@@ -118,7 +118,7 @@ class AggregationService {
         tableName: 'agg_daily_user_metrics',
         rowsAggregated: parseInt(countResult.rows[0].count),
         executionTimeMs: Date.now() - startTime,
-        status: 'success'
+        status: 'success',
       };
     } catch (error: any) {
       return {
@@ -126,7 +126,7 @@ class AggregationService {
         rowsAggregated: 0,
         executionTimeMs: Date.now() - startTime,
         status: 'failed',
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -201,7 +201,7 @@ class AggregationService {
         tableName: 'agg_weekly_cohort_metrics',
         rowsAggregated: parseInt(countResult.rows[0].count),
         executionTimeMs: Date.now() - startTime,
-        status: 'success'
+        status: 'success',
       };
     } catch (error: any) {
       return {
@@ -209,7 +209,7 @@ class AggregationService {
         rowsAggregated: 0,
         executionTimeMs: Date.now() - startTime,
         status: 'failed',
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -275,7 +275,7 @@ class AggregationService {
         tableName: 'agg_monthly_revenue',
         rowsAggregated: parseInt(countResult.rows[0].count),
         executionTimeMs: Date.now() - startTime,
-        status: 'success'
+        status: 'success',
       };
     } catch (error: any) {
       return {
@@ -283,7 +283,7 @@ class AggregationService {
         rowsAggregated: 0,
         executionTimeMs: Date.now() - startTime,
         status: 'failed',
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -342,7 +342,7 @@ class AggregationService {
         tableName: 'agg_tier_transitions',
         rowsAggregated: parseInt(countResult.rows[0].count),
         executionTimeMs: Date.now() - startTime,
-        status: 'success'
+        status: 'success',
       };
     } catch (error: any) {
       return {
@@ -350,7 +350,7 @@ class AggregationService {
         rowsAggregated: 0,
         executionTimeMs: Date.now() - startTime,
         status: 'failed',
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -365,7 +365,7 @@ class AggregationService {
         { name: 'voice_transcription', query: 'voice_recordings_count' },
         { name: 'ai_classification', query: 'ai_classifications_used' },
         { name: 'pdf_exports', query: 'pdf_exports_count' },
-        { name: 'evidence_uploads', query: 'evidence_uploaded_count' }
+        { name: 'evidence_uploads', query: 'evidence_uploaded_count' },
       ];
 
       for (const feature of features) {
@@ -417,7 +417,7 @@ class AggregationService {
         tableName: 'agg_feature_usage_by_tier',
         rowsAggregated: parseInt(countResult.rows[0].count),
         executionTimeMs: Date.now() - startTime,
-        status: 'success'
+        status: 'success',
       };
     } catch (error: any) {
       return {
@@ -425,7 +425,7 @@ class AggregationService {
         rowsAggregated: 0,
         executionTimeMs: Date.now() - startTime,
         status: 'failed',
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -465,7 +465,7 @@ class AggregationService {
             result.rowsAggregated,
             result.executionTimeMs,
             result.status,
-            result.error || null
+            result.error || null,
           ]
         );
       } catch (e) {

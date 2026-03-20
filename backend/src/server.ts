@@ -55,8 +55,20 @@ export async function createServer(): Promise<FastifyInstance> {
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID', 'X-User-Id', 'X-Environment'],
-      exposedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID', 'X-User-Id', 'X-Environment'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Request-ID',
+        'X-User-Id',
+        'X-Environment',
+      ],
+      exposedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Request-ID',
+        'X-User-Id',
+        'X-Environment',
+      ],
     });
   }
 
@@ -154,6 +166,3 @@ export async function startServer(): Promise<void> {
 if (import.meta.url === `file://${process.argv[1]}`) {
   startServer();
 }
-
-
-

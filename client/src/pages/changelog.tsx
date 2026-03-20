@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Sparkles, Check, Calendar, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Sparkles, Check, Calendar, Loader2 } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface ChangelogEntry {
   id: string;
@@ -16,16 +16,19 @@ interface ChangelogEntry {
 
 export default function ChangelogPage() {
   const { data: changelog = [], isLoading } = useQuery<ChangelogEntry[]>({
-    queryKey: ["/api/changelog"],
+    queryKey: ['/api/changelog'],
   });
 
-  const groupedByMonth = changelog.reduce((acc, entry) => {
-    const date = new Date(entry.implementedAt);
-    const monthKey = format(date, "MMMM yyyy");
-    if (!acc[monthKey]) acc[monthKey] = [];
-    acc[monthKey].push(entry);
-    return acc;
-  }, {} as Record<string, ChangelogEntry[]>);
+  const groupedByMonth = changelog.reduce(
+    (acc, entry) => {
+      const date = new Date(entry.implementedAt);
+      const monthKey = format(date, 'MMMM yyyy');
+      if (!acc[monthKey]) acc[monthKey] = [];
+      acc[monthKey].push(entry);
+      return acc;
+    },
+    {} as Record<string, ChangelogEntry[]>
+  );
 
   return (
     <div className="container max-w-3xl py-6 space-y-6">
@@ -48,7 +51,9 @@ export default function ChangelogPage() {
           <CardContent className="py-12 text-center">
             <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No Updates Yet</h3>
-            <p className="text-muted-foreground">Check back soon for new features and improvements!</p>
+            <p className="text-muted-foreground">
+              Check back soon for new features and improvements!
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -59,9 +64,11 @@ export default function ChangelogPage() {
                 <div className="flex items-center gap-2 mb-4">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <h2 className="text-lg font-semibold">{month}</h2>
-                  <Badge variant="outline" className="ml-auto">{entries.length} updates</Badge>
+                  <Badge variant="outline" className="ml-auto">
+                    {entries.length} updates
+                  </Badge>
                 </div>
-                
+
                 <div className="space-y-4">
                   {entries.map((entry) => (
                     <Card key={entry.id}>
@@ -73,20 +80,18 @@ export default function ChangelogPage() {
                           <div className="flex-1">
                             <CardTitle className="text-base">{entry.title}</CardTitle>
                             <CardDescription className="text-xs">
-                              {format(new Date(entry.implementedAt), "MMMM d, yyyy")}
+                              {format(new Date(entry.implementedAt), 'MMMM d, yyyy')}
                             </CardDescription>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm text-muted-foreground pl-9">
-                          {entry.description}
-                        </p>
+                        <p className="text-sm text-muted-foreground pl-9">{entry.description}</p>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
-                
+
                 {monthIndex < Object.keys(groupedByMonth).length - 1 && (
                   <Separator className="mt-6" />
                 )}

@@ -115,11 +115,11 @@ docker run -p 3000:3000 divorce-ledger-frontend
 
 ### Required
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL | `https://api.example.com` |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | `https://xxx.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key | `eyJhbGc...` |
+| Variable                        | Description            | Example                   |
+| ------------------------------- | ---------------------- | ------------------------- |
+| `NEXT_PUBLIC_API_URL`           | Backend API URL        | `https://api.example.com` |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project URL   | `https://xxx.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key | `eyJhbGc...`              |
 
 **Note**: Variables prefixed with `NEXT_PUBLIC_` are exposed to the browser. Never put sensitive information in them.
 
@@ -163,21 +163,25 @@ frontend/
 ## Key Components
 
 ### Layout (`src/components/Layout.tsx`)
+
 - Fixed sidebar navigation
 - User profile section
 - Conditional rendering based on auth state
 
 ### AuthGuard (`src/components/AuthGuard.tsx`)
+
 - Protects routes requiring authentication
 - Redirects to login if not authenticated
 - Shows loading state while checking auth
 
 ### UploadButton (`src/components/UploadButton.tsx`)
+
 - File upload with validation (type, size, quota)
 - Progress tracking with status updates
 - Visual storage usage bar
 
 ### DocumentList (`src/components/DocumentList.tsx`)
+
 - Document cards with badges
 - File type icons
 - Status and type indicators
@@ -186,18 +190,21 @@ frontend/
 ## State Management
 
 ### Auth Store (`src/store/authStore.ts`)
+
 - User authentication state
 - Persistent to localStorage
 - Auto-initializes on app load
 - Listens to Supabase auth changes
 
 ### Document Store (`src/store/documentStore.ts`)
+
 - Document list with pagination
 - Filters (type, status, search)
 - CRUD operations
 - Classification triggers
 
 ### Upload Store (`src/store/uploadStore.ts`)
+
 - Upload progress tracking (4-step process)
 - Storage quota monitoring
 - Active upload tracking
@@ -213,6 +220,7 @@ const documents = await api.documents.list({ page: 1, limit: 20 });
 ```
 
 **Token Management**:
+
 - Request interceptor adds JWT from Supabase session
 - Response interceptor handles 401 errors
 - Automatic token refresh and request retry
@@ -248,6 +256,7 @@ See [railway-notes.md](./railway-notes.md) for detailed Railway deployment instr
 ### Manual Deployment
 
 1. Build the application:
+
 ```bash
 npm run build
 ```
@@ -255,6 +264,7 @@ npm run build
 2. Set environment variables on your hosting platform
 
 3. Start the production server:
+
 ```bash
 npm start
 ```
@@ -275,6 +285,7 @@ npm start
 **Error**: "Module not found: Can't resolve '@/...'"
 
 **Solution**: Ensure `tsconfig.json` has path aliases configured:
+
 ```json
 {
   "compilerOptions": {
@@ -317,6 +328,7 @@ npm start
 ## Support
 
 For issues or questions:
+
 - Check backend README and ensure API is running
 - Verify all environment variables are set correctly
 - Check browser console for error messages

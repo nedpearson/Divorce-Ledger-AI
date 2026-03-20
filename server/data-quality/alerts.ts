@@ -22,7 +22,11 @@ export interface DqAlert {
 }
 
 class DqAlertService {
-  async createAlertFromValidation(result: ExpectationResult, runId: string, metricId?: string): Promise<DqAlert | null> {
+  async createAlertFromValidation(
+    result: ExpectationResult,
+    runId: string,
+    metricId?: string
+  ): Promise<DqAlert | null> {
     if (result.passed) return null;
 
     const alert: DqAlert = {
@@ -35,13 +39,17 @@ class DqAlertService {
       affectedTable: result.expectation.table,
       affectedColumn: result.expectation.column,
       suggestedAction: this.getSuggestedAction('validation', result),
-      isResolved: false
+      isResolved: false,
     };
 
     return this.saveAlert(alert);
   }
 
-  async createAlertFromAnomaly(anomaly: AnomalyDetection, runId: string, anomalyId?: string): Promise<DqAlert> {
+  async createAlertFromAnomaly(
+    anomaly: AnomalyDetection,
+    runId: string,
+    anomalyId?: string
+  ): Promise<DqAlert> {
     const alert: DqAlert = {
       runId,
       anomalyId,
@@ -52,17 +60,25 @@ class DqAlertService {
       affectedTable: anomaly.tableName,
       affectedColumn: anomaly.columnName,
       suggestedAction: this.getSuggestedAction('anomaly', anomaly),
-      isResolved: false
+      isResolved: false,
     };
 
     return this.saveAlert(alert);
   }
 
-  async createAlertFromReconciliation(result: ReconciliationResult, runId: string, resultId?: string): Promise<DqAlert | null> {
+  async createAlertFromReconciliation(
+    result: ReconciliationResult,
+    runId: string,
+    resultId?: string
+  ): Promise<DqAlert | null> {
     if (result.status === 'matched') return null;
 
-    const severity = result.status === 'error' ? 'critical' : 
-      (result.variancePercent && result.variancePercent > 10 ? 'critical' : 'warning');
+    const severity =
+      result.status === 'error'
+        ? 'critical'
+        : result.variancePercent && result.variancePercent > 10
+          ? 'critical'
+          : 'warning';
 
     const alert: DqAlert = {
       runId,
@@ -72,7 +88,7 @@ class DqAlertService {
       title: `Reconciliation Mismatch: ${result.jobName}`,
       description: result.message,
       suggestedAction: this.getSuggestedAction('reconciliation', result),
-      isResolved: false
+      isResolved: false,
     };
 
     return this.saveAlert(alert);
@@ -129,16 +145,25 @@ class DqAlertService {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING id, created_at`,
       [
-        alert.runId, alert.metricId, alert.anomalyId, alert.reconciliationResultId,
-        alert.alertType, alert.severity, alert.title, alert.description,
-        alert.affectedTable, alert.affectedColumn, alert.suggestedAction, alert.isResolved
+        alert.runId,
+        alert.metricId,
+        alert.anomalyId,
+        alert.reconciliationResultId,
+        alert.alertType,
+        alert.severity,
+        alert.title,
+        alert.description,
+        alert.affectedTable,
+        alert.affectedColumn,
+        alert.suggestedAction,
+        alert.isResolved,
       ]
     );
 
     return {
       ...alert,
       id: result.rows[0].id,
-      createdAt: result.rows[0].created_at
+      createdAt: result.rows[0].created_at,
     };
   }
 
@@ -197,14 +222,35 @@ class DqAlertService {
     resolvedLast24h: number;
   }> {
     const pool = getPool();
-    
-    const [totalResult, activeResult, bySeverityResult, byTypeResult, resolvedResult] = await Promise.all([
-      safeQuery(pool, 'dq.alerts:totalCount', 'SELECT COUNT(*) as cnt FROM dq_alerts', []),
-      safeQuery(pool, 'dq.alerts:activeCount', 'SELECT COUNT(*) as cnt FROM dq_alerts WHERE is_resolved = false', []),
-      safeQuery(pool, 'dq.alerts:bySeverity', 'SELECT severity, COUNT(*) as cnt FROM dq_alerts WHERE is_resolved = false GROUP BY severity', []),
-      safeQuery(pool, 'dq.alerts:byType', 'SELECT alert_type, COUNT(*) as cnt FROM dq_alerts WHERE is_resolved = false GROUP BY alert_type', []),
-      safeQuery(pool, 'dq.alerts:resolvedLast24h', `SELECT COUNT(*) as cnt FROM dq_alerts WHERE is_resolved = true AND resolved_at >= NOW() - INTERVAL '24 hours'`, [])
-    ]);
+
+    const [totalResult, activeResult, bySeverityResult, byTypeResult, resolvedResult] =
+      await Promise.all([
+        safeQuery(pool, 'dq.alerts:totalCount', 'SELECT COUNT(*) as cnt FROM dq_alerts', []),
+        safeQuery(
+          pool,
+          'dq.alerts:activeCount',
+          'SELECT COUNT(*) as cnt FROM dq_alerts WHERE is_resolved = false',
+          []
+        ),
+        safeQuery(
+          pool,
+          'dq.alerts:bySeverity',
+          'SELECT severity, COUNT(*) as cnt FROM dq_alerts WHERE is_resolved = false GROUP BY severity',
+          []
+        ),
+        safeQuery(
+          pool,
+          'dq.alerts:byType',
+          'SELECT alert_type, COUNT(*) as cnt FROM dq_alerts WHERE is_resolved = false GROUP BY alert_type',
+          []
+        ),
+        safeQuery(
+          pool,
+          'dq.alerts:resolvedLast24h',
+          `SELECT COUNT(*) as cnt FROM dq_alerts WHERE is_resolved = true AND resolved_at >= NOW() - INTERVAL '24 hours'`,
+          []
+        ),
+      ]);
 
     const bySeverity: Record<string, number> = {};
     for (const row of bySeverityResult.rows) {
@@ -221,7 +267,7 @@ class DqAlertService {
       active: parseInt(activeResult.rows[0].cnt),
       bySeverity,
       byType,
-      resolvedLast24h: parseInt(resolvedResult.rows[0].cnt)
+      resolvedLast24h: parseInt(resolvedResult.rows[0].cnt),
     };
   }
 
@@ -240,7 +286,7 @@ class DqAlertService {
       affectedColumn: row.affected_column,
       suggestedAction: row.suggested_action,
       isResolved: row.is_resolved,
-      createdAt: row.created_at
+      createdAt: row.created_at,
     };
   }
 }

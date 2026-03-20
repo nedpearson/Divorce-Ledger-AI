@@ -10,11 +10,12 @@ export interface PdfAnalysisResult {
 export async function analyzePdfType(pdfBuffer: Buffer): Promise<PdfAnalysisResult> {
   try {
     const pdfData = pdfBuffer.toString('binary');
-    
+
     const hasFontObjects = /\/Font\s/.test(pdfData) || /\/Font>/.test(pdfData);
-    const hasTextObjects = /\/Text/.test(pdfData) || /\(.*\)\s*Tj/.test(pdfData) || /BT\s/.test(pdfData);
+    const hasTextObjects =
+      /\/Text/.test(pdfData) || /\(.*\)\s*Tj/.test(pdfData) || /BT\s/.test(pdfData);
     const hasImageXObjects = /\/XObject/.test(pdfData) && /\/Image/.test(pdfData);
-    
+
     const pageMatches = pdfData.match(/\/Type\s*\/Page[^s]/g);
     const pageCount = pageMatches ? pageMatches.length : 1;
 
@@ -45,7 +46,7 @@ export async function analyzePdfType(pdfBuffer: Buffer): Promise<PdfAnalysisResu
         type: 'scanned',
         hasText: false,
         pageCount,
-        confidence: 0.90,
+        confidence: 0.9,
         needsOcr: true,
       };
     }
@@ -84,15 +85,17 @@ export async function analyzePdfType(pdfBuffer: Buffer): Promise<PdfAnalysisResu
 export async function extractTextFromDigitalPdf(pdfBuffer: Buffer): Promise<string | null> {
   try {
     const pdfParseModule = await import('pdf-parse');
-    const pdfParse = (pdfParseModule as unknown as { default?: (buffer: Buffer) => Promise<{ text: string }> }).default || (pdfParseModule as unknown as (buffer: Buffer) => Promise<{ text: string }>);
+    const pdfParse =
+      (pdfParseModule as unknown as { default?: (buffer: Buffer) => Promise<{ text: string }> })
+        .default || (pdfParseModule as unknown as (buffer: Buffer) => Promise<{ text: string }>);
     const result = await pdfParse(pdfBuffer);
-    
+
     const text = result.text?.trim() || '';
-    
+
     if (text.length < 50) {
       return null;
     }
-    
+
     return text;
   } catch (error) {
     console.error('[PdfAnalyzer] Text extraction failed:', error);

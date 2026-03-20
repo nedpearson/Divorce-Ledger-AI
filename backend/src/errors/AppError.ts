@@ -94,7 +94,7 @@ export function formatErrorResponse(
       code: isAppError ? error.errorCode : 'INTERNAL_ERROR',
       message: error.message,
       ...(isAppError && error.details && { details: error.details }),
-      ...(includeStack && { stack: error.stack}),
+      ...(includeStack && { stack: error.stack }),
     },
     ...(requestId && { request_id: requestId }),
   };

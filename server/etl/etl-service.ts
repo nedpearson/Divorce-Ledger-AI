@@ -62,7 +62,7 @@ class ETLService {
         result.rowsLoaded || 0,
         result.rowsRejected || 0,
         result.errors?.join('; ') || null,
-        jobId
+        jobId,
       ]
     );
   }
@@ -76,9 +76,15 @@ class ETLService {
         expected_value, actual_value, passed, severity)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
-        jobId, check.checkName, check.checkType, check.tableName,
-        check.columnName, check.expectedValue, check.actualValue,
-        check.passed, check.severity
+        jobId,
+        check.checkName,
+        check.checkType,
+        check.tableName,
+        check.columnName,
+        check.expectedValue,
+        check.actualValue,
+        check.passed,
+        check.severity,
       ]
     );
   }
@@ -107,21 +113,21 @@ class ETLService {
 
   async withRetry<T>(operation: () => Promise<T>, context: string): Promise<T> {
     let lastError: Error | null = null;
-    
+
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error as Error;
         console.error(`ETL ${context} failed (attempt ${attempt}/${this.maxRetries}):`, error);
-        
+
         if (attempt < this.maxRetries) {
           const delay = this.retryDelayMs * Math.pow(2, attempt - 1) + Math.random() * 500;
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }
-    
+
     throw lastError;
   }
 
@@ -137,21 +143,26 @@ class ETLService {
     const startDate = new Date('2024-01-01');
     const endDate = new Date('2027-12-31');
     const dates: any[] = [];
-    
+
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
       const date = new Date(d);
       dates.push({
         fullDate: date.toISOString().split('T')[0],
         dayOfWeek: date.getDay(),
         dayOfMonth: date.getDate(),
-        dayOfYear: Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000),
-        weekOfYear: Math.ceil((date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / 604800000),
+        dayOfYear: Math.floor(
+          (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000
+        ),
+        weekOfYear: Math.ceil(
+          (date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / 604800000
+        ),
         month: date.getMonth() + 1,
         monthName: date.toLocaleString('default', { month: 'long' }),
         quarter: Math.ceil((date.getMonth() + 1) / 3),
         year: date.getFullYear(),
         isWeekend: date.getDay() === 0 || date.getDay() === 6,
-        isMonthEnd: new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate() === date.getDate()
+        isMonthEnd:
+          new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate() === date.getDate(),
       });
     }
 
@@ -163,8 +174,19 @@ class ETLService {
          month, month_name, quarter, year, is_weekend, is_month_end)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          ON CONFLICT (full_date) DO NOTHING`,
-        [d.fullDate, d.dayOfWeek, d.dayOfMonth, d.dayOfYear, d.weekOfYear,
-         d.month, d.monthName, d.quarter, d.year, d.isWeekend, d.isMonthEnd]
+        [
+          d.fullDate,
+          d.dayOfWeek,
+          d.dayOfMonth,
+          d.dayOfYear,
+          d.weekOfYear,
+          d.month,
+          d.monthName,
+          d.quarter,
+          d.year,
+          d.isWeekend,
+          d.isMonthEnd,
+        ]
       );
     }
     console.log(`Populated dim_time with ${dates.length} dates`);

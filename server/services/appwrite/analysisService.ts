@@ -7,7 +7,7 @@ import {
   Query,
   Permission,
   Role,
-  initializeAppwrite
+  initializeAppwrite,
 } from './client';
 import {
   AppwriteFile,
@@ -16,7 +16,7 @@ import {
   updateFile,
   transitionFileStatus,
   getQueuedFiles,
-  computeInputHash
+  computeInputHash,
 } from './fileService';
 import { analyzeDocumentImage } from '../ai-capture.service';
 import crypto from 'crypto';
@@ -52,11 +52,7 @@ import {
   formatQualityFeedback,
   ImageQualityScore,
 } from './imageQualityAnalyzer';
-import {
-  analyzePdfType,
-  extractTextFromDigitalPdf,
-  PdfAnalysisResult,
-} from './pdfAnalyzer';
+import { analyzePdfType, extractTextFromDigitalPdf, PdfAnalysisResult } from './pdfAnalyzer';
 
 export interface LegacyNormalizedAnalysisOutput {
   summary: string;
@@ -130,16 +126,15 @@ export async function createAnalysisRun(input: CreateAnalysisRunInput): Promise<
   return doc as unknown as AnalysisRun;
 }
 
-export async function createAnalysisRunWithId(id: string, input: CreateAnalysisRunInput): Promise<AnalysisRun> {
+export async function createAnalysisRunWithId(
+  id: string,
+  input: CreateAnalysisRunInput
+): Promise<AnalysisRun> {
   initializeAppwrite();
 
-  const doc = await databases.createDocument(
-    DATABASE_ID,
-    COLLECTIONS.ANALYSIS_RUNS,
-    id,
-    input,
-    [Permission.read(Role.user(input.userId))]
-  );
+  const doc = await databases.createDocument(DATABASE_ID, COLLECTIONS.ANALYSIS_RUNS, id, input, [
+    Permission.read(Role.user(input.userId)),
+  ]);
 
   return doc as unknown as AnalysisRun;
 }
@@ -173,7 +168,9 @@ export interface FinalizeDocumentInput {
   finalizedFields?: string;
 }
 
-export async function finalizeDocument(input: FinalizeDocumentInput): Promise<{ success: boolean; error?: string }> {
+export async function finalizeDocument(
+  input: FinalizeDocumentInput
+): Promise<{ success: boolean; error?: string }> {
   initializeAppwrite();
 
   const file = await getFile(input.fileId);
@@ -204,42 +201,56 @@ export async function finalizeDocument(input: FinalizeDocumentInput): Promise<{ 
     finalizedFromAnalysisRunId: input.analysisRunId,
   });
 
-  console.log(`[Appwrite Finalize] File ${input.fileId} finalized by user ${input.userId} from analysis run ${input.analysisRunId}`);
+  console.log(
+    `[Appwrite Finalize] File ${input.fileId} finalized by user ${input.userId} from analysis run ${input.analysisRunId}`
+  );
 
   return { success: true };
 }
 
 const CATEGORY_MAP: Record<string, string> = {
-  'bank_statement': 'financial',
-  'tax_return': 'financial',
-  'pay_stub': 'financial',
-  'invoice': 'financial',
-  'receipt': 'receipt',
-  'court_order': 'legal',
-  'contract': 'legal',
-  'agreement': 'legal',
-  'medical_record': 'medical',
-  'insurance': 'medical',
-  'deed': 'property',
-  'appraisal': 'property',
-  'mortgage': 'property',
-  'email': 'correspondence',
-  'letter': 'correspondence',
-  'photo': 'evidence',
-  'screenshot': 'evidence',
+  bank_statement: 'financial',
+  tax_return: 'financial',
+  pay_stub: 'financial',
+  invoice: 'financial',
+  receipt: 'receipt',
+  court_order: 'legal',
+  contract: 'legal',
+  agreement: 'legal',
+  medical_record: 'medical',
+  insurance: 'medical',
+  deed: 'property',
+  appraisal: 'property',
+  mortgage: 'property',
+  email: 'correspondence',
+  letter: 'correspondence',
+  photo: 'evidence',
+  screenshot: 'evidence',
 };
 
-function inferCategory(text: string, aiCategory?: string): { category: string; confidence: number } {
+function inferCategory(
+  text: string,
+  aiCategory?: string
+): { category: string; confidence: number } {
   if (aiCategory && CATEGORY_MAP[aiCategory.toLowerCase()]) {
     return { category: CATEGORY_MAP[aiCategory.toLowerCase()], confidence: 0.9 };
   }
 
   const lowerText = text.toLowerCase();
-  
-  if (lowerText.includes('bank') || lowerText.includes('statement') || lowerText.includes('account balance')) {
+
+  if (
+    lowerText.includes('bank') ||
+    lowerText.includes('statement') ||
+    lowerText.includes('account balance')
+  ) {
     return { category: 'financial', confidence: 0.8 };
   }
-  if (lowerText.includes('tax') || lowerText.includes('irs') || lowerText.includes('w-2') || lowerText.includes('1099')) {
+  if (
+    lowerText.includes('tax') ||
+    lowerText.includes('irs') ||
+    lowerText.includes('w-2') ||
+    lowerText.includes('1099')
+  ) {
     return { category: 'financial', confidence: 0.85 };
   }
   if (lowerText.includes('court') || lowerText.includes('order') || lowerText.includes('judge')) {
@@ -248,10 +259,18 @@ function inferCategory(text: string, aiCategory?: string): { category: string; c
   if (lowerText.includes('receipt') || lowerText.includes('total') || lowerText.includes('paid')) {
     return { category: 'receipt', confidence: 0.7 };
   }
-  if (lowerText.includes('medical') || lowerText.includes('doctor') || lowerText.includes('patient')) {
+  if (
+    lowerText.includes('medical') ||
+    lowerText.includes('doctor') ||
+    lowerText.includes('patient')
+  ) {
     return { category: 'medical', confidence: 0.75 };
   }
-  if (lowerText.includes('property') || lowerText.includes('deed') || lowerText.includes('mortgage')) {
+  if (
+    lowerText.includes('property') ||
+    lowerText.includes('deed') ||
+    lowerText.includes('mortgage')
+  ) {
     return { category: 'property', confidence: 0.75 };
   }
 
@@ -261,26 +280,72 @@ function inferCategory(text: string, aiCategory?: string): { category: string; c
 function detectFileType(mimeType: string): 'pdf' | 'image' | 'spreadsheet' | 'document' | 'other' {
   if (mimeType === 'application/pdf') return 'pdf';
   if (mimeType.startsWith('image/')) return 'image';
-  if (mimeType.includes('spreadsheet') || mimeType.includes('excel') || mimeType === 'text/csv') return 'spreadsheet';
-  if (mimeType.includes('document') || mimeType.includes('msword') || mimeType === 'text/plain') return 'document';
+  if (mimeType.includes('spreadsheet') || mimeType.includes('excel') || mimeType === 'text/csv')
+    return 'spreadsheet';
+  if (mimeType.includes('document') || mimeType.includes('msword') || mimeType === 'text/plain')
+    return 'document';
   return 'other';
 }
 
 function extractKeywords(text: string): string[] {
   const keywords: string[] = [];
   const lowerText = text.toLowerCase();
-  
-  const financialTerms = ['bank', 'account', 'balance', 'statement', 'tax', 'income', 'expense', 'payment', 'deposit', 'withdrawal', 'credit', 'debit'];
-  const legalTerms = ['court', 'order', 'judge', 'attorney', 'custody', 'divorce', 'settlement', 'agreement', 'legal', 'motion', 'hearing'];
-  const propertyTerms = ['property', 'deed', 'mortgage', 'appraisal', 'asset', 'home', 'real estate', 'vehicle', 'title'];
-  const medicalTerms = ['medical', 'doctor', 'patient', 'hospital', 'insurance', 'prescription', 'diagnosis', 'treatment'];
-  
-  [...financialTerms, ...legalTerms, ...propertyTerms, ...medicalTerms].forEach(term => {
+
+  const financialTerms = [
+    'bank',
+    'account',
+    'balance',
+    'statement',
+    'tax',
+    'income',
+    'expense',
+    'payment',
+    'deposit',
+    'withdrawal',
+    'credit',
+    'debit',
+  ];
+  const legalTerms = [
+    'court',
+    'order',
+    'judge',
+    'attorney',
+    'custody',
+    'divorce',
+    'settlement',
+    'agreement',
+    'legal',
+    'motion',
+    'hearing',
+  ];
+  const propertyTerms = [
+    'property',
+    'deed',
+    'mortgage',
+    'appraisal',
+    'asset',
+    'home',
+    'real estate',
+    'vehicle',
+    'title',
+  ];
+  const medicalTerms = [
+    'medical',
+    'doctor',
+    'patient',
+    'hospital',
+    'insurance',
+    'prescription',
+    'diagnosis',
+    'treatment',
+  ];
+
+  [...financialTerms, ...legalTerms, ...propertyTerms, ...medicalTerms].forEach((term) => {
     if (lowerText.includes(term) && !keywords.includes(term)) {
       keywords.push(term);
     }
   });
-  
+
   return keywords.slice(0, 10);
 }
 
@@ -295,11 +360,11 @@ export function estimateCost(inputTokens: number, outputTokens: number, model: s
     'gemini-2.0-flash': { input: 0.00001, output: 0.00004 },
     'gemini-1.5-flash': { input: 0.000075, output: 0.0003 },
     'gpt-4o-mini': { input: 0.00015, output: 0.0006 },
-    'gpt-4o': { input: 0.0025, output: 0.010 },
+    'gpt-4o': { input: 0.0025, output: 0.01 },
     'claude-3-5-sonnet-20241022': { input: 0.003, output: 0.015 },
   };
   const rate = rates[model] || rates['gemini-2.0-flash'];
-  return (inputTokens * rate.input) + (outputTokens * rate.output);
+  return inputTokens * rate.input + outputTokens * rate.output;
 }
 
 interface BuildNormalizedOutputParams {
@@ -314,23 +379,31 @@ interface BuildNormalizedOutputParams {
 }
 
 function buildNormalizedOutput(params: BuildNormalizedOutputParams): NormalizedAnalysisOutput {
-  const { extractedText, aiCategory, confidence, model, modelVersion, analysisRunId, financialData, warnings = [] } = params;
-  
-  const summary = extractedText.length > 500 
-    ? extractedText.substring(0, 497) + '...' 
-    : extractedText;
-  
+  const {
+    extractedText,
+    aiCategory,
+    confidence,
+    model,
+    modelVersion,
+    analysisRunId,
+    financialData,
+    warnings = [],
+  } = params;
+
+  const summary =
+    extractedText.length > 500 ? extractedText.substring(0, 497) + '...' : extractedText;
+
   const keywords = extractKeywords(extractedText);
-  
+
   const extracted_fields: Record<string, string | number | boolean | null> = {};
-  
+
   if (financialData) {
     if (financialData.amount) extracted_fields.amount = financialData.amount;
     if (financialData.vendor) extracted_fields.vendor = financialData.vendor;
     if (financialData.date) extracted_fields.date = financialData.date;
     if (financialData.type) extracted_fields.transaction_type = financialData.type;
   }
-  
+
   return {
     summary,
     keywords,
@@ -351,7 +424,7 @@ export interface AnalyzeFileOptions {
 }
 
 export async function analyzeFile(
-  fileId: string, 
+  fileId: string,
   options: AnalyzeFileOptions = {}
 ): Promise<{ success: boolean; error?: string; analysisRunId?: string }> {
   initializeAppwrite();
@@ -361,7 +434,7 @@ export async function analyzeFile(
     return { success: false, error: 'File not found' };
   }
 
-  const idempotencyKey = options.isRetry 
+  const idempotencyKey = options.isRetry
     ? generateRetryIdempotencyKey(fileId, file.userId, options.retryNumber || 1)
     : generateIdempotencyKey(fileId, file.userId);
 
@@ -383,7 +456,7 @@ export async function analyzeFile(
   }
 
   const processingGuardrails = await checkProcessingGuardrails(
-    file.userId, 
+    file.userId,
     file.retryCount || 0,
     DEFAULT_LIMITS,
     { skipRetryLimit: options.forceNew }
@@ -424,13 +497,18 @@ export async function analyzeFile(
           ...imageQuality.issues,
           'Retake photo: ' + imageQuality.suggestions.join(', '),
         ];
-        console.log(`[Appwrite Analysis] Image quality issues detected for ${fileId}:`, imageQuality.issues);
+        console.log(
+          `[Appwrite Analysis] Image quality issues detected for ${fileId}:`,
+          imageQuality.issues
+        );
       }
     }
 
     if (isPdf) {
       pdfAnalysis = await analyzePdfType(fileBuffer);
-      console.log(`[Appwrite Analysis] PDF ${fileId} type: ${pdfAnalysis.type}, needsOcr: ${pdfAnalysis.needsOcr}`);
+      console.log(
+        `[Appwrite Analysis] PDF ${fileId} type: ${pdfAnalysis.type}, needsOcr: ${pdfAnalysis.needsOcr}`
+      );
     }
 
     let contentForPipeline = '';
@@ -449,7 +527,9 @@ export async function analyzeFile(
         if (extractedText && extractedText.length > 100) {
           contentForPipeline = extractedText.substring(0, 50000);
           useVisionModel = false;
-          console.log(`[Appwrite Analysis] Using extracted text for digital PDF ${fileId} (${extractedText.length} chars)`);
+          console.log(
+            `[Appwrite Analysis] Using extracted text for digital PDF ${fileId} (${extractedText.length} chars)`
+          );
         } else {
           imageBase64 = base64Data;
           mimeType = file.fileType;
@@ -491,7 +571,7 @@ export async function analyzeFile(
 
     if (!pipelineResult.success || !pipelineResult.normalizedOutput) {
       const errorMessage = pipelineResult.errors.join('; ') || 'Two-pass pipeline failed';
-      
+
       await updateFile(fileId, {
         status: FILE_STATUS.ERROR,
         errorMessage,
@@ -517,10 +597,12 @@ export async function analyzeFile(
       normalizedOutput.needs_user_review = true;
     }
 
-    const ocrTextHash = useVisionModel 
-      ? undefined 
-      : (contentForPipeline ? computeTextHash(contentForPipeline) : undefined);
-    
+    const ocrTextHash = useVisionModel
+      ? undefined
+      : contentForPipeline
+        ? computeTextHash(contentForPipeline)
+        : undefined;
+
     const analysisRun = await createAnalysisRunWithId(analysisRunId, {
       fileId,
       userId: file.userId,
@@ -546,8 +628,8 @@ export async function analyzeFile(
 
     await incrementUsage(file.userId, pipelineResult.totalEstimatedCost);
 
-    const finalStatus = normalizedOutput.needs_user_review 
-      ? FILE_STATUS.SUGGESTED 
+    const finalStatus = normalizedOutput.needs_user_review
+      ? FILE_STATUS.SUGGESTED
       : FILE_STATUS.FINALIZED;
 
     await updateFile(fileId, {
@@ -567,13 +649,14 @@ export async function analyzeFile(
     unregisterProcessing(processingId);
 
     const reviewStatus = normalizedOutput.needs_user_review ? ' [NEEDS REVIEW]' : ' [FINALIZED]';
-    console.log(`[Appwrite Analysis] File ${fileId} analyzed: ${normalizedOutput.suggested_category} (${(normalizedOutput.confidence * 100).toFixed(0)}%), ${latencyMs}ms, $${pipelineResult.totalEstimatedCost.toFixed(6)}${reviewStatus}`);
-    
-    return { success: true, analysisRunId: analysisRun.$id };
+    console.log(
+      `[Appwrite Analysis] File ${fileId} analyzed: ${normalizedOutput.suggested_category} (${(normalizedOutput.confidence * 100).toFixed(0)}%), ${latencyMs}ms, $${pipelineResult.totalEstimatedCost.toFixed(6)}${reviewStatus}`
+    );
 
+    return { success: true, analysisRunId: analysisRun.$id };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    
+
     await updateFile(fileId, {
       status: FILE_STATUS.ERROR,
       errorMessage: errorMsg,
@@ -591,7 +674,11 @@ export async function analyzeFile(
 
 let processingQueue = false;
 
-export async function processQueue(): Promise<{ processed: number; errors: number; skipped: number }> {
+export async function processQueue(): Promise<{
+  processed: number;
+  errors: number;
+  skipped: number;
+}> {
   if (processingQueue) {
     return { processed: 0, errors: 0, skipped: 0 };
   }
@@ -603,7 +690,7 @@ export async function processQueue(): Promise<{ processed: number; errors: numbe
 
   try {
     cleanupStaleProcessings();
-    
+
     const queuedFiles = await getQueuedFiles(DEFAULT_LIMITS.maxConcurrentProcessings);
 
     for (const file of queuedFiles) {
@@ -619,20 +706,24 @@ export async function processQueue(): Promise<{ processed: number; errors: numbe
           () => analyzeFile(file.$id),
           DEFAULT_RETRY_POLICY,
           (attempt, error, delay) => {
-            console.log(`[Appwrite Analysis] Retry ${attempt} for ${file.$id} after ${delay}ms: ${error.message}`);
+            console.log(
+              `[Appwrite Analysis] Retry ${attempt} for ${file.$id} after ${delay}ms: ${error.message}`
+            );
           }
         );
-        
+
         if (result.success) {
           processed++;
         } else {
           console.error(`[Appwrite Analysis] File ${file.$id} analysis failed: ${result.error}`);
           errors++;
-          
+
           // Mark file as ERROR if it has exceeded retry limit to prevent endless retries
           const currentRetryCount = file.retryCount || 0;
           if (currentRetryCount >= DEFAULT_LIMITS.maxRetries) {
-            console.error(`[Appwrite Analysis] File ${file.$id} exceeded max retries (${currentRetryCount}/${DEFAULT_LIMITS.maxRetries}), marking as ERROR`);
+            console.error(
+              `[Appwrite Analysis] File ${file.$id} exceeded max retries (${currentRetryCount}/${DEFAULT_LIMITS.maxRetries}), marking as ERROR`
+            );
             try {
               await updateFile(file.$id, {
                 status: FILE_STATUS.ERROR,
@@ -647,16 +738,20 @@ export async function processQueue(): Promise<{ processed: number; errors: numbe
       } catch (retryError) {
         console.error(`[Appwrite Analysis] All retries failed for ${file.$id}:`, retryError);
         errors++;
-        
+
         // Mark file as ERROR after all retries exhausted
         try {
           await updateFile(file.$id, {
             status: FILE_STATUS.ERROR,
-            errorMessage: retryError instanceof Error ? retryError.message : 'Unknown error after retries',
+            errorMessage:
+              retryError instanceof Error ? retryError.message : 'Unknown error after retries',
             retryCount: (file.retryCount || 0) + 1,
           });
         } catch (updateErr) {
-          console.error(`[Appwrite Analysis] Failed to mark ${file.$id} as ERROR after retries:`, updateErr);
+          console.error(
+            `[Appwrite Analysis] Failed to mark ${file.$id} as ERROR after retries:`,
+            updateErr
+          );
         }
       }
     }
@@ -667,12 +762,15 @@ export async function processQueue(): Promise<{ processed: number; errors: numbe
   return { processed, errors, skipped };
 }
 
-export async function reanalyzeFile(fileId: string, userId: string): Promise<{ success: boolean; error?: string; analysisRunId?: string }> {
+export async function reanalyzeFile(
+  fileId: string,
+  userId: string
+): Promise<{ success: boolean; error?: string; analysisRunId?: string }> {
   const file = await getFile(fileId);
   if (!file) {
     return { success: false, error: 'File not found' };
   }
-  
+
   if (file.userId !== userId) {
     return { success: false, error: 'Unauthorized' };
   }
@@ -682,10 +780,10 @@ export async function reanalyzeFile(fileId: string, userId: string): Promise<{ s
     errorMessage: undefined,
   });
 
-  return analyzeFile(fileId, { 
+  return analyzeFile(fileId, {
     forceNew: true,
     isRetry: true,
-    retryNumber: (file.retryCount || 0) + 1 
+    retryNumber: (file.retryCount || 0) + 1,
   });
 }
 
@@ -697,11 +795,13 @@ export function startQueueProcessor(intervalMs: number = 10000) {
   }
 
   console.log(`[Appwrite Analysis] Starting queue processor (interval: ${intervalMs}ms)`);
-  
+
   queueInterval = setInterval(async () => {
     const result = await processQueue();
     if (result.processed > 0 || result.errors > 0 || result.skipped > 0) {
-      console.log(`[Appwrite Analysis] Queue: ${result.processed} success, ${result.errors} errors, ${result.skipped} skipped`);
+      console.log(
+        `[Appwrite Analysis] Queue: ${result.processed} success, ${result.errors} errors, ${result.skipped} skipped`
+      );
     }
   }, intervalMs);
 }
@@ -714,14 +814,14 @@ export function stopQueueProcessor() {
   }
 }
 
-export async function backfillUncategorizedDocuments(userId: string): Promise<{ 
-  total: number; 
-  processed: number; 
-  errors: number; 
-  results: Array<{ fileId: string; success: boolean; error?: string }> 
+export async function backfillUncategorizedDocuments(userId: string): Promise<{
+  total: number;
+  processed: number;
+  errors: number;
+  results: Array<{ fileId: string; success: boolean; error?: string }>;
 }> {
   initializeAppwrite();
-  
+
   const result = await databases.listDocuments(DATABASE_ID, COLLECTIONS.FILES, [
     Query.equal('userId', userId),
     Query.or([
@@ -731,14 +831,16 @@ export async function backfillUncategorizedDocuments(userId: string): Promise<{
     ]),
     Query.limit(100),
   ]);
-  
+
   const files = result.documents as unknown as AppwriteFile[];
   const results: Array<{ fileId: string; success: boolean; error?: string }> = [];
   let processed = 0;
   let errors = 0;
-  
-  console.log(`[Appwrite Backfill] Found ${files.length} uncategorized documents for user ${userId}`);
-  
+
+  console.log(
+    `[Appwrite Backfill] Found ${files.length} uncategorized documents for user ${userId}`
+  );
+
   for (const file of files) {
     try {
       await updateFile(file.$id, {
@@ -746,9 +848,9 @@ export async function backfillUncategorizedDocuments(userId: string): Promise<{
         errorMessage: undefined,
         retryCount: 0,
       });
-      
+
       const analyzeResult = await analyzeFile(file.$id, { forceNew: true });
-      
+
       if (analyzeResult.success) {
         processed++;
         results.push({ fileId: file.$id, success: true });
@@ -758,30 +860,29 @@ export async function backfillUncategorizedDocuments(userId: string): Promise<{
       }
     } catch (err) {
       errors++;
-      results.push({ 
-        fileId: file.$id, 
-        success: false, 
-        error: err instanceof Error ? err.message : 'Unknown error' 
+      results.push({
+        fileId: file.$id,
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error',
       });
     }
   }
-  
-  console.log(`[Appwrite Backfill] Completed: ${processed} processed, ${errors} errors out of ${files.length} total`);
-  
+
+  console.log(
+    `[Appwrite Backfill] Completed: ${processed} processed, ${errors} errors out of ${files.length} total`
+  );
+
   return { total: files.length, processed, errors, results };
 }
 
 export async function getUncategorizedCount(userId: string): Promise<number> {
   initializeAppwrite();
-  
+
   const result = await databases.listDocuments(DATABASE_ID, COLLECTIONS.FILES, [
     Query.equal('userId', userId),
-    Query.or([
-      Query.isNull('category'),
-      Query.equal('category', ''),
-    ]),
+    Query.or([Query.isNull('category'), Query.equal('category', '')]),
     Query.limit(1),
   ]);
-  
+
   return result.total;
 }

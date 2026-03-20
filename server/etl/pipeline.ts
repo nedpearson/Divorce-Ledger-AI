@@ -9,7 +9,7 @@ class ETLPipeline {
     const startTime = Date.now();
     const jobId = await etlService.startJob('full_etl_pipeline', 'full');
     const errors: string[] = [];
-    
+
     let rowsExtracted = 0;
     let rowsTransformed = 0;
     let rowsLoaded = 0;
@@ -17,41 +17,43 @@ class ETLPipeline {
 
     try {
       console.log(`[ETL] Starting full pipeline run at ${new Date().toISOString()}`);
-      
+
       await etlService.ensureTimeDimension();
-      
+
       console.log('[ETL] Phase 1: Extraction');
       const extractedData = await etlService.withRetry(
         () => extractionService.extractAll(since),
         'extraction'
       );
-      
-      rowsExtracted = 
+
+      rowsExtracted =
         extractedData.users.length +
         extractedData.violations.length +
         extractedData.transactions.length +
         extractedData.billingEvents.length +
         extractedData.evidenceFiles.length +
         extractedData.quickbooksSyncs.length;
-      
+
       console.log(`[ETL] Extracted ${rowsExtracted} total records`);
-      
+
       const qualityChecks = await extractionService.runQualityChecks(extractedData, jobId);
-      const criticalFailures = qualityChecks.filter(c => !c.passed && c.severity === 'critical');
-      
+      const criticalFailures = qualityChecks.filter((c) => !c.passed && c.severity === 'critical');
+
       if (criticalFailures.length > 0) {
-        throw new Error(`Critical data quality failures: ${criticalFailures.map(c => c.checkName).join(', ')}`);
+        throw new Error(
+          `Critical data quality failures: ${criticalFailures.map((c) => c.checkName).join(', ')}`
+        );
       }
 
       console.log('[ETL] Phase 2: Transformation');
       const transformedData = transformationService.transformAll(extractedData);
-      
-      rowsTransformed = 
+
+      rowsTransformed =
         transformedData.dimUsers.length +
         transformedData.factViolations.length +
         transformedData.factTransactions.length +
         transformedData.factBillingEvents.length;
-      
+
       console.log(`[ETL] Transformed ${rowsTransformed} records`);
 
       console.log('[ETL] Phase 3: Loading');
@@ -59,25 +61,25 @@ class ETLPipeline {
         () => loadingService.loadAll(transformedData),
         'loading'
       );
-      
-      rowsLoaded = 
+
+      rowsLoaded =
         loadResult.usersLoaded +
         loadResult.violationsLoaded +
         loadResult.transactionsLoaded +
         loadResult.billingEventsLoaded;
-      
+
       errors.push(...loadResult.errors);
       rowsRejected = rowsTransformed - rowsLoaded;
-      
+
       console.log(`[ETL] Loaded ${rowsLoaded} records, rejected ${rowsRejected}`);
-      
+
       console.log('[ETL] Phase 4: Commit watermarks');
       await extractionService.commitAllWatermarks(extractedData);
       console.log('[ETL] Watermarks committed successfully');
 
       const duration = Date.now() - startTime;
       const status = errors.length > 0 ? 'partial' : 'success';
-      
+
       const result: ETLJobResult = {
         jobId,
         jobName: 'full_etl_pipeline',
@@ -87,18 +89,17 @@ class ETLPipeline {
         rowsLoaded,
         rowsRejected,
         duration,
-        errors
+        errors,
       };
-      
+
       await etlService.completeJob(jobId, result);
       console.log(`[ETL] Pipeline completed in ${duration}ms with status: ${status}`);
-      
-      return result;
 
+      return result;
     } catch (error: any) {
       const duration = Date.now() - startTime;
       errors.push(error.message);
-      
+
       const result: ETLJobResult = {
         jobId,
         jobName: 'full_etl_pipeline',
@@ -108,12 +109,12 @@ class ETLPipeline {
         rowsLoaded,
         rowsRejected,
         duration,
-        errors
+        errors,
       };
-      
+
       await etlService.completeJob(jobId, result);
       console.error(`[ETL] Pipeline failed after ${duration}ms:`, error);
-      
+
       return result;
     }
   }
@@ -126,12 +127,12 @@ class ETLPipeline {
   async runUsersPipeline(): Promise<ETLJobResult> {
     const startTime = Date.now();
     const jobId = await etlService.startJob('users_etl', 'incremental');
-    
+
     try {
       const users = await extractionService.extractUsers();
       const dimUsers = transformationService.transformUsers(users);
       const loaded = await loadingService.loadDimUsers(dimUsers);
-      
+
       const result: ETLJobResult = {
         jobId,
         jobName: 'users_etl',
@@ -141,12 +142,11 @@ class ETLPipeline {
         rowsLoaded: loaded,
         rowsRejected: dimUsers.length - loaded,
         duration: Date.now() - startTime,
-        errors: []
+        errors: [],
       };
-      
+
       await etlService.completeJob(jobId, result);
       return result;
-      
     } catch (error: any) {
       const result: ETLJobResult = {
         jobId,
@@ -157,9 +157,9 @@ class ETLPipeline {
         rowsLoaded: 0,
         rowsRejected: 0,
         duration: Date.now() - startTime,
-        errors: [error.message]
+        errors: [error.message],
       };
-      
+
       await etlService.completeJob(jobId, result);
       return result;
     }
@@ -168,12 +168,12 @@ class ETLPipeline {
   async runViolationsPipeline(): Promise<ETLJobResult> {
     const startTime = Date.now();
     const jobId = await etlService.startJob('violations_etl', 'incremental');
-    
+
     try {
       const violations = await extractionService.extractViolations();
       const factViolations = transformationService.transformViolations(violations);
       const loaded = await loadingService.loadFactViolations(factViolations);
-      
+
       const result: ETLJobResult = {
         jobId,
         jobName: 'violations_etl',
@@ -183,12 +183,11 @@ class ETLPipeline {
         rowsLoaded: loaded,
         rowsRejected: factViolations.length - loaded,
         duration: Date.now() - startTime,
-        errors: []
+        errors: [],
       };
-      
+
       await etlService.completeJob(jobId, result);
       return result;
-      
     } catch (error: any) {
       const result: ETLJobResult = {
         jobId,
@@ -199,9 +198,9 @@ class ETLPipeline {
         rowsLoaded: 0,
         rowsRejected: 0,
         duration: Date.now() - startTime,
-        errors: [error.message]
+        errors: [error.message],
       };
-      
+
       await etlService.completeJob(jobId, result);
       return result;
     }
@@ -210,7 +209,7 @@ class ETLPipeline {
   async getJobHistory(limit: number = 20): Promise<any[]> {
     const { pool } = await import('../db');
     if (!pool) throw new Error('Database pool not initialized');
-    
+
     const result = await safeQuery(
       pool,
       'etl.pipeline:getJobHistory',
@@ -221,19 +220,24 @@ class ETLPipeline {
        LIMIT $1`,
       [limit]
     );
-    
+
     return result.rows;
   }
 
   async getQualityReport(jobId?: number): Promise<any[]> {
     const { pool } = await import('../db');
     if (!pool) throw new Error('Database pool not initialized');
-    
+
     const query = jobId
       ? `SELECT * FROM etl_data_quality_log WHERE job_id = $1 ORDER BY checked_at DESC`
       : `SELECT * FROM etl_data_quality_log ORDER BY checked_at DESC LIMIT 100`;
-    
-    const result = await safeQuery(pool, 'etl.pipeline:getQualityReport', query, jobId ? [jobId] : []);
+
+    const result = await safeQuery(
+      pool,
+      'etl.pipeline:getQualityReport',
+      query,
+      jobId ? [jobId] : []
+    );
     return result.rows;
   }
 }

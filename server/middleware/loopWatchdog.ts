@@ -1,11 +1,11 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from 'express';
 
 type HitEntry = {
   timestamps: number[];
 };
 
-const WINDOW_MS = 5000;           // 5 seconds
-const MAX_HITS_PER_KEY = 25;      // suspicious threshold
+const WINDOW_MS = 5000; // 5 seconds
+const MAX_HITS_PER_KEY = 25; // suspicious threshold
 const CLEANUP_INTERVAL_MS = 60_000;
 
 const hits: Map<string, HitEntry> = new Map();
@@ -14,22 +14,16 @@ const hits: Map<string, HitEntry> = new Map();
 setInterval(() => {
   const now = Date.now();
   Array.from(hits.entries()).forEach(([key, entry]) => {
-    entry.timestamps = entry.timestamps.filter(
-      (ts: number) => now - ts <= WINDOW_MS
-    );
+    entry.timestamps = entry.timestamps.filter((ts: number) => now - ts <= WINDOW_MS);
     if (entry.timestamps.length === 0) {
       hits.delete(key);
     }
   });
 }, CLEANUP_INTERVAL_MS).unref();
 
-export function loopWatchdogMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const ip = (req.headers["x-forwarded-for"] as string) || req.ip || "unknown";
-  const path = req.path || req.originalUrl || "/";
+export function loopWatchdogMiddleware(req: Request, res: Response, next: NextFunction) {
+  const ip = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown';
+  const path = req.path || req.originalUrl || '/';
   // You can include method if useful: `${ip}:${req.method}:${path}`
   const key = `${ip}:${path}`;
 
@@ -47,21 +41,21 @@ export function loopWatchdogMiddleware(
   if (entry.timestamps.length > MAX_HITS_PER_KEY) {
     // Suspected loop or aggressive redirect / polling
     const info = {
-      type: "BACKEND_REQUEST_LOOP_SUSPECTED",
+      type: 'BACKEND_REQUEST_LOOP_SUSPECTED',
       ip,
       path,
       hitsInWindow: entry.timestamps.length,
       windowMs: WINDOW_MS,
-      userAgent: req.headers["user-agent"],
+      userAgent: req.headers['user-agent'],
       timestamp: new Date().toISOString(),
     };
 
     // Log in a way Replit AI can see
-    // eslint-disable-next-line no-console
-    console.warn("[LoopWatchdogMiddleware]", info);
+
+    console.warn('[LoopWatchdogMiddleware]', info);
 
     // Optionally, you can add a header for debugging in the browser:
-    res.setHeader("X-Loop-Watchdog", "suspected");
+    res.setHeader('X-Loop-Watchdog', 'suspected');
 
     // By default, we still allow the request through so you can inspect behavior.
     // If you want to hard-protect, you could short-circuit:

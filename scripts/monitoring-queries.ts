@@ -1,7 +1,7 @@
 /**
  * MONITORING QUERIES
  * Copy-paste queries for your dashboard (Metabase/Grafana)
- * 
+ *
  * Run with: npx tsx scripts/monitoring-queries.ts
  */
 

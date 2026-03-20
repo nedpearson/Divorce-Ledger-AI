@@ -1,18 +1,18 @@
-import { useState, useEffect } from "react";
-import { useLocation, Link } from "wouter";
-import { Briefcase, Eye, EyeOff, Loader2, ArrowLeft, Smartphone, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { useAuth, type LoginResult, getDeviceFingerprint } from "@/lib/auth";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { EnvironmentBadge } from "@/components/environment-badge";
-import type { Environment } from "@shared/schema";
+import { useState, useEffect } from 'react';
+import { useLocation, Link } from 'wouter';
+import { Briefcase, Eye, EyeOff, Loader2, ArrowLeft, Smartphone, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { useAuth, type LoginResult, getDeviceFingerprint } from '@/lib/auth';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { EnvironmentBadge } from '@/components/environment-badge';
+import type { Environment } from '@shared/schema';
 
 interface TwoFactorState {
   userId: string;
@@ -25,27 +25,24 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { login, completeLogin, setEnvironment, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [email, setEmail] = useState("demo@example.com");
-  const [password, setPassword] = useState("demo1234");
+  const [email, setEmail] = useState('demo@example.com');
+  const [password, setPassword] = useState('demo123');
   const [showPassword, setShowPassword] = useState(false);
-  const [environment, setEnv] = useState<Environment>("demo");
+  const [environment, setEnv] = useState<Environment>('demo');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [rememberMe, setRememberMe] = useState(() =>
-    localStorage.getItem("rememberMe") === "true"
-  );
+  const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('rememberMe') === 'true');
 
   // 2FA state
   const [twoFactorState, setTwoFactorState] = useState<TwoFactorState | null>(null);
-  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationCode, setVerificationCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-
 
   useEffect(() => {
     if (isAuthenticated) {
       const params = new URLSearchParams(window.location.search);
-      const redirectUrl = params.get("redirect") || "/home";
+      const redirectUrl = params.get('redirect') || '/home';
       setLocation(redirectUrl);
     }
   }, [isAuthenticated, setLocation]);
@@ -61,21 +58,21 @@ export default function Login() {
   const handleEnvironmentChange = (env: Environment) => {
     setEnv(env);
     setEnvironment(env);
-    setError("");
+    setError('');
     setTwoFactorState(null);
-    if (env === "demo") {
-      setEmail("client.demo@example.com");
-      setPassword("demo1234");
+    if (env === 'demo') {
+      setEmail('client.demo@example.com');
+      setPassword('demo123');
     } else {
-      setEmail("");
-      setPassword("");
+      setEmail('');
+      setPassword('');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError("");
+    setError('');
 
     const result = await login(email, password, environment, rememberMe);
 
@@ -89,12 +86,12 @@ export default function Login() {
       });
       setResendCooldown(30);
       toast({
-        title: "Verification Code Sent",
+        title: 'Verification Code Sent',
         description: `A code has been sent to ${result.maskedPhone}`,
       });
     } else if ('success' in result && !result.success) {
       // Login failed
-      setError(result.error || "Invalid email or password. Please try again.");
+      setError(result.error || 'Invalid email or password. Please try again.');
     }
     // If success is true, auth context already updated and useEffect will redirect
 
@@ -105,11 +102,11 @@ export default function Login() {
     if (!twoFactorState || verificationCode.length !== 6) return;
 
     setIsVerifying(true);
-    setError("");
+    setError('');
 
     try {
       const deviceFingerprint = getDeviceFingerprint();
-      const response = await apiRequest("POST", "/api/auth/2fa/verify", {
+      const response = await apiRequest('POST', '/api/auth/2fa/verify', {
         userId: twoFactorState.userId,
         code: verificationCode,
         rememberMe: twoFactorState.rememberMe,
@@ -123,15 +120,15 @@ export default function Login() {
 
       // Clear 2FA state
       setTwoFactorState(null);
-      setVerificationCode("");
+      setVerificationCode('');
 
       toast({
-        title: "Verification Successful",
-        description: "You have been signed in securely.",
+        title: 'Verification Successful',
+        description: 'You have been signed in securely.',
       });
       // Auth context updated, useEffect will handle redirect
     } catch (err) {
-      setError("Verification failed. Please try again.");
+      setError('Verification failed. Please try again.');
     }
     setIsVerifying(false);
   };
@@ -139,35 +136,37 @@ export default function Login() {
   const handleResendCode = async () => {
     if (!twoFactorState || resendCooldown > 0) return;
 
-    setError("");
+    setError('');
 
     try {
-      const response = await apiRequest("POST", "/api/auth/2fa/send", { userId: twoFactorState.userId });
+      const response = await apiRequest('POST', '/api/auth/2fa/send', {
+        userId: twoFactorState.userId,
+      });
 
       const data = await response.json();
 
       setResendCooldown(30);
-      setVerificationCode("");
+      setVerificationCode('');
       toast({
-        title: "Code Resent",
+        title: 'Code Resent',
         description: `A new code has been sent to ${twoFactorState.maskedPhone}`,
       });
     } catch (err) {
       toast({
-        title: "Error",
-        description: "Failed to resend code. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to resend code. Please try again.',
+        variant: 'destructive',
       });
     }
   };
 
   const handleBack = () => {
     setTwoFactorState(null);
-    setVerificationCode("");
-    setError("");
+    setVerificationCode('');
+    setError('');
   };
 
-  const isDemoEnv = environment === "demo";
+  const isDemoEnv = environment === 'demo';
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -241,7 +240,10 @@ export default function Login() {
                 </div>
 
                 {error && (
-                  <div className="text-sm text-destructive text-center" data-testid="text-2fa-error">
+                  <div
+                    className="text-sm text-destructive text-center"
+                    data-testid="text-2fa-error"
+                  >
                     {error}
                   </div>
                 )}
@@ -259,7 +261,7 @@ export default function Login() {
                       Verifying...
                     </>
                   ) : (
-                    "Verify Code"
+                    'Verify Code'
                   )}
                 </Button>
 
@@ -290,18 +292,18 @@ export default function Login() {
                 <div className="flex gap-2 p-1 bg-muted rounded-lg">
                   <Button
                     type="button"
-                    variant={environment === "live" ? "default" : "ghost"}
+                    variant={environment === 'live' ? 'default' : 'ghost'}
                     className="flex-1"
-                    onClick={() => handleEnvironmentChange("live")}
+                    onClick={() => handleEnvironmentChange('live')}
                     data-testid="button-env-live"
                   >
                     LIVE
                   </Button>
                   <Button
                     type="button"
-                    variant={environment === "demo" ? "default" : "ghost"}
+                    variant={environment === 'demo' ? 'default' : 'ghost'}
                     className="flex-1"
-                    onClick={() => handleEnvironmentChange("demo")}
+                    onClick={() => handleEnvironmentChange('demo')}
                     data-testid="button-env-demo"
                   >
                     DEMO
@@ -310,7 +312,9 @@ export default function Login() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm">Email</Label>
+                    <Label htmlFor="email" className="text-sm">
+                      Email
+                    </Label>
                     <Input
                       id="email"
                       type="email"
@@ -324,7 +328,9 @@ export default function Login() {
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <Label htmlFor="password" className="text-sm">Password</Label>
+                      <Label htmlFor="password" className="text-sm">
+                        Password
+                      </Label>
                       <Link
                         href="/forgot-password"
                         className="text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -336,7 +342,7 @@ export default function Login() {
                     <div className="relative">
                       <Input
                         id="password"
-                        type={showPassword ? "text" : "password"}
+                        type={showPassword ? 'text' : 'password'}
                         placeholder="Enter your password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -361,14 +367,14 @@ export default function Login() {
                     </div>
                   </div>
 
-                  {environment === "live" && (
+                  {environment === 'live' && (
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="rememberMe"
                         checked={rememberMe}
                         onCheckedChange={(checked) => {
                           setRememberMe(!!checked);
-                          localStorage.setItem("rememberMe", checked ? "true" : "false");
+                          localStorage.setItem('rememberMe', checked ? 'true' : 'false');
                         }}
                         data-testid="checkbox-remember-me"
                       />
@@ -385,36 +391,45 @@ export default function Login() {
                   )}
 
                   {isDemoEnv && (
-                    <div className="mt-2 rounded-md border border-dashed border-orange-300 bg-orange-50 px-3 py-3 text-sm text-orange-900 flex flex-col gap-2">
-                      <p className="font-medium text-[11px] uppercase tracking-wide text-orange-700">
-                        Demo Account Views
+                    <div className="mt-2 rounded-md border bg-muted/50 px-3 py-3 text-sm flex flex-col gap-2">
+                      <p className="font-medium text-[11px] uppercase tracking-wide text-muted-foreground">
+                        Demo Account Profiles
                       </p>
                       <Button
                         type="button"
                         variant="secondary"
                         size="sm"
-                        className="w-full justify-start font-mono text-xs border border-orange-200"
-                        onClick={() => { setEmail("client.demo@example.com"); setPassword("demo1234"); }}
+                        className="w-full justify-start font-mono text-xs"
+                        onClick={() => {
+                          setEmail('client.demo@example.com');
+                          setPassword('demo123');
+                        }}
                       >
-                        [Client View] client.demo@example.com
+                        [Client] client.demo@example.com
                       </Button>
                       <Button
                         type="button"
                         variant="secondary"
                         size="sm"
-                        className="w-full justify-start font-mono text-xs border border-orange-200"
-                        onClick={() => { setEmail("firm.admin.demo@example.com"); setPassword("demo1234"); }}
+                        className="w-full justify-start font-mono text-xs"
+                        onClick={() => {
+                          setEmail('firm.admin.demo@example.com');
+                          setPassword('demo123');
+                        }}
                       >
-                        [Firm View] firm.admin.demo@...
+                        [Firm] firm.admin.demo@example.com
                       </Button>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="w-full justify-start font-mono text-xs opacity-70 border border-orange-200"
-                        onClick={() => { setEmail("demo@example.com"); setPassword("demo1234"); }}
+                        className="w-full justify-start font-mono text-xs opacity-70"
+                        onClick={() => {
+                          setEmail('demo@example.com');
+                          setPassword('demo123');
+                        }}
                       >
-                        [Generic Staff] demo@example.com
+                        [Staff] demo@example.com
                       </Button>
                     </div>
                   )}
@@ -431,7 +446,7 @@ export default function Login() {
                         Signing in...
                       </>
                     ) : (
-                      "Sign In"
+                      'Sign In'
                     )}
                   </Button>
                 </form>
@@ -449,7 +464,7 @@ export default function Login() {
                   type="button"
                   variant="outline"
                   className="w-full"
-                  disabled={environment === "demo"}
+                  disabled={environment === 'demo'}
                   data-testid="button-google-signin"
                 >
                   <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -474,7 +489,7 @@ export default function Login() {
                 </Button>
 
                 <p className="text-center text-xs text-muted-foreground">
-                  Don't have an account?{" "}
+                  Don't have an account?{' '}
                   <Link
                     href="/signup"
                     className="text-primary hover:underline"

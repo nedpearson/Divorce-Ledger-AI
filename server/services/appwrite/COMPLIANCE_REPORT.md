@@ -8,17 +8,17 @@
 
 ## Summary
 
-| # | Requirement | Status | Notes |
-|---|-------------|--------|-------|
-| 1 | Collections: files, analysis_runs, categories, overrides | **PASS** | All 4 collections exist + idempotency + usage |
-| 2 | State machine statuses and transitions | **PASS** | ALLOWED_TRANSITIONS map + isValidTransition + InvalidTransitionError |
-| 3 | Strict JSON extraction schema enforcement | **PASS** | Zod schemas with parse functions |
-| 4 | Validation gate (confidence + money/date sanity) | **PASS** | runValidationGate implements all checks |
-| 5 | Two-pass extraction+verifier pipeline | **PASS** | runTwoPassPipeline with extraction → verification |
-| 6 | No silent writes (approval required) | **PASS** | needs_user_review flag + approval fields |
-| 7 | Idempotency + retry handling | **PASS** | Idempotency collection + retry count tracking |
-| 8 | Tenant isolation + least-privilege keys | **PASS** | userId filtering + Role.user() permissions |
-| 9 | Realtime updates (Appwrite Realtime) | **PASS** | realtimeService with subscriptions + event emission |
+| #   | Requirement                                              | Status   | Notes                                                                |
+| --- | -------------------------------------------------------- | -------- | -------------------------------------------------------------------- |
+| 1   | Collections: files, analysis_runs, categories, overrides | **PASS** | All 4 collections exist + idempotency + usage                        |
+| 2   | State machine statuses and transitions                   | **PASS** | ALLOWED_TRANSITIONS map + isValidTransition + InvalidTransitionError |
+| 3   | Strict JSON extraction schema enforcement                | **PASS** | Zod schemas with parse functions                                     |
+| 4   | Validation gate (confidence + money/date sanity)         | **PASS** | runValidationGate implements all checks                              |
+| 5   | Two-pass extraction+verifier pipeline                    | **PASS** | runTwoPassPipeline with extraction → verification                    |
+| 6   | No silent writes (approval required)                     | **PASS** | needs_user_review flag + approval fields                             |
+| 7   | Idempotency + retry handling                             | **PASS** | Idempotency collection + retry count tracking                        |
+| 8   | Tenant isolation + least-privilege keys                  | **PASS** | userId filtering + Role.user() permissions                           |
+| 9   | Realtime updates (Appwrite Realtime)                     | **PASS** | realtimeService with subscriptions + event emission                  |
 
 **Overall:** 9/9 PASS ✅
 
@@ -31,6 +31,7 @@
 **Location:** `server/services/appwrite/client.ts`, `server/services/appwrite/setup.ts`
 
 All required collections are defined and created:
+
 - `files` - Document metadata, status, analysis results
 - `analysis_runs` - Immutable analysis run records
 - `categories` - Document category taxonomy
@@ -56,6 +57,7 @@ export const COLLECTIONS = {
 **Location:** `server/services/appwrite/fileService.ts`
 
 **Implementation:**
+
 ```typescript
 export const ALLOWED_TRANSITIONS: Record<FileStatus, FileStatus[]> = {
   [FILE_STATUS.UPLOADED]: [FILE_STATUS.QUEUED, FILE_STATUS.EXTRACTING, FILE_STATUS.ERROR],
@@ -83,12 +85,14 @@ export class InvalidTransitionError extends Error;
 **Location:** `server/services/appwrite/extractionTypes.ts`
 
 Comprehensive Zod schemas enforce strict JSON structure:
+
 - `ExtractionOutputSchema` - First pass output
 - `VerificationReportSchema` - Second pass output
 - `NormalizedAnalysisOutputSchema` - Combined final output
 - `MoneyValueSchema`, `LineItemSchema`, etc. - Sub-schemas
 
 Parse functions with null return on validation failure:
+
 ```typescript
 export function parseExtractionOutput(json: unknown): ExtractionOutput | null {
   try {
@@ -106,6 +110,7 @@ export function parseExtractionOutput(json: unknown): ExtractionOutput | null {
 **Location:** `server/services/appwrite/extractionPipeline.ts` (lines 319-396)
 
 `runValidationGate()` implements:
+
 - Confidence threshold check (< 0.85 triggers review)
 - Required fields by doc_type validation
 - Line items vs subtotal/total sanity check (2% tolerance)
@@ -120,6 +125,7 @@ export function parseExtractionOutput(json: unknown): ExtractionOutput | null {
 **Location:** `server/services/appwrite/extractionPipeline.ts`
 
 Pipeline structure:
+
 1. `runExtractionPass()` - Initial AI extraction
 2. `runVerificationPass()` - AI verification against source text with **evidence pointers**
 3. `runValidationGate()` - Business rule validation + evidence verification
@@ -140,10 +146,12 @@ export const EvidencePointerSchema = z.object({
 ```
 
 **Critical Fields Requiring Evidence:**
+
 - **Date fields:** `document_date`, `transaction_date`, `statement_period_start`, `statement_period_end`
 - **Money fields:** `total_amount`, `subtotal`, `tax_amount`, `tip_amount`, `shipping_amount`, `discount_amount`, `balance_due`, `previous_balance`, `new_balance`
 
 **Enforcement:**
+
 - `getFieldsMissingEvidence()` checks all critical fields for evidence pointers
 - Fields without evidence are marked as unverified
 - `needs_user_review=true` is forced when any field lacks evidence
@@ -156,11 +164,13 @@ export const EvidencePointerSchema = z.object({
 **Location:** `server/services/appwrite/fileService.ts`, `server/services/appwrite/analysisService.ts`
 
 Approval workflow fields exist:
+
 - `needs_user_review` flag determines SUGGESTED vs FINALIZED
 - `finalizedBy`, `finalizedAt`, `finalizedFromAnalysisRunId` track approval
 - `approvedAt`, `approvedBy` in schema
 
 Status flow:
+
 - Low confidence → `SUGGESTED` status (requires approval)
 - High confidence + validation pass → `FINALIZED`
 
@@ -192,6 +202,7 @@ Status flow:
 **Location:** `server/services/appwrite/realtimeService.ts`
 
 **Implementation:**
+
 ```typescript
 export interface FileStatusEvent {
   type: 'file.status.changed';
@@ -223,6 +234,7 @@ export function createStatusChangeEvent(...): FileStatusEvent;
 **Files Modified:** `server/services/appwrite/fileService.ts`
 
 **Changes:**
+
 1. Added `ALLOWED_TRANSITIONS` constant map
 2. Created `isValidTransition()` function
 3. Added `InvalidTransitionError` class
@@ -234,6 +246,7 @@ export function createStatusChangeEvent(...): FileStatusEvent;
 **Files Created:** `server/services/appwrite/realtimeService.ts`
 
 **Changes:**
+
 1. Created realtimeService.ts with subscription system
 2. Added `subscribeToFileUpdates()`, `emitFileStatusChange()`, `createStatusChangeEvent()`
 3. Integrated event emission into `transitionFileStatus()`
@@ -244,6 +257,7 @@ export function createStatusChangeEvent(...): FileStatusEvent;
 ## Selftest
 
 ### Command Line
+
 ```bash
 # Run deterministic selftest (default - consistent output every run)
 npx tsx scripts/selftest.ts
@@ -253,6 +267,7 @@ SELFTEST_DETERMINISTIC=false npx tsx scripts/selftest.ts
 ```
 
 ### HTTP Endpoints
+
 ```
 # Selftest endpoints
 GET /api/appwrite/dev/selftest              # Deterministic mode (default)
@@ -302,7 +317,9 @@ Response: {
 ```
 
 ### Determinism
+
 By default, the selftest runs in **deterministic mode** using pre-defined fixture outputs. This ensures:
+
 - Consistent output across all runs
 - No AI variability
 - Stable CI/CD integration
@@ -311,6 +328,7 @@ By default, the selftest runs in **deterministic mode** using pre-defined fixtur
 Set `SELFTEST_DETERMINISTIC=false` or `?live=true` to invoke the real AI pipeline for live testing.
 
 ### Fixtures Tested
+
 1. **Clean PDF Invoice** - Digital-native invoice with clear amounts/dates
 2. **Scanned Receipt with Glare** - Photo with quality issues, should flag for review
 3. **Bank/Credit Statement (Multi-Page)** - Multi-page PDF with transactions
@@ -318,7 +336,9 @@ Set `SELFTEST_DETERMINISTIC=false` or `?live=true` to invoke the real AI pipelin
 5. **Random Image** - Must classify as `photo_evidence` or `other`, force review if uncertain
 
 ### Output Fields
+
 For each fixture, the selftest prints:
+
 - `extracted_dates` - All date fields found
 - `extracted_amounts` - All monetary amounts with field names
 - `vendor` - Extracted vendor/merchant name
@@ -329,25 +349,28 @@ For each fixture, the selftest prints:
 - `state_transitions` - Full sequence of file status changes
 
 ### Expected Behavior
-| Fixture | needs_user_review | Reason |
-|---------|-------------------|--------|
-| Clean PDF Invoice | false | High confidence, all required fields present |
-| Scanned Receipt | true | Image quality issues trigger review |
-| Bank Statement | false | Clean multi-page extraction |
-| Blurry Photo | true | Quality too poor for auto-processing |
-| Random Image | true | Uncertain classification requires human review |
+
+| Fixture           | needs_user_review | Reason                                         |
+| ----------------- | ----------------- | ---------------------------------------------- |
+| Clean PDF Invoice | false             | High confidence, all required fields present   |
+| Scanned Receipt   | true              | Image quality issues trigger review            |
+| Bank Statement    | false             | Clean multi-page extraction                    |
+| Blurry Photo      | true              | Quality too poor for auto-processing           |
+| Random Image      | true              | Uncertain classification requires human review |
 
 ---
 
 ## Verification Commands
 
 ### Development Server
+
 ```bash
 # Start the development server
 npm run dev
 ```
 
 ### Smoke Test
+
 ```bash
 # Run smoke test against running server
 ./scripts/smoke-test.sh
@@ -357,6 +380,7 @@ BASE_URL=http://localhost:5000 ./scripts/smoke-test.sh
 ```
 
 ### Unit Tests
+
 ```bash
 # Run all unit tests
 npx vitest run
@@ -366,6 +390,7 @@ npx vitest run --coverage
 ```
 
 ### Selftest
+
 ```bash
 # CLI selftest (deterministic mode)
 npx tsx scripts/selftest.ts
@@ -378,6 +403,7 @@ curl http://localhost:5000/api/appwrite/dev/selftest
 ```
 
 ### Health Check
+
 ```bash
 # Quick health check
 curl http://localhost:5000/api/health
@@ -393,12 +419,12 @@ curl http://localhost:5000/api/routes
 
 ## Confirmed Invariants
 
-| Invariant | Status | Verification |
-|-----------|--------|--------------|
-| Build passes | ✅ | `npm run dev` starts without errors |
-| Endpoints reachable | ✅ | Smoke test passes 4/4 |
-| No admin keys in client | ✅ | APPWRITE_API_KEY server-only in Replit Secrets |
-| No silent finalization | ✅ | needs_user_review gate enforced in analysisService.ts |
-| State machine enforcement | ✅ | ALLOWED_TRANSITIONS + InvalidTransitionError |
-| All unit tests pass | ✅ | 136/136 tests passing |
-| Selftest criteria pass | ✅ | 5/5 blueprint criteria passing |
+| Invariant                 | Status | Verification                                          |
+| ------------------------- | ------ | ----------------------------------------------------- |
+| Build passes              | ✅     | `npm run dev` starts without errors                   |
+| Endpoints reachable       | ✅     | Smoke test passes 4/4                                 |
+| No admin keys in client   | ✅     | APPWRITE_API_KEY server-only in Replit Secrets        |
+| No silent finalization    | ✅     | needs_user_review gate enforced in analysisService.ts |
+| State machine enforcement | ✅     | ALLOWED_TRANSITIONS + InvalidTransitionError          |
+| All unit tests pass       | ✅     | 136/136 tests passing                                 |
+| Selftest criteria pass    | ✅     | 5/5 blueprint criteria passing                        |

@@ -70,18 +70,16 @@ serve(async (req) => {
     }
 
     // 3. Create initial document version
-    const { error: versionError } = await supabaseClient
-      .from('document_versions')
-      .insert({
-        document_id,
-        version_number: 1,
-        storage_path: file_path,
-        file_size_bytes: file_size,
-        mime_type: mime_type,
-        checksum: await calculateChecksum(fileData),
-        changes_description: 'Initial upload',
-        created_by: user_id,
-      });
+    const { error: versionError } = await supabaseClient.from('document_versions').insert({
+      document_id,
+      version_number: 1,
+      storage_path: file_path,
+      file_size_bytes: file_size,
+      mime_type: mime_type,
+      checksum: await calculateChecksum(fileData),
+      changes_description: 'Initial upload',
+      created_by: user_id,
+    });
 
     if (versionError) {
       throw new Error(`Failed to create version: ${versionError.message}`);
@@ -106,16 +104,14 @@ serve(async (req) => {
     }
 
     // 5. Create job for thumbnail generation
-    const { error: thumbnailJobError } = await supabaseClient
-      .from('jobs')
-      .insert({
-        document_id,
-        user_id,
-        job_type: 'thumbnail',
-        status: 'queued',
-        priority: 7,
-        input_data: { file_path, document_id },
-      });
+    const { error: thumbnailJobError } = await supabaseClient.from('jobs').insert({
+      document_id,
+      user_id,
+      job_type: 'thumbnail',
+      status: 'queued',
+      priority: 7,
+      input_data: { file_path, document_id },
+    });
 
     if (thumbnailJobError) {
       console.error('Thumbnail job creation failed (non-critical):', thumbnailJobError);

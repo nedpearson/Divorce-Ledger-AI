@@ -190,9 +190,8 @@ async function reportOverageToStripe(subscriptionId: string, overageAmount: numb
   const stripe = await getUncachableStripeClient();
   try {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    const customerId = typeof subscription.customer === 'string'
-      ? subscription.customer
-      : subscription.customer.id;
+    const customerId =
+      typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
 
     // Report usage in units of 10 credits (since we charge $0.10 per 10 credits)
     const usageUnits = Math.ceil(overageAmount / 10);
@@ -205,7 +204,9 @@ async function reportOverageToStripe(subscriptionId: string, overageAmount: numb
       },
     });
 
-    console.log(`Reported ${usageUnits} overage units to Stripe for subscription ${subscriptionId}`);
+    console.log(
+      `Reported ${usageUnits} overage units to Stripe for subscription ${subscriptionId}`
+    );
   } catch (error) {
     console.error('Failed to report overage to Stripe:', error);
     // Don't throw - this is non-critical
@@ -228,9 +229,10 @@ export async function getAICreditBalance(workspaceId: string): Promise<{
     throw new Error('Workspace not found');
   }
 
-  const percentageUsed = workspace.aiCreditsLimit > 0
-    ? ((workspace.aiCreditsLimit - workspace.aiCreditsBalance) / workspace.aiCreditsLimit) * 100
-    : 0;
+  const percentageUsed =
+    workspace.aiCreditsLimit > 0
+      ? ((workspace.aiCreditsLimit - workspace.aiCreditsBalance) / workspace.aiCreditsLimit) * 100
+      : 0;
 
   return {
     balance: workspace.aiCreditsBalance,
@@ -245,7 +247,7 @@ export async function getAICreditBalance(workspaceId: string): Promise<{
 export async function getAICreditHistory(
   workspaceId: string,
   limit: number = 50
-): Promise<typeof aiCreditTransactions.$inferSelect[]> {
+): Promise<(typeof aiCreditTransactions.$inferSelect)[]> {
   const transactions = await db.query.aiCreditTransactions.findMany({
     where: eq(aiCreditTransactions.workspaceId, workspaceId),
     orderBy: (transactions, { desc }) => [desc(transactions.createdAt)],

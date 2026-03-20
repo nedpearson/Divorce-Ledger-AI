@@ -1,25 +1,21 @@
-import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
-import { Smartphone, X, ExternalLink, QrCode, WifiOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import { Smartphone, X, ExternalLink, QrCode, WifiOff } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Card, CardContent } from '@/components/ui/card';
 
 // The mobile app URL — points to the /mobile route on the same host.
 // In production this works perfectly. On localhost, phones can't reach the
 // dev server, so we detect that case and warn the user.
-const LOCAL_HOSTNAMES = ["localhost", "127.0.0.1", "0.0.0.0", "::1"];
+const LOCAL_HOSTNAMES = ['localhost', '127.0.0.1', '0.0.0.0', '::1'];
 
 function getMobileUrl(): string {
   const envUrl = import.meta.env.VITE_PUBLIC_URL || import.meta.env.VITE_SUPABASE_URL;
-  if (envUrl) return `${envUrl.replace(/\/$/, "")}/mobile`;
+  if (envUrl) return `${envUrl.replace(/\/$/, '')}/mobile`;
 
   const { protocol, hostname, port } = window.location;
-  const portPart = port ? `:${port}` : "";
+  const portPart = port ? `:${port}` : '';
   return `${protocol}//${hostname}${portPart}/mobile`;
 }
 
@@ -56,16 +52,12 @@ export function MobileAppHeaderButton() {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent
-        align="end"
-        sideOffset={8}
-        className="w-64 p-4 shadow-xl"
-      >
+      <PopoverContent align="end" sideOffset={8} className="w-64 p-4 shadow-xl">
         <div className="flex items-start justify-between mb-3">
           <div>
             <p className="font-semibold text-sm leading-tight">Mobile App</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {local ? "Not available on localhost" : "Scan or tap to open on your phone"}
+              {local ? 'Not available on localhost' : 'Scan or tap to open on your phone'}
             </p>
           </div>
           <Button
@@ -87,9 +79,9 @@ export function MobileAppHeaderButton() {
               <p className="text-xs font-medium">QR code unavailable locally</p>
             </div>
             <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-snug">
-              Your phone can't reach <code className="font-mono">localhost</code>. To test on mobile, deploy the app or set{" "}
-              <code className="font-mono">VITE_PUBLIC_URL</code> in your <code className="font-mono">.env</code> to your
-              network IP or an ngrok URL.
+              Your phone can't reach <code className="font-mono">localhost</code>. To test on
+              mobile, deploy the app or set <code className="font-mono">VITE_PUBLIC_URL</code> in
+              your <code className="font-mono">.env</code> to your network IP or an ngrok URL.
             </p>
             <a
               href={mobileUrl}
@@ -105,12 +97,7 @@ export function MobileAppHeaderButton() {
           <>
             {/* QR Code */}
             <div className="flex justify-center bg-white rounded-lg p-3 mb-2 border">
-              <QRCodeSVG
-                value={mobileUrl}
-                size={160}
-                level="M"
-                includeMargin={false}
-              />
+              <QRCodeSVG value={mobileUrl} size={160} level="M" includeMargin={false} />
             </div>
 
             {/* Direct link */}
@@ -174,9 +161,9 @@ export function MobileAppSignupCard({ onDismiss }: { onDismiss?: () => void }) {
               <p className="text-xs font-medium">QR code unavailable locally</p>
             </div>
             <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-snug">
-              Your phone can't reach <code className="font-mono">localhost</code>. Deploy the app or set{" "}
-              <code className="font-mono">VITE_PUBLIC_URL</code> in your <code className="font-mono">.env</code> to
-              enable QR codes.
+              Your phone can't reach <code className="font-mono">localhost</code>. Deploy the app or
+              set <code className="font-mono">VITE_PUBLIC_URL</code> in your{' '}
+              <code className="font-mono">.env</code> to enable QR codes.
             </p>
             <a
               href={mobileUrl}
@@ -192,12 +179,7 @@ export function MobileAppSignupCard({ onDismiss }: { onDismiss?: () => void }) {
           <div className="flex gap-4 items-center">
             {/* QR Code */}
             <div className="bg-white rounded-lg p-2 border shrink-0">
-              <QRCodeSVG
-                value={mobileUrl}
-                size={96}
-                level="M"
-                includeMargin={false}
-              />
+              <QRCodeSVG value={mobileUrl} size={96} level="M" includeMargin={false} />
             </div>
 
             {/* Instructions + link */}

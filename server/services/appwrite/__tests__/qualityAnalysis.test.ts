@@ -10,7 +10,7 @@ vi.mock('sharp', () => {
       if (resolveWithObject) {
         return Promise.resolve({
           data: Buffer.from(Array(1000).fill(128)),
-          info: { width: 100, height: 100, channels: 3 }
+          info: { width: 100, height: 100, channels: 3 },
         });
       }
       return Promise.resolve(Buffer.from(Array(1000).fill(128)));
@@ -28,10 +28,7 @@ import {
   formatQualityFeedback,
   ImageQualityScore,
 } from '../imageQualityAnalyzer';
-import {
-  analyzePdfType,
-  PdfAnalysisResult,
-} from '../pdfAnalyzer';
+import { analyzePdfType, PdfAnalysisResult } from '../pdfAnalyzer';
 
 describe('Image Quality Analyzer', () => {
   describe('analyzeImageQuality', () => {
@@ -178,7 +175,7 @@ describe('Quality Gate Integration', () => {
   it('should set isPoorQuality when blur score is low', async () => {
     const testBuffer = Buffer.from('test');
     const result = await analyzeImageQuality(testBuffer);
-    
+
     expect(typeof result.isPoorQuality).toBe('boolean');
   });
 

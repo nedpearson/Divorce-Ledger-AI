@@ -54,6 +54,7 @@ Required environment variables (see `.env.example`):
 - `SUPABASE_JWT_SECRET` - JWT secret for token verification
 
 Optional:
+
 - OAuth credentials for social login
 - AI provider API keys for classification
 - Feature flags, logging level, etc.
@@ -168,6 +169,7 @@ All errors return JSON response:
 ```
 
 HTTP status codes:
+
 - `400` - Validation error
 - `401` - Unauthorized (missing/invalid token)
 - `403` - Forbidden (insufficient permissions)

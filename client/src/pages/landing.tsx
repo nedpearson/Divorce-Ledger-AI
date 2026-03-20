@@ -1,26 +1,26 @@
-import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Scale, 
-  FileText, 
-  Shield, 
-  Clock, 
-  TrendingUp, 
+import { Link } from 'wouter';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Scale,
+  FileText,
+  Shield,
+  Clock,
+  TrendingUp,
   Users,
   CheckCircle2,
   ArrowRight,
   Sparkles,
   Download,
-  Monitor
-} from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { useAuth } from "@/lib/auth";
-import { usePWAInstall } from "@/hooks/use-pwa-install";
-import { useEffect } from "react";
-import { useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
+  Monitor,
+} from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { useAuth } from '@/lib/auth';
+import { usePWAInstall } from '@/hooks/use-pwa-install';
+import { useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LandingPage() {
   const { user } = useAuth();
@@ -31,7 +31,7 @@ export default function LandingPage() {
   // If already logged in, redirect to home
   useEffect(() => {
     if (user) {
-      setLocation("/home");
+      setLocation('/home');
     }
   }, [user, setLocation]);
 
@@ -39,13 +39,13 @@ export default function LandingPage() {
     const installed = await promptInstall();
     if (installed) {
       toast({
-        title: "App installed successfully!",
-        description: "You can now use Divorce Ledger AI from your desktop.",
+        title: 'App installed successfully!',
+        description: 'You can now use Divorce Ledger AI from your desktop.',
       });
     } else {
       toast({
-        title: "Installation cancelled",
-        description: "You can install the app anytime from your browser menu.",
+        title: 'Installation cancelled',
+        description: 'You can install the app anytime from your browser menu.',
       });
     }
   };
@@ -68,9 +68,7 @@ export default function LandingPage() {
               </Button>
             )}
             <Button asChild size="sm">
-              <Link href="/login">
-                Login
-              </Link>
+              <Link href="/login">Login</Link>
             </Button>
           </div>
         </div>
@@ -88,8 +86,8 @@ export default function LandingPage() {
             <span className="block text-primary mt-2">Court-Ready Stories</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
-            Divorce Ledger AI helps law firms make more money with less headache, 
-            while giving clients a calmer, more controlled experience in high-conflict divorces.
+            Divorce Ledger AI helps law firms make more money with less headache, while giving
+            clients a calmer, more controlled experience in high-conflict divorces.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <Button size="lg" asChild className="text-lg">
@@ -106,14 +104,10 @@ export default function LandingPage() {
             ) : (
               <>
                 <Button size="lg" variant="outline" asChild className="text-lg">
-                  <Link href="/pricing">
-                    View Pricing
-                  </Link>
+                  <Link href="/pricing">View Pricing</Link>
                 </Button>
                 <Button size="lg" variant="ghost" asChild className="text-lg">
-                  <Link href="/demo-presentation">
-                    Watch Demo Tour
-                  </Link>
+                  <Link href="/demo-presentation">Watch Demo Tour</Link>
                 </Button>
               </>
             )}
@@ -139,7 +133,8 @@ export default function LandingPage() {
                 <TrendingUp className="h-10 w-10 text-primary mb-2" />
                 <CardTitle>More Profit</CardTitle>
                 <CardDescription>
-                  Fewer non-billable hours wasted searching for evidence. More time for legal strategy.
+                  Fewer non-billable hours wasted searching for evidence. More time for legal
+                  strategy.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -217,7 +212,8 @@ export default function LandingPage() {
               One Workspace, Everything Organized
             </h2>
             <p className="text-lg text-muted-foreground">
-              Every matter gets a single ledger for incidents, finances, evidence, and communication.
+              Every matter gets a single ledger for incidents, finances, evidence, and
+              communication.
             </p>
           </div>
 
@@ -227,7 +223,7 @@ export default function LandingPage() {
                 <FileText className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Cases & Violations</CardTitle>
                 <CardDescription>
-                  Structured timeline of custody issues, financial hiding, non-compliance, and more. 
+                  Structured timeline of custody issues, financial hiding, non-compliance, and more.
                   Patterns emerge over time instead of random one-offs.
                 </CardDescription>
               </CardHeader>
@@ -238,8 +234,8 @@ export default function LandingPage() {
                 <TrendingUp className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Financial Ledger</CardTitle>
                 <CardDescription>
-                  Assets, debts, income, and expenses in one place. Ready for court filings, 
-                  support calculations, and settlement negotiations.
+                  Assets, debts, income, and expenses in one place. Ready for court filings, support
+                  calculations, and settlement negotiations.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -249,8 +245,8 @@ export default function LandingPage() {
                 <Shield className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Evidence & Documents</CardTitle>
                 <CardDescription>
-                  Central hub for bank statements, paystubs, screenshots, and orders. 
-                  AI classifies and extracts key details so your team can search instead of read every page.
+                  Central hub for bank statements, paystubs, screenshots, and orders. AI classifies
+                  and extracts key details so your team can search instead of read every page.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -260,8 +256,8 @@ export default function LandingPage() {
                 <Users className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Secure Communication</CardTitle>
                 <CardDescription>
-                  Client-firm messages tied to matters and events. No more 'lost in email' risk, 
-                  and a defensible record of what's been shared.
+                  Client-firm messages tied to matters and events. No more 'lost in email' risk, and
+                  a defensible record of what's been shared.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -281,7 +277,8 @@ export default function LandingPage() {
               </div>
               <CardTitle className="text-2xl md:text-3xl">Install as Desktop App</CardTitle>
               <CardDescription className="text-base max-w-2xl mx-auto mt-2">
-                Get the full desktop experience with offline access, faster performance, and native app features.
+                Get the full desktop experience with offline access, faster performance, and native
+                app features.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -291,21 +288,27 @@ export default function LandingPage() {
                     <CheckCircle2 className="h-6 w-6 text-green-500" />
                   </div>
                   <h3 className="font-semibold">Works Offline</h3>
-                  <p className="text-sm text-muted-foreground">Access your data even without internet</p>
+                  <p className="text-sm text-muted-foreground">
+                    Access your data even without internet
+                  </p>
                 </div>
                 <div className="text-center space-y-2">
                   <div className="flex justify-center">
                     <CheckCircle2 className="h-6 w-6 text-green-500" />
                   </div>
                   <h3 className="font-semibold">Faster Performance</h3>
-                  <p className="text-sm text-muted-foreground">Native app speed and responsiveness</p>
+                  <p className="text-sm text-muted-foreground">
+                    Native app speed and responsiveness
+                  </p>
                 </div>
                 <div className="text-center space-y-2">
                   <div className="flex justify-center">
                     <CheckCircle2 className="h-6 w-6 text-green-500" />
                   </div>
                   <h3 className="font-semibold">Desktop Integration</h3>
-                  <p className="text-sm text-muted-foreground">Launch from your desktop or taskbar</p>
+                  <p className="text-sm text-muted-foreground">
+                    Launch from your desktop or taskbar
+                  </p>
                 </div>
               </div>
               <div className="flex justify-center pt-2">
@@ -322,27 +325,23 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="w-full bg-muted/30 py-12 md:py-16">
         <div className="container max-w-7xl mx-auto px-4 md:px-6">
-        <div className="max-w-3xl mx-auto text-center space-y-6">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            Ready to Transform Your Practice?
-          </h2>
-          <p className="text-lg text-muted-foreground">
-            Join forward-thinking law firms who are winning more cases with less chaos.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Button size="lg" asChild className="text-lg">
-              <Link href="/login">
-                Login to Your Account
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild className="text-lg">
-              <Link href="/signup">
-                Start Free Trial
-              </Link>
-            </Button>
+          <div className="max-w-3xl mx-auto text-center space-y-6">
+            <h2 className="text-3xl md:text-4xl font-bold">Ready to Transform Your Practice?</h2>
+            <p className="text-lg text-muted-foreground">
+              Join forward-thinking law firms who are winning more cases with less chaos.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+              <Button size="lg" asChild className="text-lg">
+                <Link href="/login">
+                  Login to Your Account
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild className="text-lg">
+                <Link href="/signup">Start Free Trial</Link>
+              </Button>
+            </div>
           </div>
-        </div>
         </div>
       </section>
 

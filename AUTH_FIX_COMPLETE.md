@@ -13,6 +13,7 @@
 ## 🔍 What Was Fixed
 
 ### 1. **Idempotent Bootstrap Service** ✅
+
 - **File:** [`server/services/bootstrap.service.ts`](server/services/bootstrap.service.ts)
 - **Features:**
   - Creates users only if they don't exist
@@ -23,6 +24,7 @@
   - Clear logging of actions taken
 
 ### 2. **Environment-Based Configuration** ✅
+
 - **File:** [`.env.example`](.env.example) (updated)
 - **New Variables:**
   ```bash
@@ -35,6 +37,7 @@
 - **Security:** Passwords no longer hardcoded in source code
 
 ### 3. **Clean Login Flow** ✅
+
 - **File:** [`server/routes.ts`](server/routes.ts#L549)
 - **Changes:**
   - Removed auto-migration of plaintext passwords
@@ -46,11 +49,13 @@
     - `"Your account is not active. Please contact support."`
 
 ### 4. **Diagnostic Tools** ✅
+
 - **Endpoints:**
   - `GET /api/debug/users` - List all users with metadata
   - `GET /api/debug/auth` - Check auth configuration and user status
 
 ### 5. **Startup Integration** ✅
+
 - **File:** [`server/index.ts`](server/index.ts#L303)
 - **Behavior:**
   - Calls `bootstrapUsers({ forcePasswordReset: isDev })`
@@ -88,16 +93,19 @@ git pull origin main
 ### Step 3: Verify
 
 1. **Check startup logs:**
+
    ```
    ✅ [STARTUP] Bootstrap complete: { created: 2, updated: 0, skipped: 0, errors: [] }
    ```
 
 2. **Hit the diagnostic endpoint:**
+
    ```bash
    curl https://your-app.railway.app/api/debug/auth
    ```
-   
+
    Expected response:
+
    ```json
    {
      "environment": {
@@ -148,16 +156,20 @@ git pull origin main
 ## 📁 File Changes Summary
 
 ### Created Files
+
 - ✅ `server/services/bootstrap.service.ts` - Idempotent user provisioning
 
 ### Modified Files
+
 - ✅ `.env.example` - Added auth configuration docs
-- ✅ `.env` - Added SUPERADMIN_* and DEMO_* variables
+- ✅ `.env` - Added SUPERADMIN*\* and DEMO*\* variables
 - ✅ `server/index.ts` - Replaced hardcoded bootstrap with service call
 - ✅ `server/routes.ts` - Cleaned login flow, added `/api/debug/auth`
 
 ### Database Schema
+
 **No migrations needed.** Uses existing `users` table with these fields:
+
 - `email` (text, unique) - normalized to lowercase
 - `password` (text) - bcrypt hash
 - `status` (text) - 'active' | 'suspended' | 'pending'
@@ -171,6 +183,7 @@ git pull origin main
 Run these tests after deployment:
 
 ### ✅ Test 1: Super Admin Login
+
 ```bash
 # Endpoint: POST /api/auth/login
 # Body: { "email": "nedpearson@gmail.com", "password": "1Pearson2" }
@@ -178,13 +191,15 @@ Run these tests after deployment:
 ```
 
 ### ✅ Test 2: Demo Login (if DEMO_MODE=true)
+
 ```bash
-# Endpoint: POST /api/auth/login  
+# Endpoint: POST /api/auth/login
 # Body: { "email": "demo@example.com", "password": "demo123" }
 # Expected: 200 OK, user object with environment: "demo"
 ```
 
 ### ✅ Test 3: Wrong Password
+
 ```bash
 # Endpoint: POST /api/auth/login
 # Body: { "email": "nedpearson@gmail.com", "password": "wrong" }
@@ -192,6 +207,7 @@ Run these tests after deployment:
 ```
 
 ### ✅ Test 4: Non-Existent User
+
 ```bash
 # Endpoint: POST /api/auth/login
 # Body: { "email": "nobody@example.com", "password": "anything" }
@@ -199,6 +215,7 @@ Run these tests after deployment:
 ```
 
 ### ✅ Test 5: Email Case Insensitivity
+
 ```bash
 # Endpoint: POST /api/auth/login
 # Body: { "email": "NedPearson@Gmail.com", "password": "1Pearson2" }
@@ -206,6 +223,7 @@ Run these tests after deployment:
 ```
 
 ### ✅ Test 6: Bootstrap Idempotency
+
 ```bash
 # Restart the server multiple times
 # Expected: Logs show "skipped" for existing users, no password resets in production
@@ -253,6 +271,7 @@ Run these tests after deployment:
 ```
 
 **Key Points:**
+
 - ✅ No Supabase Auth SDK (just using their PostgreSQL database)
 - ✅ Custom bcrypt + Express sessions
 - ✅ Session cookies are httpOnly (XSS protection)
@@ -289,6 +308,7 @@ Run these tests after deployment:
 ### Problem: "Incorrect email or password" but credentials are correct
 
 **Solution:**
+
 1. Check `/api/debug/auth` to see if user exists
 2. Check logs for `[AUTH] Password verification failed`
 3. Verify bcrypt hash length is 60 characters
@@ -298,6 +318,7 @@ Run these tests after deployment:
 ### Problem: Bootstrap not creating users
 
 **Solution:**
+
 1. Check DATABASE_URL and DIRECT_URL are set in Railway
 2. Check migrations applied successfully
 3. Look for error in startup logs: `❌ [STARTUP] User bootstrap failed`
@@ -306,6 +327,7 @@ Run these tests after deployment:
 ### Problem: Password keeps resetting in production
 
 **Solution:**
+
 1. Check `NODE_ENV=production` is set in Railway
 2. Bootstrap only resets passwords when `NODE_ENV=development`
 3. If you need to force reset, temporarily set `NODE_ENV=development`, restart, then change back
@@ -313,6 +335,7 @@ Run these tests after deployment:
 ### Problem: Demo login not working
 
 **Solution:**
+
 1. Check `DEMO_MODE=true` in Railway variables
 2. Hit `/api/debug/auth` and verify:
    ```json
@@ -334,16 +357,18 @@ Run these tests after deployment:
 Login with email and password.
 
 **Request:**
+
 ```json
 {
   "email": "nedpearson@gmail.com",
   "password": "1Pearson2",
-  "environment": "demo",  // optional
-  "rememberMe": true      // optional
+  "environment": "demo", // optional
+  "rememberMe": true // optional
 }
 ```
 
 **Response (Success):**
+
 ```json
 {
   "user": {
@@ -359,6 +384,7 @@ Login with email and password.
 ```
 
 **Response (Error):**
+
 ```json
 {
   "error": "Incorrect email or password"
@@ -370,6 +396,7 @@ Login with email and password.
 Check authentication configuration and user status.
 
 **Response:**
+
 ```json
 {
   "environment": {
@@ -381,12 +408,16 @@ Check authentication configuration and user status.
   "superAdmin": {
     "configured": true,
     "exists": true,
-    "user": { /* user object */ }
+    "user": {
+      /* user object */
+    }
   },
   "demo": {
     "enabled": true,
     "exists": true,
-    "user": { /* user object */ }
+    "user": {
+      /* user object */
+    }
   },
   "database": {
     "connected": true,
@@ -400,6 +431,7 @@ Check authentication configuration and user status.
 List all users (for debugging).
 
 **Response:**
+
 ```json
 {
   "count": 2,
@@ -421,17 +453,20 @@ List all users (for debugging).
 ## ✨ What's Next
 
 ### Immediate (Required)
+
 1. ✅ Deploy to Railway
 2. ✅ Verify login works
 3. ✅ Change password after first login
 
 ### Short Term (Recommended)
+
 1. Add password change UI in account settings
 2. Add "Forgot Password" flow with email reset
 3. Implement password complexity requirements
 4. Add account lockout after failed attempts
 
 ### Long Term (Optional)
+
 5. Migrate to Supabase Auth SDK for better features:
    - Email confirmation
    - Magic links
@@ -446,11 +481,13 @@ List all users (for debugging).
 **If login still fails after following this guide:**
 
 1. Run diagnostic command:
+
    ```bash
    curl https://your-app.railway.app/api/debug/auth | jq
    ```
 
 2. Check Railway logs for:
+
    ```
    [AUTH] Login attempt for: <email>
    [AUTH] User found: <id>

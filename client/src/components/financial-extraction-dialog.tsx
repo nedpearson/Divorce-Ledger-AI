@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -7,31 +7,31 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Upload, Sparkles, AlertTriangle, Check } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useAuth } from "@/lib/auth";
+} from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Upload, Sparkles, AlertTriangle, Check } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useAuth } from '@/lib/auth';
 
 interface FinancialExtraction {
-  recordType: "income" | "expense" | "asset" | "debt" | "unknown";
+  recordType: 'income' | 'expense' | 'asset' | 'debt' | 'unknown';
   category: string;
   description: string;
   amount: number | null;
   vendor: string | null;
   date: string | null;
-  frequency: "monthly" | "weekly" | "biweekly" | "quarterly" | "annually" | "one-time";
+  frequency: 'monthly' | 'weekly' | 'biweekly' | 'quarterly' | 'annually' | 'one-time';
   confidence: number;
   extractedText: string;
 }
@@ -42,42 +42,75 @@ interface FinancialExtractionDialogProps {
 }
 
 const EXPENSE_CATEGORIES = [
-  "Housing", "Utilities", "Transportation", "Healthcare", "Food",
-  "Insurance", "Legal Fees", "Childcare", "Education", "Entertainment", "Other"
+  'Housing',
+  'Utilities',
+  'Transportation',
+  'Healthcare',
+  'Food',
+  'Insurance',
+  'Legal Fees',
+  'Childcare',
+  'Education',
+  'Entertainment',
+  'Other',
 ];
 
 const INCOME_SOURCES = [
-  "Salary", "Wages", "Bonus", "Commission", "Investment", "Rental",
-  "Child Support", "Alimony", "Business", "Social Security", "Other"
+  'Salary',
+  'Wages',
+  'Bonus',
+  'Commission',
+  'Investment',
+  'Rental',
+  'Child Support',
+  'Alimony',
+  'Business',
+  'Social Security',
+  'Other',
 ];
 
 const ASSET_CATEGORIES = [
-  "Real Estate", "Vehicle", "Bank Account", "Investment", "Retirement",
-  "Business", "Personal Property", "Jewelry", "Art", "Other"
+  'Real Estate',
+  'Vehicle',
+  'Bank Account',
+  'Investment',
+  'Retirement',
+  'Business',
+  'Personal Property',
+  'Jewelry',
+  'Art',
+  'Other',
 ];
 
 const DEBT_CATEGORIES = [
-  "Mortgage", "Auto Loan", "Credit Card", "Student Loan", "Personal Loan",
-  "Medical Debt", "Tax Debt", "Business Debt", "Other"
+  'Mortgage',
+  'Auto Loan',
+  'Credit Card',
+  'Student Loan',
+  'Personal Loan',
+  'Medical Debt',
+  'Tax Debt',
+  'Business Debt',
+  'Other',
 ];
 
 export function FinancialExtractionDialog({ open, onOpenChange }: FinancialExtractionDialogProps) {
-  const [step, setStep] = useState<"upload" | "analyzing" | "review">("upload");
+  const [step, setStep] = useState<'upload' | 'analyzing' | 'review'>('upload');
   const [extraction, setExtraction] = useState<FinancialExtraction | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  
+
   const [formData, setFormData] = useState({
-    recordType: "expense" as "income" | "expense" | "asset" | "debt",
-    category: "",
-    description: "",
-    amount: "",
-    vendor: "",
-    date: "",
-    frequency: "monthly",
-    owner: "you",
+    recordType: 'expense' as 'income' | 'expense' | 'asset' | 'debt',
+    category: '',
+    description: '',
+    amount: '',
+    vendor: '',
+    date: '',
+    frequency: 'monthly',
+    owner: 'you',
   });
 
   const analyzeMutation = useMutation({
@@ -86,13 +119,13 @@ export function FinancialExtractionDialog({ open, onOpenChange }: FinancialExtra
         const reader = new FileReader();
         reader.onloadend = () => {
           const result = reader.result as string;
-          const base64Data = result.split(",")[1] || "";
+          const base64Data = result.split(',')[1] || '';
           resolve(base64Data);
         };
         reader.readAsDataURL(file);
       });
-      
-      const response = await apiRequest("POST", "/api/capture/extract-financial", {
+
+      const response = await apiRequest('POST', '/api/capture/extract-financial', {
         fileName: file.name,
         fileType: file.type,
         base64Data: base64,
@@ -104,30 +137,30 @@ export function FinancialExtractionDialog({ open, onOpenChange }: FinancialExtra
         const ext = data.data as FinancialExtraction;
         setExtraction(ext);
         setFormData({
-          recordType: ext.recordType === "unknown" ? "expense" : ext.recordType,
-          category: ext.category || "",
-          description: ext.description || "",
-          amount: ext.amount?.toString() || "",
-          vendor: ext.vendor || "",
-          date: ext.date || "",
-          frequency: ext.frequency || "monthly",
-          owner: "you",
+          recordType: ext.recordType === 'unknown' ? 'expense' : ext.recordType,
+          category: ext.category || '',
+          description: ext.description || '',
+          amount: ext.amount?.toString() || '',
+          vendor: ext.vendor || '',
+          date: ext.date || '',
+          frequency: ext.frequency || 'monthly',
+          owner: 'you',
         });
-        setStep("review");
+        setStep('review');
       } else {
-        setStep("review");
+        setStep('review');
         toast({
-          title: "Analysis completed",
-          description: "Please fill in the details manually.",
+          title: 'Analysis completed',
+          description: 'Please fill in the details manually.',
         });
       }
     },
     onError: () => {
-      setStep("review");
+      setStep('review');
       toast({
-        title: "Analysis failed",
-        description: "Please fill in the details manually.",
-        variant: "destructive",
+        title: 'Analysis failed',
+        description: 'Please fill in the details manually.',
+        variant: 'destructive',
       });
     },
   });
@@ -135,60 +168,60 @@ export function FinancialExtractionDialog({ open, onOpenChange }: FinancialExtra
   const saveMutation = useMutation({
     mutationFn: async () => {
       const endpoint = `/api/${formData.recordType}s`;
-      const userId = user?.id || localStorage.getItem("userId") || "demo-user";
+      const userId = user?.id || localStorage.getItem('userId') || 'demo-user';
       const payload: Record<string, unknown> = {
         amount: parseInt(formData.amount) || 0,
         verified: false,
         userId,
       };
-      
-      if (formData.recordType === "income") {
+
+      if (formData.recordType === 'income') {
         payload.source = formData.category;
         payload.frequency = formData.frequency;
         payload.owner = formData.owner;
         payload.vendor = formData.vendor;
         payload.startDate = formData.date;
-      } else if (formData.recordType === "expense") {
+      } else if (formData.recordType === 'expense') {
         payload.category = formData.category;
         payload.description = formData.description;
         payload.frequency = formData.frequency;
         payload.owner = formData.owner;
         payload.vendor = formData.vendor;
         payload.startDate = formData.date;
-      } else if (formData.recordType === "asset") {
+      } else if (formData.recordType === 'asset') {
         payload.name = formData.description;
         payload.category = formData.category;
         payload.ownership = formData.owner;
         payload.value = parseInt(formData.amount) || 0;
         delete payload.amount;
-      } else if (formData.recordType === "debt") {
+      } else if (formData.recordType === 'debt') {
         payload.creditor = formData.vendor || formData.description;
         payload.category = formData.category;
         payload.balance = parseInt(formData.amount) || 0;
-        payload.interestRate = "0";
+        payload.interestRate = '0';
         payload.minimumPayment = 0;
         delete payload.amount;
       }
-      
-      return apiRequest("POST", endpoint, payload);
+
+      return apiRequest('POST', endpoint, payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/incomes"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/assets"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/debts"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/incomes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/assets'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/debts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       toast({
-        title: "Record saved",
+        title: 'Record saved',
         description: `${formData.recordType.charAt(0).toUpperCase() + formData.recordType.slice(1)} added successfully.`,
       });
       handleClose();
     },
     onError: () => {
       toast({
-        title: "Failed to save",
-        description: "Please try again.",
-        variant: "destructive",
+        title: 'Failed to save',
+        description: 'Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -197,41 +230,46 @@ export function FinancialExtractionDialog({ open, onOpenChange }: FinancialExtra
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      setStep("analyzing");
+      setStep('analyzing');
       analyzeMutation.mutate(file);
     }
   };
 
   const handleClose = () => {
-    setStep("upload");
+    setStep('upload');
     setExtraction(null);
     setSelectedFile(null);
     setFormData({
-      recordType: "expense",
-      category: "",
-      description: "",
-      amount: "",
-      vendor: "",
-      date: "",
-      frequency: "monthly",
-      owner: "you",
+      recordType: 'expense',
+      category: '',
+      description: '',
+      amount: '',
+      vendor: '',
+      date: '',
+      frequency: 'monthly',
+      owner: 'you',
     });
     onOpenChange(false);
   };
 
   const getCategoriesForType = () => {
     switch (formData.recordType) {
-      case "income": return INCOME_SOURCES;
-      case "expense": return EXPENSE_CATEGORIES;
-      case "asset": return ASSET_CATEGORIES;
-      case "debt": return DEBT_CATEGORIES;
-      default: return EXPENSE_CATEGORIES;
+      case 'income':
+        return INCOME_SOURCES;
+      case 'expense':
+        return EXPENSE_CATEGORIES;
+      case 'asset':
+        return ASSET_CATEGORIES;
+      case 'debt':
+        return DEBT_CATEGORIES;
+      default:
+        return EXPENSE_CATEGORIES;
     }
   };
 
   useEffect(() => {
     if (!open) {
-      setStep("upload");
+      setStep('upload');
       setExtraction(null);
       setSelectedFile(null);
     }
@@ -246,13 +284,13 @@ export function FinancialExtractionDialog({ open, onOpenChange }: FinancialExtra
             Scan Document
           </DialogTitle>
           <DialogDescription>
-            {step === "upload" && "Upload a document to automatically extract financial data."}
-            {step === "analyzing" && "Analyzing your document..."}
-            {step === "review" && "Review and approve the extracted data."}
+            {step === 'upload' && 'Upload a document to automatically extract financial data.'}
+            {step === 'analyzing' && 'Analyzing your document...'}
+            {step === 'review' && 'Review and approve the extracted data.'}
           </DialogDescription>
         </DialogHeader>
 
-        {step === "upload" && (
+        {step === 'upload' && (
           <div className="py-8">
             <input
               type="file"
@@ -276,16 +314,14 @@ export function FinancialExtractionDialog({ open, onOpenChange }: FinancialExtra
           </div>
         )}
 
-        {step === "analyzing" && (
+        {step === 'analyzing' && (
           <div className="py-12 flex flex-col items-center gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">
-              Analyzing {selectedFile?.name}...
-            </p>
+            <p className="text-sm text-muted-foreground">Analyzing {selectedFile?.name}...</p>
           </div>
         )}
 
-        {step === "review" && (
+        {step === 'review' && (
           <div className="space-y-4">
             {extraction && extraction.confidence < 0.6 && (
               <Alert>
@@ -309,7 +345,13 @@ export function FinancialExtractionDialog({ open, onOpenChange }: FinancialExtra
               <Label>Record Type</Label>
               <Select
                 value={formData.recordType}
-                onValueChange={(v) => setFormData({ ...formData, recordType: v as typeof formData.recordType, category: "" })}
+                onValueChange={(v) =>
+                  setFormData({
+                    ...formData,
+                    recordType: v as typeof formData.recordType,
+                    category: '',
+                  })
+                }
               >
                 <SelectTrigger data-testid="select-record-type">
                   <SelectValue />
@@ -334,7 +376,9 @@ export function FinancialExtractionDialog({ open, onOpenChange }: FinancialExtra
                 </SelectTrigger>
                 <SelectContent>
                   {getCategoriesForType().map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -422,7 +466,7 @@ export function FinancialExtractionDialog({ open, onOpenChange }: FinancialExtra
           </div>
         )}
 
-        {step === "review" && (
+        {step === 'review' && (
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={handleClose}>
               Cancel

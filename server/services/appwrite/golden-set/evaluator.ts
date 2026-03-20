@@ -29,7 +29,11 @@ export function compareDate(expected: string, actual: string | undefined): boole
   return normalizedExpected === normalizedActual;
 }
 
-export function compareAmount(expected: number, actual: number | undefined, tolerance = TOLERANCE.AMOUNT_PERCENT): boolean {
+export function compareAmount(
+  expected: number,
+  actual: number | undefined,
+  tolerance = TOLERANCE.AMOUNT_PERCENT
+): boolean {
   if (actual === undefined || actual === null) return false;
   if (expected === 0 && actual === 0) return true;
   const diff = Math.abs(expected - actual);
@@ -40,8 +44,10 @@ export function compareAmount(expected: number, actual: number | undefined, tole
 export function compareEntity(expectedName: string, actualName: string | undefined): boolean {
   if (!actualName) return false;
   const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-  return normalize(expectedName).includes(normalize(actualName)) || 
-         normalize(actualName).includes(normalize(expectedName));
+  return (
+    normalize(expectedName).includes(normalize(actualName)) ||
+    normalize(actualName).includes(normalize(expectedName))
+  );
 }
 
 export function evaluateDocument(
@@ -56,9 +62,12 @@ export function evaluateDocument(
   const entityMetric = evaluateEntities(expected, extracted, errors);
   const lineItemMetric = evaluateLineItems(expected, extracted, errors);
 
-  const categoryMatch = extracted.suggested_category?.toLowerCase() === golden.category.toLowerCase();
+  const categoryMatch =
+    extracted.suggested_category?.toLowerCase() === golden.category.toLowerCase();
   if (!categoryMatch) {
-    errors.push(`Category mismatch: expected "${golden.category}", got "${extracted.suggested_category}"`);
+    errors.push(
+      `Category mismatch: expected "${golden.category}", got "${extracted.suggested_category}"`
+    );
   }
 
   const shouldHaveFinalized = golden.shouldAutoFinalize;
@@ -80,7 +89,7 @@ export function evaluateDocument(
     falseFinalization,
   };
 
-  const overallSuccess = 
+  const overallSuccess =
     dateMetric.accuracy >= 0.8 &&
     amountMetric.accuracy >= 0.9 &&
     categoryMatch &&
@@ -114,7 +123,7 @@ function evaluateDates(
   ].filter(Boolean) as string[];
 
   for (const expDate of expected.dates) {
-    const found = dateFields.some(d => compareDate(expDate.value, d));
+    const found = dateFields.some((d) => compareDate(expDate.value, d));
     if (found) {
       correct++;
     } else {
@@ -153,11 +162,13 @@ function evaluateAmounts(
   ].filter((v): v is number => v !== null && v !== undefined);
 
   for (const expAmount of expected.amounts) {
-    const found = amountFields.some(a => compareAmount(expAmount.value, a));
+    const found = amountFields.some((a) => compareAmount(expAmount.value, a));
     if (found) {
       correct++;
     } else {
-      errors.push(`Amount not found: ${expAmount.field} = ${expAmount.value} ${expAmount.currency}`);
+      errors.push(
+        `Amount not found: ${expAmount.field} = ${expAmount.value} ${expAmount.currency}`
+      );
     }
   }
 
@@ -186,7 +197,7 @@ function evaluateEntities(
   ].filter((v): v is string => v !== null && v !== undefined);
 
   for (const expEntity of expected.entities) {
-    const found = entityFields.some(e => compareEntity(expEntity.name, e));
+    const found = entityFields.some((e) => compareEntity(expEntity.name, e));
     if (found) {
       correct++;
     } else {
@@ -245,39 +256,39 @@ export function aggregateResults(results: EvaluationResult[]): AggregateMetrics 
     return totalItems > 0 ? correctItems / totalItems : 1;
   };
 
-  const categoryCorrect = results.filter(r => r.metrics.categoryAccuracy).length;
+  const categoryCorrect = results.filter((r) => r.metrics.categoryAccuracy).length;
 
   return {
-    dateAccuracy: aggregate(r => r.metrics.dateAccuracy),
-    amountAccuracy: aggregate(r => r.metrics.amountAccuracy),
+    dateAccuracy: aggregate((r) => r.metrics.dateAccuracy),
+    amountAccuracy: aggregate((r) => r.metrics.amountAccuracy),
     categoryAccuracy: results.length > 0 ? categoryCorrect / results.length : 1,
-    entityAccuracy: aggregate(r => r.metrics.entityAccuracy),
-    lineItemAccuracy: aggregate(r => r.metrics.lineItemAccuracy),
+    entityAccuracy: aggregate((r) => r.metrics.entityAccuracy),
+    lineItemAccuracy: aggregate((r) => r.metrics.lineItemAccuracy),
   };
 }
 
 export function calculateFalseFinalizationRate(results: EvaluationResult[]): number {
-  const shouldNotFinalize = results.filter(r => {
-    const golden = GOLDEN_SET_DOCUMENTS.find(g => g.id === r.documentId);
+  const shouldNotFinalize = results.filter((r) => {
+    const golden = GOLDEN_SET_DOCUMENTS.find((g) => g.id === r.documentId);
     return golden && !golden.shouldAutoFinalize;
   });
-  
+
   if (shouldNotFinalize.length === 0) return 0;
-  
-  const falselyFinalized = shouldNotFinalize.filter(r => r.metrics.falseFinalization);
+
+  const falselyFinalized = shouldNotFinalize.filter((r) => r.metrics.falseFinalization);
   return falselyFinalized.length / shouldNotFinalize.length;
 }
 
 export function generateReport(results: EvaluationResult[]): GoldenSetReport {
   const aggregateMetrics = aggregateResults(results);
   const falseFinalizationRate = calculateFalseFinalizationRate(results);
-  const passedDocuments = results.filter(r => r.success).length;
+  const passedDocuments = results.filter((r) => r.success).length;
 
   const baseline = loadBaseline();
   let regressionStatus: 'pass' | 'fail' | 'baseline' = 'baseline';
 
   if (baseline) {
-    const hasRegression = 
+    const hasRegression =
       aggregateMetrics.dateAccuracy < baseline.dateAccuracy - 0.02 ||
       aggregateMetrics.amountAccuracy < baseline.amountAccuracy - 0.02 ||
       aggregateMetrics.categoryAccuracy < baseline.categoryAccuracy - 0.02 ||
@@ -335,10 +346,10 @@ export function saveReport(report: GoldenSetReport): string {
 
   const filename = `report_${report.timestamp.replace(/[:.]/g, '-')}.json`;
   const filepath = path.join(REPORTS_DIR, filename);
-  
+
   fs.writeFileSync(filepath, JSON.stringify(report, null, 2));
   console.log('[GoldenSet] Report saved:', filepath);
-  
+
   return filepath;
 }
 

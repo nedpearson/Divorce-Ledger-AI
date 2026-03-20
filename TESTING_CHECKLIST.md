@@ -3,6 +3,7 @@
 ## Pre-Deployment Validation
 
 ### Database
+
 - [ ] Run: `npx tsx scripts/validate-database.ts`
   - [ ] All 8 tables exist
   - [ ] All key columns present
@@ -11,6 +12,7 @@
   - [ ] No orphaned records
 
 ### System Tests
+
 - [ ] Run: `npx tsx scripts/test-complete-system.ts`
   - [ ] Tier Enforcement (violations limit)
   - [ ] Storage Limit Checking
@@ -25,6 +27,7 @@
   - [ ] End-to-End Workflow
 
 ### Health Checks
+
 - [ ] Test: `curl http://localhost:5000/api/health`
   - [ ] Returns 200 (healthy)
   - [ ] All checks pass
@@ -37,6 +40,7 @@
   - [ ] Recent usage data available
 
 ### API Endpoints
+
 - [ ] GET /api/analytics/platform-metrics
 - [ ] GET /api/analytics/cohorts
 - [ ] GET /api/analytics/usage-trends
@@ -48,18 +52,21 @@
 ## Staging Validation
 
 ### Load Testing
+
 - [ ] 100 concurrent users simulated
   - [ ] Tier checks < 200ms p99
   - [ ] Billing calculation < 300ms p99
   - [ ] No database errors
 
 ### Data Validation
+
 - [ ] Create 1000 test violations
   - [ ] All recorded in usage_audit
   - [ ] Tier enforcement works
   - [ ] Billing calculates correctly
 
 ### Edge Cases
+
 - [ ] User at exact tier limit (e.g., 50 violations for Pro)
 - [ ] User exceeding tier limit (e.g., 51 violations)
 - [ ] Free tier user (no overage charges)
@@ -70,13 +77,13 @@
 ## Production Deployment
 
 ### Pre-Launch
+
 - [ ] Database backups automated
 - [ ] Monitoring alerts configured
   - [ ] High violation count alert
   - [ ] Storage quota alert
   - [ ] Tier migration failures
   - [ ] Billing calculation failures
-  
 - [ ] Cron jobs scheduled:
   - [ ] Monthly billing (1st at 2 AM UTC)
   - [ ] Quota reset (1st at 3 AM UTC)
@@ -89,6 +96,7 @@
   - [ ] Error logs centralized
 
 ### Launch Day
+
 - [ ] Health checks passing
 - [ ] Database connection verified
 - [ ] Test user created (non-production)
@@ -99,6 +107,7 @@
   - [ ] Grace periods
 
 ### Post-Launch (24 hours)
+
 - [ ] Check analytics dashboard
   - [ ] User distribution by tier
   - [ ] No null values in billing
@@ -110,6 +119,7 @@
 ## Monitoring Dashboard
 
 ### Key Metrics to Track
+
 - Active users by tier
 - Monthly recurring revenue (MRR)
 - Violations per user (average)
@@ -129,8 +139,8 @@ If critical issues found:
 
 ## Sign-Off
 
-- [ ] Database validation passed: _____________ Date: _____
-- [ ] System tests passed: _____________ Date: _____
-- [ ] Load testing passed: _____________ Date: _____
-- [ ] Staging sign-off: _____________ Date: _____
-- [ ] Production deployment approved: _____________ Date: _____
+- [ ] Database validation passed: ******\_****** Date: **\_**
+- [ ] System tests passed: ******\_****** Date: **\_**
+- [ ] Load testing passed: ******\_****** Date: **\_**
+- [ ] Staging sign-off: ******\_****** Date: **\_**
+- [ ] Production deployment approved: ******\_****** Date: **\_**

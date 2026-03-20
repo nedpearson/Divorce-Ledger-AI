@@ -1,5 +1,5 @@
-import { useLocation, Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useLocation, Link } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   DollarSign,
@@ -26,7 +26,7 @@ import {
   Sparkles,
   ClipboardList,
   BookOpen,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -39,54 +39,54 @@ import {
   SidebarHeader,
   SidebarFooter,
   SidebarSeparator,
-} from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+} from '@/components/ui/sidebar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/lib/auth";
-import { Badge } from "@/components/ui/badge";
-import { Coins } from "lucide-react";
+} from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/lib/auth';
+import { Badge } from '@/components/ui/badge';
+import { Coins } from 'lucide-react';
 
 const mainMenuItems = [
-  { title: "Home", url: "/home", icon: Home },
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Finances", url: "/finances", icon: DollarSign },
-  { title: "Documents", url: "/documents", icon: FileText },
-  { title: "Violations", url: "/violations", icon: AlertTriangle },
-  { title: "Journal", url: "/journal", icon: BookOpen },
-  { title: "Messages", url: "/communications", icon: MessageCircle },
-  { title: "Calendar", url: "/calendar", icon: Calendar },
+  { title: 'Home', url: '/home', icon: Home },
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Finances', url: '/finances', icon: DollarSign },
+  { title: 'Documents', url: '/documents', icon: FileText },
+  { title: 'Violations', url: '/violations', icon: AlertTriangle },
+  { title: 'Journal', url: '/journal', icon: BookOpen },
+  { title: 'Messages', url: '/communications', icon: MessageCircle },
+  { title: 'Calendar', url: '/calendar', icon: Calendar },
 ];
 
 const legalMenuItems = [
-  { title: "Case Builder", url: "/case-builder", icon: Briefcase },
-  { title: "Case Timeline", url: "/timeline", icon: History },
-  { title: "Legal", url: "/legal", icon: Scale },
-  { title: "Child Support", url: "/child-support", icon: Users },
-  { title: "Property Settlement", url: "/property", icon: Home },
+  { title: 'Case Builder', url: '/case-builder', icon: Briefcase },
+  { title: 'Case Timeline', url: '/timeline', icon: History },
+  { title: 'Legal', url: '/legal', icon: Scale },
+  { title: 'Child Support', url: '/child-support', icon: Users },
+  { title: 'Property Settlement', url: '/property', icon: Home },
 ];
 
 const toolsMenuItems = [
-  { title: "Analytics & Reports", url: "/analytics", icon: BarChart3 },
-  { title: "Data Governance", url: "/governance", icon: Shield },
-  { title: "AI Coach", url: "/ai-coach", icon: Bot },
-  { title: "Mobile App", url: "/mobile", icon: Smartphone },
-  { title: "Share Ideas", url: "/recommendations", icon: Lightbulb },
-  { title: "What's New", url: "/changelog", icon: Sparkles },
-  { title: "Plans & Pricing", url: "/pricing", icon: Coins },
+  { title: 'Analytics & Reports', url: '/analytics', icon: BarChart3 },
+  { title: 'Data Governance', url: '/governance', icon: Shield },
+  { title: 'AI Coach', url: '/ai-coach', icon: Bot },
+  { title: 'Mobile App', url: '/mobile', icon: Smartphone },
+  { title: 'Share Ideas', url: '/recommendations', icon: Lightbulb },
+  { title: "What's New", url: '/changelog', icon: Sparkles },
+  { title: 'Plans & Pricing', url: '/pricing', icon: Coins },
 ];
 
 const adminMenuItems = [
-  { title: "Admin Users", url: "/admin/users", icon: ShieldCheck },
-  { title: "Manage Feedback", url: "/admin/recommendations", icon: ClipboardList },
-  { title: "Super Admin", url: "/superadmin", icon: ShieldAlert },
+  { title: 'Admin Users', url: '/admin/users', icon: ShieldCheck },
+  { title: 'Manage Feedback', url: '/admin/recommendations', icon: ClipboardList },
+  { title: 'Super Admin', url: '/superadmin', icon: ShieldAlert },
 ];
 
-const SUPER_ADMIN_EMAIL = "nedpearson@gmail.com";
+const SUPER_ADMIN_EMAIL = 'nedpearson@gmail.com';
 
 export function AppSidebar() {
   const [location] = useLocation();
@@ -96,11 +96,11 @@ export function AppSidebar() {
 
   // Fetch violations count for sidebar badge
   const { data: violations } = useQuery<{ id: number }[]>({
-    queryKey: ["/api/violations", environment],
+    queryKey: ['/api/violations', environment],
     queryFn: async () => {
       const res = await fetch(`/api/violations?environment=${environment}`, {
-        credentials: "include",
-        headers: { "X-Environment": environment || "demo" },
+        credentials: 'include',
+        headers: { 'X-Environment': environment || 'demo' },
       });
       if (!res.ok) return [];
       return res.json();
@@ -110,9 +110,9 @@ export function AppSidebar() {
 
   const getInitials = (name: string) => {
     return name
-      .split(" ")
+      .split(' ')
       .map((n) => n[0])
-      .join("")
+      .join('')
       .toUpperCase()
       .slice(0, 2);
   };
@@ -138,12 +138,12 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
-                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     <Link href={item.url}>
                       <item.icon className="h-4 w-4" />
                       <span className="flex-1">{item.title}</span>
-                      {item.title === "Violations" && violationsCount > 0 && (
+                      {item.title === 'Violations' && violationsCount > 0 && (
                         <Badge variant="destructive" className="text-xs px-1.5 py-0">
                           {violationsCount}
                         </Badge>
@@ -167,7 +167,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
-                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     <Link href={item.url}>
                       <item.icon className="h-4 w-4" />
@@ -187,15 +187,14 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {toolsMenuItems.map((item) => {
-                const url = item.url === "/mobile" && environment === "demo"
-                  ? "/mobile?mode=demo"
-                  : item.url;
+                const url =
+                  item.url === '/mobile' && environment === 'demo' ? '/mobile?mode=demo' : item.url;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
-                      isActive={location === item.url || location.startsWith(item.url + "?")}
-                      data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                      isActive={location === item.url || location.startsWith(item.url + '?')}
+                      data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                     >
                       <Link href={url}>
                         <item.icon className="h-4 w-4" />
@@ -206,11 +205,11 @@ export function AppSidebar() {
                 );
               })}
 
-              {environment === "demo" && (
+              {environment === 'demo' && (
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={location === "/demo-presentation"}
+                    isActive={location === '/demo-presentation'}
                     data-testid="nav-demo-presentation"
                   >
                     <Link href="/demo-presentation">
@@ -228,7 +227,9 @@ export function AppSidebar() {
           <>
             <SidebarSeparator />
             <SidebarGroup>
-              <SidebarGroupLabel className="text-xs text-yellow-600 dark:text-yellow-500">Administration</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-xs text-yellow-600 dark:text-yellow-500">
+                Administration
+              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {adminMenuItems.map((item) => (
@@ -236,7 +237,7 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         asChild
                         isActive={location === item.url}
-                        data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                        data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                       >
                         <Link href={item.url}>
                           <item.icon className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
@@ -257,7 +258,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={location === "/settings"}
+              isActive={location === '/settings'}
               data-testid="nav-settings"
             >
               <Link href="/settings">
@@ -278,29 +279,35 @@ export function AppSidebar() {
             >
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                  {user ? getInitials(user.fullName) : "U"}
+                  {user ? getInitials(user.fullName) : 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 text-left min-w-0">
-                <p className="text-sm font-medium truncate">{user?.fullName || "User"}</p>
+                <p className="text-sm font-medium truncate">{user?.fullName || 'User'}</p>
                 <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
-            {environment === "demo" && (
+            {environment === 'demo' && (
               <>
                 <div className="px-2 py-1.5 text-xs font-semibold text-orange-600 bg-orange-50 uppercase mt-1 mb-1 rounded-sm">
                   Demo Switcher
                 </div>
                 <DropdownMenuItem
                   onClick={async () => {
-                    const pass = "demo1234";
-                    const email = "client.demo@example.com";
-                    const res = await fetch("/api/auth/login", {
-                      method: "POST", headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ email, password: pass, environment: "demo", rememberMe: false })
+                    const pass = 'demo1234';
+                    const email = 'client.demo@example.com';
+                    const res = await fetch('/api/auth/login', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        email,
+                        password: pass,
+                        environment: 'demo',
+                        rememberMe: false,
+                      }),
                     });
                     if (res.ok) window.location.reload();
                   }}
@@ -311,11 +318,17 @@ export function AppSidebar() {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async () => {
-                    const pass = "demo1234";
-                    const email = "firm.admin.demo@example.com";
-                    const res = await fetch("/api/auth/login", {
-                      method: "POST", headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ email, password: pass, environment: "demo", rememberMe: false })
+                    const pass = 'demo1234';
+                    const email = 'firm.admin.demo@example.com';
+                    const res = await fetch('/api/auth/login', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        email,
+                        password: pass,
+                        environment: 'demo',
+                        rememberMe: false,
+                      }),
                     });
                     if (res.ok) window.location.reload();
                   }}

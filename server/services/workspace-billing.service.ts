@@ -48,9 +48,10 @@ export async function createCheckoutSession(
     const [newWorkspace] = await db
       .insert(workspaces)
       .values({
-        name: workspaceType === 'consumer'
-          ? `${user.fullName}'s Workspace`
-          : `${user.fullName}'s Law Firm`,
+        name:
+          workspaceType === 'consumer'
+            ? `${user.fullName}'s Workspace`
+            : `${user.fullName}'s Law Firm`,
         type: workspaceType,
         ownerId: userId,
         subscriptionTier: 'free',
@@ -132,10 +133,7 @@ export async function createCustomerPortalSession(
 ): Promise<{ portalUrl: string }> {
   const stripe = await getUncachableStripeClient();
   const workspace = await db.query.workspaces.findFirst({
-    where: and(
-      eq(workspaces.id, workspaceId),
-      eq(workspaces.ownerId, userId)
-    ),
+    where: and(eq(workspaces.id, workspaceId), eq(workspaces.ownerId, userId)),
   });
 
   if (!workspace) {
@@ -157,9 +155,7 @@ export async function createCustomerPortalSession(
 /**
  * Handles successful checkout (called from webhook)
  */
-export async function handleCheckoutCompleted(
-  session: Stripe.Checkout.Session
-): Promise<void> {
+export async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
   const stripe = await getUncachableStripeClient();
   const { workspaceId, planId } = session.metadata || {};
 
@@ -197,9 +193,7 @@ export async function handleCheckoutCompleted(
 /**
  * Handles subscription updates (upgrades/downgrades)
  */
-export async function handleSubscriptionUpdated(
-  subscription: Stripe.Subscription
-): Promise<void> {
+export async function handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<void> {
   const { workspaceId, planId } = subscription.metadata || {};
 
   if (!workspaceId) {
@@ -237,9 +231,7 @@ export async function handleSubscriptionUpdated(
 /**
  * Handles subscription deletion (cancellation)
  */
-export async function handleSubscriptionDeleted(
-  subscription: Stripe.Subscription
-): Promise<void> {
+export async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Promise<void> {
   const { workspaceId } = subscription.metadata || {};
 
   if (!workspaceId) {
@@ -268,9 +260,7 @@ export async function handleSubscriptionDeleted(
 /**
  * Handles successful invoice payment (monthly credit reset)
  */
-export async function handleInvoicePaymentSucceeded(
-  invoice: Stripe.Invoice
-): Promise<void> {
+export async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
   if (!(invoice as any).subscription) {
     return;
   }
@@ -293,9 +283,7 @@ export async function handleInvoicePaymentSucceeded(
 /**
  * Handles failed invoice payment
  */
-export async function handleInvoicePaymentFailed(
-  invoice: Stripe.Invoice
-): Promise<void> {
+export async function handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
   if (!(invoice as any).subscription) {
     return;
   }
@@ -320,7 +308,7 @@ export async function handleInvoicePaymentFailed(
   console.warn(`Invoice payment failed for workspace ${workspace.id}`);
 
   const owner = await db.query.users.findFirst({
-    where: eq(users.id, workspace.ownerId)
+    where: eq(users.id, workspace.ownerId),
   });
 
   if (owner && owner.email) {

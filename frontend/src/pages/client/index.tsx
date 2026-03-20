@@ -3,11 +3,11 @@ import AuthGuard from '@/components/guards/AuthGuard';
 import RoleGuard from '@/components/guards/RoleGuard';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase';
-import { 
-  BriefcaseIcon, 
-  DocumentTextIcon, 
+import {
+  BriefcaseIcon,
+  DocumentTextIcon,
   ClockIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline';
 
 interface Matter {
@@ -55,19 +55,21 @@ export default function ClientPortal() {
       // Load matters where user is a client
       const { data: matterAccess, error } = await supabase
         .from('matter_access')
-        .select(`
+        .select(
+          `
           matter_id,
           matter_number,
           matter_title,
           matter_description,
           matter_status,
           workspace_name
-        `)
+        `
+        )
         .eq('user_id', user.id);
 
       if (error) throw error;
 
-      const mattersData = (matterAccess || []).map(ma => ({
+      const mattersData = (matterAccess || []).map((ma) => ({
         id: ma.matter_id,
         matter_number: ma.matter_number,
         title: ma.matter_title,
@@ -104,7 +106,7 @@ export default function ClientPortal() {
     }
   };
 
-  const currentMatter = matters.find(m => m.id === selectedMatter);
+  const currentMatter = matters.find((m) => m.id === selectedMatter);
 
   if (loading) {
     return (
@@ -127,7 +129,8 @@ export default function ClientPortal() {
                 <BriefcaseIcon className="mx-auto h-16 w-16 text-gray-400" />
                 <h2 className="mt-4 text-2xl font-bold text-gray-900">No Cases Assigned</h2>
                 <p className="mt-2 text-gray-600">
-                  You don't have access to any cases yet. Your attorney will grant you access once your case is set up.
+                  You don't have access to any cases yet. Your attorney will grant you access once
+                  your case is set up.
                 </p>
                 <div className="mt-6">
                   <a
@@ -162,7 +165,8 @@ export default function ClientPortal() {
                 <InformationCircleIcon className="h-5 w-5 text-blue-400 mt-0.5" />
                 <div className="ml-3">
                   <p className="text-sm text-blue-700">
-                    This is a read-only view of your case. Contact your attorney if you need to update any information.
+                    This is a read-only view of your case. Contact your attorney if you need to
+                    update any information.
                   </p>
                 </div>
               </div>
@@ -188,17 +192,19 @@ export default function ClientPortal() {
                           <BriefcaseIcon className="h-5 w-5 text-gray-400 mt-1" />
                           <div className="ml-3 flex-1">
                             <p className="text-sm font-medium text-gray-900">{matter.title}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {matter.workspace_name}
-                            </p>
+                            <p className="text-xs text-gray-500 mt-1">{matter.workspace_name}</p>
                             <p className="text-xs text-gray-400 mt-1">
                               Matter #{matter.matter_number}
                             </p>
-                            <span className={`inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full ${
-                              matter.status === 'active' ? 'bg-green-100 text-green-800' :
-                              matter.status === 'closed' ? 'bg-gray-100 text-gray-800' :
-                              'bg-yellow-100 text-yellow-800'
-                            }`}>
+                            <span
+                              className={`inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full ${
+                                matter.status === 'active'
+                                  ? 'bg-green-100 text-green-800'
+                                  : matter.status === 'closed'
+                                    ? 'bg-gray-100 text-gray-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                              }`}
+                            >
                               {matter.status}
                             </span>
                           </div>
@@ -222,28 +228,38 @@ export default function ClientPortal() {
                         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div>
                             <dt className="text-sm font-medium text-gray-500">Matter Number</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{currentMatter.matter_number}</dd>
+                            <dd className="mt-1 text-sm text-gray-900">
+                              {currentMatter.matter_number}
+                            </dd>
                           </div>
                           <div>
                             <dt className="text-sm font-medium text-gray-500">Status</dt>
                             <dd className="mt-1">
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                currentMatter.status === 'active' ? 'bg-green-100 text-green-800' :
-                                currentMatter.status === 'closed' ? 'bg-gray-100 text-gray-800' :
-                                'bg-yellow-100 text-yellow-800'
-                              }`}>
+                              <span
+                                className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                  currentMatter.status === 'active'
+                                    ? 'bg-green-100 text-green-800'
+                                    : currentMatter.status === 'closed'
+                                      ? 'bg-gray-100 text-gray-800'
+                                      : 'bg-yellow-100 text-yellow-800'
+                                }`}
+                              >
                                 {currentMatter.status}
                               </span>
                             </dd>
                           </div>
                           <div className="sm:col-span-2">
                             <dt className="text-sm font-medium text-gray-500">Law Firm</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{currentMatter.workspace_name}</dd>
+                            <dd className="mt-1 text-sm text-gray-900">
+                              {currentMatter.workspace_name}
+                            </dd>
                           </div>
                           {currentMatter.description && (
                             <div className="sm:col-span-2">
                               <dt className="text-sm font-medium text-gray-500">Description</dt>
-                              <dd className="mt-1 text-sm text-gray-900">{currentMatter.description}</dd>
+                              <dd className="mt-1 text-sm text-gray-900">
+                                {currentMatter.description}
+                              </dd>
                             </div>
                           )}
                         </dl>
@@ -257,7 +273,9 @@ export default function ClientPortal() {
                       </div>
                       <div className="px-4 py-5 sm:p-6">
                         {documents.length === 0 ? (
-                          <p className="text-gray-500 text-center py-8">No documents available yet.</p>
+                          <p className="text-gray-500 text-center py-8">
+                            No documents available yet.
+                          </p>
                         ) : (
                           <ul className="divide-y divide-gray-200">
                             {documents.map((doc) => (
@@ -267,8 +285,8 @@ export default function ClientPortal() {
                                   <div className="flex-1">
                                     <p className="text-sm font-medium text-gray-900">{doc.title}</p>
                                     <p className="text-xs text-gray-500 mt-1">
-                                      Type: {doc.document_type} • 
-                                      Uploaded: {new Date(doc.created_at).toLocaleDateString()}
+                                      Type: {doc.document_type} • Uploaded:{' '}
+                                      {new Date(doc.created_at).toLocaleDateString()}
                                     </p>
                                   </div>
                                   <button className="text-sm text-blue-600 hover:text-blue-800">

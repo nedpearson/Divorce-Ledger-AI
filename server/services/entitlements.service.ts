@@ -1,8 +1,17 @@
 import { db } from '../db';
-import { workspaces, workspaceMembers, matters, subscriptionEntitlements } from '@shared/workspace-schema';
+import {
+  workspaces,
+  workspaceMembers,
+  matters,
+  subscriptionEntitlements,
+} from '@shared/workspace-schema';
 import { documents } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
-import { WORKSPACE_TIER_ENTITLEMENTS, type WorkspaceEntitlements, type WorkspaceTier } from '@shared/workspace-schema';
+import {
+  WORKSPACE_TIER_ENTITLEMENTS,
+  type WorkspaceEntitlements,
+  type WorkspaceTier,
+} from '@shared/workspace-schema';
 import {
   featureFlags,
   workspaceFeatureOverrides,
@@ -19,27 +28,37 @@ export async function resolveFeatures(
 ): Promise<Record<string, boolean>> {
   const [globals, wsOverrides, userOvrs] = await Promise.all([
     db.select().from(featureFlags),
-    db.select().from(workspaceFeatureOverrides).where(eq(workspaceFeatureOverrides.workspaceId, workspaceId)),
+    db
+      .select()
+      .from(workspaceFeatureOverrides)
+      .where(eq(workspaceFeatureOverrides.workspaceId, workspaceId)),
     userId
-      ? db.select().from(userEntitlements).where(
-        and(eq(userEntitlements.userId, userId), eq(userEntitlements.workspaceId, workspaceId))
-      )
+      ? db
+          .select()
+          .from(userEntitlements)
+          .where(
+            and(eq(userEntitlements.userId, userId), eq(userEntitlements.workspaceId, workspaceId))
+          )
       : Promise.resolve([]),
   ]);
 
   const effective: Record<string, boolean> = {};
-  for (const f of globals) { effective[f.key] = f.enabled; }
-  for (const o of wsOverrides) { effective[o.featureKey] = o.enabled; }
-  for (const u of userOvrs) { if (u.enabled !== null && u.enabled !== undefined) effective[u.featureKey] = u.enabled; }
+  for (const f of globals) {
+    effective[f.key] = f.enabled;
+  }
+  for (const o of wsOverrides) {
+    effective[o.featureKey] = o.enabled;
+  }
+  for (const u of userOvrs) {
+    if (u.enabled !== null && u.enabled !== undefined) effective[u.featureKey] = u.enabled;
+  }
   return effective;
 }
 
 /**
  * Resolves current entitlements for a workspace, combining tier limits with overrides
  */
-export async function resolveEntitlements(
-  workspaceId: string
-): Promise<WorkspaceEntitlements> {
+export async function resolveEntitlements(workspaceId: string): Promise<WorkspaceEntitlements> {
   const workspace = await db.query.workspaces.findFirst({
     where: eq(workspaces.id, workspaceId),
   });
@@ -67,10 +86,13 @@ export async function resolveEntitlements(
     where: eq(subscriptionEntitlements.workspaceId, workspaceId),
   });
 
-  const overrideMap = overrides.reduce((acc, ent) => {
-    acc[ent.entitlementType] = ent.limitValue;
-    return acc;
-  }, {} as Record<string, number | null>);
+  const overrideMap = overrides.reduce(
+    (acc, ent) => {
+      acc[ent.entitlementType] = ent.limitValue;
+      return acc;
+    },
+    {} as Record<string, number | null>
+  );
 
   return {
     matters: {
@@ -158,10 +180,7 @@ export function canPerformAction(
 /**
  * Sync entitlements from Stripe subscription to DB
  */
-export async function syncEntitlements(
-  workspaceId: string,
-  tier: WorkspaceTier
-): Promise<void> {
+export async function syncEntitlements(workspaceId: string, tier: WorkspaceTier): Promise<void> {
   const tierConfig = WORKSPACE_TIER_ENTITLEMENTS[tier];
 
   if (!tierConfig) {
@@ -227,12 +246,7 @@ async function getCurrentMattersCount(workspaceId: string): Promise<number> {
   const result = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(matters)
-    .where(
-      and(
-        eq(matters.workspaceId, workspaceId),
-        sql`${matters.status} != 'archived'`
-      )
-    );
+    .where(and(eq(matters.workspaceId, workspaceId), sql`${matters.status} != 'archived'`));
 
   return result[0]?.count || 0;
 }
@@ -244,7 +258,9 @@ async function getCurrentStorageUsage(workspaceId: string): Promise<number> {
   const result = await db
     .select({ total: sql<number>`COALESCE(SUM(${documents.fileSize}), 0) / 1048576.0` })
     .from(documents)
-    .where(sql`${documents.userId} IN (SELECT user_id FROM workspace_members WHERE workspace_id = ${workspaceId})`);
+    .where(
+      sql`${documents.userId} IN (SELECT user_id FROM workspace_members WHERE workspace_id = ${workspaceId})`
+    );
 
   return Math.round(result[0]?.total || 0);
 }
@@ -258,10 +274,7 @@ export async function hasWorkspaceRole(
   allowedRoles: string[]
 ): Promise<boolean> {
   const member = await db.query.workspaceMembers.findFirst({
-    where: and(
-      eq(workspaceMembers.workspaceId, workspaceId),
-      eq(workspaceMembers.userId, userId)
-    ),
+    where: and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)),
   });
 
   if (!member) {
@@ -274,10 +287,7 @@ export async function hasWorkspaceRole(
 /**
  * Check if user can access a matter
  */
-export async function hasMatterAccess(
-  userId: string,
-  matterId: string
-): Promise<boolean> {
+export async function hasMatterAccess(userId: string, matterId: string): Promise<boolean> {
   // Check if user is a matter member
   const memberCheck = await db.query.matterMembers.findFirst({
     where: and(

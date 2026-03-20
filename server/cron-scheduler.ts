@@ -1,6 +1,6 @@
-import { billingService } from './billing-service';
-import { quotaResetService } from './quota-reset-service';
-import { tierMigrationService } from './tier-migration-service';
+import { billingService } from './services/billing-service';
+import { quotaResetService } from './services/quota-reset-service';
+import { tierMigrationService } from './services/tier-migration-service';
 
 /**
  * Section 2C: OPTIONAL CRON
@@ -51,7 +51,9 @@ class CronScheduler {
   start(): void {
     // Section 6: Enforce APP_MODE isolation
     if (process.env.APP_MODE !== 'demo' || process.env.CRON_ENABLED !== 'true') {
-      console.log('[CRON] Scheduler skipped: Environment isolation active (NOT in demo mode or cron disabled).');
+      console.log(
+        '[CRON] Scheduler skipped: Environment isolation active (NOT in demo mode or cron disabled).'
+      );
       return;
     }
 
@@ -64,7 +66,9 @@ class CronScheduler {
     console.log('[CRON] Scheduled tasks:');
     for (const task of this.tasks) {
       const { day, hour, minute } = task.schedule;
-      console.log(`  - ${task.name}: Day ${day} at ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} UTC`);
+      console.log(
+        `  - ${task.name}: Day ${day} at ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} UTC`
+      );
     }
 
     this.intervalId = setInterval(() => this.tick(), this.checkIntervalMs);
@@ -111,7 +115,7 @@ class CronScheduler {
   }
 
   async runNow(taskName: string): Promise<any> {
-    const task = this.tasks.find(t => t.name === taskName);
+    const task = this.tasks.find((t) => t.name === taskName);
     if (!task) {
       throw new Error(`Task not found: ${taskName}`);
     }
@@ -124,40 +128,35 @@ class CronScheduler {
 
   async runAllMonthlyTasks(): Promise<{ quotas: any; billing: any; migrations: any }> {
     console.log('[CRON] Running all monthly tasks manually...');
-    
+
     const quotas = await quotaResetService.resetMonthlyQuotas();
     const billing = await billingService.processMonthlyBillings();
     const migrations = await tierMigrationService.applyPendingMigrations();
-    
+
     return { quotas, billing, migrations };
   }
 
-  getStatus(): { running: boolean; tasks: Array<{ name: string; lastRun: Date | null; nextRun: string }> } {
+  getStatus(): {
+    running: boolean;
+    tasks: Array<{ name: string; lastRun: Date | null; nextRun: string }>;
+  } {
     const now = new Date();
-    
+
     return {
       running: this.intervalId !== null,
-      tasks: this.tasks.map(task => {
+      tasks: this.tasks.map((task) => {
         const { day, hour, minute } = task.schedule;
-        
-        let nextRun = new Date(Date.UTC(
-          now.getUTCFullYear(),
-          now.getUTCMonth(),
-          day,
-          hour,
-          minute
-        ));
-        
+
+        let nextRun = new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day, hour, minute)
+        );
+
         if (nextRun <= now) {
-          nextRun = new Date(Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth() + 1,
-            day,
-            hour,
-            minute
-          ));
+          nextRun = new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, day, hour, minute)
+          );
         }
-        
+
         return {
           name: task.name,
           lastRun: task.lastRun || null,

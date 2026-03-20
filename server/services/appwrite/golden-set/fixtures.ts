@@ -15,7 +15,7 @@ export const GOLDEN_SET_DOCUMENTS: GoldenSetDocument[] = [
       ],
       amounts: [
         { field: 'ending_balance', value: 15432.67, currency: 'USD' },
-        { field: 'beginning_balance', value: 12500.00, currency: 'USD' },
+        { field: 'beginning_balance', value: 12500.0, currency: 'USD' },
       ],
       entities: [
         { field: 'institution', name: 'Chase Bank', type: 'organization' },
@@ -38,9 +38,9 @@ export const GOLDEN_SET_DOCUMENTS: GoldenSetDocument[] = [
         { field: 'pay_period_end', value: '2024-03-21', format: 'YYYY-MM-DD' },
       ],
       amounts: [
-        { field: 'gross_pay', value: 3500.00, currency: 'USD' },
-        { field: 'net_pay', value: 2650.00, currency: 'USD' },
-        { field: 'federal_tax', value: 450.00, currency: 'USD' },
+        { field: 'gross_pay', value: 3500.0, currency: 'USD' },
+        { field: 'net_pay', value: 2650.0, currency: 'USD' },
+        { field: 'federal_tax', value: 450.0, currency: 'USD' },
       ],
       entities: [
         { field: 'employer', name: 'Acme Corporation', type: 'organization' },
@@ -58,20 +58,16 @@ export const GOLDEN_SET_DOCUMENTS: GoldenSetDocument[] = [
     mimeType: 'image/jpeg',
     category: 'receipt',
     expectedExtraction: {
-      dates: [
-        { field: 'transaction_date', value: '2024-02-15', format: 'YYYY-MM-DD' },
-      ],
+      dates: [{ field: 'transaction_date', value: '2024-02-15', format: 'YYYY-MM-DD' }],
       amounts: [
         { field: 'total', value: 87.43, currency: 'USD' },
-        { field: 'subtotal', value: 82.50, currency: 'USD' },
+        { field: 'subtotal', value: 82.5, currency: 'USD' },
         { field: 'tax', value: 4.93, currency: 'USD' },
       ],
-      entities: [
-        { field: 'vendor', name: 'Target', type: 'vendor' },
-      ],
+      entities: [{ field: 'vendor', name: 'Target', type: 'vendor' }],
       lineItems: [
         { description: 'Organic Milk', amount: 6.99, quantity: 2 },
-        { description: 'Bread', amount: 4.50, quantity: 1 },
+        { description: 'Bread', amount: 4.5, quantity: 1 },
         { description: 'Eggs', amount: 5.99, quantity: 1 },
       ],
     },
@@ -90,9 +86,7 @@ export const GOLDEN_SET_DOCUMENTS: GoldenSetDocument[] = [
         { field: 'order_date', value: '2023-06-15', format: 'YYYY-MM-DD' },
         { field: 'effective_date', value: '2023-07-01', format: 'YYYY-MM-DD' },
       ],
-      amounts: [
-        { field: 'monthly_support', value: 1500.00, currency: 'USD' },
-      ],
+      amounts: [{ field: 'monthly_support', value: 1500.0, currency: 'USD' }],
       entities: [
         { field: 'court', name: 'Superior Court of California', type: 'organization' },
         { field: 'petitioner', name: 'Sarah Johnson', type: 'person' },
@@ -112,17 +106,13 @@ export const GOLDEN_SET_DOCUMENTS: GoldenSetDocument[] = [
     mimeType: 'application/pdf',
     category: 'tax_return',
     expectedExtraction: {
-      dates: [
-        { field: 'tax_year', value: '2023-12-31', format: 'YYYY-MM-DD' },
-      ],
+      dates: [{ field: 'tax_year', value: '2023-12-31', format: 'YYYY-MM-DD' }],
       amounts: [
-        { field: 'adjusted_gross_income', value: 85000.00, currency: 'USD' },
-        { field: 'total_tax', value: 12500.00, currency: 'USD' },
-        { field: 'refund_amount', value: 2340.00, currency: 'USD' },
+        { field: 'adjusted_gross_income', value: 85000.0, currency: 'USD' },
+        { field: 'total_tax', value: 12500.0, currency: 'USD' },
+        { field: 'refund_amount', value: 2340.0, currency: 'USD' },
       ],
-      entities: [
-        { field: 'taxpayer', name: 'Robert Williams', type: 'person' },
-      ],
+      entities: [{ field: 'taxpayer', name: 'Robert Williams', type: 'person' }],
       documentType: 'form_1040',
     },
     shouldAutoFinalize: true,
@@ -140,18 +130,16 @@ export const GOLDEN_SET_DOCUMENTS: GoldenSetDocument[] = [
         { field: 'invoice_date', value: '2024-01-10', format: 'YYYY-MM-DD' },
         { field: 'due_date', value: '2024-02-10', format: 'YYYY-MM-DD' },
       ],
-      amounts: [
-        { field: 'total_due', value: 5250.00, currency: 'USD' },
-      ],
+      amounts: [{ field: 'total_due', value: 5250.0, currency: 'USD' }],
       entities: [
         { field: 'vendor', name: 'Smith & Associates Law Firm', type: 'organization' },
         { field: 'client', name: 'Emily Chen', type: 'person' },
       ],
       lineItems: [
-        { description: 'Legal consultation (5 hrs)', amount: 1500.00 },
-        { description: 'Document preparation', amount: 750.00 },
-        { description: 'Court filing fees', amount: 500.00 },
-        { description: 'Research and analysis (10 hrs)', amount: 2500.00 },
+        { description: 'Legal consultation (5 hrs)', amount: 1500.0 },
+        { description: 'Document preparation', amount: 750.0 },
+        { description: 'Court filing fees', amount: 500.0 },
+        { description: 'Research and analysis (10 hrs)', amount: 2500.0 },
       ],
       documentNumber: 'INV-2024-0042',
     },
@@ -166,12 +154,8 @@ export const GOLDEN_SET_DOCUMENTS: GoldenSetDocument[] = [
     mimeType: 'application/pdf',
     category: 'property_deed',
     expectedExtraction: {
-      dates: [
-        { field: 'recording_date', value: '2020-08-15', format: 'YYYY-MM-DD' },
-      ],
-      amounts: [
-        { field: 'purchase_price', value: 450000.00, currency: 'USD' },
-      ],
+      dates: [{ field: 'recording_date', value: '2020-08-15', format: 'YYYY-MM-DD' }],
+      amounts: [{ field: 'purchase_price', value: 450000.0, currency: 'USD' }],
       entities: [
         { field: 'grantor', name: 'Previous Owner LLC', type: 'organization' },
         { field: 'grantee', name: 'John and Jane Smith', type: 'person' },
@@ -195,8 +179,8 @@ export const GOLDEN_SET_DOCUMENTS: GoldenSetDocument[] = [
       ],
       amounts: [
         { field: 'statement_balance', value: 3456.78, currency: 'USD' },
-        { field: 'minimum_payment', value: 75.00, currency: 'USD' },
-        { field: 'previous_balance', value: 2100.00, currency: 'USD' },
+        { field: 'minimum_payment', value: 75.0, currency: 'USD' },
+        { field: 'previous_balance', value: 2100.0, currency: 'USD' },
       ],
       entities: [
         { field: 'issuer', name: 'Chase Visa', type: 'organization' },
@@ -219,9 +203,9 @@ export const GOLDEN_SET_DOCUMENTS: GoldenSetDocument[] = [
         { field: 'bill_date', value: '2024-01-20', format: 'YYYY-MM-DD' },
       ],
       amounts: [
-        { field: 'total_charges', value: 2500.00, currency: 'USD' },
-        { field: 'insurance_adjustment', value: 1800.00, currency: 'USD' },
-        { field: 'patient_responsibility', value: 700.00, currency: 'USD' },
+        { field: 'total_charges', value: 2500.0, currency: 'USD' },
+        { field: 'insurance_adjustment', value: 1800.0, currency: 'USD' },
+        { field: 'patient_responsibility', value: 700.0, currency: 'USD' },
       ],
       entities: [
         { field: 'provider', name: 'City General Hospital', type: 'organization' },
@@ -239,14 +223,12 @@ export const GOLDEN_SET_DOCUMENTS: GoldenSetDocument[] = [
     mimeType: 'application/pdf',
     category: 'w2',
     expectedExtraction: {
-      dates: [
-        { field: 'tax_year', value: '2023-12-31', format: 'YYYY-MM-DD' },
-      ],
+      dates: [{ field: 'tax_year', value: '2023-12-31', format: 'YYYY-MM-DD' }],
       amounts: [
-        { field: 'wages_tips_other', value: 75000.00, currency: 'USD' },
-        { field: 'federal_income_tax_withheld', value: 11250.00, currency: 'USD' },
-        { field: 'social_security_wages', value: 75000.00, currency: 'USD' },
-        { field: 'medicare_wages', value: 75000.00, currency: 'USD' },
+        { field: 'wages_tips_other', value: 75000.0, currency: 'USD' },
+        { field: 'federal_income_tax_withheld', value: 11250.0, currency: 'USD' },
+        { field: 'social_security_wages', value: 75000.0, currency: 'USD' },
+        { field: 'medicare_wages', value: 75000.0, currency: 'USD' },
       ],
       entities: [
         { field: 'employer', name: 'Tech Solutions Inc', type: 'organization' },
@@ -260,15 +242,13 @@ export const GOLDEN_SET_DOCUMENTS: GoldenSetDocument[] = [
 ];
 
 export function getGoldenSetById(id: string): GoldenSetDocument | undefined {
-  return GOLDEN_SET_DOCUMENTS.find(doc => doc.id === id);
+  return GOLDEN_SET_DOCUMENTS.find((doc) => doc.id === id);
 }
 
 export function getGoldenSetByCategory(category: string): GoldenSetDocument[] {
-  return GOLDEN_SET_DOCUMENTS.filter(doc => doc.category === category);
+  return GOLDEN_SET_DOCUMENTS.filter((doc) => doc.category === category);
 }
 
 export function getGoldenSetByTags(tags: string[]): GoldenSetDocument[] {
-  return GOLDEN_SET_DOCUMENTS.filter(doc => 
-    tags.some(tag => doc.tags.includes(tag))
-  );
+  return GOLDEN_SET_DOCUMENTS.filter((doc) => tags.some((tag) => doc.tags.includes(tag)));
 }

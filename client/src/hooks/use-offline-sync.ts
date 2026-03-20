@@ -1,20 +1,20 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { addToSyncQueue, getSyncQueueCount } from "@/lib/offline-db";
-import { syncOfflineChanges, type SyncResult } from "@/lib/sync";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { addToSyncQueue, getSyncQueueCount } from '@/lib/offline-db';
+import { syncOfflineChanges, type SyncResult } from '@/lib/sync';
 import { subscribeMobileRealtime } from '@/lib/sync';
 
-import { queryClient } from "@/lib/queryClient";
+import { queryClient } from '@/lib/queryClient';
 
 const MOBILE_QUERY_KEYS = [
-  "/api/mobile/assets",
-  "/api/mobile/debts",
-  "/api/mobile/incomes",
-  "/api/mobile/expenses",
-  "/api/mobile/child-support",
-  "/api/mobile/financial-summary",
-  "/api/mobile/documents",
-  "/api/mobile/violations",
-  "/api/mobile/calendar",
+  '/api/mobile/assets',
+  '/api/mobile/debts',
+  '/api/mobile/incomes',
+  '/api/mobile/expenses',
+  '/api/mobile/child-support',
+  '/api/mobile/financial-summary',
+  '/api/mobile/documents',
+  '/api/mobile/violations',
+  '/api/mobile/calendar',
 ];
 
 // Captured once — the beforeinstallprompt event fires only once per session
@@ -22,7 +22,7 @@ let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
 export interface UseOfflineSyncReturn {
@@ -34,7 +34,7 @@ export interface UseOfflineSyncReturn {
   isInstallable: boolean;
   installApp: () => Promise<void>;
   queueMutation: (params: {
-    method: "POST" | "PATCH" | "DELETE";
+    method: 'POST' | 'PATCH' | 'DELETE';
     url: string;
     body?: unknown;
     description: string;
@@ -59,11 +59,11 @@ export function useOfflineSync(): UseOfflineSyncReturn {
   useEffect(() => {
     const onOnline = () => setIsOnline(true);
     const onOffline = () => setIsOnline(false);
-    window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
     return () => {
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
     };
   }, []);
 
@@ -78,11 +78,11 @@ export function useOfflineSync(): UseOfflineSyncReturn {
       deferredInstallPrompt = null;
       setIsInstallable(false);
     };
-    window.addEventListener("beforeinstallprompt", onInstallPrompt);
-    window.addEventListener("appinstalled", onInstalled);
+    window.addEventListener('beforeinstallprompt', onInstallPrompt);
+    window.addEventListener('appinstalled', onInstalled);
     return () => {
-      window.removeEventListener("beforeinstallprompt", onInstallPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
+      window.removeEventListener('beforeinstallprompt', onInstallPrompt);
+      window.removeEventListener('appinstalled', onInstalled);
     };
   }, []);
 
@@ -95,15 +95,15 @@ export function useOfflineSync(): UseOfflineSyncReturn {
 
   // ── Listen for SW cache-update messages ───────────────────────────────────
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
+    if (!('serviceWorker' in navigator)) return;
     const onMessage = (e: MessageEvent) => {
-      if (e.data?.type === "API_CACHE_UPDATED") {
+      if (e.data?.type === 'API_CACHE_UPDATED') {
         // SW just stored fresh data — good time to refresh counts
         refreshPendingCount();
       }
     };
-    navigator.serviceWorker.addEventListener("message", onMessage);
-    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
   }, [refreshPendingCount]);
 
   // ── Sync ──────────────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ export function useOfflineSync(): UseOfflineSyncReturn {
       const result: SyncResult = {
         flushed: 0,
         failed: 0,
-        errors: [err instanceof Error ? err.message : "Unknown sync error"],
+        errors: [err instanceof Error ? err.message : 'Unknown sync error'],
       };
       setLastSyncResult(result);
       return result;
@@ -137,7 +137,7 @@ export function useOfflineSync(): UseOfflineSyncReturn {
     if (!deferredInstallPrompt) return;
     await deferredInstallPrompt.prompt();
     const { outcome } = await deferredInstallPrompt.userChoice;
-    if (outcome === "accepted") {
+    if (outcome === 'accepted') {
       deferredInstallPrompt = null;
       setIsInstallable(false);
     }
@@ -146,7 +146,7 @@ export function useOfflineSync(): UseOfflineSyncReturn {
   // ── Queue a mutation for later sync ──────────────────────────────────────
   const queueMutation = useCallback(
     async (params: {
-      method: "POST" | "PATCH" | "DELETE";
+      method: 'POST' | 'PATCH' | 'DELETE';
       url: string;
       body?: unknown;
       description: string;
@@ -154,13 +154,13 @@ export function useOfflineSync(): UseOfflineSyncReturn {
       // Capture auth headers from localStorage (mirrors queryClient.ts behaviour)
       const headers: Record<string, string> = {};
       try {
-        const userStr = localStorage.getItem("user");
+        const userStr = localStorage.getItem('user');
         if (userStr) {
           const user = JSON.parse(userStr) as { id?: string };
-          if (user?.id) headers["X-User-Id"] = user.id;
+          if (user?.id) headers['X-User-Id'] = user.id;
         }
-        const env = localStorage.getItem("environment");
-        if (env) headers["X-Environment"] = env;
+        const env = localStorage.getItem('environment');
+        if (env) headers['X-Environment'] = env;
       } catch {
         // ignore parse errors
       }
@@ -182,7 +182,9 @@ export function useOfflineSync(): UseOfflineSyncReturn {
   useEffect(() => {
     subscribeMobileRealtime(() => {
       // Invalidate all mobile query keys for fresh data
-      MOBILE_QUERY_KEYS.forEach((key: string) => queryClient.invalidateQueries({ queryKey: [key] }));
+      MOBILE_QUERY_KEYS.forEach((key: string) =>
+        queryClient.invalidateQueries({ queryKey: [key] })
+      );
     });
   }, []);
 

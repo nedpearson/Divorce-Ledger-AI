@@ -1,26 +1,45 @@
-import React, { useState, useRef, useEffect, lazy, Suspense } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 
 // UI Components
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardTitle, CardDescription, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardTitle, CardDescription, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 // Hooks and Utilities
-import { useAuth } from "@/lib/auth";
-import { useToast } from "@/hooks/use-toast";
-import { useOfflineSync } from "@/hooks/use-offline-sync";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useAuth } from '@/lib/auth';
+import { useToast } from '@/hooks/use-toast';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import {
   ArrowLeft,
   FileText,
@@ -70,25 +89,38 @@ import {
   WifiOff,
   RefreshCw,
   Download,
-} from "lucide-react";
-import type { Document, MobileViolationReport, Reimbursement, W2Record, Asset, Debt, Income, Expense, ChildSupportPayment, DashboardStats } from "@shared/schema";
+} from 'lucide-react';
+import type {
+  Document,
+  MobileViolationReport,
+  Reimbursement,
+  W2Record,
+  Asset,
+  Debt,
+  Income,
+  Expense,
+  ChildSupportPayment,
+  DashboardStats,
+} from '@shared/schema';
 
 // Supabase URL logic for all mobile API endpoints
-const SUPABASE_API = import.meta.env.VITE_PUBLIC_URL || import.meta.env.VITE_SUPABASE_URL || "";
-const apiUrl = (endpoint: string) => SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint;
+const SUPABASE_API = import.meta.env.VITE_PUBLIC_URL || import.meta.env.VITE_SUPABASE_URL || '';
+const apiUrl = (endpoint: string) => (SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint);
 
-const MobileAppBanner = lazy(() => import("@/components/mobile-app-banner").then(m => ({ default: m.MobileAppHeaderButton })));
+const MobileAppBanner = lazy(() =>
+  import('@/components/mobile-app-banner').then((m) => ({ default: m.MobileAppHeaderButton }))
+);
 
 // Build auth headers (X-User-Id + X-Environment) for inline fetch() calls on the mobile page.
 // Mirrors getAuthHeaders() in queryClient.ts so that API routes requiring X-User-Id work
 // when accessed from a phone (which has its own session cookie but stores userId in localStorage).
 function getMobileHeaders(environment: string): Record<string, string> {
-  const headers: Record<string, string> = { "X-Environment": environment };
+  const headers: Record<string, string> = { 'X-Environment': environment };
   try {
-    const userStr = localStorage.getItem("user");
+    const userStr = localStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
-      if (user?.id) headers["X-User-Id"] = user.id;
+      if (user?.id) headers['X-User-Id'] = user.id;
     }
   } catch {
     // ignore
@@ -101,38 +133,38 @@ interface MobileViewProps {
 }
 
 const DOCUMENT_CATEGORIES = [
-  { value: "financial_statement", label: "Financial Statement", icon: FileText },
-  { value: "tax_return", label: "Tax Return", icon: FileText },
-  { value: "bank_statement", label: "Bank Statement", icon: FileText },
-  { value: "property_deed", label: "Property Deed", icon: FileText },
-  { value: "court_order", label: "Court Order", icon: Shield },
-  { value: "custody_agreement", label: "Custody Agreement", icon: FileText },
-  { value: "correspondence", label: "Correspondence", icon: FileText },
-  { value: "evidence_photo", label: "Evidence Photo", icon: Image },
-  { value: "evidence_video", label: "Evidence Video", icon: FileText },
-  { value: "legal_filing", label: "Legal Filing", icon: Shield },
-  { value: "medical_record", label: "Medical Record", icon: FileText },
-  { value: "employment_record", label: "Employment Record", icon: FileText },
-  { value: "insurance_document", label: "Insurance Document", icon: FileText },
-  { value: "asset_valuation", label: "Asset Valuation", icon: FileText },
-  { value: "debt_statement", label: "Debt Statement", icon: FileText },
-  { value: "other", label: "Other", icon: File },
+  { value: 'financial_statement', label: 'Financial Statement', icon: FileText },
+  { value: 'tax_return', label: 'Tax Return', icon: FileText },
+  { value: 'bank_statement', label: 'Bank Statement', icon: FileText },
+  { value: 'property_deed', label: 'Property Deed', icon: FileText },
+  { value: 'court_order', label: 'Court Order', icon: Shield },
+  { value: 'custody_agreement', label: 'Custody Agreement', icon: FileText },
+  { value: 'correspondence', label: 'Correspondence', icon: FileText },
+  { value: 'evidence_photo', label: 'Evidence Photo', icon: Image },
+  { value: 'evidence_video', label: 'Evidence Video', icon: FileText },
+  { value: 'legal_filing', label: 'Legal Filing', icon: Shield },
+  { value: 'medical_record', label: 'Medical Record', icon: FileText },
+  { value: 'employment_record', label: 'Employment Record', icon: FileText },
+  { value: 'insurance_document', label: 'Insurance Document', icon: FileText },
+  { value: 'asset_valuation', label: 'Asset Valuation', icon: FileText },
+  { value: 'debt_statement', label: 'Debt Statement', icon: FileText },
+  { value: 'other', label: 'Other', icon: File },
 ];
 
 const VIOLATION_TYPES = [
-  "Custody Violation",
-  "Financial Misconduct",
-  "Communication Violation",
-  "Parenting Time Violation",
-  "Child Support Violation",
-  "Property Violation",
-  "Other",
+  'Custody Violation',
+  'Financial Misconduct',
+  'Communication Violation',
+  'Parenting Time Violation',
+  'Child Support Violation',
+  'Property Violation',
+  'Other',
 ];
 
 function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(cents / 100);
@@ -140,38 +172,38 @@ function formatCurrency(cents: number): string {
 
 function getCategoryIcon(category: string) {
   const iconMap: Record<string, typeof Home> = {
-    "Real Estate": Home,
-    "Vehicle": Car,
-    "Retirement": Landmark,
-    "Investment": TrendingUp,
-    "Bank Account": Building,
-    "Personal Property": Wallet,
-    "Mortgage": Home,
-    "Auto Loan": Car,
-    "Credit Card": CreditCard,
-    "Student Loan": Landmark,
-    "Medical": Heart,
-    "Salary": Briefcase,
-    "Bonus": DollarSign,
-    "Investment Income": TrendingUp,
-    "Housing": Home,
-    "Transportation": Car,
-    "Food": Receipt,
-    "Utilities": Building,
-    "Healthcare": Heart,
-    "Entertainment": Wallet,
-    "Other": DollarSign,
+    'Real Estate': Home,
+    Vehicle: Car,
+    Retirement: Landmark,
+    Investment: TrendingUp,
+    'Bank Account': Building,
+    'Personal Property': Wallet,
+    Mortgage: Home,
+    'Auto Loan': Car,
+    'Credit Card': CreditCard,
+    'Student Loan': Landmark,
+    Medical: Heart,
+    Salary: Briefcase,
+    Bonus: DollarSign,
+    'Investment Income': TrendingUp,
+    Housing: Home,
+    Transportation: Car,
+    Food: Receipt,
+    Utilities: Building,
+    Healthcare: Heart,
+    Entertainment: Wallet,
+    Other: DollarSign,
   };
   return iconMap[category] || DollarSign;
 }
 
-type DrillDownType = "assets" | "debts" | "income" | "expenses" | "childSupport" | null;
+type DrillDownType = 'assets' | 'debts' | 'income' | 'expenses' | 'childSupport' | null;
 
 function FinancialDrillDown({
   type,
   isOpen,
   onClose,
-  environment
+  environment,
 }: {
   type: DrillDownType;
   isOpen: boolean;
@@ -179,76 +211,96 @@ function FinancialDrillDown({
   environment: string;
 }) {
   const headers: Record<string, { icon: typeof DollarSign; title: string; description: string }> = {
-    assets: { icon: Building, title: "Total Assets", description: "All assets owned by both parties" },
-    debts: { icon: CreditCard, title: "Total Debts", description: "All debts owed by both parties" },
-    income: { icon: TrendingUp, title: "Monthly Income", description: "Combined monthly income sources" },
-    expenses: { icon: Receipt, title: "Monthly Expenses", description: "Combined monthly expenses" },
-    childSupport: { icon: Baby, title: "Child Support", description: "Child support payment history" },
+    assets: {
+      icon: Building,
+      title: 'Total Assets',
+      description: 'All assets owned by both parties',
+    },
+    debts: {
+      icon: CreditCard,
+      title: 'Total Debts',
+      description: 'All debts owed by both parties',
+    },
+    income: {
+      icon: TrendingUp,
+      title: 'Monthly Income',
+      description: 'Combined monthly income sources',
+    },
+    expenses: {
+      icon: Receipt,
+      title: 'Monthly Expenses',
+      description: 'Combined monthly expenses',
+    },
+    childSupport: {
+      icon: Baby,
+      title: 'Child Support',
+      description: 'Child support payment history',
+    },
   };
 
   const { data: assets, isLoading: assetsLoading } = useQuery<Asset[]>({
-    queryKey: ["/api/mobile/assets", environment],
+    queryKey: ['/api/mobile/assets', environment],
     queryFn: async () => {
-      const res = await fetch(apiUrl("/api/mobile/assets"), {
+      const res = await fetch(apiUrl('/api/mobile/assets'), {
         headers: getMobileHeaders(environment),
-        credentials: "include",
+        credentials: 'include',
       });
-      if (!res.ok) throw new Error("Failed to fetch assets");
+      if (!res.ok) throw new Error('Failed to fetch assets');
       return res.json();
     },
-    enabled: type === "assets",
+    enabled: type === 'assets',
   });
 
   const { data: debts, isLoading: debtsLoading } = useQuery<Debt[]>({
-    queryKey: ["/api/mobile/debts", environment],
+    queryKey: ['/api/mobile/debts', environment],
     queryFn: async () => {
-      const res = await fetch(apiUrl("/api/mobile/debts"), {
+      const res = await fetch(apiUrl('/api/mobile/debts'), {
         headers: getMobileHeaders(environment),
-        credentials: "include",
+        credentials: 'include',
       });
-      if (!res.ok) throw new Error("Failed to fetch debts");
+      if (!res.ok) throw new Error('Failed to fetch debts');
       return res.json();
     },
-    enabled: type === "debts",
+    enabled: type === 'debts',
   });
 
   const { data: incomes, isLoading: incomesLoading } = useQuery<Income[]>({
-    queryKey: ["/api/mobile/incomes", environment],
+    queryKey: ['/api/mobile/incomes', environment],
     queryFn: async () => {
-      const res = await fetch(apiUrl("/api/mobile/incomes"), {
+      const res = await fetch(apiUrl('/api/mobile/incomes'), {
         headers: getMobileHeaders(environment),
-        credentials: "include",
+        credentials: 'include',
       });
-      if (!res.ok) throw new Error("Failed to fetch incomes");
+      if (!res.ok) throw new Error('Failed to fetch incomes');
       return res.json();
     },
-    enabled: type === "income",
+    enabled: type === 'income',
   });
 
   const { data: expenses, isLoading: expensesLoading } = useQuery<Expense[]>({
-    queryKey: ["/api/mobile/expenses", environment],
+    queryKey: ['/api/mobile/expenses', environment],
     queryFn: async () => {
-      const res = await fetch(apiUrl("/api/mobile/expenses"), {
+      const res = await fetch(apiUrl('/api/mobile/expenses'), {
         headers: getMobileHeaders(environment),
-        credentials: "include",
+        credentials: 'include',
       });
-      if (!res.ok) throw new Error("Failed to fetch expenses");
+      if (!res.ok) throw new Error('Failed to fetch expenses');
       return res.json();
     },
-    enabled: type === "expenses",
+    enabled: type === 'expenses',
   });
 
   const { data: childSupport, isLoading: childSupportLoading } = useQuery<ChildSupportPayment[]>({
-    queryKey: ["/api/mobile/child-support", environment],
+    queryKey: ['/api/mobile/child-support', environment],
     queryFn: async () => {
-      const res = await fetch(apiUrl("/api/mobile/child-support"), {
+      const res = await fetch(apiUrl('/api/mobile/child-support'), {
         headers: getMobileHeaders(environment),
-        credentials: "include",
+        credentials: 'include',
       });
-      if (!res.ok) throw new Error("Failed to fetch child support");
+      if (!res.ok) throw new Error('Failed to fetch child support');
       return res.json();
     },
-    enabled: type === "childSupport",
+    enabled: type === 'childSupport',
   });
 
   if (!type) return null;
@@ -257,11 +309,11 @@ function FinancialDrillDown({
   const HeaderIcon = headerInfo.icon;
 
   const isLoading =
-    (type === "assets" && assetsLoading) ||
-    (type === "debts" && debtsLoading) ||
-    (type === "income" && incomesLoading) ||
-    (type === "expenses" && expensesLoading) ||
-    (type === "childSupport" && childSupportLoading);
+    (type === 'assets' && assetsLoading) ||
+    (type === 'debts' && debtsLoading) ||
+    (type === 'income' && incomesLoading) ||
+    (type === 'expenses' && expensesLoading) ||
+    (type === 'childSupport' && childSupportLoading);
 
   const renderContent = () => {
     if (isLoading) {
@@ -275,10 +327,10 @@ function FinancialDrillDown({
     }
 
     switch (type) {
-      case "assets":
+      case 'assets':
         return (
           <div className="space-y-2 p-4">
-            {(!assets || assets.length === 0) ? (
+            {!assets || assets.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Building className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No assets recorded</p>
@@ -292,7 +344,11 @@ function FinancialDrillDown({
                 {assets.map((asset) => {
                   const CategoryIcon = getCategoryIcon(asset.category);
                   return (
-                    <Card key={asset.id} className="hover-elevate" data-testid={`asset-item-${asset.id}`}>
+                    <Card
+                      key={asset.id}
+                      className="hover-elevate"
+                      data-testid={`asset-item-${asset.id}`}
+                    >
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -302,8 +358,13 @@ function FinancialDrillDown({
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{asset.name}</p>
                               <div className="flex items-center gap-2 mt-0.5">
-                                <Badge variant="outline" className="text-xs">{asset.category}</Badge>
-                                <Badge variant={asset.ownership === "Joint" ? "secondary" : "outline"} className="text-xs">
+                                <Badge variant="outline" className="text-xs">
+                                  {asset.category}
+                                </Badge>
+                                <Badge
+                                  variant={asset.ownership === 'Joint' ? 'secondary' : 'outline'}
+                                  className="text-xs"
+                                >
                                   {asset.ownership}
                                 </Badge>
                                 {asset.verified && (
@@ -333,10 +394,10 @@ function FinancialDrillDown({
           </div>
         );
 
-      case "debts":
+      case 'debts':
         return (
           <div className="space-y-2 p-4">
-            {(!debts || debts.length === 0) ? (
+            {!debts || debts.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No debts recorded</p>
@@ -350,7 +411,11 @@ function FinancialDrillDown({
                 {debts.map((debt) => {
                   const CategoryIcon = getCategoryIcon(debt.category);
                   return (
-                    <Card key={debt.id} className="hover-elevate" data-testid={`debt-item-${debt.id}`}>
+                    <Card
+                      key={debt.id}
+                      className="hover-elevate"
+                      data-testid={`debt-item-${debt.id}`}
+                    >
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -360,8 +425,13 @@ function FinancialDrillDown({
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{debt.name}</p>
                               <div className="flex items-center gap-2 mt-0.5">
-                                <Badge variant="outline" className="text-xs">{debt.category}</Badge>
-                                <Badge variant={debt.ownership === "Joint" ? "secondary" : "outline"} className="text-xs">
+                                <Badge variant="outline" className="text-xs">
+                                  {debt.category}
+                                </Badge>
+                                <Badge
+                                  variant={debt.ownership === 'Joint' ? 'secondary' : 'outline'}
+                                  className="text-xs"
+                                >
                                   {debt.ownership}
                                 </Badge>
                               </div>
@@ -393,10 +463,10 @@ function FinancialDrillDown({
           </div>
         );
 
-      case "income":
+      case 'income':
         return (
           <div className="space-y-2 p-4">
-            {(!incomes || incomes.length === 0) ? (
+            {!incomes || incomes.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No income sources recorded</p>
@@ -408,7 +478,11 @@ function FinancialDrillDown({
                   <span>Amount</span>
                 </div>
                 {incomes.map((income) => (
-                  <Card key={income.id} className="hover-elevate" data-testid={`income-item-${income.id}`}>
+                  <Card
+                    key={income.id}
+                    className="hover-elevate"
+                    data-testid={`income-item-${income.id}`}
+                  >
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -418,8 +492,13 @@ function FinancialDrillDown({
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">{income.source}</p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <Badge variant="outline" className="text-xs">{income.frequency}</Badge>
-                              <Badge variant={income.owner === "Spouse" ? "secondary" : "outline"} className="text-xs">
+                              <Badge variant="outline" className="text-xs">
+                                {income.frequency}
+                              </Badge>
+                              <Badge
+                                variant={income.owner === 'Spouse' ? 'secondary' : 'outline'}
+                                className="text-xs"
+                              >
                                 {income.owner}
                               </Badge>
                               {income.verified && (
@@ -444,9 +523,9 @@ function FinancialDrillDown({
                     {formatCurrency(
                       incomes.reduce((sum, i) => {
                         let monthly = i.amount;
-                        if (i.frequency === "Annually") monthly = i.amount / 12;
-                        if (i.frequency === "Weekly") monthly = i.amount * 4;
-                        if (i.frequency === "Biweekly") monthly = i.amount * 2;
+                        if (i.frequency === 'Annually') monthly = i.amount / 12;
+                        if (i.frequency === 'Weekly') monthly = i.amount * 4;
+                        if (i.frequency === 'Biweekly') monthly = i.amount * 2;
                         return sum + monthly;
                       }, 0)
                     )}
@@ -457,10 +536,10 @@ function FinancialDrillDown({
           </div>
         );
 
-      case "expenses":
+      case 'expenses':
         return (
           <div className="space-y-2 p-4">
-            {(!expenses || expenses.length === 0) ? (
+            {!expenses || expenses.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Receipt className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No expenses recorded</p>
@@ -474,7 +553,11 @@ function FinancialDrillDown({
                 {expenses.map((expense) => {
                   const CategoryIcon = getCategoryIcon(expense.category);
                   return (
-                    <Card key={expense.id} className="hover-elevate" data-testid={`expense-item-${expense.id}`}>
+                    <Card
+                      key={expense.id}
+                      className="hover-elevate"
+                      data-testid={`expense-item-${expense.id}`}
+                    >
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -484,8 +567,12 @@ function FinancialDrillDown({
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{expense.description}</p>
                               <div className="flex items-center gap-2 mt-0.5">
-                                <Badge variant="outline" className="text-xs">{expense.category}</Badge>
-                                <Badge variant="outline" className="text-xs">{expense.frequency}</Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  {expense.category}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  {expense.frequency}
+                                </Badge>
                               </div>
                             </div>
                           </div>
@@ -506,9 +593,9 @@ function FinancialDrillDown({
                     {formatCurrency(
                       expenses.reduce((sum, e) => {
                         let monthly = e.amount;
-                        if (e.frequency === "Annually") monthly = e.amount / 12;
-                        if (e.frequency === "Weekly") monthly = e.amount * 4;
-                        if (e.frequency === "Biweekly") monthly = e.amount * 2;
+                        if (e.frequency === 'Annually') monthly = e.amount / 12;
+                        if (e.frequency === 'Weekly') monthly = e.amount * 4;
+                        if (e.frequency === 'Biweekly') monthly = e.amount * 2;
                         return sum + monthly;
                       }, 0)
                     )}
@@ -519,10 +606,10 @@ function FinancialDrillDown({
           </div>
         );
 
-      case "childSupport":
+      case 'childSupport':
         return (
           <div className="space-y-2 p-4">
-            {(!childSupport || childSupport.length === 0) ? (
+            {!childSupport || childSupport.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Baby className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No child support payments recorded</p>
@@ -534,22 +621,32 @@ function FinancialDrillDown({
                   <span>Amount</span>
                 </div>
                 {childSupport.map((payment) => (
-                  <Card key={payment.id} className="hover-elevate" data-testid={`child-support-item-${payment.id}`}>
+                  <Card
+                    key={payment.id}
+                    className="hover-elevate"
+                    data-testid={`child-support-item-${payment.id}`}
+                  >
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={`p-2 rounded-lg ${payment.status === "paid"
-                            ? "bg-green-100 dark:bg-green-900/30"
-                            : payment.status === "overdue"
-                              ? "bg-red-100 dark:bg-red-900/30"
-                              : "bg-yellow-100 dark:bg-yellow-900/30"
-                            }`}>
-                            <Baby className={`h-4 w-4 ${payment.status === "paid"
-                              ? "text-green-600 dark:text-green-400"
-                              : payment.status === "overdue"
-                                ? "text-red-600 dark:text-red-400"
-                                : "text-yellow-600 dark:text-yellow-400"
-                              }`} />
+                          <div
+                            className={`p-2 rounded-lg ${
+                              payment.status === 'paid'
+                                ? 'bg-green-100 dark:bg-green-900/30'
+                                : payment.status === 'overdue'
+                                  ? 'bg-red-100 dark:bg-red-900/30'
+                                  : 'bg-yellow-100 dark:bg-yellow-900/30'
+                            }`}
+                          >
+                            <Baby
+                              className={`h-4 w-4 ${
+                                payment.status === 'paid'
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : payment.status === 'overdue'
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-yellow-600 dark:text-yellow-400'
+                              }`}
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">
@@ -558,8 +655,11 @@ function FinancialDrillDown({
                             <div className="flex items-center gap-2 mt-0.5">
                               <Badge
                                 variant={
-                                  payment.status === "paid" ? "default" :
-                                    payment.status === "overdue" ? "destructive" : "secondary"
+                                  payment.status === 'paid'
+                                    ? 'default'
+                                    : payment.status === 'overdue'
+                                      ? 'destructive'
+                                      : 'secondary'
                                 }
                                 className="text-xs"
                               >
@@ -585,7 +685,7 @@ function FinancialDrillDown({
                   <span className="font-bold text-purple-600 dark:text-purple-400 tabular-nums">
                     {formatCurrency(
                       childSupport
-                        .filter((p) => p.status !== "paid")
+                        .filter((p) => p.status !== 'paid')
                         .reduce((sum, p) => sum + p.amount, 0)
                     )}
                   </span>
@@ -602,7 +702,11 @@ function FinancialDrillDown({
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl" data-testid={`sheet-${type}-drilldown`}>
+      <SheetContent
+        side="bottom"
+        className="h-[85vh] rounded-t-2xl"
+        data-testid={`sheet-${type}-drilldown`}
+      >
         <SheetHeader className="pb-4 border-b">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
@@ -614,26 +718,30 @@ function FinancialDrillDown({
             </div>
           </div>
         </SheetHeader>
-        <ScrollArea className="h-full mt-4">
-          {renderContent()}
-        </ScrollArea>
+        <ScrollArea className="h-full mt-4">{renderContent()}</ScrollArea>
       </SheetContent>
     </Sheet>
   );
 }
 
-function FinancialSummaryBar({ isDemoMode, environment }: { isDemoMode: boolean; environment: string }) {
+function FinancialSummaryBar({
+  isDemoMode,
+  environment,
+}: {
+  isDemoMode: boolean;
+  environment: string;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [drillDownType, setDrillDownType] = useState<DrillDownType>(null);
 
   const { data: stats, isLoading } = useQuery<DashboardStats>({
-    queryKey: ["/api/mobile/financial-summary", environment],
+    queryKey: ['/api/mobile/financial-summary', environment],
     queryFn: async () => {
-      const res = await fetch(apiUrl("/api/mobile/financial-summary"), {
+      const res = await fetch(apiUrl('/api/mobile/financial-summary'), {
         headers: getMobileHeaders(environment),
-        credentials: "include",
+        credentials: 'include',
       });
-      if (!res.ok) throw new Error("Failed to fetch financial summary");
+      if (!res.ok) throw new Error('Failed to fetch financial summary');
       return res.json();
     },
   });
@@ -656,44 +764,44 @@ function FinancialSummaryBar({ isDemoMode, environment }: { isDemoMode: boolean;
 
   const metrics = [
     {
-      key: "assets" as DrillDownType,
-      label: "Assets",
+      key: 'assets' as DrillDownType,
+      label: 'Assets',
       value: stats?.totalAssets || 0,
       icon: Building,
-      color: "text-green-600 dark:text-green-400",
-      bgColor: "bg-green-100 dark:bg-green-900/30"
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-100 dark:bg-green-900/30',
     },
     {
-      key: "debts" as DrillDownType,
-      label: "Debts",
+      key: 'debts' as DrillDownType,
+      label: 'Debts',
       value: stats?.totalDebts || 0,
       icon: CreditCard,
-      color: "text-red-600 dark:text-red-400",
-      bgColor: "bg-red-100 dark:bg-red-900/30"
+      color: 'text-red-600 dark:text-red-400',
+      bgColor: 'bg-red-100 dark:bg-red-900/30',
     },
     {
-      key: "income" as DrillDownType,
-      label: "Income",
+      key: 'income' as DrillDownType,
+      label: 'Income',
       value: stats?.monthlyIncome || 0,
       icon: TrendingUp,
-      color: "text-blue-600 dark:text-blue-400",
-      bgColor: "bg-blue-100 dark:bg-blue-900/30"
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-100 dark:bg-blue-900/30',
     },
     {
-      key: "expenses" as DrillDownType,
-      label: "Expenses",
+      key: 'expenses' as DrillDownType,
+      label: 'Expenses',
       value: stats?.monthlyExpenses || 0,
       icon: Receipt,
-      color: "text-orange-600 dark:text-orange-400",
-      bgColor: "bg-orange-100 dark:bg-orange-900/30"
+      color: 'text-orange-600 dark:text-orange-400',
+      bgColor: 'bg-orange-100 dark:bg-orange-900/30',
     },
     {
-      key: "childSupport" as DrillDownType,
-      label: "Child Support",
+      key: 'childSupport' as DrillDownType,
+      label: 'Child Support',
       value: stats?.childSupportOwed || 0,
       icon: Baby,
-      color: "text-purple-600 dark:text-purple-400",
-      bgColor: "bg-purple-100 dark:bg-purple-900/30"
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-100 dark:bg-purple-900/30',
     },
   ];
 
@@ -773,7 +881,10 @@ function MobileHeader({
   onInstall,
 }: MobileHeaderProps) {
   return (
-    <header className="sticky top-0 z-sticky bg-background border-b px-4 py-3" data-testid="mobile-header">
+    <header
+      className="sticky top-0 z-sticky bg-background border-b px-4 py-3"
+      data-testid="mobile-header"
+    >
       <div className="flex items-center gap-3">
         {onBack && (
           <Button size="icon" variant="ghost" onClick={onBack} data-testid="button-mobile-back">
@@ -787,7 +898,11 @@ function MobileHeader({
 
         {/* Offline indicator */}
         {!isOnline && (
-          <div className="flex items-center gap-1 text-amber-500" title="You are offline" data-testid="offline-indicator">
+          <div
+            className="flex items-center gap-1 text-amber-500"
+            title="You are offline"
+            data-testid="offline-indicator"
+          >
             <WifiOff className="h-4 w-4" />
           </div>
         )}
@@ -795,23 +910,23 @@ function MobileHeader({
         {/* Sync button */}
         <Button
           size="icon"
-          variant={pendingCount > 0 ? "default" : "ghost"}
+          variant={pendingCount > 0 ? 'default' : 'ghost'}
           onClick={onSync}
           disabled={isSyncing || !isOnline}
           title={
             !isOnline
-              ? "Cannot sync while offline"
+              ? 'Cannot sync while offline'
               : pendingCount > 0
-                ? `Sync ${pendingCount} pending change${pendingCount !== 1 ? "s" : ""}`
-                : "Sync data"
+                ? `Sync ${pendingCount} pending change${pendingCount !== 1 ? 's' : ''}`
+                : 'Sync data'
           }
           data-testid="button-sync"
           className="relative"
         >
-          <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-5 w-5 ${isSyncing ? 'animate-spin' : ''}`} />
           {pendingCount > 0 && (
             <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold">
-              {pendingCount > 9 ? "9+" : pendingCount}
+              {pendingCount > 9 ? '9+' : pendingCount}
             </span>
           )}
         </Button>
@@ -846,10 +961,10 @@ function OfflineBanner({ isOnline, pendingCount }: { isOnline: boolean; pendingC
     >
       <WifiOff className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
       <span className="text-sm text-amber-700 dark:text-amber-400">
-        You are offline.{" "}
+        You are offline.{' '}
         {pendingCount > 0
-          ? `${pendingCount} change${pendingCount !== 1 ? "s" : ""} will sync when you reconnect.`
-          : "Data shown is from your last sync."}
+          ? `${pendingCount} change${pendingCount !== 1 ? 's' : ''} will sync when you reconnect.`
+          : 'Data shown is from your last sync.'}
       </span>
     </div>
   );
@@ -858,7 +973,7 @@ function OfflineBanner({ isOnline, pendingCount }: { isOnline: boolean; pendingC
 function DocumentCard({ doc, onView }: { doc: Document; onView: (doc: Document) => void }) {
   const getCategoryInfo = (category: string | null) => {
     const found = DOCUMENT_CATEGORIES.find((c) => c.value === category);
-    return found || { label: category || "Unknown", icon: File };
+    return found || { label: category || 'Unknown', icon: File };
   };
 
   const categoryInfo = getCategoryInfo(doc.aiCategory);
@@ -866,21 +981,24 @@ function DocumentCard({ doc, onView }: { doc: Document; onView: (doc: Document) 
 
   const getAnalysisStatusBadge = () => {
     switch (doc.aiAnalysisStatus) {
-      case "completed":
+      case 'completed':
         return (
-          <Badge variant="default" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+          <Badge
+            variant="default"
+            className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+          >
             <Sparkles className="h-3 w-3 mr-1" />
             AI Analyzed
           </Badge>
         );
-      case "analyzing":
+      case 'analyzing':
         return (
           <Badge variant="secondary">
             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
             Analyzing...
           </Badge>
         );
-      case "failed":
+      case 'failed':
         return (
           <Badge variant="destructive">
             <XCircle className="h-3 w-3 mr-1" />
@@ -898,7 +1016,11 @@ function DocumentCard({ doc, onView }: { doc: Document; onView: (doc: Document) 
   };
 
   return (
-    <Card className="hover-elevate cursor-pointer" onClick={() => onView(doc)} data-testid={`card-document-${doc.id}`}>
+    <Card
+      className="hover-elevate cursor-pointer"
+      onClick={() => onView(doc)}
+      data-testid={`card-document-${doc.id}`}
+    >
       <CardContent className="p-3">
         <div className="flex items-start gap-3">
           <div className="p-2 rounded-lg bg-primary/10">
@@ -927,7 +1049,9 @@ function DocumentCard({ doc, onView }: { doc: Document; onView: (doc: Document) 
               </Badge>
             ))}
             {doc.aiSuggestedTags.length > 3 && (
-              <Badge variant="outline" className="text-xs">+{doc.aiSuggestedTags.length - 3}</Badge>
+              <Badge variant="outline" className="text-xs">
+                +{doc.aiSuggestedTags.length - 3}
+              </Badge>
             )}
           </div>
         )}
@@ -936,12 +1060,20 @@ function DocumentCard({ doc, onView }: { doc: Document; onView: (doc: Document) 
   );
 }
 
-function DocumentDetailDialog({ doc, isOpen, onClose }: { doc: Document | null; isOpen: boolean; onClose: () => void }) {
+function DocumentDetailDialog({
+  doc,
+  isOpen,
+  onClose,
+}: {
+  doc: Document | null;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   if (!doc) return null;
 
   const getCategoryInfo = (category: string | null) => {
     const found = DOCUMENT_CATEGORIES.find((c) => c.value === category);
-    return found || { label: category || "Unknown", icon: File };
+    return found || { label: category || 'Unknown', icon: File };
   };
 
   const categoryInfo = getCategoryInfo(doc.aiCategory);
@@ -988,8 +1120,8 @@ function DocumentDetailDialog({ doc, isOpen, onClose }: { doc: Document | null; 
             </div>
           )}
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
-            <span>Type: {doc.fileType || "Unknown"}</span>
-            <span>Size: {doc.fileSize ? (doc.fileSize / 1024).toFixed(1) : "0"} KB</span>
+            <span>Type: {doc.fileType || 'Unknown'}</span>
+            <span>Size: {doc.fileSize ? (doc.fileSize / 1024).toFixed(1) : '0'} KB</span>
           </div>
         </div>
         <DialogFooter>
@@ -1002,7 +1134,12 @@ function DocumentDetailDialog({ doc, isOpen, onClose }: { doc: Document | null; 
   );
 }
 
-function ViolationReportCard({ report, onEdit, onDelete, onSubmit }: {
+function ViolationReportCard({
+  report,
+  onEdit,
+  onDelete,
+  onSubmit,
+}: {
   report: MobileViolationReport;
   onEdit: (report: MobileViolationReport) => void;
   onDelete: (id: string) => void;
@@ -1010,14 +1147,17 @@ function ViolationReportCard({ report, onEdit, onDelete, onSubmit }: {
 }) {
   const getStatusBadge = () => {
     switch (report.status) {
-      case "submitted":
+      case 'submitted':
         return (
-          <Badge variant="default" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+          <Badge
+            variant="default"
+            className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+          >
             <CheckCircle className="h-3 w-3 mr-1" />
             Submitted
           </Badge>
         );
-      case "draft":
+      case 'draft':
         return (
           <Badge variant="secondary">
             <Edit className="h-3 w-3 mr-1" />
@@ -1037,7 +1177,7 @@ function ViolationReportCard({ report, onEdit, onDelete, onSubmit }: {
             <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{report.title || "Untitled Report"}</p>
+            <p className="font-medium text-sm truncate">{report.title || 'Untitled Report'}</p>
             <p className="text-xs text-muted-foreground">{report.violationType}</p>
             {report.location && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
@@ -1051,22 +1191,40 @@ function ViolationReportCard({ report, onEdit, onDelete, onSubmit }: {
         {report.description && (
           <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{report.description}</p>
         )}
-        {report.status === "draft" && (
+        {report.status === 'draft' && (
           <div className="flex items-center gap-2 mt-3">
-            <Button size="sm" variant="outline" className="flex-1" onClick={() => onEdit(report)} data-testid={`button-edit-violation-${report.id}`}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => onEdit(report)}
+              data-testid={`button-edit-violation-${report.id}`}
+            >
               <Edit className="h-3 w-3 mr-1" />
               Edit
             </Button>
-            <Button size="sm" variant="default" className="flex-1" onClick={() => onSubmit(report.id)} data-testid={`button-submit-violation-${report.id}`}>
+            <Button
+              size="sm"
+              variant="default"
+              className="flex-1"
+              onClick={() => onSubmit(report.id)}
+              data-testid={`button-submit-violation-${report.id}`}
+            >
               <Send className="h-3 w-3 mr-1" />
               Submit
             </Button>
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => onDelete(report.id)} data-testid={`button-delete-violation-${report.id}`}>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-destructive"
+              onClick={() => onDelete(report.id)}
+              data-testid={`button-delete-violation-${report.id}`}
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         )}
-        {report.severity && report.severity !== "medium" && (
+        {report.severity && report.severity !== 'medium' && (
           <div className="mt-2 p-2 bg-primary/5 rounded-md">
             <div className="flex items-center gap-1 text-xs">
               <Sparkles className="h-3 w-3 text-primary" />
@@ -1080,29 +1238,34 @@ function ViolationReportCard({ report, onEdit, onDelete, onSubmit }: {
   );
 }
 
-function CreateViolationDialog({ isOpen, onClose, onSave, editingReport }: {
+function CreateViolationDialog({
+  isOpen,
+  onClose,
+  onSave,
+  editingReport,
+}: {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: Partial<MobileViolationReport>) => void;
   editingReport: MobileViolationReport | null;
 }) {
-  const [title, setTitle] = useState("");
-  const [violationType, setViolationType] = useState("");
-  const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
-  const [occurredDate, setOccurredDate] = useState(new Date().toISOString().split("T")[0]);
+  const [title, setTitle] = useState('');
+  const [violationType, setViolationType] = useState('');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [occurredDate, setOccurredDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Reset form state when dialog opens or editingReport changes
   useEffect(() => {
     if (isOpen) {
-      setTitle(editingReport?.title || "");
-      setViolationType(editingReport?.violationType || "");
-      setDescription(editingReport?.description || "");
-      setLocation(editingReport?.location || "");
+      setTitle(editingReport?.title || '');
+      setViolationType(editingReport?.violationType || '');
+      setDescription(editingReport?.description || '');
+      setLocation(editingReport?.location || '');
       setOccurredDate(
         editingReport?.occurredAt
-          ? new Date(editingReport.occurredAt).toISOString().split("T")[0]
-          : new Date().toISOString().split("T")[0]
+          ? new Date(editingReport.occurredAt).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0]
       );
     }
   }, [isOpen, editingReport]);
@@ -1114,24 +1277,26 @@ function CreateViolationDialog({ isOpen, onClose, onSave, editingReport }: {
       description,
       location,
       occurredAt: new Date(occurredDate),
-      status: "draft",
+      status: 'draft',
     });
-    setTitle("");
-    setViolationType("");
-    setDescription("");
-    setLocation("");
-    setOccurredDate(new Date().toISOString().split("T")[0]);
+    setTitle('');
+    setViolationType('');
+    setDescription('');
+    setLocation('');
+    setOccurredDate(new Date().toISOString().split('T')[0]);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{editingReport ? "Edit Violation Report" : "Create Violation Report"}</DialogTitle>
+          <DialogTitle>
+            {editingReport ? 'Edit Violation Report' : 'Create Violation Report'}
+          </DialogTitle>
           <DialogDescription>
             {editingReport
-              ? "Update the details of your violation report."
-              : "Document a violation for your case. You can save as draft and submit later."}
+              ? 'Update the details of your violation report.'
+              : 'Document a violation for your case. You can save as draft and submit later.'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -1153,7 +1318,9 @@ function CreateViolationDialog({ isOpen, onClose, onSave, editingReport }: {
               </SelectTrigger>
               <SelectContent>
                 {VIOLATION_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -1194,8 +1361,12 @@ function CreateViolationDialog({ isOpen, onClose, onSave, editingReport }: {
           <Button variant="outline" onClick={onClose} data-testid="button-cancel-violation">
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!title || !violationType || !description} data-testid="button-save-violation">
-            {editingReport ? "Update" : "Save Draft"}
+          <Button
+            onClick={handleSave}
+            disabled={!title || !violationType || !description}
+            data-testid="button-save-violation"
+          >
+            {editingReport ? 'Update' : 'Save Draft'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1211,32 +1382,33 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
   const [showDetail, setShowDetail] = useState(false);
 
   const { data: documents = [], isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/mobile/documents"],
+    queryKey: ['/api/mobile/documents'],
     enabled: !isDemoMode,
   });
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("type", file.type);
-      formData.append("size", file.size.toString());
-      formData.append("environment", environment || "live");
-      formData.append("analyzeWithAI", "true");
+      formData.append('file', file);
+      formData.append('type', file.type);
+      formData.append('size', file.size.toString());
+      formData.append('environment', environment || 'live');
+      formData.append('analyzeWithAI', 'true');
 
       // Use Supabase deployment URL
-      const SUPABASE_API = import.meta.env.VITE_PUBLIC_URL || import.meta.env.VITE_SUPABASE_URL || "";
-      const apiUrl = (endpoint: string) => SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint;
+      const SUPABASE_API =
+        import.meta.env.VITE_PUBLIC_URL || import.meta.env.VITE_SUPABASE_URL || '';
+      const apiUrl = (endpoint: string) => (SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint);
 
-      const response = await fetch(apiUrl("/api/mobile/documents"), {
-        method: "POST",
+      const response = await fetch(apiUrl('/api/mobile/documents'), {
+        method: 'POST',
         body: formData,
-        credentials: "include",
+        credentials: 'include',
         headers: getMobileHeaders(environment),
       });
 
       if (!response.ok) {
-        let errorMsg = "Upload failed";
+        let errorMsg = 'Upload failed';
         try {
           const error = await response.json();
           errorMsg = error.message || errorMsg;
@@ -1248,11 +1420,11 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/mobile/documents"] });
-      toast({ title: "Document uploaded", description: "AI analysis is in progress..." });
+      queryClient.invalidateQueries({ queryKey: ['/api/mobile/documents'] });
+      toast({ title: 'Document uploaded', description: 'AI analysis is in progress...' });
     },
     onError: (error: Error) => {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -1262,7 +1434,7 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
       uploadMutation.mutate(file);
     }
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
 
@@ -1271,12 +1443,15 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
     setShowDetail(true);
   };
 
-  const groupedDocs = documents.reduce((acc, doc) => {
-    const category = doc.aiCategory || "unclassified";
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(doc);
-    return acc;
-  }, {} as Record<string, Document[]>);
+  const groupedDocs = documents.reduce(
+    (acc, doc) => {
+      const category = doc.aiCategory || 'unclassified';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(doc);
+      return acc;
+    },
+    {} as Record<string, Document[]>
+  );
 
   if (isDemoMode) {
     return (
@@ -1335,7 +1510,12 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
             )}
             Upload Document
           </Button>
-          <Button variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} data-testid="button-camera-upload">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            data-testid="button-camera-upload"
+          >
             <Camera className="h-4 w-4" />
           </Button>
         </div>
@@ -1373,14 +1553,16 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
           ) : (
             Object.entries(groupedDocs).map(([category, docs]) => {
               const categoryInfo = DOCUMENT_CATEGORIES.find((c) => c.value === category) || {
-                label: category === "unclassified" ? "Unclassified" : category,
+                label: category === 'unclassified' ? 'Unclassified' : category,
               };
               return (
                 <div key={category}>
                   <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                     <FolderOpen className="h-4 w-4" />
                     {categoryInfo.label}
-                    <Badge variant="secondary" className="text-xs">{docs.length}</Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {docs.length}
+                    </Badge>
                   </h3>
                   <div className="space-y-2">
                     {docs.map((doc) => (
@@ -1411,7 +1593,7 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
   const [editingReport, setEditingReport] = useState<MobileViolationReport | null>(null);
 
   const { data: reports = [], isLoading } = useQuery<MobileViolationReport[]>({
-    queryKey: ["/api/mobile/violations"],
+    queryKey: ['/api/mobile/violations'],
     enabled: !isDemoMode,
   });
 
@@ -1419,33 +1601,39 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
     mutationFn: async (data: Partial<MobileViolationReport>) => {
       if (!navigator.onLine) {
         await queueOffline({
-          method: "POST",
-          url: "/api/mobile/violations",
-          body: { ...data, environment: environment || "live" },
-          description: `Create violation: ${data.title || "Untitled"}`,
+          method: 'POST',
+          url: '/api/mobile/violations',
+          body: { ...data, environment: environment || 'live' },
+          description: `Create violation: ${data.title || 'Untitled'}`,
         });
         return { queued: true };
       }
       try {
-        return await apiRequest("POST", "/api/mobile/violations", {
+        return await apiRequest('POST', '/api/mobile/violations', {
           ...data,
-          environment: environment || "live",
+          environment: environment || 'live',
         });
       } catch (error: any) {
-        throw new Error(error?.message || "Failed to save violation report");
+        throw new Error(error?.message || 'Failed to save violation report');
       }
     },
     onSuccess: (result: any) => {
       if (result?.queued) {
-        toast({ title: "Saved offline", description: "Will sync automatically when you reconnect." });
+        toast({
+          title: 'Saved offline',
+          description: 'Will sync automatically when you reconnect.',
+        });
       } else {
-        queryClient.invalidateQueries({ queryKey: ["/api/mobile/violations"] });
-        toast({ title: "Report saved", description: "Your violation report has been saved as a draft." });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/violations'] });
+        toast({
+          title: 'Report saved',
+          description: 'Your violation report has been saved as a draft.',
+        });
       }
       setShowCreateDialog(false);
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+      toast({ title: 'Failed to save', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -1453,7 +1641,7 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
     mutationFn: async ({ id, data }: { id: string; data: Partial<MobileViolationReport> }) => {
       if (!navigator.onLine) {
         await queueOffline({
-          method: "PATCH",
+          method: 'PATCH',
           url: `/api/mobile/violations/${id}`,
           body: data,
           description: `Update violation ${id}`,
@@ -1461,23 +1649,26 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
         return { queued: true };
       }
       try {
-        return await apiRequest("PATCH", `/api/mobile/violations/${id}`, data);
+        return await apiRequest('PATCH', `/api/mobile/violations/${id}`, data);
       } catch (error: any) {
-        throw new Error(error?.message || "Failed to update violation report");
+        throw new Error(error?.message || 'Failed to update violation report');
       }
     },
     onSuccess: (result: any) => {
       if (result?.queued) {
-        toast({ title: "Saved offline", description: "Will sync automatically when you reconnect." });
+        toast({
+          title: 'Saved offline',
+          description: 'Will sync automatically when you reconnect.',
+        });
       } else {
-        queryClient.invalidateQueries({ queryKey: ["/api/mobile/violations"] });
-        toast({ title: "Report updated" });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/violations'] });
+        toast({ title: 'Report updated' });
       }
       setEditingReport(null);
       setShowCreateDialog(false);
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to update", description: error.message, variant: "destructive" });
+      toast({ title: 'Failed to update', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -1485,47 +1676,50 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
     mutationFn: async (id: string) => {
       if (!navigator.onLine) {
         await queueOffline({
-          method: "DELETE",
+          method: 'DELETE',
           url: `/api/mobile/violations/${id}`,
           description: `Delete violation ${id}`,
         });
-        queryClient.setQueryData(["/api/mobile/violations"], (old: MobileViolationReport[] = []) =>
+        queryClient.setQueryData(['/api/mobile/violations'], (old: MobileViolationReport[] = []) =>
           old.filter((r) => r.id !== id)
         );
         return { queued: true };
       }
       try {
-        return await apiRequest("DELETE", `/api/mobile/violations/${id}`);
+        return await apiRequest('DELETE', `/api/mobile/violations/${id}`);
       } catch (error: any) {
-        throw new Error(error?.message || "Failed to delete violation report");
+        throw new Error(error?.message || 'Failed to delete violation report');
       }
     },
     onSuccess: (result: any) => {
       if (!result?.queued) {
-        queryClient.invalidateQueries({ queryKey: ["/api/mobile/violations"] });
-        toast({ title: "Report deleted" });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/violations'] });
+        toast({ title: 'Report deleted' });
       }
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+      toast({ title: 'Failed to delete', description: error.message, variant: 'destructive' });
     },
   });
 
   const submitMutation = useMutation({
     mutationFn: async (id: string) => {
       try {
-        return await apiRequest("POST", `/api/mobile/violations/${id}/submit`);
+        return await apiRequest('POST', `/api/mobile/violations/${id}/submit`);
       } catch (error: any) {
-        throw new Error(error?.message || "Failed to submit violation report");
+        throw new Error(error?.message || 'Failed to submit violation report');
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/mobile/violations"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/violations", environment] });
-      toast({ title: "Report submitted", description: "Your violation report has been submitted to your case." });
+      queryClient.invalidateQueries({ queryKey: ['/api/mobile/violations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/violations', environment] });
+      toast({
+        title: 'Report submitted',
+        description: 'Your violation report has been submitted to your case.',
+      });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to submit", description: error.message, variant: "destructive" });
+      toast({ title: 'Failed to submit', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -1542,8 +1736,8 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
     setShowCreateDialog(true);
   };
 
-  const draftReports = reports.filter((r) => r.status === "draft");
-  const submittedReports = reports.filter((r) => r.status === "submitted");
+  const draftReports = reports.filter((r) => r.status === 'draft');
+  const submittedReports = reports.filter((r) => r.status === 'submitted');
 
   if (isDemoMode) {
     return (
@@ -1631,7 +1825,9 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
                   <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                     <Edit className="h-4 w-4" />
                     Drafts
-                    <Badge variant="secondary" className="text-xs">{draftReports.length}</Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {draftReports.length}
+                    </Badge>
                   </h3>
                   <div className="space-y-2">
                     {draftReports.map((report) => (
@@ -1651,7 +1847,9 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
                   <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                     <CheckCircle className="h-4 w-4" />
                     Submitted
-                    <Badge variant="secondary" className="text-xs">{submittedReports.length}</Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {submittedReports.length}
+                    </Badge>
                   </h3>
                   <div className="space-y-2">
                     {submittedReports.map((report) => (
@@ -1689,40 +1887,46 @@ function ViolationsTab({ isDemoMode }: { isDemoMode: boolean }) {
 // ========================================
 
 function ViolationsAndReimbursementsTab({ isDemoMode }: { isDemoMode: boolean }) {
-  const [view, setView] = useState<"violations" | "reimbursements" | "income">("violations");
+  const [view, setView] = useState<'violations' | 'reimbursements' | 'income'>('violations');
 
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 pt-2">
-        <div className="flex bg-muted rounded-lg p-1" data-testid="toggle-violations-reimbursements">
+        <div
+          className="flex bg-muted rounded-lg p-1"
+          data-testid="toggle-violations-reimbursements"
+        >
           <button
-            onClick={() => setView("violations")}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-md text-xs font-medium transition-colors ${view === "violations"
-              ? "bg-background shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-              }`}
+            onClick={() => setView('violations')}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-md text-xs font-medium transition-colors ${
+              view === 'violations'
+                ? 'bg-background shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
             data-testid="toggle-violations"
           >
             <AlertTriangle className="h-3 w-3" />
             Violations
           </button>
           <button
-            onClick={() => setView("reimbursements")}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-md text-xs font-medium transition-colors ${view === "reimbursements"
-              ? "bg-background shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-              }`}
+            onClick={() => setView('reimbursements')}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-md text-xs font-medium transition-colors ${
+              view === 'reimbursements'
+                ? 'bg-background shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
             data-testid="toggle-reimbursements"
           >
             <DollarSign className="h-3 w-3" />
             Money
           </button>
           <button
-            onClick={() => setView("income")}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-md text-xs font-medium transition-colors ${view === "income"
-              ? "bg-background shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-              }`}
+            onClick={() => setView('income')}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 rounded-md text-xs font-medium transition-colors ${
+              view === 'income'
+                ? 'bg-background shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
             data-testid="toggle-income"
           >
             <Briefcase className="h-3 w-3" />
@@ -1730,9 +1934,9 @@ function ViolationsAndReimbursementsTab({ isDemoMode }: { isDemoMode: boolean })
           </button>
         </div>
       </div>
-      {view === "violations" ? (
+      {view === 'violations' ? (
         <ViolationsTab isDemoMode={isDemoMode} />
-      ) : view === "reimbursements" ? (
+      ) : view === 'reimbursements' ? (
         <ReimbursementsTab isDemoMode={isDemoMode} />
       ) : (
         <IncomeTab isDemoMode={isDemoMode} />
@@ -1745,25 +1949,41 @@ function ViolationsAndReimbursementsTab({ isDemoMode }: { isDemoMode: boolean })
 // Reimbursements Tab
 // ========================================
 
-function ReimbursementCard({ reimbursement, onEdit, onDelete }: {
+function ReimbursementCard({
+  reimbursement,
+  onEdit,
+  onDelete,
+}: {
   reimbursement: Reimbursement;
   onEdit: (r: Reimbursement) => void;
   onDelete: (id: string) => void;
 }) {
   const getCategoryLabel = (category: string) => {
     const found = DOCUMENT_CATEGORIES.find((c) => c.value === category);
-    return found?.label || category.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    return (
+      found?.label ||
+      category
+        .split('_')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ')
+    );
   };
 
   const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+      cents / 100
+    );
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "paid":
-        return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Paid</Badge>;
-      case "disputed":
+      case 'paid':
+        return (
+          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            Paid
+          </Badge>
+        );
+      case 'disputed':
         return <Badge variant="destructive">Disputed</Badge>;
       default:
         return <Badge variant="secondary">Pending</Badge>;
@@ -1781,12 +2001,16 @@ function ReimbursementCard({ reimbursement, onEdit, onDelete }: {
             <div className="flex items-start justify-between gap-2">
               <div>
                 <p className="font-medium text-sm truncate">{reimbursement.description}</p>
-                <p className="text-xs text-muted-foreground">{getCategoryLabel(reimbursement.category)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {getCategoryLabel(reimbursement.category)}
+                </p>
               </div>
               {getStatusBadge(reimbursement.status)}
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-lg font-semibold text-primary">{formatCurrency(reimbursement.amount)}</span>
+              <span className="text-lg font-semibold text-primary">
+                {formatCurrency(reimbursement.amount)}
+              </span>
               <span className="text-xs text-muted-foreground">owed by {reimbursement.owedBy}</span>
             </div>
             {reimbursement.dueDate && (
@@ -1798,11 +2022,23 @@ function ReimbursementCard({ reimbursement, onEdit, onDelete }: {
           </div>
         </div>
         <div className="flex gap-2 mt-3">
-          <Button size="sm" variant="outline" className="flex-1" onClick={() => onEdit(reimbursement)} data-testid={`button-edit-reimbursement-${reimbursement.id}`}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1"
+            onClick={() => onEdit(reimbursement)}
+            data-testid={`button-edit-reimbursement-${reimbursement.id}`}
+          >
             <Edit className="h-3 w-3 mr-1" />
             Edit
           </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => onDelete(reimbursement.id)} data-testid={`button-delete-reimbursement-${reimbursement.id}`}>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-destructive"
+            onClick={() => onDelete(reimbursement.id)}
+            data-testid={`button-delete-reimbursement-${reimbursement.id}`}
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -1811,29 +2047,38 @@ function ReimbursementCard({ reimbursement, onEdit, onDelete }: {
   );
 }
 
-function CreateReimbursementDialog({ isOpen, onClose, onSave, editingReimbursement }: {
+function CreateReimbursementDialog({
+  isOpen,
+  onClose,
+  onSave,
+  editingReimbursement,
+}: {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: Partial<Reimbursement>) => void;
   editingReimbursement: Reimbursement | null;
 }) {
-  const [category, setCategory] = useState("");
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
-  const [owedBy, setOwedBy] = useState("");
-  const [status, setStatus] = useState("pending");
-  const [dueDate, setDueDate] = useState("");
-  const [notes, setNotes] = useState("");
+  const [category, setCategory] = useState('');
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [owedBy, setOwedBy] = useState('');
+  const [status, setStatus] = useState('pending');
+  const [dueDate, setDueDate] = useState('');
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      setCategory(editingReimbursement?.category || "");
-      setDescription(editingReimbursement?.description || "");
-      setAmount(editingReimbursement ? (editingReimbursement.amount / 100).toString() : "");
-      setOwedBy(editingReimbursement?.owedBy || "");
-      setStatus(editingReimbursement?.status || "pending");
-      setDueDate(editingReimbursement?.dueDate ? new Date(editingReimbursement.dueDate).toISOString().split("T")[0] : "");
-      setNotes(editingReimbursement?.notes || "");
+      setCategory(editingReimbursement?.category || '');
+      setDescription(editingReimbursement?.description || '');
+      setAmount(editingReimbursement ? (editingReimbursement.amount / 100).toString() : '');
+      setOwedBy(editingReimbursement?.owedBy || '');
+      setStatus(editingReimbursement?.status || 'pending');
+      setDueDate(
+        editingReimbursement?.dueDate
+          ? new Date(editingReimbursement.dueDate).toISOString().split('T')[0]
+          : ''
+      );
+      setNotes(editingReimbursement?.notes || '');
     }
   }, [isOpen, editingReimbursement]);
 
@@ -1853,7 +2098,9 @@ function CreateReimbursementDialog({ isOpen, onClose, onSave, editingReimburseme
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{editingReimbursement ? "Edit Reimbursement" : "Add Reimbursement"}</DialogTitle>
+          <DialogTitle>
+            {editingReimbursement ? 'Edit Reimbursement' : 'Add Reimbursement'}
+          </DialogTitle>
           <DialogDescription>
             Track reimbursements owed to you by category. Enter the amount you are owed.
           </DialogDescription>
@@ -1867,7 +2114,9 @@ function CreateReimbursementDialog({ isOpen, onClose, onSave, editingReimburseme
               </SelectTrigger>
               <SelectContent>
                 {DOCUMENT_CATEGORIES.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -1946,8 +2195,12 @@ function CreateReimbursementDialog({ isOpen, onClose, onSave, editingReimburseme
           <Button variant="outline" onClick={onClose} data-testid="button-cancel-reimbursement">
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!category || !description || !amount || !owedBy} data-testid="button-save-reimbursement">
-            {editingReimbursement ? "Update" : "Add Reimbursement"}
+          <Button
+            onClick={handleSave}
+            disabled={!category || !description || !amount || !owedBy}
+            data-testid="button-save-reimbursement"
+          >
+            {editingReimbursement ? 'Update' : 'Add Reimbursement'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1962,7 +2215,7 @@ function ReimbursementsTab({ isDemoMode }: { isDemoMode: boolean }) {
   const [editingReimbursement, setEditingReimbursement] = useState<Reimbursement | null>(null);
 
   const { data: reimbursementsList = [], isLoading } = useQuery<Reimbursement[]>({
-    queryKey: ["/api/mobile/reimbursements"],
+    queryKey: ['/api/mobile/reimbursements'],
     enabled: !isDemoMode,
   });
 
@@ -1970,26 +2223,29 @@ function ReimbursementsTab({ isDemoMode }: { isDemoMode: boolean }) {
     mutationFn: async (data: Partial<Reimbursement>) => {
       if (!navigator.onLine) {
         await queueOffline({
-          method: "POST",
-          url: "/api/mobile/reimbursements",
+          method: 'POST',
+          url: '/api/mobile/reimbursements',
           body: data,
-          description: `Create reimbursement: ${data.description || "Untitled"}`,
+          description: `Create reimbursement: ${data.description || 'Untitled'}`,
         });
         return { queued: true };
       }
-      return apiRequest("POST", "/api/mobile/reimbursements", data);
+      return apiRequest('POST', '/api/mobile/reimbursements', data);
     },
     onSuccess: (result: any) => {
       if (result?.queued) {
-        toast({ title: "Saved offline", description: "Will sync automatically when you reconnect." });
+        toast({
+          title: 'Saved offline',
+          description: 'Will sync automatically when you reconnect.',
+        });
       } else {
-        queryClient.invalidateQueries({ queryKey: ["/api/mobile/reimbursements"] });
-        toast({ title: "Reimbursement added", description: "Your reimbursement has been saved." });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/reimbursements'] });
+        toast({ title: 'Reimbursement added', description: 'Your reimbursement has been saved.' });
       }
       setShowCreateDialog(false);
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+      toast({ title: 'Failed to save', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -1997,27 +2253,30 @@ function ReimbursementsTab({ isDemoMode }: { isDemoMode: boolean }) {
     mutationFn: async ({ id, data }: { id: string; data: Partial<Reimbursement> }) => {
       if (!navigator.onLine) {
         await queueOffline({
-          method: "PATCH",
+          method: 'PATCH',
           url: `/api/mobile/reimbursements/${id}`,
           body: data,
           description: `Update reimbursement ${id}`,
         });
         return { queued: true };
       }
-      return apiRequest("PATCH", `/api/mobile/reimbursements/${id}`, data);
+      return apiRequest('PATCH', `/api/mobile/reimbursements/${id}`, data);
     },
     onSuccess: (result: any) => {
       if (result?.queued) {
-        toast({ title: "Saved offline", description: "Will sync automatically when you reconnect." });
+        toast({
+          title: 'Saved offline',
+          description: 'Will sync automatically when you reconnect.',
+        });
       } else {
-        queryClient.invalidateQueries({ queryKey: ["/api/mobile/reimbursements"] });
-        toast({ title: "Reimbursement updated" });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/reimbursements'] });
+        toast({ title: 'Reimbursement updated' });
       }
       setEditingReimbursement(null);
       setShowCreateDialog(false);
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to update", description: error.message, variant: "destructive" });
+      toast({ title: 'Failed to update', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -2025,25 +2284,25 @@ function ReimbursementsTab({ isDemoMode }: { isDemoMode: boolean }) {
     mutationFn: async (id: string) => {
       if (!navigator.onLine) {
         await queueOffline({
-          method: "DELETE",
+          method: 'DELETE',
           url: `/api/mobile/reimbursements/${id}`,
           description: `Delete reimbursement ${id}`,
         });
-        queryClient.setQueryData(["/api/mobile/reimbursements"], (old: Reimbursement[] = []) =>
+        queryClient.setQueryData(['/api/mobile/reimbursements'], (old: Reimbursement[] = []) =>
           old.filter((r) => r.id !== id)
         );
         return { queued: true };
       }
-      return apiRequest("DELETE", `/api/mobile/reimbursements/${id}`);
+      return apiRequest('DELETE', `/api/mobile/reimbursements/${id}`);
     },
     onSuccess: (result: any) => {
       if (!result?.queued) {
-        queryClient.invalidateQueries({ queryKey: ["/api/mobile/reimbursements"] });
-        toast({ title: "Reimbursement deleted" });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/reimbursements'] });
+        toast({ title: 'Reimbursement deleted' });
       }
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+      toast({ title: 'Failed to delete', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -2061,19 +2320,26 @@ function ReimbursementsTab({ isDemoMode }: { isDemoMode: boolean }) {
   };
 
   const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+      cents / 100
+    );
   };
 
-  const totalOwed = reimbursementsList.filter(r => r.status !== "paid").reduce((sum, r) => sum + r.amount, 0);
-  const pendingCount = reimbursementsList.filter(r => r.status === "pending").length;
-  const disputedCount = reimbursementsList.filter(r => r.status === "disputed").length;
+  const totalOwed = reimbursementsList
+    .filter((r) => r.status !== 'paid')
+    .reduce((sum, r) => sum + r.amount, 0);
+  const pendingCount = reimbursementsList.filter((r) => r.status === 'pending').length;
+  const disputedCount = reimbursementsList.filter((r) => r.status === 'disputed').length;
 
   // Group by category
-  const byCategory = reimbursementsList.reduce((acc, r) => {
-    if (!acc[r.category]) acc[r.category] = [];
-    acc[r.category].push(r);
-    return acc;
-  }, {} as Record<string, Reimbursement[]>);
+  const byCategory = reimbursementsList.reduce(
+    (acc, r) => {
+      if (!acc[r.category]) acc[r.category] = [];
+      acc[r.category].push(r);
+      return acc;
+    },
+    {} as Record<string, Reimbursement[]>
+  );
 
   if (isDemoMode) {
     return (
@@ -2167,8 +2433,10 @@ function ReimbursementsTab({ isDemoMode }: { isDemoMode: boolean }) {
             Object.entries(byCategory).map(([cat, items]) => (
               <div key={cat}>
                 <h3 className="font-medium mb-2 flex items-center gap-2">
-                  {DOCUMENT_CATEGORIES.find(c => c.value === cat)?.label || cat}
-                  <Badge variant="secondary" className="text-xs">{items.length}</Badge>
+                  {DOCUMENT_CATEGORIES.find((c) => c.value === cat)?.label || cat}
+                  <Badge variant="secondary" className="text-xs">
+                    {items.length}
+                  </Badge>
                   <span className="ml-auto text-sm text-primary font-semibold">
                     {formatCurrency(items.reduce((sum, r) => sum + r.amount, 0))}
                   </span>
@@ -2206,15 +2474,22 @@ function ReimbursementsTab({ isDemoMode }: { isDemoMode: boolean }) {
 // Income Tab - W2 Records & Strategies
 // ========================================
 
-function W2DetailDialog({ isOpen, onClose, record, linkedDocument }: {
+function W2DetailDialog({
+  isOpen,
+  onClose,
+  record,
+  linkedDocument,
+}: {
   isOpen: boolean;
   onClose: () => void;
   record: W2Record | null;
   linkedDocument: Document | null;
 }) {
   const formatCurrency = (cents: number | null | undefined) => {
-    if (cents === null || cents === undefined) return "$0.00";
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+    if (cents === null || cents === undefined) return '$0.00';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+      cents / 100
+    );
   };
 
   if (!record) return null;
@@ -2233,8 +2508,8 @@ function W2DetailDialog({ isOpen, onClose, record, linkedDocument }: {
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <Badge variant={record.party === "self" ? "default" : "secondary"}>
-              {record.party === "self" ? "Your W-2" : "Spouse's W-2"}
+            <Badge variant={record.party === 'self' ? 'default' : 'secondary'}>
+              {record.party === 'self' ? 'Your W-2' : "Spouse's W-2"}
             </Badge>
             {record.verified && (
               <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
@@ -2248,7 +2523,9 @@ function W2DetailDialog({ isOpen, onClose, record, linkedDocument }: {
             <CardContent className="p-3 space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Wages & Tips (Box 1)</span>
-                <span className="font-bold text-lg text-primary">{formatCurrency(record.wagesAndTips)}</span>
+                <span className="font-bold text-lg text-primary">
+                  {formatCurrency(record.wagesAndTips)}
+                </span>
               </div>
               {record.federalWithheld && record.federalWithheld > 0 && (
                 <div className="flex justify-between items-center">
@@ -2314,7 +2591,7 @@ function W2DetailDialog({ isOpen, onClose, record, linkedDocument }: {
                       <p className="text-xs text-muted-foreground">
                         Uploaded {new Date(linkedDocument.createdAt).toLocaleDateString()}
                       </p>
-                      {linkedDocument.aiAnalysisStatus === "completed" && (
+                      {linkedDocument.aiAnalysisStatus === 'completed' && (
                         <Badge variant="secondary" className="mt-1 text-xs">
                           <Brain className="h-3 w-3 mr-1" />
                           AI Analyzed
@@ -2322,7 +2599,11 @@ function W2DetailDialog({ isOpen, onClose, record, linkedDocument }: {
                       )}
                     </div>
                     <Button size="icon" variant="ghost" asChild>
-                      <a href={linkedDocument.fileUrl || "#"} target="_blank" rel="noopener noreferrer">
+                      <a
+                        href={linkedDocument.fileUrl || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         <Eye className="h-4 w-4" />
                       </a>
                     </Button>
@@ -2349,7 +2630,13 @@ function W2DetailDialog({ isOpen, onClose, record, linkedDocument }: {
   );
 }
 
-function W2Card({ record, onEdit, onDelete, onViewDetail, linkedDocument }: {
+function W2Card({
+  record,
+  onEdit,
+  onDelete,
+  onViewDetail,
+  linkedDocument,
+}: {
   record: W2Record;
   onEdit: (r: W2Record) => void;
   onDelete: (id: string) => void;
@@ -2357,17 +2644,24 @@ function W2Card({ record, onEdit, onDelete, onViewDetail, linkedDocument }: {
   linkedDocument?: Document | null;
 }) {
   const formatCurrency = (cents: number | null) => {
-    if (cents === null) return "$0.00";
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+    if (cents === null) return '$0.00';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+      cents / 100
+    );
   };
 
   return (
     <Card className="hover-elevate" data-testid={`card-w2-${record.id}`}>
       <CardContent className="p-3">
         <div className="flex items-start gap-3">
-          <div className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${record.party === "self" ? "bg-primary/10" : "bg-orange-100 dark:bg-orange-900/30"
-            }`}>
-            <Briefcase className={`h-5 w-5 ${record.party === "self" ? "text-primary" : "text-orange-600"}`} />
+          <div
+            className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              record.party === 'self' ? 'bg-primary/10' : 'bg-orange-100 dark:bg-orange-900/30'
+            }`}
+          >
+            <Briefcase
+              className={`h-5 w-5 ${record.party === 'self' ? 'text-primary' : 'text-orange-600'}`}
+            />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
@@ -2375,8 +2669,8 @@ function W2Card({ record, onEdit, onDelete, onViewDetail, linkedDocument }: {
                 <p className="font-medium text-sm truncate">{record.employerName}</p>
                 <p className="text-xs text-muted-foreground">{record.taxYear} W-2</p>
               </div>
-              <Badge variant={record.party === "self" ? "default" : "secondary"}>
-                {record.party === "self" ? "You" : "Spouse"}
+              <Badge variant={record.party === 'self' ? 'default' : 'secondary'}>
+                {record.party === 'self' ? 'You' : 'Spouse'}
               </Badge>
             </div>
             <button
@@ -2399,11 +2693,23 @@ function W2Card({ record, onEdit, onDelete, onViewDetail, linkedDocument }: {
           </div>
         </div>
         <div className="flex gap-2 mt-3">
-          <Button size="sm" variant="outline" className="flex-1" onClick={() => onEdit(record)} data-testid={`button-edit-w2-${record.id}`}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1"
+            onClick={() => onEdit(record)}
+            data-testid={`button-edit-w2-${record.id}`}
+          >
             <Edit className="h-3 w-3 mr-1" />
             Edit
           </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => onDelete(record.id)} data-testid={`button-delete-w2-${record.id}`}>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-destructive"
+            onClick={() => onDelete(record.id)}
+            data-testid={`button-delete-w2-${record.id}`}
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -2412,32 +2718,42 @@ function W2Card({ record, onEdit, onDelete, onViewDetail, linkedDocument }: {
   );
 }
 
-function CreateW2Dialog({ isOpen, onClose, onSave, editingRecord, documents }: {
+function CreateW2Dialog({
+  isOpen,
+  onClose,
+  onSave,
+  editingRecord,
+  documents,
+}: {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: Partial<W2Record>) => void;
   editingRecord: W2Record | null;
   documents: Document[];
 }) {
-  const [party, setParty] = useState("self");
+  const [party, setParty] = useState('self');
   const [taxYear, setTaxYear] = useState(new Date().getFullYear().toString());
-  const [employerName, setEmployerName] = useState("");
-  const [wagesAndTips, setWagesAndTips] = useState("");
-  const [federalWithheld, setFederalWithheld] = useState("");
-  const [otherCompensation, setOtherCompensation] = useState("");
-  const [notes, setNotes] = useState("");
-  const [documentId, setDocumentId] = useState("");
+  const [employerName, setEmployerName] = useState('');
+  const [wagesAndTips, setWagesAndTips] = useState('');
+  const [federalWithheld, setFederalWithheld] = useState('');
+  const [otherCompensation, setOtherCompensation] = useState('');
+  const [notes, setNotes] = useState('');
+  const [documentId, setDocumentId] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      setParty(editingRecord?.party || "self");
+      setParty(editingRecord?.party || 'self');
       setTaxYear(editingRecord?.taxYear?.toString() || new Date().getFullYear().toString());
-      setEmployerName(editingRecord?.employerName || "");
-      setWagesAndTips(editingRecord ? (editingRecord.wagesAndTips / 100).toString() : "");
-      setFederalWithheld(editingRecord?.federalWithheld ? (editingRecord.federalWithheld / 100).toString() : "");
-      setOtherCompensation(editingRecord?.otherCompensation ? (editingRecord.otherCompensation / 100).toString() : "");
-      setNotes(editingRecord?.notes || "");
-      setDocumentId(editingRecord?.documentId || "");
+      setEmployerName(editingRecord?.employerName || '');
+      setWagesAndTips(editingRecord ? (editingRecord.wagesAndTips / 100).toString() : '');
+      setFederalWithheld(
+        editingRecord?.federalWithheld ? (editingRecord.federalWithheld / 100).toString() : ''
+      );
+      setOtherCompensation(
+        editingRecord?.otherCompensation ? (editingRecord.otherCompensation / 100).toString() : ''
+      );
+      setNotes(editingRecord?.notes || '');
+      setDocumentId(editingRecord?.documentId || '');
     }
   }, [isOpen, editingRecord]);
 
@@ -2454,15 +2770,18 @@ function CreateW2Dialog({ isOpen, onClose, onSave, editingRecord, documents }: {
     });
   };
 
-  const taxDocs = documents.filter(d =>
-    d.category === "tax_return" || d.category === "employment_record" || d.category === "financial_statement"
+  const taxDocs = documents.filter(
+    (d) =>
+      d.category === 'tax_return' ||
+      d.category === 'employment_record' ||
+      d.category === 'financial_statement'
   );
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editingRecord ? "Edit W-2" : "Add W-2 Income"}</DialogTitle>
+          <DialogTitle>{editingRecord ? 'Edit W-2' : 'Add W-2 Income'}</DialogTitle>
           <DialogDescription>
             Enter W-2 details for you or your spouse to compare incomes.
           </DialogDescription>
@@ -2555,9 +2874,7 @@ function CreateW2Dialog({ isOpen, onClose, onSave, editingRecord, documents }: {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              Link to an uploaded PDF for proof
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Link to an uploaded PDF for proof</p>
           </div>
           <div>
             <Label htmlFor="w2-notes">Notes (Optional)</Label>
@@ -2575,8 +2892,12 @@ function CreateW2Dialog({ isOpen, onClose, onSave, editingRecord, documents }: {
           <Button variant="outline" onClick={onClose} data-testid="button-cancel-w2">
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!party || !taxYear || !employerName || !wagesAndTips} data-testid="button-save-w2">
-            {editingRecord ? "Update" : "Add W-2"}
+          <Button
+            onClick={handleSave}
+            disabled={!party || !taxYear || !employerName || !wagesAndTips}
+            data-testid="button-save-w2"
+          >
+            {editingRecord ? 'Update' : 'Add W-2'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -2594,44 +2915,47 @@ function IncomeTab({ isDemoMode }: { isDemoMode: boolean }) {
   const [showDetailDialog, setShowDetailDialog] = useState(false);
 
   const { data: w2Records = [], isLoading } = useQuery<W2Record[]>({
-    queryKey: ["/api/mobile/w2-records"],
+    queryKey: ['/api/mobile/w2-records'],
     enabled: !isDemoMode,
   });
 
   const { data: documents = [] } = useQuery<Document[]>({
-    queryKey: ["/api/mobile/documents"],
+    queryKey: ['/api/mobile/documents'],
     enabled: !isDemoMode,
   });
 
   const getLinkedDocument = (documentId: string | null | undefined) => {
     if (!documentId) return null;
-    return documents.find(d => d.id === documentId) || null;
+    return documents.find((d) => d.id === documentId) || null;
   };
 
   const createMutation = useMutation({
     mutationFn: async (data: Partial<W2Record>) => {
       if (!navigator.onLine) {
         await queueOffline({
-          method: "POST",
-          url: "/api/mobile/w2-records",
+          method: 'POST',
+          url: '/api/mobile/w2-records',
           body: data,
-          description: `Create W-2: ${data.employerName || "Unknown employer"}`,
+          description: `Create W-2: ${data.employerName || 'Unknown employer'}`,
         });
         return { queued: true };
       }
-      return apiRequest("POST", "/api/mobile/w2-records", data);
+      return apiRequest('POST', '/api/mobile/w2-records', data);
     },
     onSuccess: (result: any) => {
       if (result?.queued) {
-        toast({ title: "Saved offline", description: "Will sync automatically when you reconnect." });
+        toast({
+          title: 'Saved offline',
+          description: 'Will sync automatically when you reconnect.',
+        });
       } else {
-        queryClient.invalidateQueries({ queryKey: ["/api/mobile/w2-records"] });
-        toast({ title: "W-2 added", description: "Income record has been saved." });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/w2-records'] });
+        toast({ title: 'W-2 added', description: 'Income record has been saved.' });
       }
       setShowCreateDialog(false);
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+      toast({ title: 'Failed to save', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -2639,27 +2963,30 @@ function IncomeTab({ isDemoMode }: { isDemoMode: boolean }) {
     mutationFn: async ({ id, data }: { id: string; data: Partial<W2Record> }) => {
       if (!navigator.onLine) {
         await queueOffline({
-          method: "PATCH",
+          method: 'PATCH',
           url: `/api/mobile/w2-records/${id}`,
           body: data,
           description: `Update W-2 ${id}`,
         });
         return { queued: true };
       }
-      return apiRequest("PATCH", `/api/mobile/w2-records/${id}`, data);
+      return apiRequest('PATCH', `/api/mobile/w2-records/${id}`, data);
     },
     onSuccess: (result: any) => {
       if (result?.queued) {
-        toast({ title: "Saved offline", description: "Will sync automatically when you reconnect." });
+        toast({
+          title: 'Saved offline',
+          description: 'Will sync automatically when you reconnect.',
+        });
       } else {
-        queryClient.invalidateQueries({ queryKey: ["/api/mobile/w2-records"] });
-        toast({ title: "W-2 updated" });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/w2-records'] });
+        toast({ title: 'W-2 updated' });
       }
       setEditingRecord(null);
       setShowCreateDialog(false);
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to update", description: error.message, variant: "destructive" });
+      toast({ title: 'Failed to update', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -2667,25 +2994,25 @@ function IncomeTab({ isDemoMode }: { isDemoMode: boolean }) {
     mutationFn: async (id: string) => {
       if (!navigator.onLine) {
         await queueOffline({
-          method: "DELETE",
+          method: 'DELETE',
           url: `/api/mobile/w2-records/${id}`,
           description: `Delete W-2 ${id}`,
         });
-        queryClient.setQueryData(["/api/mobile/w2-records"], (old: W2Record[] = []) =>
+        queryClient.setQueryData(['/api/mobile/w2-records'], (old: W2Record[] = []) =>
           old.filter((r) => r.id !== id)
         );
         return { queued: true };
       }
-      return apiRequest("DELETE", `/api/mobile/w2-records/${id}`);
+      return apiRequest('DELETE', `/api/mobile/w2-records/${id}`);
     },
     onSuccess: (result: any) => {
       if (!result?.queued) {
-        queryClient.invalidateQueries({ queryKey: ["/api/mobile/w2-records"] });
-        toast({ title: "W-2 deleted" });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/w2-records'] });
+        toast({ title: 'W-2 deleted' });
       }
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+      toast({ title: 'Failed to delete', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -2708,11 +3035,13 @@ function IncomeTab({ isDemoMode }: { isDemoMode: boolean }) {
   };
 
   const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+      cents / 100
+    );
   };
 
-  const selfRecords = w2Records.filter(r => r.party === "self");
-  const spouseRecords = w2Records.filter(r => r.party === "spouse");
+  const selfRecords = w2Records.filter((r) => r.party === 'self');
+  const spouseRecords = w2Records.filter((r) => r.party === 'spouse');
   const selfTotal = selfRecords.reduce((sum, r) => sum + r.wagesAndTips, 0);
   const spouseTotal = spouseRecords.reduce((sum, r) => sum + r.wagesAndTips, 0);
   const incomeDiff = selfTotal - spouseTotal;
@@ -2766,8 +3095,8 @@ function IncomeTab({ isDemoMode }: { isDemoMode: boolean }) {
         {(selfTotal > 0 || spouseTotal > 0) && (
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Difference:</span>
-            <span className={`font-semibold ${incomeDiff > 0 ? "text-red-500" : "text-green-500"}`}>
-              {incomeDiff > 0 ? "You earn " : "Spouse earns "}
+            <span className={`font-semibold ${incomeDiff > 0 ? 'text-red-500' : 'text-green-500'}`}>
+              {incomeDiff > 0 ? 'You earn ' : 'Spouse earns '}
               {formatCurrency(Math.abs(incomeDiff))} more
             </span>
           </div>
@@ -2812,28 +3141,37 @@ function IncomeTab({ isDemoMode }: { isDemoMode: boolean }) {
                   <TrendingDown className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-medium">Highlight Variable Income</p>
-                    <p className="text-xs text-muted-foreground">Bonuses and commissions can be excluded from base calculations in many jurisdictions.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Bonuses and commissions can be excluded from base calculations in many
+                      jurisdictions.
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <TrendingDown className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-medium">Document Business Expenses</p>
-                    <p className="text-xs text-muted-foreground">Self-employment income can be reduced by legitimate business deductions.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Self-employment income can be reduced by legitimate business deductions.
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <TrendingDown className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-medium">Consider Tax-Advantaged Contributions</p>
-                    <p className="text-xs text-muted-foreground">401(k), HSA, and FSA contributions reduce taxable income.</p>
+                    <p className="text-xs text-muted-foreground">
+                      401(k), HSA, and FSA contributions reduce taxable income.
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <TrendingDown className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-medium">Review Spouse's Unreported Income</p>
-                    <p className="text-xs text-muted-foreground">Cash income, side jobs, or underreported tips may need documentation.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Cash income, side jobs, or underreported tips may need documentation.
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -2873,7 +3211,9 @@ function IncomeTab({ isDemoMode }: { isDemoMode: boolean }) {
                 <div>
                   <h3 className="font-medium mb-2 flex items-center gap-2">
                     Your W-2s
-                    <Badge variant="default" className="text-xs">{selfRecords.length}</Badge>
+                    <Badge variant="default" className="text-xs">
+                      {selfRecords.length}
+                    </Badge>
                   </h3>
                   <div className="space-y-2">
                     {selfRecords.map((record) => (
@@ -2893,7 +3233,9 @@ function IncomeTab({ isDemoMode }: { isDemoMode: boolean }) {
                 <div>
                   <h3 className="font-medium mb-2 flex items-center gap-2">
                     Spouse's W-2s
-                    <Badge variant="secondary" className="text-xs">{spouseRecords.length}</Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {spouseRecords.length}
+                    </Badge>
                   </h3>
                   <div className="space-y-2">
                     {spouseRecords.map((record) => (
@@ -2942,38 +3284,31 @@ export default function MobileView() {
   const [, setLocation] = useLocation();
   const { environment } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("documents");
+  const [activeTab, setActiveTab] = useState('documents');
 
-  const {
-    isOnline,
-    pendingCount,
-    isSyncing,
-    sync,
-    isInstallable,
-    installApp,
-  } = useOfflineSync();
+  const { isOnline, pendingCount, isSyncing, sync, isInstallable, installApp } = useOfflineSync();
 
-  const isDemoMode = environment === "demo";
+  const isDemoMode = environment === 'demo';
 
   const handleBack = () => {
-    setLocation("/dashboard");
+    setLocation('/dashboard');
   };
 
   const handleSync = async () => {
     const result = await sync();
     if (result.flushed > 0) {
       toast({
-        title: "Sync complete",
-        description: `${result.flushed} change${result.flushed !== 1 ? "s" : ""} synced successfully.`,
+        title: 'Sync complete',
+        description: `${result.flushed} change${result.flushed !== 1 ? 's' : ''} synced successfully.`,
       });
     } else if (result.failed > 0) {
       toast({
-        title: "Some changes failed to sync",
-        description: result.errors.slice(0, 2).join("; "),
-        variant: "destructive",
+        title: 'Some changes failed to sync',
+        description: result.errors.slice(0, 2).join('; '),
+        variant: 'destructive',
       });
     } else if (result.flushed === 0 && result.failed === 0) {
-      toast({ title: "All up to date", description: "No pending changes to sync." });
+      toast({ title: 'All up to date', description: 'No pending changes to sync.' });
     }
   };
 
@@ -2999,11 +3334,19 @@ export default function MobileView() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <TabsList className="grid grid-cols-2 mx-4 mt-2" data-testid="tabs-mobile-navigation">
-          <TabsTrigger value="documents" className="flex items-center gap-2" data-testid="tab-documents">
+          <TabsTrigger
+            value="documents"
+            className="flex items-center gap-2"
+            data-testid="tab-documents"
+          >
             <FileText className="h-4 w-4" />
             Documents
           </TabsTrigger>
-          <TabsTrigger value="violations" className="flex items-center gap-2" data-testid="tab-violations">
+          <TabsTrigger
+            value="violations"
+            className="flex items-center gap-2"
+            data-testid="tab-violations"
+          >
             <AlertTriangle className="h-4 w-4" />
             Violations
           </TabsTrigger>

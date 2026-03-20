@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { Briefcase, Eye, EyeOff, Loader2, ArrowLeft, Phone, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/lib/auth";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { MobileAppSignupCard } from "@/components/mobile-app-banner";
-import type { Environment } from "@shared/schema";
+import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { Briefcase, Eye, EyeOff, Loader2, ArrowLeft, Phone, CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/lib/auth';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { MobileAppSignupCard } from '@/components/mobile-app-banner';
+import type { Environment } from '@shared/schema';
 
 function formatPhoneNumber(value: string): string {
   const cleaned = value.replace(/[^\d+]/g, '');
@@ -40,86 +40,86 @@ function isValidE164(phone: string): boolean {
 export default function Signup() {
   const [, setLocation] = useLocation();
   const { login, setEnvironment, isAuthenticated } = useAuth();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [environment, setEnv] = useState<Environment>("live");
+  const [environment, setEnv] = useState<Environment>('live');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     if (isAuthenticated) {
-      setLocation("/dashboard");
+      setLocation('/dashboard');
     }
   }, [isAuthenticated, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError("");
-    setSuccess("");
+    setError('');
+    setSuccess('');
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError('Passwords do not match');
       setIsLoading(false);
       return;
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError('Password must be at least 8 characters');
       setIsLoading(false);
       return;
     }
 
     if (fullName.length < 2) {
-      setError("Full name must be at least 2 characters");
+      setError('Full name must be at least 2 characters');
       setIsLoading(false);
       return;
     }
 
     if (!isValidE164(phoneNumber)) {
-      setError("Please enter a valid phone number (US: 10 digits, or international with + prefix)");
+      setError('Please enter a valid phone number (US: 10 digits, or international with + prefix)');
       setIsLoading(false);
       return;
     }
 
     try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          email, 
-          password, 
-          fullName, 
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName,
           phoneNumber: toE164(phoneNumber),
-          environment 
+          environment,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Failed to create account");
+        setError(data.error || 'Failed to create account');
         setIsLoading(false);
         return;
       }
 
-      setSuccess("Account created successfully! Signing you in...");
-      
+      setSuccess('Account created successfully! Signing you in...');
+
       setTimeout(async () => {
         const loginSuccess = await login(email, password, environment);
         if (!loginSuccess) {
-          setError("Account created but failed to sign in. Please go to login page.");
+          setError('Account created but failed to sign in. Please go to login page.');
         }
       }, 1000);
     } catch (err) {
-      setError("Failed to create account. Please try again.");
+      setError('Failed to create account. Please try again.');
     }
-    
+
     setIsLoading(false);
   };
 
@@ -129,7 +129,7 @@ export default function Signup() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setLocation("/")}
+          onClick={() => setLocation('/')}
           data-testid="button-back-to-login"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -137,7 +137,7 @@ export default function Signup() {
         </Button>
         <ThemeToggle />
       </header>
-      
+
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-2">
@@ -151,30 +151,36 @@ export default function Signup() {
               Join Divorce Ledger - Forensic Financial & Legal Case Management
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             <div className="flex gap-2 p-1 bg-muted rounded-lg">
               <Button
                 type="button"
-                variant={environment === "live" ? "default" : "ghost"}
+                variant={environment === 'live' ? 'default' : 'ghost'}
                 className="flex-1"
-                onClick={() => { setEnv("live"); setEnvironment("live"); }}
+                onClick={() => {
+                  setEnv('live');
+                  setEnvironment('live');
+                }}
                 data-testid="button-env-live"
               >
                 LIVE
               </Button>
               <Button
                 type="button"
-                variant={environment === "demo" ? "default" : "ghost"}
+                variant={environment === 'demo' ? 'default' : 'ghost'}
                 className="flex-1"
-                onClick={() => { setEnv("demo"); setEnvironment("demo"); }}
+                onClick={() => {
+                  setEnv('demo');
+                  setEnvironment('demo');
+                }}
                 data-testid="button-env-demo"
               >
                 DEMO
               </Button>
             </div>
 
-            {environment === "demo" && (
+            {environment === 'demo' && (
               <div className="text-center text-xs text-muted-foreground bg-accent/50 rounded-md p-2">
                 Demo accounts are reset nightly. Use LIVE for permanent accounts.
               </div>
@@ -182,7 +188,9 @@ export default function Signup() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-sm">Full Name</Label>
+                <Label htmlFor="fullName" className="text-sm">
+                  Full Name
+                </Label>
                 <Input
                   id="fullName"
                   type="text"
@@ -195,7 +203,9 @@ export default function Signup() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm">Email</Label>
+                <Label htmlFor="email" className="text-sm">
+                  Email
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -208,7 +218,9 @@ export default function Signup() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phoneNumber" className="text-sm">Phone Number</Label>
+                <Label htmlFor="phoneNumber" className="text-sm">
+                  Phone Number
+                </Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -226,13 +238,15 @@ export default function Signup() {
                   Required for two-factor authentication via SMS
                 </p>
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm">Password</Label>
+                <Label htmlFor="password" className="text-sm">
+                  Password
+                </Label>
                 <div className="relative">
                   <Input
                     id="password"
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="At least 8 characters"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -258,10 +272,12 @@ export default function Signup() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-sm">Confirm Password</Label>
+                <Label htmlFor="confirmPassword" className="text-sm">
+                  Confirm Password
+                </Label>
                 <Input
                   id="confirmPassword"
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Confirm your password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -298,16 +314,16 @@ export default function Signup() {
                     Creating account...
                   </>
                 ) : (
-                  "Create Account"
+                  'Create Account'
                 )}
               </Button>
             </form>
 
             <p className="text-center text-xs text-muted-foreground">
-              Already have an account?{" "}
+              Already have an account?{' '}
               <button
                 type="button"
-                onClick={() => setLocation("/")}
+                onClick={() => setLocation('/')}
                 className="text-primary hover:underline"
                 data-testid="link-login"
               >

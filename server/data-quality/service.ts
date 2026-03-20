@@ -1,5 +1,10 @@
 import { getPool } from '../db';
-import { ExpectationSuite, createAppExpectationSuite, createWarehouseExpectationSuite, ExpectationResult } from './expectations';
+import {
+  ExpectationSuite,
+  createAppExpectationSuite,
+  createWarehouseExpectationSuite,
+  ExpectationResult,
+} from './expectations';
 import { dataProfiler, TableProfile, AnomalyDetection } from './profiler';
 import { reconciliationService, ReconciliationResult } from './reconciliation';
 import { dqAlertService } from './alerts';
@@ -24,7 +29,16 @@ export interface DataQualityRunResult {
   completedAt: Date;
 }
 
-const APP_TABLES = ['users', 'cases', 'violations', 'transactions', 'assets', 'debts', 'incomes', 'expenses'];
+const APP_TABLES = [
+  'users',
+  'cases',
+  'violations',
+  'transactions',
+  'assets',
+  'debts',
+  'incomes',
+  'expenses',
+];
 const WAREHOUSE_TABLES = ['dim_users', 'dim_date', 'fact_violations', 'fact_transactions'];
 
 class DataQualityService {
@@ -32,9 +46,9 @@ class DataQualityService {
     const startTime = Date.now();
     const runId = await this.createRun('full', 'all');
 
-    let validationResults: ExpectationResult[] = [];
-    let profiles: TableProfile[] = [];
-    let anomalies: AnomalyDetection[] = [];
+    const validationResults: ExpectationResult[] = [];
+    const profiles: TableProfile[] = [];
+    const anomalies: AnomalyDetection[] = [];
     let reconciliationResults: ReconciliationResult[] = [];
     let alertsCreated = 0;
 
@@ -72,7 +86,7 @@ class DataQualityService {
 
           const historicalProfiles = await dataProfiler.getHistoricalProfiles(table);
           const tableAnomalies = await dataProfiler.detectAnomalies(profile, historicalProfiles);
-          
+
           for (const anomaly of tableAnomalies) {
             const anomalyId = await this.saveAnomaly(runId, anomaly);
             const alert = await dqAlertService.createAlertFromAnomaly(anomaly, runId, anomalyId);
@@ -86,7 +100,7 @@ class DataQualityService {
 
       console.log('[DQ] Running reconciliation checks...');
       reconciliationResults = await reconciliationService.runAllReconciliations(runId);
-      
+
       for (const result of reconciliationResults) {
         if (result.status !== 'matched') {
           const alert = await dqAlertService.createAlertFromReconciliation(result, runId);
@@ -94,17 +108,30 @@ class DataQualityService {
         }
       }
 
-      const passedChecks = validationResults.filter(r => r.passed).length + 
-                           reconciliationResults.filter(r => r.status === 'matched').length;
-      const failedChecks = validationResults.filter(r => !r.passed && r.expectation.severity === 'critical').length +
-                           reconciliationResults.filter(r => r.status !== 'matched').length;
-      const warningChecks = validationResults.filter(r => !r.passed && r.expectation.severity === 'warning').length;
+      const passedChecks =
+        validationResults.filter((r) => r.passed).length +
+        reconciliationResults.filter((r) => r.status === 'matched').length;
+      const failedChecks =
+        validationResults.filter((r) => !r.passed && r.expectation.severity === 'critical').length +
+        reconciliationResults.filter((r) => r.status !== 'matched').length;
+      const warningChecks = validationResults.filter(
+        (r) => !r.passed && r.expectation.severity === 'warning'
+      ).length;
       const totalChecks = validationResults.length + reconciliationResults.length;
 
       const endTime = Date.now();
-      await this.completeRun(runId, 'completed', totalChecks, passedChecks, failedChecks, warningChecks);
+      await this.completeRun(
+        runId,
+        'completed',
+        totalChecks,
+        passedChecks,
+        failedChecks,
+        warningChecks
+      );
 
-      console.log(`[DQ] Full check completed: ${passedChecks}/${totalChecks} passed, ${alertsCreated} alerts created`);
+      console.log(
+        `[DQ] Full check completed: ${passedChecks}/${totalChecks} passed, ${alertsCreated} alerts created`
+      );
 
       return {
         runId,
@@ -122,7 +149,7 @@ class DataQualityService {
         alertsCreated,
         duration: endTime - startTime,
         startedAt: new Date(startTime),
-        completedAt: new Date(endTime)
+        completedAt: new Date(endTime),
       };
     } catch (error: any) {
       await this.completeRun(runId, 'failed', 0, 0, 0, 0);
@@ -135,7 +162,8 @@ class DataQualityService {
     const runId = await this.createRun('validation', targetSystem);
 
     try {
-      const suite = targetSystem === 'app' ? createAppExpectationSuite() : createWarehouseExpectationSuite();
+      const suite =
+        targetSystem === 'app' ? createAppExpectationSuite() : createWarehouseExpectationSuite();
       const results = await suite.validate();
 
       let alertsCreated = 0;
@@ -147,12 +175,23 @@ class DataQualityService {
         }
       }
 
-      const passedChecks = results.filter(r => r.passed).length;
-      const failedChecks = results.filter(r => !r.passed && r.expectation.severity === 'critical').length;
-      const warningChecks = results.filter(r => !r.passed && r.expectation.severity === 'warning').length;
+      const passedChecks = results.filter((r) => r.passed).length;
+      const failedChecks = results.filter(
+        (r) => !r.passed && r.expectation.severity === 'critical'
+      ).length;
+      const warningChecks = results.filter(
+        (r) => !r.passed && r.expectation.severity === 'warning'
+      ).length;
 
       const endTime = Date.now();
-      await this.completeRun(runId, 'completed', results.length, passedChecks, failedChecks, warningChecks);
+      await this.completeRun(
+        runId,
+        'completed',
+        results.length,
+        passedChecks,
+        failedChecks,
+        warningChecks
+      );
 
       return {
         runId,
@@ -167,7 +206,7 @@ class DataQualityService {
         alertsCreated,
         duration: endTime - startTime,
         startedAt: new Date(startTime),
-        completedAt: new Date(endTime)
+        completedAt: new Date(endTime),
       };
     } catch (error: any) {
       await this.completeRun(runId, 'failed', 0, 0, 0, 0);
@@ -192,7 +231,7 @@ class DataQualityService {
 
           const historicalProfiles = await dataProfiler.getHistoricalProfiles(table);
           const tableAnomalies = await dataProfiler.detectAnomalies(profile, historicalProfiles);
-          
+
           for (const anomaly of tableAnomalies) {
             const anomalyId = await this.saveAnomaly(runId, anomaly);
             const alert = await dqAlertService.createAlertFromAnomaly(anomaly, runId, anomalyId);
@@ -205,7 +244,14 @@ class DataQualityService {
       }
 
       const endTime = Date.now();
-      await this.completeRun(runId, 'completed', tables.length, tables.length - anomalies.length, 0, anomalies.length);
+      await this.completeRun(
+        runId,
+        'completed',
+        tables.length,
+        tables.length - anomalies.length,
+        0,
+        anomalies.length
+      );
 
       return {
         runId,
@@ -221,7 +267,7 @@ class DataQualityService {
         alertsCreated,
         duration: endTime - startTime,
         startedAt: new Date(startTime),
-        completedAt: new Date(endTime)
+        completedAt: new Date(endTime),
       };
     } catch (error: any) {
       await this.completeRun(runId, 'failed', 0, 0, 0, 0);
@@ -244,8 +290,8 @@ class DataQualityService {
         }
       }
 
-      const passedChecks = results.filter(r => r.status === 'matched').length;
-      const failedChecks = results.filter(r => r.status !== 'matched').length;
+      const passedChecks = results.filter((r) => r.status === 'matched').length;
+      const failedChecks = results.filter((r) => r.status !== 'matched').length;
 
       const endTime = Date.now();
       await this.completeRun(runId, 'completed', results.length, passedChecks, failedChecks, 0);
@@ -263,7 +309,7 @@ class DataQualityService {
         alertsCreated,
         duration: endTime - startTime,
         startedAt: new Date(startTime),
-        completedAt: new Date(endTime)
+        completedAt: new Date(endTime),
       };
     } catch (error: any) {
       await this.completeRun(runId, 'failed', 0, 0, 0, 0);
@@ -286,20 +332,43 @@ class DataQualityService {
 
   async getRunDetails(runId: string): Promise<any> {
     const pool = getPool();
-    const [runResult, metricsResult, profilesResult, anomaliesResult, reconciliationResult] = await Promise.all([
-      safeQuery(pool, 'dq.service:getRunById', 'SELECT * FROM quality_runs WHERE id = $1', [runId]),
-      safeQuery(pool, 'dq.service:getMetricsByRun', 'SELECT * FROM quality_metrics WHERE run_id = $1', [runId]),
-      safeQuery(pool, 'dq.service:getProfilesByRun', 'SELECT * FROM data_profiles WHERE run_id = $1', [runId]),
-      safeQuery(pool, 'dq.service:getAnomaliesByRun', 'SELECT * FROM quality_anomalies WHERE run_id = $1', [runId]),
-      safeQuery(pool, 'dq.service:getReconciliationByRun', 'SELECT * FROM reconciliation_results WHERE run_id = $1', [runId])
-    ]);
+    const [runResult, metricsResult, profilesResult, anomaliesResult, reconciliationResult] =
+      await Promise.all([
+        safeQuery(pool, 'dq.service:getRunById', 'SELECT * FROM quality_runs WHERE id = $1', [
+          runId,
+        ]),
+        safeQuery(
+          pool,
+          'dq.service:getMetricsByRun',
+          'SELECT * FROM quality_metrics WHERE run_id = $1',
+          [runId]
+        ),
+        safeQuery(
+          pool,
+          'dq.service:getProfilesByRun',
+          'SELECT * FROM data_profiles WHERE run_id = $1',
+          [runId]
+        ),
+        safeQuery(
+          pool,
+          'dq.service:getAnomaliesByRun',
+          'SELECT * FROM quality_anomalies WHERE run_id = $1',
+          [runId]
+        ),
+        safeQuery(
+          pool,
+          'dq.service:getReconciliationByRun',
+          'SELECT * FROM reconciliation_results WHERE run_id = $1',
+          [runId]
+        ),
+      ]);
 
     return {
       run: runResult.rows[0],
       metrics: metricsResult.rows,
       profiles: profilesResult.rows,
       anomalies: anomaliesResult.rows,
-      reconciliationResults: reconciliationResult.rows
+      reconciliationResults: reconciliationResult.rows,
     };
   }
 
@@ -313,31 +382,37 @@ class DataQualityService {
   }> {
     const pool = getPool();
 
-    const [lastRunResult, totalResult, passRateResult, alertStats, failuresResult] = await Promise.all([
-      safeQuery(pool, 'dq.service:lastRun', 'SELECT * FROM quality_runs ORDER BY started_at DESC LIMIT 1', []),
-      safeQuery(pool, 'dq.service:totalRuns', 'SELECT COUNT(*) as cnt FROM quality_runs', []),
-      safeQuery(
-        pool,
-        'dq.service:passRate',
-        `SELECT 
+    const [lastRunResult, totalResult, passRateResult, alertStats, failuresResult] =
+      await Promise.all([
+        safeQuery(
+          pool,
+          'dq.service:lastRun',
+          'SELECT * FROM quality_runs ORDER BY started_at DESC LIMIT 1',
+          []
+        ),
+        safeQuery(pool, 'dq.service:totalRuns', 'SELECT COUNT(*) as cnt FROM quality_runs', []),
+        safeQuery(
+          pool,
+          'dq.service:passRate',
+          `SELECT 
           COALESCE(SUM(passed_checks), 0) as passed,
           COALESCE(SUM(total_checks), 0) as total
         FROM quality_runs 
         WHERE started_at >= NOW() - INTERVAL '7 days'`,
-        []
-      ),
-      dqAlertService.getAlertStats(),
-      safeQuery(
-        pool,
-        'dq.service:recentFailures',
-        `SELECT qm.* FROM quality_metrics qm
+          []
+        ),
+        dqAlertService.getAlertStats(),
+        safeQuery(
+          pool,
+          'dq.service:recentFailures',
+          `SELECT qm.* FROM quality_metrics qm
         JOIN quality_runs qr ON qm.run_id = qr.id
         WHERE qm.passed = false
         ORDER BY qm.checked_at DESC
         LIMIT 10`,
-        []
-      )
-    ]);
+          []
+        ),
+      ]);
 
     const passed = parseInt(passRateResult.rows[0].passed);
     const total = parseInt(passRateResult.rows[0].total);
@@ -349,7 +424,7 @@ class DataQualityService {
       passRate,
       activeAlerts: alertStats.active,
       alertsBySeverity: alertStats.bySeverity,
-      recentFailures: failuresResult.rows
+      recentFailures: failuresResult.rows,
     };
   }
 
@@ -366,7 +441,14 @@ class DataQualityService {
     return result.rows[0].id;
   }
 
-  private async completeRun(runId: string, status: string, totalChecks: number, passedChecks: number, failedChecks: number, warningChecks: number): Promise<void> {
+  private async completeRun(
+    runId: string,
+    status: string,
+    totalChecks: number,
+    passedChecks: number,
+    failedChecks: number,
+    warningChecks: number
+  ): Promise<void> {
     const pool = getPool();
     await safeQuery(
       pool,
@@ -388,9 +470,17 @@ class DataQualityService {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING id`,
       [
-        runId, result.expectation.name, result.expectation.table, result.expectation.column,
-        result.expectation.type, result.expectedValue, result.actualValue, result.passed,
-        result.expectation.severity, result.message, JSON.stringify(result.metadata || {})
+        runId,
+        result.expectation.name,
+        result.expectation.table,
+        result.expectation.column,
+        result.expectation.type,
+        result.expectedValue,
+        result.actualValue,
+        result.passed,
+        result.expectation.severity,
+        result.message,
+        JSON.stringify(result.metadata || {}),
       ]
     );
     return res.rows[0].id;
@@ -407,9 +497,19 @@ class DataQualityService {
          min_value, max_value, mean_value, std_dev_value, percentiles, top_values)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
         [
-          runId, col.tableName, col.columnName, col.dataType, col.totalCount,
-          col.nullCount, col.uniqueCount, col.minValue, col.maxValue,
-          col.meanValue, col.stdDevValue, JSON.stringify(col.percentiles), JSON.stringify(col.topValues)
+          runId,
+          col.tableName,
+          col.columnName,
+          col.dataType,
+          col.totalCount,
+          col.nullCount,
+          col.uniqueCount,
+          col.minValue,
+          col.maxValue,
+          col.meanValue,
+          col.stdDevValue,
+          JSON.stringify(col.percentiles),
+          JSON.stringify(col.topValues),
         ]
       );
     }
@@ -425,8 +525,15 @@ class DataQualityService {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING id`,
       [
-        runId, anomaly.tableName, anomaly.columnName, anomaly.anomalyType,
-        anomaly.severity, anomaly.description, anomaly.expectedBaseline, anomaly.actualValue, anomaly.deviationScore
+        runId,
+        anomaly.tableName,
+        anomaly.columnName,
+        anomaly.anomalyType,
+        anomaly.severity,
+        anomaly.description,
+        anomaly.expectedBaseline,
+        anomaly.actualValue,
+        anomaly.deviationScore,
       ]
     );
     return result.rows[0].id;

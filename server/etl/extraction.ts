@@ -13,7 +13,7 @@ export interface ExtractedData {
 
 class ExtractionService {
   async extractUsers(since?: Date, updateWatermark: boolean = false): Promise<any[]> {
-    const watermark = since || await etlService.getWatermark('users');
+    const watermark = since || (await etlService.getWatermark('users'));
     const query = watermark
       ? `SELECT id, email, name, subscription_tier, stripe_customer_id, 
                 violations_count_this_month, cases_count, created_at
@@ -21,17 +21,17 @@ class ExtractionService {
       : `SELECT id, email, name, subscription_tier, stripe_customer_id,
                 violations_count_this_month, cases_count, created_at
          FROM users ORDER BY created_at`;
-    
+
     const result = await safeQuery(
       getPool(),
       'etl.extractUsers',
       query,
       watermark ? [watermark] : []
     );
-    
+
     return result.rows;
   }
-  
+
   async commitUserWatermark(users: any[]): Promise<void> {
     if (users.length > 0) {
       const lastRow = users[users.length - 1];
@@ -40,7 +40,7 @@ class ExtractionService {
   }
 
   async extractViolations(since?: Date): Promise<any[]> {
-    const watermark = since || await etlService.getWatermark('violations');
+    const watermark = since || (await etlService.getWatermark('violations'));
     const query = watermark
       ? `SELECT v.*, u.email as user_email, u.subscription_tier
          FROM violations v
@@ -50,7 +50,7 @@ class ExtractionService {
          FROM violations v
          LEFT JOIN users u ON v.user_id = u.id
          ORDER BY v.created_at`;
-    
+
     const result = await safeQuery(
       getPool(),
       'etl.extractViolations',
@@ -59,7 +59,7 @@ class ExtractionService {
     );
     return result.rows;
   }
-  
+
   async commitViolationWatermark(violations: any[]): Promise<void> {
     if (violations.length > 0) {
       const lastRow = violations[violations.length - 1];
@@ -68,7 +68,7 @@ class ExtractionService {
   }
 
   async extractTransactions(since?: Date): Promise<any[]> {
-    const watermark = since || await etlService.getWatermark('transactions');
+    const watermark = since || (await etlService.getWatermark('transactions'));
     const ALLOWED_TABLES = ['transactions', 'assets', 'debts', 'incomes', 'expenses'];
     const allTransactions: any[] = [];
 
@@ -78,7 +78,7 @@ class ExtractionService {
         const query = watermark
           ? `SELECT *, $2 as source_table FROM ${safeTable} WHERE created_at > $1`
           : `SELECT *, $1 as source_table FROM ${safeTable}`;
-        
+
         const params = watermark ? [watermark, table] : [table];
         const result = await safeQuery(
           getPool(),
@@ -94,23 +94,25 @@ class ExtractionService {
 
     return allTransactions;
   }
-  
+
   async commitTransactionWatermark(transactions: any[]): Promise<void> {
     if (transactions.length > 0) {
-      const latestDate = transactions.reduce((max, t) => 
-        t.created_at > max ? t.created_at : max, transactions[0].created_at);
+      const latestDate = transactions.reduce(
+        (max, t) => (t.created_at > max ? t.created_at : max),
+        transactions[0].created_at
+      );
       await etlService.updateWatermark('transactions', latestDate);
     }
   }
 
   async extractBillingEvents(since?: Date): Promise<any[]> {
-    const watermark = since || await etlService.getWatermark('billing_audit_log');
-    
+    const watermark = since || (await etlService.getWatermark('billing_audit_log'));
+
     try {
       const query = watermark
         ? `SELECT * FROM billing_audit_log WHERE created_at > $1 ORDER BY created_at`
         : `SELECT * FROM billing_audit_log ORDER BY created_at`;
-      
+
       const result = await safeQuery(
         getPool(),
         'etl.extractBillingEvents',
@@ -122,7 +124,7 @@ class ExtractionService {
       return [];
     }
   }
-  
+
   async commitAllWatermarks(data: ExtractedData): Promise<void> {
     await this.commitUserWatermark(data.users);
     await this.commitViolationWatermark(data.violations);
@@ -130,13 +132,13 @@ class ExtractionService {
   }
 
   async extractEvidenceFiles(since?: Date): Promise<any[]> {
-    const watermark = since || await etlService.getWatermark('evidence_files');
-    
+    const watermark = since || (await etlService.getWatermark('evidence_files'));
+
     try {
       const query = watermark
         ? `SELECT * FROM evidence_files WHERE created_at > $1 ORDER BY created_at`
         : `SELECT * FROM evidence_files ORDER BY created_at`;
-      
+
       const result = await safeQuery(
         getPool(),
         'etl.extractEvidenceFiles',
@@ -150,13 +152,13 @@ class ExtractionService {
   }
 
   async extractQuickBooksSyncs(since?: Date): Promise<any[]> {
-    const watermark = since || await etlService.getWatermark('quickbooks_sync_log');
-    
+    const watermark = since || (await etlService.getWatermark('quickbooks_sync_log'));
+
     try {
       const query = watermark
         ? `SELECT * FROM quickbooks_sync_log WHERE sync_timestamp > $1 ORDER BY sync_timestamp`
         : `SELECT * FROM quickbooks_sync_log ORDER BY sync_timestamp`;
-      
+
       const result = await safeQuery(
         getPool(),
         'etl.extractQuickBooksSyncs',
@@ -170,7 +172,7 @@ class ExtractionService {
   }
 
   async extractAll(since?: Date): Promise<ExtractedData> {
-    const [users, violations, transactions, billingEvents, evidenceFiles, quickbooksSyncs] = 
+    const [users, violations, transactions, billingEvents, evidenceFiles, quickbooksSyncs] =
       await Promise.all([
         this.extractUsers(since),
         this.extractViolations(since),
@@ -191,8 +193,8 @@ class ExtractionService {
       checkType: 'null_check',
       tableName: 'users',
       columnName: 'id',
-      passed: data.users.every(u => u.id != null),
-      severity: 'critical'
+      passed: data.users.every((u) => u.id != null),
+      severity: 'critical',
     };
     checks.push(userNullCheck);
     await etlService.logQualityCheck(jobId, userNullCheck);
@@ -202,8 +204,8 @@ class ExtractionService {
       checkType: 'null_check',
       tableName: 'violations',
       columnName: 'user_id',
-      passed: data.violations.every(v => v.user_id != null),
-      severity: 'critical'
+      passed: data.violations.every((v) => v.user_id != null),
+      severity: 'critical',
     };
     checks.push(violationsNullCheck);
     await etlService.logQualityCheck(jobId, violationsNullCheck);
@@ -215,7 +217,7 @@ class ExtractionService {
       expectedValue: '< 2 hours',
       actualValue: `${data.users.length + data.violations.length + data.transactions.length} records`,
       passed: true,
-      severity: 'warning'
+      severity: 'warning',
     };
     checks.push(freshnessCheck);
     await etlService.logQualityCheck(jobId, freshnessCheck);

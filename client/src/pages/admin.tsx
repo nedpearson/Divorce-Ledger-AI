@@ -1,14 +1,33 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogIn, Trash2, Database, Eye, EyeOff, Edit2, Save, X, Shield, Plus, Users, UserPlus, ShieldAlert, ShieldCheck, LogOut, MapPin, Smartphone } from "lucide-react";
-import { queryClient } from "@/lib/queryClient";
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Loader2,
+  LogIn,
+  Trash2,
+  Database,
+  Eye,
+  EyeOff,
+  Edit2,
+  Save,
+  X,
+  Shield,
+  Plus,
+  Users,
+  UserPlus,
+  ShieldAlert,
+  ShieldCheck,
+  LogOut,
+  MapPin,
+  Smartphone,
+} from 'lucide-react';
+import { queryClient } from '@/lib/queryClient';
 import {
   Dialog,
   DialogContent,
@@ -16,7 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,15 +46,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface TestUser {
   id: string;
@@ -70,69 +89,74 @@ interface SecurityEvent {
 
 export default function AdminPanel() {
   const { toast } = useToast();
-  const [adminToken, setAdminToken] = useState<string | null>(() => 
-    localStorage.getItem("adminToken")
+  const [adminToken, setAdminToken] = useState<string | null>(() =>
+    localStorage.getItem('adminToken')
   );
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{ email: string; password: string; fullName: string }>({
-    email: "",
-    password: "",
-    fullName: "",
+    email: '',
+    password: '',
+    fullName: '',
   });
-  
+
   // 2FA state
   const [show2fa, setShow2fa] = useState(false);
   const [challengeId, setChallengeId] = useState<string | null>(null);
-  const [maskedPhone, setMaskedPhone] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
+  const [maskedPhone, setMaskedPhone] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [rememberCredentials, setRememberCredentials] = useState(() => 
-    localStorage.getItem("adminRememberCredentials") === "true"
+  const [rememberCredentials, setRememberCredentials] = useState(
+    () => localStorage.getItem('adminRememberCredentials') === 'true'
   );
-  
+
   // Load remembered credentials on mount
   useEffect(() => {
-    if (localStorage.getItem("adminRememberCredentials") === "true") {
-      const savedEmail = localStorage.getItem("adminSavedEmail") || "";
-      const savedPassword = localStorage.getItem("adminSavedPassword") || "";
+    if (localStorage.getItem('adminRememberCredentials') === 'true') {
+      const savedEmail = localStorage.getItem('adminSavedEmail') || '';
+      const savedPassword = localStorage.getItem('adminSavedPassword') || '';
       setLoginEmail(savedEmail);
       setLoginPassword(savedPassword);
     }
   }, []);
-  
+
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newUserForm, setNewUserForm] = useState({
-    email: "",
-    password: "",
-    fullName: "",
-    tier: "enterprise",
+    email: '',
+    password: '',
+    fullName: '',
+    tier: 'enterprise',
   });
   const [editingLiveUser, setEditingLiveUser] = useState<string | null>(null);
   const [editLiveForm, setEditLiveForm] = useState({
-    email: "",
-    password: "",
-    fullName: "",
-    tier: "enterprise",
+    email: '',
+    password: '',
+    fullName: '',
+    tier: 'enterprise',
   });
 
-  const { data: testUsers, refetch, isLoading, isError } = useQuery<TestUser[]>({
-    queryKey: ["/api/admin/test-users", adminToken],
+  const {
+    data: testUsers,
+    refetch,
+    isLoading,
+    isError,
+  } = useQuery<TestUser[]>({
+    queryKey: ['/api/admin/test-users', adminToken],
     queryFn: async () => {
       if (!adminToken) return [];
-      const res = await fetch("/api/admin/test-users", {
-        headers: { "X-Admin-Token": adminToken },
+      const res = await fetch('/api/admin/test-users', {
+        headers: { 'X-Admin-Token': adminToken },
       });
       if (res.status === 401) {
-        localStorage.removeItem("adminToken");
+        localStorage.removeItem('adminToken');
         setAdminToken(null);
-        throw new Error("Session expired");
+        throw new Error('Session expired');
       }
-      if (!res.ok) throw new Error("Failed to fetch test users");
+      if (!res.ok) throw new Error('Failed to fetch test users');
       return res.json();
     },
     enabled: !!adminToken,
@@ -140,23 +164,28 @@ export default function AdminPanel() {
     staleTime: 0,
   });
 
-  const { data: liveUsersData, refetch: refetchLive, isLoading: isLoadingLive, isError: isErrorLive } = useQuery<LiveUser[]>({
-    queryKey: ["/api/admin/live-users", adminToken],
+  const {
+    data: liveUsersData,
+    refetch: refetchLive,
+    isLoading: isLoadingLive,
+    isError: isErrorLive,
+  } = useQuery<LiveUser[]>({
+    queryKey: ['/api/admin/live-users', adminToken],
     queryFn: async () => {
       if (!adminToken) return [];
-      const res = await fetch("/api/admin/live-users", {
-        headers: { "X-Admin-Token": adminToken },
+      const res = await fetch('/api/admin/live-users', {
+        headers: { 'X-Admin-Token': adminToken },
       });
       if (res.status === 401) {
-        localStorage.removeItem("adminToken");
+        localStorage.removeItem('adminToken');
         setAdminToken(null);
-        throw new Error("Session expired");
+        throw new Error('Session expired');
       }
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to fetch live users");
+        throw new Error(data.error || 'Failed to fetch live users');
       }
-      return Array.isArray(data) ? data : (data.users || []);
+      return Array.isArray(data) ? data : data.users || [];
     },
     enabled: !!adminToken,
     retry: false,
@@ -168,264 +197,264 @@ export default function AdminPanel() {
   const handleAdminLogin = async () => {
     setIsLoggingIn(true);
     try {
-      const res = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
-        throw new Error(data.error || "Login failed");
+        throw new Error(data.error || 'Login failed');
       }
-      
+
       // Save only email if remember is checked (never store password)
       if (rememberCredentials) {
-        localStorage.setItem("adminRememberCredentials", "true");
-        localStorage.setItem("adminSavedEmail", loginEmail);
+        localStorage.setItem('adminRememberCredentials', 'true');
+        localStorage.setItem('adminSavedEmail', loginEmail);
       } else {
-        localStorage.removeItem("adminRememberCredentials");
-        localStorage.removeItem("adminSavedEmail");
+        localStorage.removeItem('adminRememberCredentials');
+        localStorage.removeItem('adminSavedEmail');
       }
-      
+
       // Check if 2FA is required
       if (data.requires2fa) {
         setChallengeId(data.challengeId);
         setMaskedPhone(data.maskedPhone);
         setShow2fa(true);
-        toast({ title: "Verification Code Sent", description: `Code sent to ${data.maskedPhone}` });
+        toast({ title: 'Verification Code Sent', description: `Code sent to ${data.maskedPhone}` });
         return;
       }
-      
+
       // No 2FA required - login successful
       setAdminToken(data.adminToken);
-      localStorage.setItem("adminToken", data.adminToken);
-      toast({ title: "Admin Login Successful", description: "Welcome to the admin panel" });
+      localStorage.setItem('adminToken', data.adminToken);
+      toast({ title: 'Admin Login Successful', description: 'Welcome to the admin panel' });
       refetch();
       refetchLive();
     } catch (error: any) {
-      toast({ 
-        title: "Login Failed", 
+      toast({
+        title: 'Login Failed',
         description: error.message,
-        variant: "destructive" 
+        variant: 'destructive',
       });
     } finally {
       setIsLoggingIn(false);
     }
   };
-  
+
   const handleVerify2fa = async () => {
     if (!challengeId || !verificationCode) return;
-    
+
     setIsVerifying(true);
     try {
-      const res = await fetch("/api/admin/2fa/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/admin/2fa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ challengeId, code: verificationCode }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
-        throw new Error(data.error || "Verification failed");
+        throw new Error(data.error || 'Verification failed');
       }
-      
+
       // 2FA successful
       setAdminToken(data.adminToken);
-      localStorage.setItem("adminToken", data.adminToken);
+      localStorage.setItem('adminToken', data.adminToken);
       setShow2fa(false);
       setChallengeId(null);
-      setVerificationCode("");
-      toast({ title: "Admin Login Successful", description: "Welcome to the admin panel" });
+      setVerificationCode('');
+      toast({ title: 'Admin Login Successful', description: 'Welcome to the admin panel' });
       refetch();
       refetchLive();
     } catch (error: any) {
-      toast({ 
-        title: "Verification Failed", 
+      toast({
+        title: 'Verification Failed',
         description: error.message,
-        variant: "destructive" 
+        variant: 'destructive',
       });
     } finally {
       setIsVerifying(false);
     }
   };
-  
+
   const handleCancel2fa = () => {
     setShow2fa(false);
     setChallengeId(null);
-    setVerificationCode("");
+    setVerificationCode('');
   };
 
   const handleLogout = () => {
     setAdminToken(null);
-    localStorage.removeItem("adminToken");
-    toast({ title: "Logged Out", description: "Admin session ended" });
+    localStorage.removeItem('adminToken');
+    toast({ title: 'Logged Out', description: 'Admin session ended' });
   };
 
   const quickLoginMutation = useMutation({
     mutationFn: async ({ userId, isLive }: { userId: string; isLive: boolean }) => {
-      const endpoint = isLive 
+      const endpoint = isLive
         ? `/api/admin/live-users/${userId}/quick-login`
         : `/api/admin/test-users/${userId}/quick-login`;
       const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "X-Admin-Token": adminToken! },
+        method: 'POST',
+        headers: { 'X-Admin-Token': adminToken! },
       });
-      if (!res.ok) throw new Error("Failed to generate quick login");
+      if (!res.ok) throw new Error('Failed to generate quick login');
       return res.json();
     },
     onSuccess: async (data) => {
-      const res = await fetch("/api/auth/quick-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/auth/quick-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: data.loginToken }),
       });
-      
+
       if (res.ok) {
         const loginData = await res.json();
-        localStorage.setItem("userId", loginData.user.id);
-        localStorage.setItem("userEmail", loginData.user.email);
-        localStorage.setItem("environment", loginData.environment);
-        localStorage.setItem("userName", loginData.user.fullName || "");
-        localStorage.setItem("subscriptionTier", loginData.user.subscriptionTier || "free");
-        toast({ title: "Logged In", description: `Now logged in as ${loginData.user.email}` });
-        window.location.href = "/";
+        localStorage.setItem('userId', loginData.user.id);
+        localStorage.setItem('userEmail', loginData.user.email);
+        localStorage.setItem('environment', loginData.environment);
+        localStorage.setItem('userName', loginData.user.fullName || '');
+        localStorage.setItem('subscriptionTier', loginData.user.subscriptionTier || 'free');
+        toast({ title: 'Logged In', description: `Now logged in as ${loginData.user.email}` });
+        window.location.href = '/';
       }
     },
     onError: (error: any) => {
-      toast({ title: "Quick Login Failed", description: error.message, variant: "destructive" });
+      toast({ title: 'Quick Login Failed', description: error.message, variant: 'destructive' });
     },
   });
 
   const seedDataMutation = useMutation({
     mutationFn: async (userId: string) => {
       const res = await fetch(`/api/admin/test-users/${userId}/seed-data`, {
-        method: "POST",
-        headers: { "X-Admin-Token": adminToken! },
+        method: 'POST',
+        headers: { 'X-Admin-Token': adminToken! },
       });
-      if (!res.ok) throw new Error("Failed to seed data");
+      if (!res.ok) throw new Error('Failed to seed data');
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Sample Data Added", description: "Test user now has sample financial data" });
+      toast({ title: 'Sample Data Added', description: 'Test user now has sample financial data' });
     },
     onError: (error: any) => {
-      toast({ title: "Seed Failed", description: error.message, variant: "destructive" });
+      toast({ title: 'Seed Failed', description: error.message, variant: 'destructive' });
     },
   });
 
   const eraseDataMutation = useMutation({
     mutationFn: async (userId: string) => {
       const res = await fetch(`/api/admin/test-users/${userId}/erase`, {
-        method: "POST",
-        headers: { "X-Admin-Token": adminToken! },
+        method: 'POST',
+        headers: { 'X-Admin-Token': adminToken! },
       });
-      if (!res.ok) throw new Error("Failed to erase data");
+      if (!res.ok) throw new Error('Failed to erase data');
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Data Erased", description: "Test user data has been cleared" });
+      toast({ title: 'Data Erased', description: 'Test user data has been cleared' });
     },
     onError: (error: any) => {
-      toast({ title: "Erase Failed", description: error.message, variant: "destructive" });
+      toast({ title: 'Erase Failed', description: error.message, variant: 'destructive' });
     },
   });
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, updates }: { userId: string; updates: typeof editForm }) => {
       const res = await fetch(`/api/admin/test-users/${userId}`, {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          "X-Admin-Token": adminToken! 
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Token': adminToken!,
         },
         body: JSON.stringify(updates),
       });
-      if (!res.ok) throw new Error("Failed to update user");
+      if (!res.ok) throw new Error('Failed to update user');
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "User Updated", description: "Test user credentials updated" });
+      toast({ title: 'User Updated', description: 'Test user credentials updated' });
       setEditingUser(null);
       refetch();
     },
     onError: (error: any) => {
-      toast({ title: "Update Failed", description: error.message, variant: "destructive" });
+      toast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
     },
   });
 
   const createLiveUserMutation = useMutation({
     mutationFn: async (data: typeof newUserForm) => {
-      const res = await fetch("/api/admin/live-users", {
-        method: "POST",
+      const res = await fetch('/api/admin/live-users', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "X-Admin-Token": adminToken!,
+          'Content-Type': 'application/json',
+          'X-Admin-Token': adminToken!,
         },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Failed to create user");
+        throw new Error(err.error || 'Failed to create user');
       }
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Account Created", description: "New live user account is ready" });
+      toast({ title: 'Account Created', description: 'New live user account is ready' });
       setShowCreateDialog(false);
-      setNewUserForm({ email: "", password: "", fullName: "", tier: "enterprise" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/live-users"] });
+      setNewUserForm({ email: '', password: '', fullName: '', tier: 'enterprise' });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/live-users'] });
     },
     onError: (error: any) => {
-      toast({ title: "Creation Failed", description: error.message, variant: "destructive" });
+      toast({ title: 'Creation Failed', description: error.message, variant: 'destructive' });
     },
   });
 
   const updateLiveUserMutation = useMutation({
     mutationFn: async ({ userId, updates }: { userId: string; updates: typeof editLiveForm }) => {
       const res = await fetch(`/api/admin/live-users/${userId}`, {
-        method: "PUT",
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
-          "X-Admin-Token": adminToken!,
+          'Content-Type': 'application/json',
+          'X-Admin-Token': adminToken!,
         },
         body: JSON.stringify(updates),
       });
-      if (!res.ok) throw new Error("Failed to update user");
+      if (!res.ok) throw new Error('Failed to update user');
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Account Updated", description: "Live user account updated" });
+      toast({ title: 'Account Updated', description: 'Live user account updated' });
       setEditingLiveUser(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/live-users"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/live-users'] });
     },
     onError: (error: any) => {
-      toast({ title: "Update Failed", description: error.message, variant: "destructive" });
+      toast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
     },
   });
 
   const deleteLiveUserMutation = useMutation({
     mutationFn: async (userId: string) => {
       const res = await fetch(`/api/admin/live-users/${userId}`, {
-        method: "DELETE",
-        headers: { "X-Admin-Token": adminToken! },
+        method: 'DELETE',
+        headers: { 'X-Admin-Token': adminToken! },
       });
-      if (!res.ok) throw new Error("Failed to delete user");
+      if (!res.ok) throw new Error('Failed to delete user');
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Account Deleted", description: "Live user account has been removed" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/live-users"] });
+      toast({ title: 'Account Deleted', description: 'Live user account has been removed' });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/live-users'] });
     },
     onError: (error: any) => {
-      toast({ title: "Delete Failed", description: error.message, variant: "destructive" });
+      toast({ title: 'Delete Failed', description: error.message, variant: 'destructive' });
     },
   });
 
   const togglePasswordVisibility = (userId: string) => {
-    setShowPasswords(prev => ({ ...prev, [userId]: !prev[userId] }));
+    setShowPasswords((prev) => ({ ...prev, [userId]: !prev[userId] }));
   };
 
   const startEditing = (user: TestUser) => {
@@ -435,7 +464,7 @@ export default function AdminPanel() {
 
   const cancelEditing = () => {
     setEditingUser(null);
-    setEditForm({ email: "", password: "", fullName: "" });
+    setEditForm({ email: '', password: '', fullName: '' });
   };
 
   const saveEdit = (userId: string) => {
@@ -444,9 +473,9 @@ export default function AdminPanel() {
 
   const startEditingLive = (user: LiveUser) => {
     setEditingLiveUser(user.id);
-    setEditLiveForm({ 
-      email: user.email, 
-      password: "", 
+    setEditLiveForm({
+      email: user.email,
+      password: '',
       fullName: user.fullName,
       tier: user.subscriptionTier,
     });
@@ -454,7 +483,7 @@ export default function AdminPanel() {
 
   const cancelEditingLive = () => {
     setEditingLiveUser(null);
-    setEditLiveForm({ email: "", password: "", fullName: "", tier: "enterprise" });
+    setEditLiveForm({ email: '', password: '', fullName: '', tier: 'enterprise' });
   };
 
   const saveEditLive = (userId: string) => {
@@ -475,13 +504,17 @@ export default function AdminPanel() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              {show2fa ? <Smartphone className="w-6 h-6 text-primary" /> : <Shield className="w-6 h-6 text-primary" />}
+              {show2fa ? (
+                <Smartphone className="w-6 h-6 text-primary" />
+              ) : (
+                <Shield className="w-6 h-6 text-primary" />
+              )}
             </div>
-            <CardTitle>{show2fa ? "Verify Your Identity" : "Admin Console"}</CardTitle>
+            <CardTitle>{show2fa ? 'Verify Your Identity' : 'Admin Console'}</CardTitle>
             <CardDescription>
-              {show2fa 
-                ? `Enter the 6-digit code sent to ${maskedPhone}` 
-                : "Sign in to manage users and accounts"}
+              {show2fa
+                ? `Enter the 6-digit code sent to ${maskedPhone}`
+                : 'Sign in to manage users and accounts'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -498,22 +531,24 @@ export default function AdminPanel() {
                     placeholder="123456"
                     value={verificationCode}
                     onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                    onKeyDown={(e) => e.key === "Enter" && verificationCode.length === 6 && handleVerify2fa()}
+                    onKeyDown={(e) =>
+                      e.key === 'Enter' && verificationCode.length === 6 && handleVerify2fa()
+                    }
                     className="text-center text-2xl tracking-widest"
                     data-testid="input-admin-2fa-code"
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button 
+                  <Button
                     variant="outline"
-                    className="flex-1" 
+                    className="flex-1"
                     onClick={handleCancel2fa}
                     data-testid="button-admin-2fa-cancel"
                   >
                     Cancel
                   </Button>
-                  <Button 
-                    className="flex-1" 
+                  <Button
+                    className="flex-1"
                     onClick={handleVerify2fa}
                     disabled={isVerifying || verificationCode.length !== 6}
                     data-testid="button-admin-2fa-verify"
@@ -524,7 +559,7 @@ export default function AdminPanel() {
                         Verifying...
                       </>
                     ) : (
-                      "Verify"
+                      'Verify'
                     )}
                   </Button>
                 </div>
@@ -550,7 +585,7 @@ export default function AdminPanel() {
                     placeholder="Enter password"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAdminLogin()}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
                     data-testid="input-admin-password"
                   />
                 </div>
@@ -561,12 +596,15 @@ export default function AdminPanel() {
                     onCheckedChange={(checked) => setRememberCredentials(checked === true)}
                     data-testid="checkbox-admin-remember"
                   />
-                  <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
+                  <Label
+                    htmlFor="remember"
+                    className="text-sm text-muted-foreground cursor-pointer"
+                  >
                     Remember my credentials
                   </Label>
                 </div>
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   onClick={handleAdminLogin}
                   disabled={isLoggingIn || !loginEmail || !loginPassword}
                   data-testid="button-admin-login"
@@ -650,7 +688,9 @@ export default function AdminPanel() {
                           <Input
                             placeholder="John Doe"
                             value={newUserForm.fullName}
-                            onChange={(e) => setNewUserForm({ ...newUserForm, fullName: e.target.value })}
+                            onChange={(e) =>
+                              setNewUserForm({ ...newUserForm, fullName: e.target.value })
+                            }
                             data-testid="input-new-fullname"
                           />
                         </div>
@@ -660,7 +700,9 @@ export default function AdminPanel() {
                             type="email"
                             placeholder="user@example.com"
                             value={newUserForm.email}
-                            onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                            onChange={(e) =>
+                              setNewUserForm({ ...newUserForm, email: e.target.value })
+                            }
                             data-testid="input-new-email"
                           />
                         </div>
@@ -670,7 +712,9 @@ export default function AdminPanel() {
                             type="text"
                             placeholder="Create a password"
                             value={newUserForm.password}
-                            onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                            onChange={(e) =>
+                              setNewUserForm({ ...newUserForm, password: e.target.value })
+                            }
                             data-testid="input-new-password"
                           />
                         </div>
@@ -695,7 +739,12 @@ export default function AdminPanel() {
                         <Button
                           className="w-full"
                           onClick={() => createLiveUserMutation.mutate(newUserForm)}
-                          disabled={createLiveUserMutation.isPending || !newUserForm.email || !newUserForm.password || !newUserForm.fullName}
+                          disabled={
+                            createLiveUserMutation.isPending ||
+                            !newUserForm.email ||
+                            !newUserForm.password ||
+                            !newUserForm.fullName
+                          }
                           data-testid="button-submit-create"
                         >
                           {createLiveUserMutation.isPending ? (
@@ -721,7 +770,12 @@ export default function AdminPanel() {
                   {isErrorLive && (
                     <div className="text-center py-8">
                       <p className="text-muted-foreground">Failed to load live users.</p>
-                      <Button variant="outline" size="sm" className="mt-2" onClick={() => refetchLive()}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => refetchLive()}
+                      >
                         Try Again
                       </Button>
                     </div>
@@ -735,8 +789,8 @@ export default function AdminPanel() {
                     </div>
                   )}
                   {liveUsers?.map((user) => (
-                    <div 
-                      key={user.id} 
+                    <div
+                      key={user.id}
                       className="border rounded-lg p-4 space-y-3"
                       data-testid={`card-live-user-${user.id}`}
                     >
@@ -757,7 +811,7 @@ export default function AdminPanel() {
                           </Button>
                         )}
                       </div>
-                      
+
                       {editingLiveUser === user.id ? (
                         <div className="space-y-3 pt-2 border-t">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -765,7 +819,9 @@ export default function AdminPanel() {
                               <Label>Full Name</Label>
                               <Input
                                 value={editLiveForm.fullName}
-                                onChange={(e) => setEditLiveForm({ ...editLiveForm, fullName: e.target.value })}
+                                onChange={(e) =>
+                                  setEditLiveForm({ ...editLiveForm, fullName: e.target.value })
+                                }
                                 data-testid={`input-edit-live-name-${user.id}`}
                               />
                             </div>
@@ -773,7 +829,9 @@ export default function AdminPanel() {
                               <Label>Email</Label>
                               <Input
                                 value={editLiveForm.email}
-                                onChange={(e) => setEditLiveForm({ ...editLiveForm, email: e.target.value })}
+                                onChange={(e) =>
+                                  setEditLiveForm({ ...editLiveForm, email: e.target.value })
+                                }
                                 data-testid={`input-edit-live-email-${user.id}`}
                               />
                             </div>
@@ -783,7 +841,9 @@ export default function AdminPanel() {
                                 type="text"
                                 placeholder="New password"
                                 value={editLiveForm.password}
-                                onChange={(e) => setEditLiveForm({ ...editLiveForm, password: e.target.value })}
+                                onChange={(e) =>
+                                  setEditLiveForm({ ...editLiveForm, password: e.target.value })
+                                }
                                 data-testid={`input-edit-live-password-${user.id}`}
                               />
                             </div>
@@ -807,8 +867,8 @@ export default function AdminPanel() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               onClick={() => saveEditLive(user.id)}
                               disabled={updateLiveUserMutation.isPending}
                               data-testid={`button-save-live-${user.id}`}
@@ -830,7 +890,9 @@ export default function AdminPanel() {
                         <div className="flex flex-wrap gap-2 pt-2 border-t">
                           <Button
                             size="sm"
-                            onClick={() => quickLoginMutation.mutate({ userId: user.id, isLive: true })}
+                            onClick={() =>
+                              quickLoginMutation.mutate({ userId: user.id, isLive: true })
+                            }
                             disabled={quickLoginMutation.isPending}
                             data-testid={`button-quick-login-live-${user.id}`}
                           >
@@ -858,8 +920,8 @@ export default function AdminPanel() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Account?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will permanently delete {user.fullName}'s account and ALL their data. 
-                                  This action cannot be undone.
+                                  This will permanently delete {user.fullName}'s account and ALL
+                                  their data. This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -877,8 +939,10 @@ export default function AdminPanel() {
                       )}
 
                       <div className="text-xs text-muted-foreground pt-1">
-                        Created: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-                        {user.lastLoginAt && ` | Last login: ${new Date(user.lastLoginAt).toLocaleDateString()}`}
+                        Created:{' '}
+                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                        {user.lastLoginAt &&
+                          ` | Last login: ${new Date(user.lastLoginAt).toLocaleDateString()}`}
                       </div>
                     </div>
                   ))}
@@ -906,7 +970,12 @@ export default function AdminPanel() {
                   {isError && (
                     <div className="text-center py-8">
                       <p className="text-muted-foreground">Failed to load test users.</p>
-                      <Button variant="outline" size="sm" className="mt-2" onClick={() => refetch()}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => refetch()}
+                      >
                         Try Again
                       </Button>
                     </div>
@@ -917,8 +986,8 @@ export default function AdminPanel() {
                     </div>
                   )}
                   {testUsers?.map((user) => (
-                    <div 
-                      key={user.id} 
+                    <div
+                      key={user.id}
                       className="border rounded-lg p-4 space-y-3"
                       data-testid={`card-test-user-${user.id}`}
                     >
@@ -938,7 +1007,7 @@ export default function AdminPanel() {
                           </Button>
                         )}
                       </div>
-                      
+
                       {editingUser === user.id ? (
                         <div className="space-y-3 pt-2 border-t">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -946,7 +1015,9 @@ export default function AdminPanel() {
                               <Label>Email</Label>
                               <Input
                                 value={editForm.email}
-                                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                                onChange={(e) =>
+                                  setEditForm({ ...editForm, email: e.target.value })
+                                }
                                 data-testid={`input-edit-email-${user.id}`}
                               />
                             </div>
@@ -954,7 +1025,9 @@ export default function AdminPanel() {
                               <Label>Password</Label>
                               <Input
                                 value={editForm.password}
-                                onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                                onChange={(e) =>
+                                  setEditForm({ ...editForm, password: e.target.value })
+                                }
                                 data-testid={`input-edit-password-${user.id}`}
                               />
                             </div>
@@ -962,14 +1035,16 @@ export default function AdminPanel() {
                               <Label>Full Name</Label>
                               <Input
                                 value={editForm.fullName}
-                                onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                                onChange={(e) =>
+                                  setEditForm({ ...editForm, fullName: e.target.value })
+                                }
                                 data-testid={`input-edit-name-${user.id}`}
                               />
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               onClick={() => saveEdit(user.id)}
                               disabled={updateUserMutation.isPending}
                               data-testid={`button-save-${user.id}`}
@@ -998,7 +1073,7 @@ export default function AdminPanel() {
                               <span className="text-muted-foreground">Password:</span>
                               <div className="flex items-center gap-2">
                                 <p className="font-mono">
-                                  {showPasswords[user.id] ? user.password : "••••••"}
+                                  {showPasswords[user.id] ? user.password : '••••••'}
                                 </p>
                                 <Button
                                   variant="ghost"
@@ -1020,7 +1095,9 @@ export default function AdminPanel() {
                           <div className="flex flex-wrap gap-2 pt-2 border-t">
                             <Button
                               size="sm"
-                              onClick={() => quickLoginMutation.mutate({ userId: user.id, isLive: false })}
+                              onClick={() =>
+                                quickLoginMutation.mutate({ userId: user.id, isLive: false })
+                              }
                               disabled={quickLoginMutation.isPending}
                               data-testid={`button-quick-login-${user.id}`}
                             >
@@ -1031,7 +1108,7 @@ export default function AdminPanel() {
                               )}
                               Quick Login
                             </Button>
-                            
+
                             <Button
                               size="sm"
                               variant="outline"
@@ -1063,8 +1140,8 @@ export default function AdminPanel() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Erase All Data?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This will permanently delete all data for {user.fullName}'s sandbox. 
-                                    The account will remain but start fresh with no data.
+                                    This will permanently delete all data for {user.fullName}'s
+                                    sandbox. The account will remain but start fresh with no data.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -1123,7 +1200,7 @@ export default function AdminPanel() {
 
 function SecurityDashboard({ adminToken }: { adminToken: string | null }) {
   const { toast } = useToast();
-  
+
   const { data: eventsData, isLoading: eventsLoading } = useQuery<{ events: SecurityEvent[] }>({
     queryKey: ['/api/admin/security/events', adminToken],
     queryFn: async () => {
@@ -1153,7 +1230,7 @@ function SecurityDashboard({ adminToken }: { adminToken: string | null }) {
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch live users');
       }
-      return Array.isArray(data) ? data : (data.users || []);
+      return Array.isArray(data) ? data : data.users || [];
     },
     enabled: !!adminToken,
   });
@@ -1173,15 +1250,15 @@ function SecurityDashboard({ adminToken }: { adminToken: string | null }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/security/events'] });
       toast({
-        title: "Sessions Revoked",
-        description: "All sessions for this user have been terminated.",
+        title: 'Sessions Revoked',
+        description: 'All sessions for this user have been terminated.',
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to revoke sessions. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to revoke sessions. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -1200,7 +1277,7 @@ function SecurityDashboard({ adminToken }: { adminToken: string | null }) {
   };
 
   const formatEventType = (eventType: string) => {
-    return eventType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return eventType.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
   const formatTimeAgo = (date: string) => {
@@ -1220,13 +1297,18 @@ function SecurityDashboard({ adminToken }: { adminToken: string | null }) {
 
   const events = eventsData?.events || [];
   const users = liveUsersSecurity || [];
-  const usersMap = users.reduce((acc, user) => ({ ...acc, [user.id]: user }), {} as Record<string, LiveUser>);
+  const usersMap = users.reduce(
+    (acc, user) => ({ ...acc, [user.id]: user }),
+    {} as Record<string, LiveUser>
+  );
 
   const eventStats = {
     total: events.length,
-    logins: events.filter(e => e.eventType.includes('login')).length,
-    failures: events.filter(e => e.eventStatus === 'failure').length,
-    revocations: events.filter(e => e.eventType.includes('revoke') || e.eventType.includes('block')).length,
+    logins: events.filter((e) => e.eventType.includes('login')).length,
+    failures: events.filter((e) => e.eventStatus === 'failure').length,
+    revocations: events.filter(
+      (e) => e.eventType.includes('revoke') || e.eventType.includes('block')
+    ).length,
   };
 
   return (
@@ -1264,9 +1346,7 @@ function SecurityDashboard({ adminToken }: { adminToken: string | null }) {
             <Shield className="h-5 w-5" />
             Security Event Log
           </CardTitle>
-          <CardDescription>
-            All security events across all users in the system
-          </CardDescription>
+          <CardDescription>All security events across all users in the system</CardDescription>
         </CardHeader>
         <CardContent>
           {eventsLoading ? (
@@ -1282,8 +1362,8 @@ function SecurityDashboard({ adminToken }: { adminToken: string | null }) {
               {events.slice(0, 50).map((event) => {
                 const user = usersMap[event.userId];
                 return (
-                  <div 
-                    key={event.id} 
+                  <div
+                    key={event.id}
                     className="flex items-center justify-between py-2 border-b last:border-0"
                     data-testid={`admin-event-${event.id}`}
                   >
@@ -1309,7 +1389,7 @@ function SecurityDashboard({ adminToken }: { adminToken: string | null }) {
                         </div>
                       </div>
                     </div>
-                    <Badge 
+                    <Badge
                       variant={event.eventStatus === 'success' ? 'secondary' : 'destructive'}
                       className="text-xs"
                     >
@@ -1329,9 +1409,7 @@ function SecurityDashboard({ adminToken }: { adminToken: string | null }) {
             <Users className="h-5 w-5" />
             User Session Management
           </CardTitle>
-          <CardDescription>
-            Force logout users from all their sessions
-          </CardDescription>
+          <CardDescription>Force logout users from all their sessions</CardDescription>
         </CardHeader>
         <CardContent>
           {users.length === 0 ? (
@@ -1339,8 +1417,8 @@ function SecurityDashboard({ adminToken }: { adminToken: string | null }) {
           ) : (
             <div className="space-y-2">
               {users.slice(0, 20).map((user) => (
-                <div 
-                  key={user.id} 
+                <div
+                  key={user.id}
                   className="flex items-center justify-between py-2 border-b last:border-0"
                   data-testid={`admin-user-session-${user.id}`}
                 >
@@ -1350,8 +1428,8 @@ function SecurityDashboard({ adminToken }: { adminToken: string | null }) {
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         data-testid={`button-revoke-user-${user.id}`}
                       >
@@ -1363,7 +1441,8 @@ function SecurityDashboard({ adminToken }: { adminToken: string | null }) {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Force logout this user?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will terminate all active sessions for {user.fullName} ({user.email}). They will need to sign in again.
+                          This will terminate all active sessions for {user.fullName} ({user.email}
+                          ). They will need to sign in again.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

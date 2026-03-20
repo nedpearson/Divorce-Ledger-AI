@@ -1,13 +1,13 @@
 import { db } from './db';
 import { scheduledJobRuns, type ScheduledJobRun } from '@shared/schema';
-import { billingService } from './billing-service';
-import { quotaResetService } from './quota-reset-service';
-import { tierMigrationService } from './tier-migration-service';
+import { billingService } from './services/billing-service';
+import { quotaResetService } from './services/quota-reset-service';
+import { tierMigrationService } from './services/tier-migration-service';
 import { eq, and, desc } from 'drizzle-orm';
 
 /**
  * LIVE MODE SCHEDULER
- * 
+ *
  * This scheduler is designed exclusively for LIVE/PRODUCTION mode.
  * It provides:
  * - Idempotency via scheduled_job_runs table
@@ -86,7 +86,9 @@ class LiveScheduler {
     console.log('[LIVE-SCHEDULER] Registered tasks:');
     for (const task of this.tasks) {
       const { day, hour, minute } = task.schedule;
-      console.log(`  - ${task.name}: Day ${day} at ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} UTC`);
+      console.log(
+        `  - ${task.name}: Day ${day} at ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} UTC`
+      );
       console.log(`    ${task.description}`);
     }
 
@@ -125,7 +127,7 @@ class LiveScheduler {
         )
       )
       .limit(1);
-    
+
     return existing.length > 0;
   }
 
@@ -170,31 +172,45 @@ class LiveScheduler {
 
       if (currentDay === day && currentHour === hour && currentMinute === minute) {
         const idempotencyKey = this.generateIdempotencyKey(task.name, now);
-        
+
         // Check idempotency - prevent duplicate runs
         if (await this.hasAlreadyRun(idempotencyKey)) {
-          console.log(`[LIVE-SCHEDULER][${correlationId}] Skipped (already run): ${task.name} [${idempotencyKey}]`);
+          console.log(
+            `[LIVE-SCHEDULER][${correlationId}] Skipped (already run): ${task.name} [${idempotencyKey}]`
+          );
           continue;
         }
 
         const startTime = Date.now();
-        
+
         try {
           console.log(`[LIVE-SCHEDULER][${correlationId}] Executing: ${task.name}`);
           const result = await task.handler();
           const durationMs = Date.now() - startTime;
-          
+
           await this.recordJobRun(task.name, idempotencyKey, 'success', durationMs, result);
-          
-          console.log(`[LIVE-SCHEDULER][${correlationId}] Completed: ${task.name} in ${durationMs}ms`, result);
+
+          console.log(
+            `[LIVE-SCHEDULER][${correlationId}] Completed: ${task.name} in ${durationMs}ms`,
+            result
+          );
         } catch (error) {
           const durationMs = Date.now() - startTime;
           const errorMessage = error instanceof Error ? error.message : String(error);
           const errorStack = error instanceof Error ? error.stack : undefined;
-          
-          await this.recordJobRun(task.name, idempotencyKey, 'failure', durationMs, undefined, errorMessage);
-          
-          console.error(`[LIVE-SCHEDULER][${correlationId}] FAILED: ${task.name} in ${durationMs}ms`);
+
+          await this.recordJobRun(
+            task.name,
+            idempotencyKey,
+            'failure',
+            durationMs,
+            undefined,
+            errorMessage
+          );
+
+          console.error(
+            `[LIVE-SCHEDULER][${correlationId}] FAILED: ${task.name} in ${durationMs}ms`
+          );
           console.error(`[LIVE-SCHEDULER][${correlationId}] Error:`, errorMessage);
           if (errorStack) {
             console.error(`[LIVE-SCHEDULER][${correlationId}] Stack:`, errorStack);
@@ -212,7 +228,7 @@ class LiveScheduler {
       throw new Error(`Cannot run scheduler tasks: APP_MODE="${getAppMode()}" (requires "live")`);
     }
 
-    const task = this.tasks.find(t => t.name === taskName);
+    const task = this.tasks.find((t) => t.name === taskName);
     if (!task) {
       throw new Error(`Task not found: ${taskName}`);
     }
@@ -220,7 +236,7 @@ class LiveScheduler {
     const now = new Date();
     const idempotencyKey = this.generateIdempotencyKey(task.name, now);
 
-    if (!forceRun && await this.hasAlreadyRun(idempotencyKey)) {
+    if (!forceRun && (await this.hasAlreadyRun(idempotencyKey))) {
       return { skipped: true, reason: `Already run for period: ${idempotencyKey}` };
     }
 
@@ -230,16 +246,23 @@ class LiveScheduler {
       console.log(`[LIVE-SCHEDULER] Manual run: ${task.name}`);
       const result = await task.handler();
       const durationMs = Date.now() - startTime;
-      
+
       await this.recordJobRun(task.name, idempotencyKey, 'success', durationMs, result);
-      
+
       return result;
     } catch (error) {
       const durationMs = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
-      await this.recordJobRun(task.name, idempotencyKey, 'failure', durationMs, undefined, errorMessage);
-      
+
+      await this.recordJobRun(
+        task.name,
+        idempotencyKey,
+        'failure',
+        durationMs,
+        undefined,
+        errorMessage
+      );
+
       throw error;
     }
   }
@@ -267,25 +290,17 @@ class LiveScheduler {
       running: this.intervalId !== null,
       appMode: getAppMode(),
       cronEnabled: process.env.CRON_ENABLED === 'true',
-      tasks: this.tasks.map(task => {
+      tasks: this.tasks.map((task) => {
         const { day, hour, minute } = task.schedule;
 
-        let nextRun = new Date(Date.UTC(
-          now.getUTCFullYear(),
-          now.getUTCMonth(),
-          day,
-          hour,
-          minute
-        ));
+        let nextRun = new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day, hour, minute)
+        );
 
         if (nextRun <= now) {
-          nextRun = new Date(Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth() + 1,
-            day,
-            hour,
-            minute
-          ));
+          nextRun = new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, day, hour, minute)
+          );
         }
 
         return {

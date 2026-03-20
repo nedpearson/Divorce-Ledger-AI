@@ -46,8 +46,13 @@ class DataProfiler {
 
     const pool = getPool();
     const safeTable = escapeTableName(tableName);
-    
-    const countResult = await safeQuery(pool, 'profiler:tableRowCount', `SELECT COUNT(*) as cnt FROM ${safeTable}`, []);
+
+    const countResult = await safeQuery(
+      pool,
+      'profiler:tableRowCount',
+      `SELECT COUNT(*) as cnt FROM ${safeTable}`,
+      []
+    );
     const rowCount = parseInt(countResult.rows[0].cnt);
 
     const columnsResult = await safeQuery(
@@ -64,7 +69,12 @@ class DataProfiler {
 
     for (const col of columnsResult.rows) {
       try {
-        const profile = await this.profileColumn(tableName, col.column_name, col.data_type, rowCount);
+        const profile = await this.profileColumn(
+          tableName,
+          col.column_name,
+          col.data_type,
+          rowCount
+        );
         columns.push(profile);
       } catch (error) {
         columns.push({
@@ -75,7 +85,7 @@ class DataProfiler {
           nullCount: 0,
           uniqueCount: 0,
           nullPercent: 0,
-          uniquePercent: 0
+          uniquePercent: 0,
         });
       }
     }
@@ -85,7 +95,7 @@ class DataProfiler {
       rowCount,
       columnCount: columns.length,
       columns,
-      profiledAt: new Date()
+      profiledAt: new Date(),
     };
   }
 
@@ -95,11 +105,16 @@ class DataProfiler {
       rowCount: 0,
       columnCount: 0,
       columns: [],
-      profiledAt: new Date()
+      profiledAt: new Date(),
     };
   }
 
-  private async profileColumn(tableName: string, columnName: string, dataType: string, totalCount: number): Promise<ColumnProfile> {
+  private async profileColumn(
+    tableName: string,
+    columnName: string,
+    dataType: string,
+    totalCount: number
+  ): Promise<ColumnProfile> {
     const pool = getPool();
     const safeTable = escapeTableName(tableName);
     const safeColumn = escapeIdentifier(columnName);
@@ -125,7 +140,7 @@ class DataProfiler {
       nullCount,
       uniqueCount,
       nullPercent: totalCount > 0 ? (nullCount / totalCount) * 100 : 0,
-      uniquePercent: totalCount > 0 ? (uniqueCount / totalCount) * 100 : 0
+      uniquePercent: totalCount > 0 ? (uniqueCount / totalCount) * 100 : 0,
     };
 
     if (this.isNumericType(dataType)) {
@@ -160,11 +175,10 @@ class DataProfiler {
             p75: parseFloat(numericStats.rows[0].p75),
             p90: parseFloat(numericStats.rows[0].p90),
             p95: parseFloat(numericStats.rows[0].p95),
-            p99: parseFloat(numericStats.rows[0].p99)
+            p99: parseFloat(numericStats.rows[0].p99),
           };
         }
-      } catch (e) {
-      }
+      } catch (e) {}
     } else if (this.isStringType(dataType)) {
       try {
         const minMaxResult = await safeQuery(
@@ -179,8 +193,7 @@ class DataProfiler {
           profile.minValue = minMaxResult.rows[0].min_val;
           profile.maxValue = minMaxResult.rows[0].max_val;
         }
-      } catch (e) {
-      }
+      } catch (e) {}
     }
 
     try {
@@ -195,27 +208,42 @@ class DataProfiler {
         LIMIT 10`,
         []
       );
-      profile.topValues = topValuesResult.rows.map(r => ({
+      profile.topValues = topValuesResult.rows.map((r) => ({
         value: String(r.value),
-        count: parseInt(r.cnt)
+        count: parseInt(r.cnt),
       }));
-    } catch (e) {
-    }
+    } catch (e) {}
 
     return profile;
   }
 
   private isNumericType(dataType: string): boolean {
-    const numericTypes = ['integer', 'bigint', 'smallint', 'numeric', 'decimal', 'real', 'double precision', 'int', 'int4', 'int8', 'float4', 'float8'];
-    return numericTypes.some(t => dataType.toLowerCase().includes(t));
+    const numericTypes = [
+      'integer',
+      'bigint',
+      'smallint',
+      'numeric',
+      'decimal',
+      'real',
+      'double precision',
+      'int',
+      'int4',
+      'int8',
+      'float4',
+      'float8',
+    ];
+    return numericTypes.some((t) => dataType.toLowerCase().includes(t));
   }
 
   private isStringType(dataType: string): boolean {
     const stringTypes = ['varchar', 'text', 'char', 'character'];
-    return stringTypes.some(t => dataType.toLowerCase().includes(t));
+    return stringTypes.some((t) => dataType.toLowerCase().includes(t));
   }
 
-  async detectAnomalies(currentProfile: TableProfile, historicalProfiles: TableProfile[]): Promise<AnomalyDetection[]> {
+  async detectAnomalies(
+    currentProfile: TableProfile,
+    historicalProfiles: TableProfile[]
+  ): Promise<AnomalyDetection[]> {
     const anomalies: AnomalyDetection[] = [];
 
     if (historicalProfiles.length === 0) {
@@ -224,14 +252,16 @@ class DataProfiler {
 
     const recentProfiles = historicalProfiles.slice(-7);
 
-    const avgRowCount = recentProfiles.reduce((sum, p) => sum + p.rowCount, 0) / recentProfiles.length;
+    const avgRowCount =
+      recentProfiles.reduce((sum, p) => sum + p.rowCount, 0) / recentProfiles.length;
     const rowCountStdDev = Math.sqrt(
-      recentProfiles.reduce((sum, p) => sum + Math.pow(p.rowCount - avgRowCount, 2), 0) / recentProfiles.length
+      recentProfiles.reduce((sum, p) => sum + Math.pow(p.rowCount - avgRowCount, 2), 0) /
+        recentProfiles.length
     );
 
     if (rowCountStdDev > 0) {
       const zScore = (currentProfile.rowCount - avgRowCount) / rowCountStdDev;
-      
+
       if (zScore > 3) {
         anomalies.push({
           tableName: currentProfile.tableName,
@@ -240,7 +270,7 @@ class DataProfiler {
           description: `Row count spike detected: ${currentProfile.rowCount} rows (${Math.round((currentProfile.rowCount / avgRowCount - 1) * 100)}% increase)`,
           expectedBaseline: String(Math.round(avgRowCount)),
           actualValue: String(currentProfile.rowCount),
-          deviationScore: zScore
+          deviationScore: zScore,
         });
       } else if (zScore < -3) {
         anomalies.push({
@@ -250,18 +280,19 @@ class DataProfiler {
           description: `Row count drop detected: ${currentProfile.rowCount} rows (${Math.round((1 - currentProfile.rowCount / avgRowCount) * 100)}% decrease)`,
           expectedBaseline: String(Math.round(avgRowCount)),
           actualValue: String(currentProfile.rowCount),
-          deviationScore: Math.abs(zScore)
+          deviationScore: Math.abs(zScore),
         });
       }
     }
 
     for (const column of currentProfile.columns) {
       const historicalNullPercents = recentProfiles
-        .map(p => p.columns.find(c => c.columnName === column.columnName)?.nullPercent)
+        .map((p) => p.columns.find((c) => c.columnName === column.columnName)?.nullPercent)
         .filter((v): v is number => v !== undefined);
 
       if (historicalNullPercents.length > 0) {
-        const avgNullPercent = historicalNullPercents.reduce((a, b) => a + b, 0) / historicalNullPercents.length;
+        const avgNullPercent =
+          historicalNullPercents.reduce((a, b) => a + b, 0) / historicalNullPercents.length;
         const nullPercentDiff = column.nullPercent - avgNullPercent;
 
         if (nullPercentDiff > 10) {
@@ -273,20 +304,21 @@ class DataProfiler {
             description: `Null percentage increased from ${avgNullPercent.toFixed(1)}% to ${column.nullPercent.toFixed(1)}%`,
             expectedBaseline: `${avgNullPercent.toFixed(1)}%`,
             actualValue: `${column.nullPercent.toFixed(1)}%`,
-            deviationScore: nullPercentDiff
+            deviationScore: nullPercentDiff,
           });
         }
       }
 
       if (column.meanValue !== undefined && column.stdDevValue !== undefined) {
         const historicalMeans = recentProfiles
-          .map(p => p.columns.find(c => c.columnName === column.columnName)?.meanValue)
+          .map((p) => p.columns.find((c) => c.columnName === column.columnName)?.meanValue)
           .filter((v): v is number => v !== undefined);
 
         if (historicalMeans.length > 0) {
           const avgMean = historicalMeans.reduce((a, b) => a + b, 0) / historicalMeans.length;
           const meanStdDev = Math.sqrt(
-            historicalMeans.reduce((sum, m) => sum + Math.pow(m - avgMean, 2), 0) / historicalMeans.length
+            historicalMeans.reduce((sum, m) => sum + Math.pow(m - avgMean, 2), 0) /
+              historicalMeans.length
           );
 
           if (meanStdDev > 0) {
@@ -300,7 +332,7 @@ class DataProfiler {
                 description: `Mean value drift detected: ${column.meanValue.toFixed(2)} vs expected ${avgMean.toFixed(2)}`,
                 expectedBaseline: avgMean.toFixed(2),
                 actualValue: column.meanValue.toFixed(2),
-                deviationScore: Math.abs(zScore)
+                deviationScore: Math.abs(zScore),
               });
             }
           }
@@ -310,8 +342,8 @@ class DataProfiler {
 
     const lastProfile = historicalProfiles[historicalProfiles.length - 1];
     if (lastProfile) {
-      const lastColumns = new Set(lastProfile.columns.map(c => c.columnName));
-      const currentColumns = new Set(currentProfile.columns.map(c => c.columnName));
+      const lastColumns = new Set(lastProfile.columns.map((c) => c.columnName));
+      const currentColumns = new Set(currentProfile.columns.map((c) => c.columnName));
 
       for (const col of currentProfile.columns) {
         if (!lastColumns.has(col.columnName)) {
@@ -323,7 +355,7 @@ class DataProfiler {
             description: `New column detected: ${col.columnName}`,
             expectedBaseline: 'column not present',
             actualValue: 'column added',
-            deviationScore: 1
+            deviationScore: 1,
           });
         }
       }
@@ -338,7 +370,7 @@ class DataProfiler {
             description: `Column removed: ${col.columnName}`,
             expectedBaseline: 'column present',
             actualValue: 'column missing',
-            deviationScore: 10
+            deviationScore: 10,
           });
         }
       }
@@ -353,7 +385,7 @@ class DataProfiler {
     }
 
     const pool = getPool();
-    
+
     try {
       const result = await safeQuery(
         pool,
@@ -394,8 +426,8 @@ class DataProfiler {
       for (const runId of Object.keys(profilesByRun)) {
         const rows = profilesByRun[runId];
         if (profiles.length >= limit) break;
-        
-        const columns: ColumnProfile[] = rows.map(r => ({
+
+        const columns: ColumnProfile[] = rows.map((r) => ({
           tableName: r.table_name,
           columnName: r.column_name,
           dataType: r.data_type,
@@ -409,7 +441,7 @@ class DataProfiler {
           meanValue: r.mean_value,
           stdDevValue: r.std_dev_value,
           percentiles: r.percentiles,
-          topValues: r.top_values
+          topValues: r.top_values,
         }));
 
         profiles.push({
@@ -417,7 +449,7 @@ class DataProfiler {
           rowCount: rows[0]?.total_count || 0,
           columnCount: columns.length,
           columns,
-          profiledAt: new Date(rows[0].profiled_at)
+          profiledAt: new Date(rows[0].profiled_at),
         });
       }
 

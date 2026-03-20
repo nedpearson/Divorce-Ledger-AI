@@ -13,7 +13,7 @@ import {
   CRITICAL_FIELDS_REQUIRING_EVIDENCE,
 } from './extractionTypes';
 
-const CATEGORY_CONFIDENCE_THRESHOLD = 0.90;
+const CATEGORY_CONFIDENCE_THRESHOLD = 0.9;
 import {
   callLLM,
   estimateLLMCost,
@@ -197,11 +197,12 @@ export async function runExtractionPass(
   imageBase64?: string
 ): Promise<PassResult> {
   const startTime = Date.now();
-  
+
   try {
-    const messageText = isImage && imageBase64
-      ? `${EXTRACTION_PROMPT}\n\nFile ID for evidence.source_file_id: ${fileId}\n\nAnalyze this image and extract all financial data.`
-      : `${EXTRACTION_PROMPT}\n\nFile ID for evidence.source_file_id: ${fileId}\n\nDocument text to analyze:\n\n${content}`;
+    const messageText =
+      isImage && imageBase64
+        ? `${EXTRACTION_PROMPT}\n\nFile ID for evidence.source_file_id: ${fileId}\n\nAnalyze this image and extract all financial data.`
+        : `${EXTRACTION_PROMPT}\n\nFile ID for evidence.source_file_id: ${fileId}\n\nDocument text to analyze:\n\n${content}`;
 
     const response = await callLLM(
       EXTRACTION_PROMPT,
@@ -281,11 +282,7 @@ ${sourceText}
 
 Verify the extraction accuracy and return your assessment.`;
 
-    const response = await callLLM(
-      VERIFICATION_PROMPT,
-      { text: prompt },
-      CONFIGURED_MODEL
-    );
+    const response = await callLLM(VERIFICATION_PROMPT, { text: prompt }, CONFIGURED_MODEL);
 
     const rawOutput = response.text;
     const inputTokens = response.inputTokens;
@@ -344,7 +341,12 @@ Verify the extraction accuracy and return your assessment.`;
 function runValidationGate(
   extraction: ExtractionOutput,
   verification: VerificationReport | null
-): { needsReview: boolean; warnings: string[]; adjustedConfidence: number; fieldsMissingEvidence: string[] } {
+): {
+  needsReview: boolean;
+  warnings: string[];
+  adjustedConfidence: number;
+  fieldsMissingEvidence: string[];
+} {
   const warnings: string[] = [...extraction.warnings];
   let adjustedConfidence = extraction.confidence;
   let fieldsMissingEvidence: string[] = [];
@@ -352,22 +354,22 @@ function runValidationGate(
   if (verification) {
     adjustedConfidence += verification.confidence_adjustment;
     adjustedConfidence = Math.max(0, Math.min(1, adjustedConfidence));
-    
+
     if (verification.must_review) {
       warnings.push('Verification pass flagged for manual review');
     }
-    
+
     for (const [field, result] of Object.entries(verification.verified)) {
       if (!result.ok) {
         warnings.push(`Verification failed for ${field}: ${result.reason}`);
       }
     }
-    
+
     fieldsMissingEvidence = getFieldsMissingEvidence(
       verification.verified,
       extraction.extracted as ExtractedFields
     );
-    
+
     if (verification.fields_missing_evidence && verification.fields_missing_evidence.length > 0) {
       for (const field of verification.fields_missing_evidence) {
         if (!fieldsMissingEvidence.includes(field)) {
@@ -375,20 +377,22 @@ function runValidationGate(
         }
       }
     }
-    
+
     for (const field of fieldsMissingEvidence) {
       warnings.push(`Field '${field}' is unverified - no evidence pointer found in source text`);
     }
   }
 
   if (adjustedConfidence < CONFIDENCE_THRESHOLD) {
-    warnings.push(`Confidence ${adjustedConfidence.toFixed(2)} below threshold ${CONFIDENCE_THRESHOLD}`);
+    warnings.push(
+      `Confidence ${adjustedConfidence.toFixed(2)} below threshold ${CONFIDENCE_THRESHOLD}`
+    );
   }
 
   const docType = extraction.doc_type as DocType;
   const requiredFields = REQUIRED_FIELDS_BY_DOC_TYPE[docType] || [];
   const extracted = extraction.extracted as ExtractedFields;
-  
+
   for (const field of requiredFields) {
     const value = extracted[field];
     if (value === null || value === undefined) {
@@ -400,10 +404,12 @@ function runValidationGate(
     const lineTotal = extracted.line_items.reduce((sum, item) => {
       return sum + (item.line_total?.value || 0);
     }, 0);
-    
+
     const subtotal = extracted.subtotal?.value || extracted.total_amount?.value;
     if (subtotal && Math.abs(lineTotal - subtotal) > 0.02 * subtotal) {
-      warnings.push(`Line items sum (${lineTotal.toFixed(2)}) differs from subtotal/total (${subtotal.toFixed(2)}) by more than 2%`);
+      warnings.push(
+        `Line items sum (${lineTotal.toFixed(2)}) differs from subtotal/total (${subtotal.toFixed(2)}) by more than 2%`
+      );
     }
   }
 
@@ -411,8 +417,8 @@ function runValidationGate(
   const tax = extracted.tax_amount?.value || 0;
   const tip = extracted.tip_amount?.value || 0;
   const shipping = extracted.shipping_amount?.value || 0;
-  
-  if (total > 0 && (tax + tip + shipping) > total) {
+
+  if (total > 0 && tax + tip + shipping > total) {
     warnings.push('Tax/tip/shipping sum exceeds total amount');
   }
 
@@ -429,11 +435,11 @@ function runValidationGate(
     }
   }
 
-  const needsReview = 
+  const needsReview =
     adjustedConfidence < CONFIDENCE_THRESHOLD ||
     (verification && !verification.overall_ok) ||
     (verification && verification.must_review) ||
-    requiredFields.some(f => extracted[f] === null || extracted[f] === undefined) ||
+    requiredFields.some((f) => extracted[f] === null || extracted[f] === undefined) ||
     fieldsMissingEvidence.length > 0;
 
   return { needsReview, warnings, adjustedConfidence, fieldsMissingEvidence };
@@ -459,14 +465,8 @@ export async function runTwoPassPipeline(
   imageBase64?: string
 ): Promise<PipelineResult> {
   const errors: string[] = [];
-  
-  const extractionResult = await runExtractionPass(
-    content,
-    fileId,
-    isImage,
-    mimeType,
-    imageBase64
-  );
+
+  const extractionResult = await runExtractionPass(content, fileId, isImage, mimeType, imageBase64);
 
   if (!extractionResult.success || !extractionResult.data) {
     return {
@@ -476,7 +476,11 @@ export async function runTwoPassPipeline(
       verificationPass: null,
       totalInputTokens: extractionResult.inputTokens,
       totalOutputTokens: extractionResult.outputTokens,
-      totalEstimatedCost: estimateLLMCost(CONFIGURED_MODEL, extractionResult.inputTokens, extractionResult.outputTokens),
+      totalEstimatedCost: estimateLLMCost(
+        CONFIGURED_MODEL,
+        extractionResult.inputTokens,
+        extractionResult.outputTokens
+      ),
       errors: [extractionResult.error || 'Extraction pass failed'],
     };
   }
@@ -484,15 +488,20 @@ export async function runTwoPassPipeline(
   const extraction = extractionResult.data as ExtractionOutput;
 
   const verificationResult = await runVerificationPass(extraction, content);
-  
+
   let verification: VerificationReport | null = null;
   if (verificationResult.success && verificationResult.data) {
     verification = verificationResult.data as VerificationReport;
   } else {
-    errors.push(verificationResult.error || 'Verification pass failed - proceeding without verification');
+    errors.push(
+      verificationResult.error || 'Verification pass failed - proceeding without verification'
+    );
   }
 
-  const { needsReview, warnings, adjustedConfidence, fieldsMissingEvidence } = runValidationGate(extraction, verification);
+  const { needsReview, warnings, adjustedConfidence, fieldsMissingEvidence } = runValidationGate(
+    extraction,
+    verification
+  );
 
   const totalInputTokens = extractionResult.inputTokens + verificationResult.inputTokens;
   const totalOutputTokens = extractionResult.outputTokens + verificationResult.outputTokens;
@@ -501,7 +510,7 @@ export async function runTwoPassPipeline(
   const categoryCandidates: CategoryCandidate[] = extraction.category_candidates || [];
   const topScore = categoryCandidates[0]?.score ?? 0;
   const secondScore = categoryCandidates[1]?.score ?? 0;
-  const categoryRequiresReview = topScore < CATEGORY_CONFIDENCE_THRESHOLD || secondScore > 0.70;
+  const categoryRequiresReview = topScore < CATEGORY_CONFIDENCE_THRESHOLD || secondScore > 0.7;
 
   const normalizedOutput: NormalizedAnalysisOutput = {
     model: MODEL_PROVIDER,
@@ -509,7 +518,7 @@ export async function runTwoPassPipeline(
     analysis_run_id: analysisRunId,
     doc_type: extraction.doc_type,
     suggested_category: extraction.suggested_category,
-    ledger_bucket: extraction.ledger_bucket || "UNKNOWN",
+    ledger_bucket: extraction.ledger_bucket || 'UNKNOWN',
     finance_category: extraction.finance_category,
     confidence: adjustedConfidence,
     summary: extraction.summary,

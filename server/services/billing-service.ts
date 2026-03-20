@@ -1,7 +1,7 @@
-import { db } from './db';
+import { db } from '../db';
 import { users, violations, evidenceFiles, billingRecords } from '@shared/schema';
 import { eq, sql, and, gte, lte } from 'drizzle-orm';
-import { isDemoMode } from './config';
+import { isDemoMode } from '../config';
 
 export interface BillingRecord {
   id: string;
@@ -83,7 +83,7 @@ export class BillingService {
     if (isDemo) {
       console.log(`[BILLING] Demo mode: Calculating preview billing for user ${userId}`);
     }
-    
+
     try {
       const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
       const endOfMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0);
@@ -164,28 +164,33 @@ export class BillingService {
    */
   async saveBillingRecord(record: BillingRecord): Promise<void> {
     if (!this.shouldRunBilling()) {
-      console.log(`[BILLING] Demo mode: Would save billing record ${record.id} for $${(record.amountCents / 100).toFixed(2)}`);
+      console.log(
+        `[BILLING] Demo mode: Would save billing record ${record.id} for $${(record.amountCents / 100).toFixed(2)}`
+      );
       return;
     }
-    
+
     try {
-      await db.insert(billingRecords).values({
-        id: record.id,
-        userId: record.userId,
-        tier: record.tier,
-        periodStart: record.periodStart,
-        periodEnd: record.periodEnd,
-        violationsRecorded: record.violationsRecorded,
-        storageUsedMb: record.storageUsedMb,
-        amountCents: record.amountCents,
-        status: record.status,
-      }).onConflictDoUpdate({
-        target: billingRecords.id,
-        set: {
+      await db
+        .insert(billingRecords)
+        .values({
+          id: record.id,
+          userId: record.userId,
+          tier: record.tier,
+          periodStart: record.periodStart,
+          periodEnd: record.periodEnd,
+          violationsRecorded: record.violationsRecorded,
+          storageUsedMb: record.storageUsedMb,
           amountCents: record.amountCents,
           status: record.status,
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: billingRecords.id,
+          set: {
+            amountCents: record.amountCents,
+            status: record.status,
+          },
+        });
 
       console.log(`Billing record saved: ${record.id}`);
     } catch (error) {
@@ -210,7 +215,11 @@ export class BillingService {
     }
   }
 
-  async processMonthlyBillings(): Promise<{ processed: number; failed: number; skipped?: boolean }> {
+  async processMonthlyBillings(): Promise<{
+    processed: number;
+    failed: number;
+    skipped?: boolean;
+  }> {
     // LIVE MODE GUARD: Skip actual billing in demo mode
     if (process.env.APP_MODE === 'demo') {
       console.log('[BILLING] Skipping monthly billing: Running in demo mode');
@@ -277,26 +286,34 @@ export class BillingService {
         .from(billingRecords)
         .where(gte(billingRecords.periodStart, startOfMonth));
 
-      type BillingRecordRow = typeof allRecords[number];
+      type BillingRecordRow = (typeof allRecords)[number];
 
-      const successfulRecords = allRecords.filter((r: BillingRecordRow) => r.status === 'charged' || r.status === 'pending');
+      const successfulRecords = allRecords.filter(
+        (r: BillingRecordRow) => r.status === 'charged' || r.status === 'pending'
+      );
       const failedRecords = allRecords.filter((r: BillingRecordRow) => r.status === 'failed');
 
-      const totalRevenue = successfulRecords.reduce((sum: number, r: BillingRecordRow) => sum + (r.amountCents || 0), 0) / 100;
+      const totalRevenue =
+        successfulRecords.reduce(
+          (sum: number, r: BillingRecordRow) => sum + (r.amountCents || 0),
+          0
+        ) / 100;
 
-      const lastRecord = allRecords.length > 0
-        ? allRecords.reduce((latest: BillingRecordRow, r: BillingRecordRow) => 
-            r.createdAt && (!latest.createdAt || r.createdAt > latest.createdAt) ? r : latest
-          )
-        : null;
+      const lastRecord =
+        allRecords.length > 0
+          ? allRecords.reduce((latest: BillingRecordRow, r: BillingRecordRow) =>
+              r.createdAt && (!latest.createdAt || r.createdAt > latest.createdAt) ? r : latest
+            )
+          : null;
 
       return {
         last_run: lastRecord?.createdAt?.toISOString() || null,
         records_processed: allRecords.length,
         records_successful: successfulRecords.length,
-        success_rate: allRecords.length > 0 
-          ? parseFloat(((successfulRecords.length / allRecords.length) * 100).toFixed(1))
-          : 100,
+        success_rate:
+          allRecords.length > 0
+            ? parseFloat(((successfulRecords.length / allRecords.length) * 100).toFixed(1))
+            : 100,
         failures: failedRecords.map((r: BillingRecordRow) => ({
           user_id: r.userId,
           error: 'payment processing failed',

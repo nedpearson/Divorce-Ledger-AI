@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
-import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
+import { Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
 
 export default function MobileLinkPage() {
   const [, setLocation] = useLocation();
   const { completeLogin } = useAuth();
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const [message, setMessage] = useState<string>("Finishing secure sign-in on this device...");
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [message, setMessage] = useState<string>('Finishing secure sign-in on this device...');
 
   useEffect(() => {
     let cancelled = false;
@@ -15,19 +15,19 @@ export default function MobileLinkPage() {
     async function run() {
       try {
         const params = new URLSearchParams(window.location.search);
-        const token = params.get("token");
+        const token = params.get('token');
         if (!token) {
-          setStatus("error");
-          setMessage("Missing sign-in token. Please open the mobile QR from your desktop again.");
+          setStatus('error');
+          setMessage('Missing sign-in token. Please open the mobile QR from your desktop again.');
           return;
         }
 
         const res = await fetch(`/api/mobile/auth/complete?token=${encodeURIComponent(token)}`, {
-          credentials: "include",
+          credentials: 'include',
         });
 
         if (!res.ok) {
-          let errorMsg = "Unable to complete mobile sign-in. Your link may have expired.";
+          let errorMsg = 'Unable to complete mobile sign-in. Your link may have expired.';
           try {
             const data = await res.json();
             if (data?.error) errorMsg = data.error;
@@ -35,7 +35,7 @@ export default function MobileLinkPage() {
             // ignore
           }
           if (!cancelled) {
-            setStatus("error");
+            setStatus('error');
             setMessage(errorMsg);
           }
           return;
@@ -44,26 +44,28 @@ export default function MobileLinkPage() {
         const data = await res.json();
         if (!data?.user || !data?.environment) {
           if (!cancelled) {
-            setStatus("error");
-            setMessage("Invalid response from server. Please try scanning the QR code again.");
+            setStatus('error');
+            setMessage('Invalid response from server. Please try scanning the QR code again.');
           }
           return;
         }
 
         if (!cancelled) {
           completeLogin(data.user, data.environment);
-          setStatus("success");
-          setMessage("Signed in! Redirecting to Quick Capture...");
+          setStatus('success');
+          setMessage('Signed in! Redirecting to Quick Capture...');
           // Small delay so user sees confirmation, then go to Quick Capture
           setTimeout(() => {
-            setLocation("/home?source=pwa");
+            setLocation('/home?source=pwa');
           }, 800);
         }
       } catch (error) {
-        console.error("Mobile link error:", error);
+        console.error('Mobile link error:', error);
         if (!cancelled) {
-          setStatus("error");
-          setMessage("Something went wrong finishing mobile sign-in. Please try again from your desktop.");
+          setStatus('error');
+          setMessage(
+            'Something went wrong finishing mobile sign-in. Please try again from your desktop.'
+          );
         }
       }
     }
@@ -74,9 +76,9 @@ export default function MobileLinkPage() {
     };
   }, [completeLogin, setLocation]);
 
-  const isLoading = status === "loading";
-  const isError = status === "error";
-  const isSuccess = status === "success";
+  const isLoading = status === 'loading';
+  const isError = status === 'error';
+  const isSuccess = status === 'success';
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -91,7 +93,8 @@ export default function MobileLinkPage() {
         {isError && (
           <div className="mt-2 text-xs text-muted-foreground space-y-1">
             <p>
-              This usually means the link was used already or expired. For security, mobile links only work once and expire after a few minutes.
+              This usually means the link was used already or expired. For security, mobile links
+              only work once and expire after a few minutes.
             </p>
             <p>
               Go back to your desktop, open the Mobile App button again, and scan the new QR code.

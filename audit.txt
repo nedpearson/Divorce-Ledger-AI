@@ -1,0 +1,34 @@
+# npm audit report
+
+@tootallnate/once  <3.0.1
+@tootallnate/once vulnerable to Incorrect Control Flow Scoping - https://github.com/advisories/GHSA-vpq2-c234-7xj6
+fix available via `npm audit fix --force`
+Will install @google-cloud/storage@5.18.3, which is a breaking change
+node_modules/@tootallnate/once
+  http-proxy-agent  4.0.1 - 5.0.0
+  Depends on vulnerable versions of @tootallnate/once
+  node_modules/http-proxy-agent
+    teeny-request  >=7.1.3
+    Depends on vulnerable versions of http-proxy-agent
+    node_modules/teeny-request
+      @google-cloud/storage  >=5.19.0
+      Depends on vulnerable versions of retry-request
+      Depends on vulnerable versions of teeny-request
+      node_modules/@google-cloud/storage
+      retry-request  >=7.0.0
+      Depends on vulnerable versions of teeny-request
+      node_modules/retry-request
+
+cookie  <0.7.0
+cookie accepts cookie name, path, and domain with out of bounds characters - https://github.com/advisories/GHSA-pxg6-pf52-xh8x
+fix available via `npm audit fix --force`
+Will install csurf@1.2.2, which is a breaking change
+node_modules/csurf/node_modules/cookie
+  csurf  >=1.3.0
+  Depends on vulnerable versions of cookie
+  node_modules/csurf
+
+7 low severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force

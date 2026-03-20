@@ -1,5 +1,5 @@
-import { eq, inArray, sql } from "drizzle-orm";
-import { db } from "./db";
+import { eq, inArray, sql } from 'drizzle-orm';
+import { db } from './db';
 import {
   users,
   transactions,
@@ -30,8 +30,8 @@ import {
   chainOfCustody,
   teams,
   demoMeta,
-} from "@shared/schema";
-import { seedDemoData, TEST_USERS } from "./storage";
+} from '@shared/schema';
+import { seedDemoData, TEST_USERS } from './storage';
 
 const DEMO_RESET_INTERVAL_HOURS = 24;
 let resetInProgress = false;
@@ -42,39 +42,39 @@ let resetInProgress = false;
  */
 export async function resetDemoEnvironment(): Promise<void> {
   if (process.env.APP_MODE !== 'demo') {
-    throw new Error("resetDemoEnvironment can only be called in demo mode");
+    throw new Error('resetDemoEnvironment can only be called in demo mode');
   }
 
-  console.log("[DEMO] Starting atomic reset from first principles...");
+  console.log('[DEMO] Starting atomic reset from first principles...');
 
   try {
     // 1. Truncate/Delete all demo tables
-    await deleteEnvironmentData("demo", true);
-    console.log("[DEMO] 1/6: Tables cleared.");
+    await deleteEnvironmentData('demo', true);
+    console.log('[DEMO] 1/6: Tables cleared.');
 
     // 2. Clear Object Storage (Simulated/Placeholder for this environment)
     // In a real env, we would call replit object storage clear
-    console.log("[DEMO] 2/6: Storage cleared (idempotent).");
+    console.log('[DEMO] 2/6: Storage cleared (idempotent).');
 
     // 3. Reset Stripe/Subscription Mock Data
     // Handled by re-seeding users with default 'free' or 'demo' tiers
-    console.log("[DEMO] 3/6: Stripe mocks reset.");
+    console.log('[DEMO] 3/6: Stripe mocks reset.');
 
     // 4. Re-seed essential demo data & Recreate demo user(s)
     await seedDemoData();
-    console.log("[DEMO] 4/6: Essential data re-seeded.");
+    console.log('[DEMO] 4/6: Essential data re-seeded.');
 
     // 5. Reset Usage Quotas
     // Handled during seeding by initializing counters to 0
-    console.log("[DEMO] 5/6: Quotas reset.");
+    console.log('[DEMO] 5/6: Quotas reset.');
 
     // 6. Update last_reset_at timestamp
     await updateLastResetTimestamp();
-    console.log("[DEMO] 6/6: Timestamp updated.");
+    console.log('[DEMO] 6/6: Timestamp updated.');
 
-    console.log("[DEMO] Reset successful.");
+    console.log('[DEMO] Reset successful.');
   } catch (error) {
-    console.error("[DEMO] Reset failed during step execution:", error);
+    console.error('[DEMO] Reset failed during step execution:', error);
     throw error;
   }
 }
@@ -88,34 +88,37 @@ export async function resetDemoEnvironment(): Promise<void> {
 // - Clears all data in the demo environment BUT preserves the demo user account
 // - Reseeds rich demo data via seedDemoData()
 export async function superadminResetDemoForLive(): Promise<void> {
-  if (process.env.APP_MODE !== "live") {
-    throw new Error("superadminResetDemoForLive can only be called in live mode");
+  if (process.env.APP_MODE !== 'live') {
+    throw new Error('superadminResetDemoForLive can only be called in live mode');
   }
 
-  console.log("[SUPERADMIN DEMO RESET] Starting live demo reset...");
+  console.log('[SUPERADMIN DEMO RESET] Starting live demo reset...');
 
   try {
     // Clear demo environment data but keep the demo user record intact
-    await deleteEnvironmentData("demo", false);
-    console.log("[SUPERADMIN DEMO RESET] Demo data cleared (user preserved).");
+    await deleteEnvironmentData('demo', false);
+    console.log('[SUPERADMIN DEMO RESET] Demo data cleared (user preserved).');
 
     // Reseed the curated demo scenario for the demo user
     await seedDemoData();
-    console.log("[SUPERADMIN DEMO RESET] Demo data reseeded.");
+    console.log('[SUPERADMIN DEMO RESET] Demo data reseeded.');
 
     // Optionally mirror the demo_meta timestamp behavior so we can
     // observe last reset time from the same table.
     await updateLastResetTimestamp();
-    console.log("[SUPERADMIN DEMO RESET] Timestamp updated.");
+    console.log('[SUPERADMIN DEMO RESET] Timestamp updated.');
 
-    console.log("[SUPERADMIN DEMO RESET] Completed successfully.");
+    console.log('[SUPERADMIN DEMO RESET] Completed successfully.');
   } catch (error) {
-    console.error("[SUPERADMIN DEMO RESET] Failed:", error);
+    console.error('[SUPERADMIN DEMO RESET] Failed:', error);
     throw error;
   }
 }
 
-async function deleteEnvironmentData(environment: string, deleteUser: boolean = true): Promise<void> {
+async function deleteEnvironmentData(
+  environment: string,
+  deleteUser: boolean = true
+): Promise<void> {
   // Delete from each table explicitly to avoid TypeScript issues with generic table iteration
   // Tables with environment column - delete by environment
   await db.delete(alerts).where(eq(alerts.environment, environment));
@@ -125,17 +128,21 @@ async function deleteEnvironmentData(environment: string, deleteUser: boolean = 
   await db.delete(assets).where(eq(assets.environment, environment));
   await db.delete(transactions).where(eq(transactions.environment, environment));
   await db.delete(documents).where(eq(documents.environment, environment));
-  await db.delete(mobileViolationReports).where(eq(mobileViolationReports.environment, environment));
+  await db
+    .delete(mobileViolationReports)
+    .where(eq(mobileViolationReports.environment, environment));
   await db.delete(reimbursements).where(eq(reimbursements.environment, environment));
   await db.delete(w2Records).where(eq(w2Records.environment, environment));
   await db.delete(childSupportPayments).where(eq(childSupportPayments.environment, environment));
-  await db.delete(improvementRecommendations).where(eq(improvementRecommendations.environment, environment));
+  await db
+    .delete(improvementRecommendations)
+    .where(eq(improvementRecommendations.environment, environment));
   await db.delete(calendarEvents).where(eq(calendarEvents.environment, environment));
   await db.delete(legalDocuments).where(eq(legalDocuments.environment, environment));
   await db.delete(messages).where(eq(messages.environment, environment));
   // Note: journalAttachments linked via journalEntries, not deleted directly
   await db.delete(journalEntries).where(eq(journalEntries.environment, environment));
-  // Note: sentimentReportItems linked via sentimentReports, not deleted directly  
+  // Note: sentimentReportItems linked via sentimentReports, not deleted directly
   await db.delete(sentimentReports).where(eq(sentimentReports.environment, environment));
   // Note: conversationMessages and conversationParticipants linked via conversations
   // They will be cascade deleted or handled separately
@@ -145,7 +152,7 @@ async function deleteEnvironmentData(environment: string, deleteUser: boolean = 
   await db.delete(violations).where(eq(violations.environment, environment));
   await db.delete(cases).where(eq(cases.environment, environment));
 
-  // Wipe newly added tenant tables mapped to users 
+  // Wipe newly added tenant tables mapped to users
   await db.execute(sql`DELETE FROM matter_members`);
   await db.execute(sql`DELETE FROM matters`);
   await db.execute(sql`DELETE FROM workspace_members`);
@@ -204,7 +211,9 @@ export async function maybeResetDemo(): Promise<void> {
     const lastResetAt = await getLastResetTimestamp();
 
     if (isStale(lastResetAt)) {
-      console.log(`[DEMO] Stale data detected (Interval: ${DEMO_RESET_INTERVAL_HOURS}h). Initializing lazy reset...`);
+      console.log(
+        `[DEMO] Stale data detected (Interval: ${DEMO_RESET_INTERVAL_HOURS}h). Initializing lazy reset...`
+      );
       await resetDemoEnvironment();
     } else {
       console.log('[DEMO] Data is fresh. Skipping lazy reset.');
@@ -222,17 +231,17 @@ export async function maybeResetDemo(): Promise<void> {
  * APP_MODE === "demo" and CRON_ENABLED === "true"
  */
 export function startDemoResetScheduler(): void {
-  if (process.env.APP_MODE !== "demo" || process.env.CRON_ENABLED !== "true") {
-    console.log("[DEMO] Scheduler skipped: Environment not eligible.");
+  if (process.env.APP_MODE !== 'demo' || process.env.CRON_ENABLED !== 'true') {
+    console.log('[DEMO] Scheduler skipped: Environment not eligible.');
     return;
   }
 
   const ONE_HOUR_MS = 60 * 60 * 1000;
   setInterval(() => {
-    maybeResetDemo().catch(err => console.error("[DEMO] Scheduled check failed:", err));
+    maybeResetDemo().catch((err) => console.error('[DEMO] Scheduled check failed:', err));
   }, ONE_HOUR_MS);
 
-  console.log("[DEMO] Scheduler started (Interval: 1h checks).");
+  console.log('[DEMO] Scheduler started (Interval: 1h checks).');
 }
 
 // Alias for backward compatibility if needed, but primarily using resetDemoEnvironment now
@@ -243,17 +252,17 @@ export const resetDemoData = resetDemoEnvironment;
 export async function eraseDemoData(): Promise<void> {
   // CRITICAL: Block in live mode
   if (process.env.APP_MODE === 'live') {
-    console.error("[SECURITY] BLOCKED: eraseDemoData() called in LIVE mode");
-    throw new Error("eraseDemoData is disabled in live/production mode");
+    console.error('[SECURITY] BLOCKED: eraseDemoData() called in LIVE mode');
+    throw new Error('eraseDemoData is disabled in live/production mode');
   }
 
-  console.log("Starting main demo data erase...");
+  console.log('Starting main demo data erase...');
 
   try {
-    await deleteEnvironmentData("demo", false); // Keep user account
-    console.log("Demo data erased completely - user account preserved.");
+    await deleteEnvironmentData('demo', false); // Keep user account
+    console.log('Demo data erased completely - user account preserved.');
   } catch (error) {
-    console.error("Failed to erase demo data:", error);
+    console.error('Failed to erase demo data:', error);
     throw error;
   }
 }
@@ -264,7 +273,7 @@ export async function eraseEnvironmentData(environment: string): Promise<void> {
   // CRITICAL: Block erasing demo environment in live mode
   if (process.env.APP_MODE === 'live' && environment === 'demo') {
     console.error("[SECURITY] BLOCKED: eraseEnvironmentData('demo') called in LIVE mode");
-    throw new Error("Cannot erase demo environment in live/production mode");
+    throw new Error('Cannot erase demo environment in live/production mode');
   }
 
   // Log security-relevant operations
@@ -283,7 +292,7 @@ export async function eraseEnvironmentData(environment: string): Promise<void> {
   }
 }
 
-export const TEST_ENVIRONMENTS = TEST_USERS.map(u => u.environment);
+export const TEST_ENVIRONMENTS = TEST_USERS.map((u) => u.environment);
 export function isTestEnvironment(environment: string): boolean {
   return TEST_ENVIRONMENTS.includes(environment);
 }

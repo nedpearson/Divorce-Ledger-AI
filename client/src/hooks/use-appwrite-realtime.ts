@@ -27,9 +27,9 @@ export function useAppwriteRealtime(userId: string | null): UseAppwriteRealtimeR
       setIsConnected(true);
       setError(null);
     }
-    
+
     const filesChannel = `databases.${DATABASE_ID}.collections.${COLLECTIONS.FILES}.documents`;
-    const isFileEvent = event.channels.some(ch => ch.startsWith(filesChannel));
+    const isFileEvent = event.channels.some((ch) => ch.startsWith(filesChannel));
 
     if (isFileEvent) {
       queryClient.invalidateQueries({ queryKey: ['/api/appwrite/files'] });
@@ -44,19 +44,18 @@ export function useAppwriteRealtime(userId: string | null): UseAppwriteRealtimeR
     }
 
     const channel = `databases.${DATABASE_ID}.collections.${COLLECTIONS.FILES}.documents`;
-    
+
     try {
       hasReceivedEventRef.current = false;
       setIsConnected(false);
-      
+
       unsubscribeRef.current = client.subscribe(channel, handleRealtimeEvent);
-      
+
       connectionTimeoutRef.current = setTimeout(() => {
         if (!hasReceivedEventRef.current) {
           setIsConnected(false);
         }
       }, 10000);
-      
     } catch (err) {
       console.warn('[Appwrite Realtime] Subscription failed:', err);
       setError(err instanceof Error ? err : new Error('Subscription failed'));

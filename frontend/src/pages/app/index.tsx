@@ -5,12 +5,12 @@ import WorkspaceStatusGuard from '@/components/guards/WorkspaceStatusGuard';
 import WorkspaceSwitcher from '@/components/WorkspaceSwitcher';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { supabase } from '@/lib/supabase';
-import { 
-  DocumentTextIcon, 
-  ClockIcon, 
+import {
+  DocumentTextIcon,
+  ClockIcon,
   ChartBarIcon,
   CloudArrowUpIcon,
-  FolderIcon
+  FolderIcon,
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
@@ -73,8 +73,8 @@ export default function ConsumerDashboard() {
 
       setStats({
         totalDocuments: allDocs?.length || 0,
-        pendingReview: allDocs?.filter(d => d.status === 'pending').length || 0,
-        processed: allDocs?.filter(d => d.status === 'processed').length || 0,
+        pendingReview: allDocs?.filter((d) => d.status === 'pending').length || 0,
+        processed: allDocs?.filter((d) => d.status === 'processed').length || 0,
         storageUsed: `${sizeMB} MB`,
       });
 
@@ -88,8 +88,8 @@ export default function ConsumerDashboard() {
 
   return (
     <AuthGuard>
-      <RoleGuard 
-        requireWorkspaceType="consumer" 
+      <RoleGuard
+        requireWorkspaceType="consumer"
         requireWorkspaceRole={['consumer']}
         fallbackPath="/"
       >
@@ -119,8 +119,12 @@ export default function ConsumerDashboard() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Total Documents</dt>
-                          <dd className="text-2xl font-semibold text-gray-900">{stats.totalDocuments}</dd>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Total Documents
+                          </dt>
+                          <dd className="text-2xl font-semibold text-gray-900">
+                            {stats.totalDocuments}
+                          </dd>
                         </dl>
                       </div>
                     </div>
@@ -135,8 +139,12 @@ export default function ConsumerDashboard() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Pending Review</dt>
-                          <dd className="text-2xl font-semibold text-yellow-600">{stats.pendingReview}</dd>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Pending Review
+                          </dt>
+                          <dd className="text-2xl font-semibold text-yellow-600">
+                            {stats.pendingReview}
+                          </dd>
                         </dl>
                       </div>
                     </div>
@@ -152,7 +160,9 @@ export default function ConsumerDashboard() {
                       <div className="ml-5 w-0 flex-1">
                         <dl>
                           <dt className="text-sm font-medium text-gray-500 truncate">Processed</dt>
-                          <dd className="text-2xl font-semibold text-green-600">{stats.processed}</dd>
+                          <dd className="text-2xl font-semibold text-green-600">
+                            {stats.processed}
+                          </dd>
                         </dl>
                       </div>
                     </div>
@@ -167,8 +177,12 @@ export default function ConsumerDashboard() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Storage Used</dt>
-                          <dd className="text-lg font-semibold text-gray-900">{stats.storageUsed}</dd>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Storage Used
+                          </dt>
+                          <dd className="text-lg font-semibold text-gray-900">
+                            {stats.storageUsed}
+                          </dd>
                         </dl>
                       </div>
                     </div>
@@ -207,7 +221,9 @@ export default function ConsumerDashboard() {
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                       </div>
                     ) : documents.length === 0 ? (
-                      <p className="text-gray-500 text-center py-8">No documents yet. Upload your first document to get started.</p>
+                      <p className="text-gray-500 text-center py-8">
+                        No documents yet. Upload your first document to get started.
+                      </p>
                     ) : (
                       <ul className="divide-y divide-gray-200">
                         {documents.map((doc) => (
@@ -217,15 +233,21 @@ export default function ConsumerDashboard() {
                                 <div className="flex items-center">
                                   <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-3" />
                                   <div>
-                                    <h4 className="text-sm font-medium text-gray-900">{doc.title}</h4>
+                                    <h4 className="text-sm font-medium text-gray-900">
+                                      {doc.title}
+                                    </h4>
                                     <p className="text-sm text-gray-500 mt-1">
                                       Type: {doc.document_type}
                                       {' • '}
-                                      <span className={`${
-                                        doc.status === 'processed' ? 'text-green-600' :
-                                        doc.status === 'pending' ? 'text-yellow-600' :
-                                        'text-gray-600'
-                                      }`}>
+                                      <span
+                                        className={`${
+                                          doc.status === 'processed'
+                                            ? 'text-green-600'
+                                            : doc.status === 'pending'
+                                              ? 'text-yellow-600'
+                                              : 'text-gray-600'
+                                        }`}
+                                      >
                                         {doc.status}
                                       </span>
                                     </p>

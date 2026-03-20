@@ -31,24 +31,21 @@ export const FILE_STATUS = {
   ERROR: 'error',
 } as const;
 
-export type FileStatus = typeof FILE_STATUS[keyof typeof FILE_STATUS];
+export type FileStatus = (typeof FILE_STATUS)[keyof typeof FILE_STATUS];
 
 let clientInitialized = false;
 const client = new Client();
 
 export function initializeAppwrite(): boolean {
   if (clientInitialized) return true;
-  
+
   try {
     const endpoint = getRequiredEnv('APPWRITE_ENDPOINT');
     const projectId = getRequiredEnv('APPWRITE_PROJECT_ID');
     const apiKey = getRequiredEnv('APPWRITE_API_KEY');
-    
-    client
-      .setEndpoint(endpoint)
-      .setProject(projectId)
-      .setKey(apiKey);
-    
+
+    client.setEndpoint(endpoint).setProject(projectId).setKey(apiKey);
+
     clientInitialized = true;
     console.log('[Appwrite] Client initialized successfully');
     return true;

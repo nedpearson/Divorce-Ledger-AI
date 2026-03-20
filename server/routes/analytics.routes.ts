@@ -1,16 +1,16 @@
 import { Router, Request, Response } from 'express';
-import { analyticsService } from '../analytics-service';
-import { billingService } from '../billing-service';
-import { tierMigrationService } from '../tier-migration-service';
-import { quotaResetService } from '../quota-reset-service';
+import { analyticsService } from '../services/analytics-service';
+import { billingService } from '../services/billing-service';
+import { tierMigrationService } from '../services/tier-migration-service';
+import { quotaResetService } from '../services/quota-reset-service';
 import { cronScheduler } from '../cron-scheduler';
 
 const router = Router();
 
 function requireAdmin(req: Request, res: Response, next: () => void) {
-  const adminSecret = req.headers["x-admin-secret"] as string;
+  const adminSecret = req.headers['x-admin-secret'] as string;
   if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
-    return res.status(401).json({ success: false, error: "Unauthorized" });
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
   next();
 }
@@ -117,18 +117,22 @@ router.get('/admin/analytics/quota-resets', requireAdmin, async (req: Request, r
   }
 });
 
-router.get('/admin/migrations/pending-status', requireAdmin, async (req: Request, res: Response) => {
-  try {
-    const status = await tierMigrationService.getPendingMigrationsStatus();
-    res.json(status);
-  } catch (error) {
-    console.error('Failed to get pending migrations status', error);
-    res.status(500).json({
-      success: false,
-      error: (error as Error).message,
-    });
+router.get(
+  '/admin/migrations/pending-status',
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const status = await tierMigrationService.getPendingMigrationsStatus();
+      res.json(status);
+    } catch (error) {
+      console.error('Failed to get pending migrations status', error);
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message,
+      });
+    }
   }
-});
+);
 
 router.post('/admin/billing/process-monthly', requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -166,23 +170,27 @@ router.post('/admin/quotas/reset-monthly', requireAdmin, async (req: Request, re
   }
 });
 
-router.post('/admin/migrations/apply-pending', requireAdmin, async (req: Request, res: Response) => {
-  try {
-    const result = await tierMigrationService.applyPendingMigrations();
+router.post(
+  '/admin/migrations/apply-pending',
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const result = await tierMigrationService.applyPendingMigrations();
 
-    res.json({
-      success: true,
-      data: result,
-      message: `Applied ${result.applied} migrations, ${result.failed} failed`,
-    });
-  } catch (error) {
-    console.error('Migration application failed', error);
-    res.status(500).json({
-      success: false,
-      error: (error as Error).message,
-    });
+      res.json({
+        success: true,
+        data: result,
+        message: `Applied ${result.applied} migrations, ${result.failed} failed`,
+      });
+    } catch (error) {
+      console.error('Migration application failed', error);
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message,
+      });
+    }
   }
-});
+);
 
 router.get('/admin/analytics/at-risk-users', requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -191,8 +199,8 @@ router.get('/admin/analytics/at-risk-users', requireAdmin, async (req: Request, 
       success: true,
       data: atRiskUsers,
       count: atRiskUsers.length,
-      highRisk: atRiskUsers.filter(u => u.riskLevel === 'high').length,
-      mediumRisk: atRiskUsers.filter(u => u.riskLevel === 'medium').length,
+      highRisk: atRiskUsers.filter((u) => u.riskLevel === 'high').length,
+      mediumRisk: atRiskUsers.filter((u) => u.riskLevel === 'medium').length,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

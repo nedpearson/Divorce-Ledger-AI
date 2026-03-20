@@ -39,19 +39,35 @@ const DETERMINISTIC_OUTPUTS: Record<string, DeterministicOutput> = {
       vendor_name: 'ABC Supplies Inc.',
       document_date: '2024-06-15',
       total_amount: { value: 401.07, currency: 'USD' },
-      subtotal: { value: 370.50, currency: 'USD' },
+      subtotal: { value: 370.5, currency: 'USD' },
       tax_amount: { value: 30.57, currency: 'USD' },
       line_items: [
-        { description: 'Office Supplies', quantity: 5, amount: { value: 125.00, currency: 'USD' } },
-        { description: 'Paper Ream', quantity: 10, amount: { value: 89.50, currency: 'USD' } },
-        { description: 'Printer Ink', quantity: 2, amount: { value: 156.00, currency: 'USD' } },
+        { description: 'Office Supplies', quantity: 5, amount: { value: 125.0, currency: 'USD' } },
+        { description: 'Paper Ream', quantity: 10, amount: { value: 89.5, currency: 'USD' } },
+        { description: 'Printer Ink', quantity: 2, amount: { value: 156.0, currency: 'USD' } },
       ],
     },
     verification: {
-      document_date: { ok: true, reason: 'Date found in source', evidence: { line_number: 10, line_text: 'Date: 2024-06-15', raw_value: '2024-06-15' } },
-      total_amount: { ok: true, reason: 'Amount verified', evidence: { line_number: 20, line_text: 'Total Due: $401.07', raw_value: '$401.07' } },
-      subtotal: { ok: true, reason: 'Subtotal verified', evidence: { line_number: 18, line_text: 'Subtotal: $370.50', raw_value: '$370.50' } },
-      tax_amount: { ok: true, reason: 'Tax verified', evidence: { line_number: 19, line_text: 'Tax (8.25%): $30.57', raw_value: '$30.57' } },
+      document_date: {
+        ok: true,
+        reason: 'Date found in source',
+        evidence: { line_number: 10, line_text: 'Date: 2024-06-15', raw_value: '2024-06-15' },
+      },
+      total_amount: {
+        ok: true,
+        reason: 'Amount verified',
+        evidence: { line_number: 20, line_text: 'Total Due: $401.07', raw_value: '$401.07' },
+      },
+      subtotal: {
+        ok: true,
+        reason: 'Subtotal verified',
+        evidence: { line_number: 18, line_text: 'Subtotal: $370.50', raw_value: '$370.50' },
+      },
+      tax_amount: {
+        ok: true,
+        reason: 'Tax verified',
+        evidence: { line_number: 19, line_text: 'Tax (8.25%): $30.57', raw_value: '$30.57' },
+      },
     },
     fields_missing_evidence: [],
   },
@@ -69,10 +85,38 @@ const DETERMINISTIC_OUTPUTS: Record<string, DeterministicOutput> = {
       tax_amount: { value: 13.17, currency: 'USD' },
     },
     verification: {
-      transaction_date: { ok: true, reason: 'Date found', evidence: { line_number: 5, line_text: 'Date: 12/18/2024  Time: 2:34 PM', raw_value: '12/18/2024' } },
-      total_amount: { ok: true, reason: 'Amount verified', evidence: { line_number: 12, line_text: 'TOTAL              $172.82', raw_value: '$172.82' } },
-      subtotal: { ok: true, reason: 'Subtotal verified', evidence: { line_number: 10, line_text: 'SUBTOTAL           $159.65', raw_value: '$159.65' } },
-      tax_amount: { ok: true, reason: 'Tax verified', evidence: { line_number: 11, line_text: 'TAX                 $13.17', raw_value: '$13.17' } },
+      transaction_date: {
+        ok: true,
+        reason: 'Date found',
+        evidence: {
+          line_number: 5,
+          line_text: 'Date: 12/18/2024  Time: 2:34 PM',
+          raw_value: '12/18/2024',
+        },
+      },
+      total_amount: {
+        ok: true,
+        reason: 'Amount verified',
+        evidence: {
+          line_number: 12,
+          line_text: 'TOTAL              $172.82',
+          raw_value: '$172.82',
+        },
+      },
+      subtotal: {
+        ok: true,
+        reason: 'Subtotal verified',
+        evidence: {
+          line_number: 10,
+          line_text: 'SUBTOTAL           $159.65',
+          raw_value: '$159.65',
+        },
+      },
+      tax_amount: {
+        ok: true,
+        reason: 'Tax verified',
+        evidence: { line_number: 11, line_text: 'TAX                 $13.17', raw_value: '$13.17' },
+      },
     },
     fields_missing_evidence: [],
   },
@@ -91,11 +135,47 @@ const DETERMINISTIC_OUTPUTS: Record<string, DeterministicOutput> = {
       new_balance: { value: 6466.67, currency: 'USD' },
     },
     verification: {
-      statement_period_start: { ok: true, reason: 'Period start found', evidence: { line_number: 8, line_text: 'Statement Period: November 1, 2024 - November 30, 2024', raw_value: 'November 1, 2024' } },
-      statement_period_end: { ok: true, reason: 'Period end found', evidence: { line_number: 8, line_text: 'Statement Period: November 1, 2024 - November 30, 2024', raw_value: 'November 30, 2024' } },
-      total_amount: { ok: true, reason: 'Net change computed', evidence: { line_number: 16, line_text: 'Total Deposits: $1,232.11', raw_value: '$1,232.11' } },
-      previous_balance: { ok: true, reason: 'Previous balance verified', evidence: { line_number: 11, line_text: 'Previous Balance: $5,234.56', raw_value: '$5,234.56' } },
-      new_balance: { ok: true, reason: 'New balance verified', evidence: { line_number: 14, line_text: 'New Balance: $6,466.67', raw_value: '$6,466.67' } },
+      statement_period_start: {
+        ok: true,
+        reason: 'Period start found',
+        evidence: {
+          line_number: 8,
+          line_text: 'Statement Period: November 1, 2024 - November 30, 2024',
+          raw_value: 'November 1, 2024',
+        },
+      },
+      statement_period_end: {
+        ok: true,
+        reason: 'Period end found',
+        evidence: {
+          line_number: 8,
+          line_text: 'Statement Period: November 1, 2024 - November 30, 2024',
+          raw_value: 'November 30, 2024',
+        },
+      },
+      total_amount: {
+        ok: true,
+        reason: 'Net change computed',
+        evidence: {
+          line_number: 16,
+          line_text: 'Total Deposits: $1,232.11',
+          raw_value: '$1,232.11',
+        },
+      },
+      previous_balance: {
+        ok: true,
+        reason: 'Previous balance verified',
+        evidence: {
+          line_number: 11,
+          line_text: 'Previous Balance: $5,234.56',
+          raw_value: '$5,234.56',
+        },
+      },
+      new_balance: {
+        ok: true,
+        reason: 'New balance verified',
+        evidence: { line_number: 14, line_text: 'New Balance: $6,466.67', raw_value: '$6,466.67' },
+      },
     },
     fields_missing_evidence: [],
   },
@@ -104,7 +184,11 @@ const DETERMINISTIC_OUTPUTS: Record<string, DeterministicOutput> = {
     suggested_category: 'Uncategorized',
     confidence: 0.15,
     needs_user_review: true,
-    warnings: ['Severe image quality issues', 'Text unreadable', 'Requires manual review or retake'],
+    warnings: [
+      'Severe image quality issues',
+      'Text unreadable',
+      'Requires manual review or retake',
+    ],
     extracted: {},
     verification: {},
     fields_missing_evidence: [],
@@ -114,7 +198,11 @@ const DETERMINISTIC_OUTPUTS: Record<string, DeterministicOutput> = {
     suggested_category: 'Uncategorized',
     confidence: 0.35,
     needs_user_review: true,
-    warnings: ['Classification uncertain', 'No financial data detected', 'Flagged for manual categorization'],
+    warnings: [
+      'Classification uncertain',
+      'No financial data detected',
+      'Flagged for manual categorization',
+    ],
     extracted: {},
     verification: {},
     fields_missing_evidence: [],
@@ -332,7 +420,12 @@ export interface SelftestReport {
 
 function extractDates(fields: Record<string, unknown>): string[] {
   const dates: string[] = [];
-  const dateFields = ['document_date', 'transaction_date', 'statement_period_start', 'statement_period_end'];
+  const dateFields = [
+    'document_date',
+    'transaction_date',
+    'statement_period_start',
+    'statement_period_end',
+  ];
   for (const field of dateFields) {
     const value = fields[field];
     if (value && typeof value === 'string') {
@@ -342,21 +435,29 @@ function extractDates(fields: Record<string, unknown>): string[] {
   return dates;
 }
 
-function extractAmounts(fields: Record<string, unknown>): Array<{ field: string; value: number; currency: string }> {
+function extractAmounts(
+  fields: Record<string, unknown>
+): Array<{ field: string; value: number; currency: string }> {
   const amounts: Array<{ field: string; value: number; currency: string }> = [];
   const amountFields = [
-    'total_amount', 'subtotal', 'tax_amount', 'tip_amount', 
-    'shipping_amount', 'discount_amount', 'balance_due', 
-    'previous_balance', 'new_balance'
+    'total_amount',
+    'subtotal',
+    'tax_amount',
+    'tip_amount',
+    'shipping_amount',
+    'discount_amount',
+    'balance_due',
+    'previous_balance',
+    'new_balance',
   ];
   for (const field of amountFields) {
     const value = fields[field];
     if (value && typeof value === 'object' && 'value' in value) {
       const money = value as { value: number; currency?: string };
-      amounts.push({ 
-        field, 
-        value: money.value, 
-        currency: money.currency || 'USD' 
+      amounts.push({
+        field,
+        value: money.value,
+        currency: money.currency || 'USD',
       });
     }
   }
@@ -370,7 +471,7 @@ function simulateStateTransitions(success: boolean, needsReview: boolean): strin
       `${FILE_STATUS.EXTRACTING} → ${FILE_STATUS.ERROR}`,
     ];
   }
-  
+
   const finalState = needsReview ? FILE_STATUS.SUGGESTED : FILE_STATUS.FINALIZED;
   return [
     `${FILE_STATUS.UPLOADED} → ${FILE_STATUS.EXTRACTING}`,
@@ -400,10 +501,10 @@ function getDeterministicResult(fixture: SyntheticFixture): SelftestResult {
       executionTimeMs: 1,
     };
   }
-  
+
   const fields = output.extracted;
   const validationPassed = !output.needs_user_review && output.warnings.length === 0;
-  
+
   return {
     fixtureId: fixture.id,
     fixtureName: fixture.name,
@@ -425,7 +526,7 @@ function getDeterministicResult(fixture: SyntheticFixture): SelftestResult {
 
 async function getLiveResult(fixture: SyntheticFixture): Promise<SelftestResult> {
   const fixtureStart = Date.now();
-  
+
   try {
     const pipelineResult = await runTwoPassPipeline(
       fixture.content,
@@ -440,7 +541,7 @@ async function getLiveResult(fixture: SyntheticFixture): Promise<SelftestResult>
       const output = pipelineResult.normalizedOutput;
       const fields = output.extracted as unknown as Record<string, unknown>;
       const validationPassed = !output.needs_user_review && output.warnings.length === 0;
-      
+
       return {
         fixtureId: fixture.id,
         fixtureName: fixture.name,
@@ -498,9 +599,11 @@ async function getLiveResult(fixture: SyntheticFixture): Promise<SelftestResult>
   }
 }
 
-export async function runSelftest(useDeterministic: boolean = DETERMINISTIC_MODE): Promise<SelftestReport> {
+export async function runSelftest(
+  useDeterministic: boolean = DETERMINISTIC_MODE
+): Promise<SelftestReport> {
   const results: SelftestResult[] = [];
-  
+
   for (const fixture of SYNTHETIC_FIXTURES) {
     if (useDeterministic) {
       results.push(getDeterministicResult(fixture));
@@ -509,8 +612,8 @@ export async function runSelftest(useDeterministic: boolean = DETERMINISTIC_MODE
     }
   }
 
-  const passed = results.filter(r => r.success).length;
-  
+  const passed = results.filter((r) => r.success).length;
+
   return {
     timestamp: useDeterministic ? '2024-01-01T00:00:00.000Z' : new Date().toISOString(),
     totalFixtures: SYNTHETIC_FIXTURES.length,
@@ -538,14 +641,14 @@ export function formatSelftestReport(report: SelftestReport): string {
     lines.push('─'.repeat(75));
     lines.push(`${status} | ${result.fixtureName}`);
     lines.push('─'.repeat(75));
-    
+
     lines.push(`  doc_type:           ${result.docType}`);
     lines.push(`  suggested_category: ${result.suggestedCategory}`);
     lines.push(`  confidence:         ${(result.confidence * 100).toFixed(1)}%`);
     lines.push(`  needs_user_review:  ${result.needsUserReview}`);
     lines.push(`  validation_passed:  ${result.validationPassed}`);
     lines.push(`  execution_time:     ${result.executionTimeMs}ms`);
-    
+
     lines.push('');
     lines.push('  Extracted Dates:');
     if (result.extractedDates.length > 0) {
@@ -555,7 +658,7 @@ export function formatSelftestReport(report: SelftestReport): string {
     } else {
       lines.push('    (none)');
     }
-    
+
     lines.push('');
     lines.push('  Extracted Amounts:');
     if (result.extractedAmounts.length > 0) {
@@ -565,16 +668,16 @@ export function formatSelftestReport(report: SelftestReport): string {
     } else {
       lines.push('    (none)');
     }
-    
+
     lines.push('');
     lines.push(`  Vendor: ${result.extractedVendor || '(none)'}`);
-    
+
     lines.push('');
     lines.push('  State Transitions:');
     for (const transition of result.stateTransitions) {
       lines.push(`    ${transition}`);
     }
-    
+
     if (result.warnings.length > 0) {
       lines.push('');
       lines.push('  Warnings:');
@@ -582,7 +685,7 @@ export function formatSelftestReport(report: SelftestReport): string {
         lines.push(`    ⚠️  ${warning}`);
       }
     }
-    
+
     if (result.errors.length > 0) {
       lines.push('');
       lines.push('  Errors:');
@@ -590,7 +693,7 @@ export function formatSelftestReport(report: SelftestReport): string {
         lines.push(`    ❌ ${error}`);
       }
     }
-    
+
     lines.push('');
   }
 
@@ -598,37 +701,49 @@ export function formatSelftestReport(report: SelftestReport): string {
   lines.push(`SUMMARY: ${report.passed}/${report.totalFixtures} fixtures passed`);
   lines.push('═'.repeat(75));
   lines.push('');
-  
-  const blurryFixture = report.results.find(r => r.fixtureId === 'blurry-image');
-  const fixturesWithTotalAmount = report.results.filter(r => 
-    r.extractedAmounts.some(a => a.field === 'total_amount')
+
+  const blurryFixture = report.results.find((r) => r.fixtureId === 'blurry-image');
+  const fixturesWithTotalAmount = report.results.filter((r) =>
+    r.extractedAmounts.some((a) => a.field === 'total_amount')
   ).length;
-  const fixturesWithAnyAmount = report.results.filter(r => 
-    r.extractedAmounts.length > 0
-  ).length;
-  
-  const noAutoFinalization = report.results.every(r => {
-    const finalizes = r.stateTransitions.some(t => t.includes('finalized'));
+  const fixturesWithAnyAmount = report.results.filter((r) => r.extractedAmounts.length > 0).length;
+
+  const noAutoFinalization = report.results.every((r) => {
+    const finalizes = r.stateTransitions.some((t) => t.includes('finalized'));
     const requiresReview = r.needsUserReview;
     return !finalizes || !requiresReview;
   });
-  
-  const allFixturesHaveEvidenceWhenExpected = report.results.every(r => {
+
+  const allFixturesHaveEvidenceWhenExpected = report.results.every((r) => {
     const output = DETERMINISTIC_OUTPUTS[r.fixtureId];
     if (!output || !output.verification) return true;
-    const hasEvidence = Object.values(output.verification).every((v: any) => 
-      v.evidence && (v.evidence.line_text || v.evidence.raw_value || (v.evidence.line_number && v.evidence.line_number > 0))
+    const hasEvidence = Object.values(output.verification).every(
+      (v: any) =>
+        v.evidence &&
+        (v.evidence.line_text ||
+          v.evidence.raw_value ||
+          (v.evidence.line_number && v.evidence.line_number > 0))
     );
     return hasEvidence || Object.keys(output.verification).length === 0;
   });
-  
+
   lines.push('BLUEPRINT CRITERIA:');
   lines.push('─'.repeat(75));
-  lines.push(`  [${noAutoFinalization ? '✅ PASS' : '❌ FAIL'}] MUST NOT auto-finalize when needs_user_review=true`);
-  lines.push(`  [${blurryFixture?.needsUserReview ? '✅ PASS' : '❌ FAIL'}] MUST set needs_user_review=true for blurry fixture`);
-  lines.push(`  [${fixturesWithTotalAmount >= 3 ? '✅ PASS' : '❌ FAIL'}] MUST produce total_amount for at least 3/5 fixtures (got ${fixturesWithTotalAmount})`);
-  lines.push(`  [${fixturesWithAnyAmount >= 3 ? '✅ PASS' : '❌ FAIL'}] MUST produce monetary amounts for at least 3/5 fixtures (got ${fixturesWithAnyAmount})`);
-  lines.push(`  [${allFixturesHaveEvidenceWhenExpected ? '✅ PASS' : '❌ FAIL'}] Evidence pointers present for all verified fields`);
+  lines.push(
+    `  [${noAutoFinalization ? '✅ PASS' : '❌ FAIL'}] MUST NOT auto-finalize when needs_user_review=true`
+  );
+  lines.push(
+    `  [${blurryFixture?.needsUserReview ? '✅ PASS' : '❌ FAIL'}] MUST set needs_user_review=true for blurry fixture`
+  );
+  lines.push(
+    `  [${fixturesWithTotalAmount >= 3 ? '✅ PASS' : '❌ FAIL'}] MUST produce total_amount for at least 3/5 fixtures (got ${fixturesWithTotalAmount})`
+  );
+  lines.push(
+    `  [${fixturesWithAnyAmount >= 3 ? '✅ PASS' : '❌ FAIL'}] MUST produce monetary amounts for at least 3/5 fixtures (got ${fixturesWithAnyAmount})`
+  );
+  lines.push(
+    `  [${allFixturesHaveEvidenceWhenExpected ? '✅ PASS' : '❌ FAIL'}] Evidence pointers present for all verified fields`
+  );
   lines.push('─'.repeat(75));
   lines.push('');
 
@@ -638,7 +753,7 @@ export function formatSelftestReport(report: SelftestReport): string {
 export async function main() {
   const useDeterministic = DETERMINISTIC_MODE;
   const mode = useDeterministic ? 'DETERMINISTIC' : 'LIVE (AI-powered)';
-  
+
   console.log('Starting Appwrite Document Intake Selftest...');
   console.log(`Mode: ${mode}`);
   console.log('Processing 5 synthetic fixtures...');
@@ -646,11 +761,11 @@ export async function main() {
     console.log('(Set SELFTEST_DETERMINISTIC=false for live AI pipeline)');
   }
   console.log('');
-  
+
   try {
     const report = await runSelftest(useDeterministic);
     console.log(formatSelftestReport(report));
-    
+
     if (report.failed > 0) {
       process.exit(1);
     }
@@ -660,4 +775,3 @@ export async function main() {
     process.exit(1);
   }
 }
-

@@ -1,6 +1,6 @@
-import { SUBSCRIPTION_TIERS, SubscriptionTier, User } from "./schema";
+import { SUBSCRIPTION_TIERS, SubscriptionTier, User } from './schema';
 
-export type TierLimits = typeof SUBSCRIPTION_TIERS[SubscriptionTier];
+export type TierLimits = (typeof SUBSCRIPTION_TIERS)[SubscriptionTier];
 
 export function getTierLimits(tier: string): TierLimits {
   const validTier = tier as SubscriptionTier;
@@ -25,9 +25,13 @@ export function canCreateCase(user: User): { allowed: boolean; reason?: string }
   return { allowed: true };
 }
 
-export function canAddViolation(user: User, currentCountOverride?: number): { allowed: boolean; reason?: string } {
+export function canAddViolation(
+  user: User,
+  currentCountOverride?: number
+): { allowed: boolean; reason?: string } {
   const limits = getTierLimits(getUserTier(user));
-  const currentCount = currentCountOverride !== undefined ? currentCountOverride : user.violationsCountThisMonth;
+  const currentCount =
+    currentCountOverride !== undefined ? currentCountOverride : user.violationsCountThisMonth;
   if (limits.maxViolationsPerMonth === -1) {
     return { allowed: true };
   }
@@ -45,7 +49,10 @@ export function canGenerateCleanPDF(user: User): boolean {
   return !limits.pdfWatermark;
 }
 
-export function canAddTeamMember(user: User, currentTeamSize: number): { allowed: boolean; reason?: string } {
+export function canAddTeamMember(
+  user: User,
+  currentTeamSize: number
+): { allowed: boolean; reason?: string } {
   const limits = getTierLimits(getUserTier(user));
   if (limits.maxTeamMembers === 1) {
     return {
@@ -89,24 +96,24 @@ export function getUpgradeRecommendation(user: User, feature: string): string {
   const currentTier = getUserTier(user) as SubscriptionTier;
   const tierOrder: SubscriptionTier[] = ['free', 'individual', 'pro', 'team', 'enterprise'];
   const currentIndex = tierOrder.indexOf(currentTier);
-  
+
   const featureToTier: Record<string, SubscriptionTier> = {
-    'unlimited_violations': 'individual',
-    'unlimited_cases': 'pro',
-    'ai_pattern_detection': 'pro',
-    'team_members': 'team',
-    'hidden_asset_detection': 'enterprise',
-    'api_access': 'enterprise',
-    'custom_templates': 'enterprise',
+    unlimited_violations: 'individual',
+    unlimited_cases: 'pro',
+    ai_pattern_detection: 'pro',
+    team_members: 'team',
+    hidden_asset_detection: 'enterprise',
+    api_access: 'enterprise',
+    custom_templates: 'enterprise',
   };
-  
+
   const requiredTier = featureToTier[feature] || 'pro';
   const requiredIndex = tierOrder.indexOf(requiredTier);
-  
+
   if (currentIndex >= requiredIndex) {
     return '';
   }
-  
+
   const tierInfo = SUBSCRIPTION_TIERS[requiredTier];
   return `Upgrade to ${tierInfo.name} ($${tierInfo.price}/mo) to unlock this feature.`;
 }
@@ -174,18 +181,21 @@ export function canUseScreenshotOCR(user: User): boolean {
   return limits.screenshotOCR;
 }
 
-export function getRemainingVoiceTranscriptions(user: User): number | "unlimited" {
+export function getRemainingVoiceTranscriptions(user: User): number | 'unlimited' {
   const limits = getTierLimits(getUserTier(user));
   if (limits.maxVoiceTranscriptionsPerMonth === -1) {
-    return "unlimited";
+    return 'unlimited';
   }
-  return Math.max(0, limits.maxVoiceTranscriptionsPerMonth - (user.voiceTranscriptionsThisMonth || 0));
+  return Math.max(
+    0,
+    limits.maxVoiceTranscriptionsPerMonth - (user.voiceTranscriptionsThisMonth || 0)
+  );
 }
 
-export function getRemainingMediaUploads(user: User): number | "unlimited" {
+export function getRemainingMediaUploads(user: User): number | 'unlimited' {
   const limits = getTierLimits(getUserTier(user));
   if (limits.maxMediaUploadsPerMonth === -1) {
-    return "unlimited";
+    return 'unlimited';
   }
   return Math.max(0, limits.maxMediaUploadsPerMonth - (user.mediaUploadsThisMonth || 0));
 }
@@ -200,10 +210,10 @@ export function getMaxFileSizeMB(user: User): number {
   return limits.maxFileSizeMB;
 }
 
-export function getMaxStorageMB(user: User): number | "unlimited" {
+export function getMaxStorageMB(user: User): number | 'unlimited' {
   const limits = getTierLimits(getUserTier(user));
   if (limits.maxStorageMB === -1) {
-    return "unlimited";
+    return 'unlimited';
   }
   return limits.maxStorageMB;
 }

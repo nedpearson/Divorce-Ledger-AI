@@ -1,12 +1,12 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient, QueryFunction } from '@tanstack/react-query';
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     if (res.status === 401) {
       // Clear local auth state and redirect to login
-      localStorage.removeItem("user");
-      if (window.location.pathname !== "/") {
-        window.location.href = "/";
+      localStorage.removeItem('user');
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
       }
     }
     const text = (await res.text()) || res.statusText;
@@ -26,16 +26,16 @@ async function throwIfResNotOk(res: Response) {
 function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
   try {
-    const userStr = localStorage.getItem("user");
+    const userStr = localStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
       if (user?.id) {
-        headers["X-User-Id"] = user.id;
+        headers['X-User-Id'] = user.id;
       }
     }
-    const environment = localStorage.getItem("environment");
+    const environment = localStorage.getItem('environment');
     if (environment) {
-      headers["X-Environment"] = environment;
+      headers['X-Environment'] = environment;
     }
   } catch {
     // ignore parsing errors
@@ -46,8 +46,8 @@ function getAuthHeaders(): Record<string, string> {
 // --- STRANGLER PATTERN MIGRATION ADAPTER ---
 // Safely maps specific domains to the Python backend based on feature flags.
 // Automatically falls back to the Express Node backend if the Python handler fails or 404s.
-const ENABLE_PYTHON_MIGRATION = import.meta.env.VITE_ENABLE_PYTHON_MIGRATION === "true";
-const PYTHON_API_URL = import.meta.env.VITE_PYTHON_API_URL || "http://localhost:8000";
+const ENABLE_PYTHON_MIGRATION = import.meta.env.VITE_ENABLE_PYTHON_MIGRATION === 'true';
+const PYTHON_API_URL = import.meta.env.VITE_PYTHON_API_URL || 'http://localhost:8000';
 
 const PYTHON_ROUTES = [
   /^\/api\/workspaces(\/|$)/, // Domain 1: Tenant Handling
@@ -59,7 +59,7 @@ function getTargetUrl(url: string): string {
   if (!ENABLE_PYTHON_MIGRATION) return url;
   if (PYTHON_ROUTES.some((route) => route.test(url))) {
     // Explicitly scope the url to standard hostname formatting
-    return `${PYTHON_API_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+    return `${PYTHON_API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
   }
   return url;
 }
@@ -71,7 +71,7 @@ export async function safeRouterFetch(url: string, options: RequestInit): Promis
     const res = await fetch(targetUrl, options);
 
     // Fallback logic if python was hit but explicitly crashed (5XX) or genuinely failed to discover route (404)
-    if (targetUrl !== url && (!res.ok && (res.status === 404 || res.status >= 500))) {
+    if (targetUrl !== url && !res.ok && (res.status === 404 || res.status >= 500)) {
       console.warn(`[Python API Adapter] Fallback triggered for ${url} (Status: ${res.status})`);
       return fetch(url, options); // Fallback to original Express backend
     }
@@ -79,7 +79,10 @@ export async function safeRouterFetch(url: string, options: RequestInit): Promis
     return res;
   } catch (error) {
     if (targetUrl !== url) {
-      console.warn(`[Python API Adapter] Network failure on ${targetUrl}, falling back to Express:`, error);
+      console.warn(
+        `[Python API Adapter] Network failure on ${targetUrl}, falling back to Express:`,
+        error
+      );
       return fetch(url, options);
     }
     throw error;
@@ -90,55 +93,53 @@ export async function safeRouterFetch(url: string, options: RequestInit): Promis
 export async function apiRequest(
   method: string,
   url: string,
-  data?: unknown | undefined,
+  data?: unknown | undefined
 ): Promise<Response> {
   const authHeaders = getAuthHeaders();
   const headers: Record<string, string> = {
     ...authHeaders,
-    ...(data ? { "Content-Type": "application/json" } : {}),
+    ...(data ? { 'Content-Type': 'application/json' } : {}),
   };
 
   const res = await safeRouterFetch(url, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: 'include',
   });
 
   await throwIfResNotOk(res);
   return res;
 }
 
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
+type UnauthorizedBehavior = 'returnNull' | 'throw';
+export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-    async ({ queryKey }) => {
-      const segments = queryKey as unknown[];
-      const url = segments.filter((s): s is string => typeof s === "string").join("/");
-      const environment = localStorage.getItem("environment") || "demo";
-      const authHeaders = {
-        ...getAuthHeaders(),
-        "X-Environment": environment,
-      };
-      const res = await safeRouterFetch(url, {
-        credentials: "include",
-        headers: authHeaders,
-      });
-
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
-      }
-
-      await throwIfResNotOk(res);
-      return await res.json();
+  async ({ queryKey }) => {
+    const segments = queryKey as unknown[];
+    const url = segments.filter((s): s is string => typeof s === 'string').join('/');
+    const environment = localStorage.getItem('environment') || 'demo';
+    const authHeaders = {
+      ...getAuthHeaders(),
+      'X-Environment': environment,
     };
+    const res = await safeRouterFetch(url, {
+      credentials: 'include',
+      headers: authHeaders,
+    });
+
+    if (unauthorizedBehavior === 'returnNull' && res.status === 401) {
+      return null;
+    }
+
+    await throwIfResNotOk(res);
+    return await res.json();
+  };
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: 'throw' }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,

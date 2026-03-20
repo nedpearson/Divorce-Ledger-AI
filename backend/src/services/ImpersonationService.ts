@@ -10,11 +10,14 @@ import { BadRequestError, ForbiddenError } from '../errors/AppError.js';
  * Allows read-only access to user accounts for support purposes
  */
 export class ImpersonationService {
-  private static activeImpersonations = new Map<string, {
-    adminId: string;
-    targetUserId: string;
-    startedAt: Date;
-  }>();
+  private static activeImpersonations = new Map<
+    string,
+    {
+      adminId: string;
+      targetUserId: string;
+      startedAt: Date;
+    }
+  >();
 
   /**
    * Start impersonation session (super admin only)
@@ -60,7 +63,7 @@ export class ImpersonationService {
       randomPart = Math.floor(Math.random() * 1e18).toString();
     }
     const sessionId = `imp_${Date.now()}_${randomPart}`;
-    
+
     this.activeImpersonations.set(sessionId, {
       adminId: request.user!.id,
       targetUserId: target_user_id,
@@ -68,12 +71,9 @@ export class ImpersonationService {
     });
 
     // Log impersonation start
-    await RBACauditService.logImpersonation(
-      request,
-      'start',
-      target_user_id,
-      { target_email: targetProfile.email }
-    );
+    await RBACauditService.logImpersonation(request, 'start', target_user_id, {
+      target_email: targetProfile.email,
+    });
 
     // Return limited token (not actual auth token - just session identifier)
     return {
@@ -181,7 +181,10 @@ export async function registerImpersonationRoutes(fastify: FastifyInstance): Pro
   );
 
   // Cleanup expired sessions every hour
-  setInterval(() => {
-    ImpersonationService.cleanupExpiredSessions(8);
-  }, 60 * 60 * 1000);
+  setInterval(
+    () => {
+      ImpersonationService.cleanupExpiredSessions(8);
+    },
+    60 * 60 * 1000
+  );
 }

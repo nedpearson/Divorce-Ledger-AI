@@ -21,7 +21,7 @@ import {
   MONEY_FIELDS,
 } from '../extractionTypes';
 
-const CATEGORY_CONFIDENCE_THRESHOLD = 0.90;
+const CATEGORY_CONFIDENCE_THRESHOLD = 0.9;
 
 describe('Extraction Types - Zod Schemas', () => {
   describe('MoneyValueSchema', () => {
@@ -46,12 +46,12 @@ describe('Extraction Types - Zod Schemas', () => {
       const result = LineItemSchema.parse({
         description: 'Widget',
         quantity: 2,
-        unit_price: { value: 10.00, currency: 'USD' },
-        line_total: { value: 20.00, currency: 'USD' },
+        unit_price: { value: 10.0, currency: 'USD' },
+        line_total: { value: 20.0, currency: 'USD' },
       });
       expect(result.description).toBe('Widget');
       expect(result.quantity).toBe(2);
-      expect(result.line_total?.value).toBe(20.00);
+      expect(result.line_total?.value).toBe(20.0);
     });
 
     it('parses line item with only description', () => {
@@ -63,8 +63,17 @@ describe('Extraction Types - Zod Schemas', () => {
 
   describe('DocTypeSchema', () => {
     it('accepts valid doc types', () => {
-      const validTypes = ['receipt', 'invoice', 'bank_statement', 'credit_card_statement', 'paystub', 'court_filing', 'photo_evidence', 'other'];
-      validTypes.forEach(type => {
+      const validTypes = [
+        'receipt',
+        'invoice',
+        'bank_statement',
+        'credit_card_statement',
+        'paystub',
+        'court_filing',
+        'photo_evidence',
+        'other',
+      ];
+      validTypes.forEach((type) => {
         expect(DocTypeSchema.parse(type)).toBe(type);
       });
     });
@@ -86,16 +95,16 @@ describe('Extraction Types - Zod Schemas', () => {
     it('parses complete extracted fields', () => {
       const result = ExtractedFieldsSchema.parse({
         vendor_name: 'Acme Corp',
-        total_amount: { value: 250.00, currency: 'USD' },
+        total_amount: { value: 250.0, currency: 'USD' },
         document_date: '2025-01-15',
         payment_method: 'credit',
         line_items: [
-          { description: 'Item A', quantity: 1, line_total: { value: 100.00 } },
-          { description: 'Item B', quantity: 2, line_total: { value: 150.00 } },
+          { description: 'Item A', quantity: 1, line_total: { value: 100.0 } },
+          { description: 'Item B', quantity: 2, line_total: { value: 150.0 } },
         ],
       });
       expect(result.vendor_name).toBe('Acme Corp');
-      expect(result.total_amount?.value).toBe(250.00);
+      expect(result.total_amount?.value).toBe(250.0);
       expect(result.line_items.length).toBe(2);
     });
   });
@@ -110,7 +119,7 @@ describe('Extraction Types - Zod Schemas', () => {
         keywords: ['grocery', 'food'],
         extracted: {
           vendor_name: 'Whole Foods',
-          total_amount: { value: 87.50 },
+          total_amount: { value: 87.5 },
         },
         evidence: {
           source_file_id: 'file123',
@@ -142,12 +151,14 @@ describe('Extraction Types - Zod Schemas', () => {
     });
 
     it('clamps confidence_adjustment to valid range', () => {
-      expect(() => VerificationReportSchema.parse({
-        verified: {},
-        overall_ok: true,
-        confidence_adjustment: 0.5,
-        must_review: false,
-      })).toThrow();
+      expect(() =>
+        VerificationReportSchema.parse({
+          verified: {},
+          overall_ok: true,
+          confidence_adjustment: 0.5,
+          must_review: false,
+        })
+      ).toThrow();
     });
   });
 });
@@ -257,12 +268,12 @@ describe('Extraction Types - Constants', () => {
 describe('Validation Gate Logic', () => {
   describe('Confidence threshold checks', () => {
     it('flags documents below 0.85 confidence for review', () => {
-      const lowConfidence = 0.80;
+      const lowConfidence = 0.8;
       expect(lowConfidence < CONFIDENCE_THRESHOLD).toBe(true);
     });
 
     it('allows documents at or above 0.85 confidence', () => {
-      const highConfidence = 0.90;
+      const highConfidence = 0.9;
       expect(highConfidence >= CONFIDENCE_THRESHOLD).toBe(true);
     });
   });
@@ -270,32 +281,32 @@ describe('Validation Gate Logic', () => {
   describe('Money sanity checks', () => {
     it('detects when line items sum differs from total', () => {
       const lineItems = [
-        { description: 'Item 1', line_total: { value: 50.00, currency: 'USD' } },
-        { description: 'Item 2', line_total: { value: 30.00, currency: 'USD' } },
+        { description: 'Item 1', line_total: { value: 50.0, currency: 'USD' } },
+        { description: 'Item 2', line_total: { value: 30.0, currency: 'USD' } },
       ];
       const lineTotal = lineItems.reduce((sum, item) => sum + (item.line_total?.value || 0), 0);
-      const claimedTotal = 100.00;
+      const claimedTotal = 100.0;
       const tolerance = 0.02 * claimedTotal;
-      
+
       expect(Math.abs(lineTotal - claimedTotal)).toBe(20);
       expect(Math.abs(lineTotal - claimedTotal) > tolerance).toBe(true);
     });
 
     it('passes when line items sum matches total within tolerance', () => {
       const lineItems = [
-        { description: 'Item 1', line_total: { value: 50.00, currency: 'USD' } },
-        { description: 'Item 2', line_total: { value: 49.50, currency: 'USD' } },
+        { description: 'Item 1', line_total: { value: 50.0, currency: 'USD' } },
+        { description: 'Item 2', line_total: { value: 49.5, currency: 'USD' } },
       ];
       const lineTotal = lineItems.reduce((sum, item) => sum + (item.line_total?.value || 0), 0);
-      const claimedTotal = 100.00;
+      const claimedTotal = 100.0;
       const tolerance = 0.02 * claimedTotal;
-      
+
       expect(Math.abs(lineTotal - claimedTotal) <= tolerance).toBe(true);
     });
 
     it('detects when taxes exceed total', () => {
-      const total = 100.00;
-      const tax = 120.00;
+      const total = 100.0;
+      const tax = 120.0;
       expect(tax > total).toBe(true);
     });
   });
@@ -328,8 +339,10 @@ describe('Validation Gate Logic', () => {
         vendor_name: 'Store',
       });
       const required = REQUIRED_FIELDS_BY_DOC_TYPE.receipt;
-      const missing = required.filter(field => extracted[field] === null || extracted[field] === undefined);
-      
+      const missing = required.filter(
+        (field) => extracted[field] === null || extracted[field] === undefined
+      );
+
       expect(missing).toContain('total_amount');
       expect(missing).toContain('transaction_date');
       expect(missing).not.toContain('vendor_name');
@@ -338,12 +351,14 @@ describe('Validation Gate Logic', () => {
     it('passes when all required fields present', () => {
       const extracted = ExtractedFieldsSchema.parse({
         vendor_name: 'Store',
-        total_amount: { value: 50.00 },
+        total_amount: { value: 50.0 },
         transaction_date: '2025-01-15',
       });
       const required = REQUIRED_FIELDS_BY_DOC_TYPE.receipt;
-      const missing = required.filter(field => extracted[field] === null || extracted[field] === undefined);
-      
+      const missing = required.filter(
+        (field) => extracted[field] === null || extracted[field] === undefined
+      );
+
       expect(missing.length).toBe(0);
     });
   });
@@ -359,20 +374,22 @@ describe('Validation Gate Logic', () => {
     });
 
     it('rejects score outside 0-1 range', () => {
-      expect(() => CategoryCandidateSchema.parse({
-        category: 'Test',
-        score: 1.5,
-      })).toThrow();
+      expect(() =>
+        CategoryCandidateSchema.parse({
+          category: 'Test',
+          score: 1.5,
+        })
+      ).toThrow();
     });
 
     it('requires category review when top score < 0.90', () => {
       const candidates = [
         { category: 'Financial/Receipt', score: 0.85 },
-        { category: 'Financial/Invoice', score: 0.60 },
+        { category: 'Financial/Invoice', score: 0.6 },
       ];
       const topScore = candidates[0]?.score ?? 0;
       const categoryRequiresReview = topScore < CATEGORY_CONFIDENCE_THRESHOLD;
-      
+
       expect(categoryRequiresReview).toBe(true);
     });
 
@@ -383,20 +400,20 @@ describe('Validation Gate Logic', () => {
       ];
       const topScore = candidates[0]?.score ?? 0;
       const secondScore = candidates[1]?.score ?? 0;
-      const categoryRequiresReview = topScore < CATEGORY_CONFIDENCE_THRESHOLD || secondScore > 0.70;
-      
+      const categoryRequiresReview = topScore < CATEGORY_CONFIDENCE_THRESHOLD || secondScore > 0.7;
+
       expect(categoryRequiresReview).toBe(true);
     });
 
     it('does not require review when clear winner', () => {
       const candidates = [
         { category: 'Financial/Receipt', score: 0.95 },
-        { category: 'Financial/Invoice', score: 0.50 },
+        { category: 'Financial/Invoice', score: 0.5 },
       ];
       const topScore = candidates[0]?.score ?? 0;
       const secondScore = candidates[1]?.score ?? 0;
-      const categoryRequiresReview = topScore < CATEGORY_CONFIDENCE_THRESHOLD || secondScore > 0.70;
-      
+      const categoryRequiresReview = topScore < CATEGORY_CONFIDENCE_THRESHOLD || secondScore > 0.7;
+
       expect(categoryRequiresReview).toBe(false);
     });
 
@@ -412,7 +429,7 @@ describe('Validation Gate Logic', () => {
         needs_user_review: false,
         category_candidates: [
           { category: 'Financial/Receipt', score: 0.95 },
-          { category: 'Financial/Invoice', score: 0.40 },
+          { category: 'Financial/Invoice', score: 0.4 },
         ],
       };
       const result = parseExtractionOutput(valid);
@@ -481,50 +498,62 @@ describe('Evidence Pointer Validation', () => {
 
   describe('hasValidEvidence', () => {
     it('returns true for evidence with line_text', () => {
-      expect(hasValidEvidence({
-        ok: true,
-        reason: 'OK',
-        evidence: { line_text: 'Total: $100' },
-      })).toBe(true);
+      expect(
+        hasValidEvidence({
+          ok: true,
+          reason: 'OK',
+          evidence: { line_text: 'Total: $100' },
+        })
+      ).toBe(true);
     });
 
     it('returns true for evidence with raw_value', () => {
-      expect(hasValidEvidence({
-        ok: true,
-        reason: 'OK',
-        evidence: { raw_value: '$100.00' },
-      })).toBe(true);
+      expect(
+        hasValidEvidence({
+          ok: true,
+          reason: 'OK',
+          evidence: { raw_value: '$100.00' },
+        })
+      ).toBe(true);
     });
 
     it('returns true for evidence with line_number > 0', () => {
-      expect(hasValidEvidence({
-        ok: true,
-        reason: 'OK',
-        evidence: { line_number: 5 },
-      })).toBe(true);
+      expect(
+        hasValidEvidence({
+          ok: true,
+          reason: 'OK',
+          evidence: { line_number: 5 },
+        })
+      ).toBe(true);
     });
 
     it('returns false for evidence with only line_number = 0', () => {
-      expect(hasValidEvidence({
-        ok: true,
-        reason: 'OK',
-        evidence: { line_number: 0 },
-      })).toBe(false);
+      expect(
+        hasValidEvidence({
+          ok: true,
+          reason: 'OK',
+          evidence: { line_number: 0 },
+        })
+      ).toBe(false);
     });
 
     it('returns false for empty evidence', () => {
-      expect(hasValidEvidence({
-        ok: true,
-        reason: 'OK',
-        evidence: {},
-      })).toBe(false);
+      expect(
+        hasValidEvidence({
+          ok: true,
+          reason: 'OK',
+          evidence: {},
+        })
+      ).toBe(false);
     });
 
     it('returns false for undefined evidence', () => {
-      expect(hasValidEvidence({
-        ok: true,
-        reason: 'OK',
-      })).toBe(false);
+      expect(
+        hasValidEvidence({
+          ok: true,
+          reason: 'OK',
+        })
+      ).toBe(false);
     });
   });
 
@@ -682,7 +711,9 @@ describe('Evidence Pointer Validation', () => {
     });
 
     it('CRITICAL_FIELDS_REQUIRING_EVIDENCE combines date and money fields', () => {
-      expect(CRITICAL_FIELDS_REQUIRING_EVIDENCE.length).toBe(DATE_FIELDS.length + MONEY_FIELDS.length);
+      expect(CRITICAL_FIELDS_REQUIRING_EVIDENCE.length).toBe(
+        DATE_FIELDS.length + MONEY_FIELDS.length
+      );
       for (const field of DATE_FIELDS) {
         expect(CRITICAL_FIELDS_REQUIRING_EVIDENCE).toContain(field);
       }

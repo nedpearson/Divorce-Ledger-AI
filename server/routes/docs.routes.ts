@@ -19,32 +19,32 @@ let swaggerDocument: any = null;
 
 function loadSwaggerDocument() {
   if (swaggerDocument) return swaggerDocument;
-  
+
   const docsDir = getDocsDirectory();
   const yamlPath = path.join(docsDir, '../openapi/openapi.yaml');
-  
+
   if (fs.existsSync(yamlPath)) {
     swaggerDocument = YAML.load(yamlPath);
     return swaggerDocument;
   }
-  
+
   const altPath = path.join(process.cwd(), 'server/openapi/openapi.yaml');
   if (fs.existsSync(altPath)) {
     swaggerDocument = YAML.load(altPath);
     return swaggerDocument;
   }
-  
+
   return null;
 }
 
 router.get('/openapi.yaml', (req: Request, res: Response) => {
   const docsDir = getDocsDirectory();
   let yamlPath = path.join(docsDir, '../openapi/openapi.yaml');
-  
+
   if (!fs.existsSync(yamlPath)) {
     yamlPath = path.join(process.cwd(), 'server/openapi/openapi.yaml');
   }
-  
+
   if (fs.existsSync(yamlPath)) {
     res.setHeader('Content-Type', 'text/yaml');
     res.setHeader('X-API-Version', API_VERSION);
@@ -56,7 +56,7 @@ router.get('/openapi.yaml', (req: Request, res: Response) => {
 
 router.get('/openapi.json', (req: Request, res: Response) => {
   const doc = loadSwaggerDocument();
-  
+
   if (doc) {
     res.setHeader('X-API-Version', API_VERSION);
     res.json(doc);
@@ -71,9 +71,9 @@ router.get('/version', (req: Request, res: Response) => {
     versionStrategy: 'semantic',
     deprecationPolicy: {
       notice: '6 months before removal',
-      sunsetHeader: 'Sunset header included for deprecated endpoints'
+      sunsetHeader: 'Sunset header included for deprecated endpoints',
     },
-    changelog: '/api/docs/changelog'
+    changelog: '/api/docs/changelog',
   });
 });
 
@@ -91,10 +91,10 @@ router.get('/changelog', (req: Request, res: Response) => {
           'Financial tracking (assets, debts, income, expenses)',
           'Evidence management with chain of custody',
           'Event streaming system',
-          '5-tier subscription model'
-        ]
-      }
-    ]
+          '5-tier subscription model',
+        ],
+      },
+    ],
   });
 });
 
@@ -106,8 +106,8 @@ const swaggerOptions = {
     displayRequestDuration: true,
     filter: true,
     showExtensions: true,
-    showCommonExtensions: true
-  }
+    showCommonExtensions: true,
+  },
 };
 
 router.use('/', (req: Request, res: Response, next) => {

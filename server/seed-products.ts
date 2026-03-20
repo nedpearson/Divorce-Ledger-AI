@@ -82,7 +82,9 @@ async function createSubscriptionProducts() {
       },
     });
 
-    console.log(`Created yearly price: ${yearlyPrice.id} ($${Math.round(productData.price * 12 * 0.8) / 100}/year)`);
+    console.log(
+      `Created yearly price: ${yearlyPrice.id} ($${Math.round(productData.price * 12 * 0.8) / 100}/year)`
+    );
   }
 
   console.log('Done creating subscription products!');

@@ -1,6 +1,6 @@
 /**
  * errorHandler.ts - Centralized Error Handling Utilities
- * 
+ *
  * Provides consistent error responses and async handler wrapping
  * to prevent UnhandledPromiseRejection warnings.
  */
@@ -26,8 +26,8 @@ export interface ErrorResponse {
  * Creates a consistent error response
  */
 export function createErrorResponse(
-  message: string, 
-  code?: string, 
+  message: string,
+  code?: string,
   traceId?: string
 ): ErrorResponse {
   return {
@@ -55,20 +55,18 @@ export function asyncHandler(
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch((error) => {
       const traceId = generateTraceId();
-      
+
       logger.error('Async handler error', error, {
         traceId,
         path: req.path,
         method: req.method,
         userId: (req as any).session?.userId,
       });
-      
+
       if (!res.headersSent) {
-        res.status(500).json(createErrorResponse(
-          'Internal server error',
-          'INTERNAL_ERROR',
-          traceId
-        ));
+        res
+          .status(500)
+          .json(createErrorResponse('Internal server error', 'INTERNAL_ERROR', traceId));
       }
     });
   };
@@ -78,13 +76,13 @@ export function asyncHandler(
  * Global error handler middleware for Express
  */
 export function globalErrorHandler(
-  err: Error, 
-  req: Request, 
-  res: Response, 
+  err: Error,
+  req: Request,
+  res: Response,
   next: NextFunction
 ): void {
   const traceId = generateTraceId();
-  
+
   logger.error('Global error handler caught error', err, {
     traceId,
     path: req.path,
@@ -96,13 +94,15 @@ export function globalErrorHandler(
     return next(err);
   }
 
-  res.status(500).json(createErrorResponse(
-    process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
-      : err.message,
-    'INTERNAL_ERROR',
-    traceId
-  ));
+  res
+    .status(500)
+    .json(
+      createErrorResponse(
+        process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+        'INTERNAL_ERROR',
+        traceId
+      )
+    );
 }
 
 /**
@@ -130,15 +130,13 @@ export function notFound(res: Response, message: string = 'Not found'): void {
  * Sends a standardized 500 Internal Server Error response
  */
 export function internalError(
-  res: Response, 
+  res: Response,
   message: string = 'Internal server error',
   traceId?: string
 ): void {
-  res.status(500).json(createErrorResponse(
-    message, 
-    'INTERNAL_ERROR', 
-    traceId || generateTraceId()
-  ));
+  res
+    .status(500)
+    .json(createErrorResponse(message, 'INTERNAL_ERROR', traceId || generateTraceId()));
 }
 
 /**
@@ -151,19 +149,15 @@ export function handleRouteError(
   fallbackMessage: string = 'Operation failed'
 ): void {
   if (error instanceof DatabaseError) {
-    res.status(500).json(createErrorResponse(
-      'Database operation failed',
-      'DATABASE_ERROR',
-      error.traceId
-    ));
+    res
+      .status(500)
+      .json(createErrorResponse('Database operation failed', 'DATABASE_ERROR', error.traceId));
   } else {
     const traceId = generateTraceId();
-    logger.error(fallbackMessage, error instanceof Error ? error : new Error(String(error)), { traceId });
-    res.status(500).json(createErrorResponse(
-      fallbackMessage,
-      'INTERNAL_ERROR',
-      traceId
-    ));
+    logger.error(fallbackMessage, error instanceof Error ? error : new Error(String(error)), {
+      traceId,
+    });
+    res.status(500).json(createErrorResponse(fallbackMessage, 'INTERNAL_ERROR', traceId));
   }
 }
 

@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError } from "axios";
+import axios, { AxiosInstance, AxiosError } from 'axios';
 
 export class FireflyAPIError extends Error {
   public readonly status: number;
@@ -7,7 +7,7 @@ export class FireflyAPIError extends Error {
 
   constructor(message: string, status: number, responseBody: any, url: string) {
     super(message);
-    this.name = "FireflyAPIError";
+    this.name = 'FireflyAPIError';
     this.status = status;
     this.responseBody = responseBody;
     this.url = url;
@@ -17,11 +17,11 @@ export class FireflyAPIError extends Error {
 function normalizeFireflyError(error: AxiosError, context: string): FireflyAPIError {
   const status = error.response?.status || 500;
   const responseBody = error.response?.data || { message: error.message };
-  const url = error.config?.url || "unknown";
+  const url = error.config?.url || 'unknown';
   const message = `[FireflyIII] ${context}: HTTP ${status} at ${url}`;
-  
+
   console.error(message, JSON.stringify(responseBody).substring(0, 500));
-  
+
   return new FireflyAPIError(message, status, responseBody, url);
 }
 
@@ -31,7 +31,7 @@ interface FireflyConfig {
 }
 
 interface FireflyTransaction {
-  type: "withdrawal" | "deposit" | "transfer";
+  type: 'withdrawal' | 'deposit' | 'transfer';
   date: string;
   amount: string;
   description: string;
@@ -91,15 +91,13 @@ export class FireflyIIIService {
 
   constructor(config: FireflyConfig) {
     this.config = config;
-    const baseURL = config.baseUrl.endsWith("/")
-      ? config.baseUrl.slice(0, -1)
-      : config.baseUrl;
+    const baseURL = config.baseUrl.endsWith('/') ? config.baseUrl.slice(0, -1) : config.baseUrl;
 
     this.client = axios.create({
       baseURL: `${baseURL}/api/v1`,
       headers: {
-        Accept: "application/vnd.api+json",
-        "Content-Type": "application/json",
+        Accept: 'application/vnd.api+json',
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${config.accessToken}`,
       },
       timeout: 30000,
@@ -112,22 +110,22 @@ export class FireflyIIIService {
     error?: string;
   }> {
     try {
-      const response = await this.client.get<{ data: FireflyAbout }>("/about");
+      const response = await this.client.get<{ data: FireflyAbout }>('/about');
       return {
         success: true,
         version: response.data.data.version,
       };
     } catch (error) {
       const axiosError = error as AxiosError;
-      console.error("[FireflyIII] Connection test failed:", axiosError.message);
+      console.error('[FireflyIII] Connection test failed:', axiosError.message);
       return {
         success: false,
         error:
           axiosError.response?.status === 401
-            ? "Invalid access token"
+            ? 'Invalid access token'
             : axiosError.response?.status === 404
-            ? "Firefly III API not found at this URL"
-            : `Connection failed: ${axiosError.message}`,
+              ? 'Firefly III API not found at this URL'
+              : `Connection failed: ${axiosError.message}`,
       };
     }
   }
@@ -135,7 +133,7 @@ export class FireflyIIIService {
   async getAccounts(type?: string): Promise<FireflyAccount[]> {
     try {
       const params = type ? { type } : {};
-      const response = await this.client.get("/accounts", { params });
+      const response = await this.client.get('/accounts', { params });
       return response.data.data.map((item: any) => ({
         id: item.id,
         name: item.attributes.name,
@@ -144,25 +142,23 @@ export class FireflyIIIService {
         currency_code: item.attributes.currency_code,
       }));
     } catch (error) {
-      throw normalizeFireflyError(error as AxiosError, "Failed to fetch accounts");
+      throw normalizeFireflyError(error as AxiosError, 'Failed to fetch accounts');
     }
   }
 
   async getCategories(): Promise<FireflyCategory[]> {
     try {
-      const response = await this.client.get("/categories");
+      const response = await this.client.get('/categories');
       return response.data.data.map((item: any) => ({
         id: item.id,
         name: item.attributes.name,
       }));
     } catch (error) {
-      throw normalizeFireflyError(error as AxiosError, "Failed to fetch categories");
+      throw normalizeFireflyError(error as AxiosError, 'Failed to fetch categories');
     }
   }
 
-  async createTransaction(
-    transaction: FireflyTransaction
-  ): Promise<FireflyTransactionResponse> {
+  async createTransaction(transaction: FireflyTransaction): Promise<FireflyTransactionResponse> {
     try {
       const payload = {
         error_if_duplicate_hash: false,
@@ -170,18 +166,12 @@ export class FireflyIIIService {
         transactions: [transaction],
       };
 
-      console.log(
-        "[FireflyIII] Creating transaction:",
-        JSON.stringify(payload, null, 2)
-      );
-      const response = await this.client.post<FireflyTransactionResponse>(
-        "/transactions",
-        payload
-      );
-      console.log("[FireflyIII] Transaction created:", response.data.data.id);
+      console.log('[FireflyIII] Creating transaction:', JSON.stringify(payload, null, 2));
+      const response = await this.client.post<FireflyTransactionResponse>('/transactions', payload);
+      console.log('[FireflyIII] Transaction created:', response.data.data.id);
       return response.data;
     } catch (error) {
-      throw normalizeFireflyError(error as AxiosError, "Failed to create transaction");
+      throw normalizeFireflyError(error as AxiosError, 'Failed to create transaction');
     }
   }
 
@@ -195,17 +185,17 @@ export class FireflyIIIService {
     notes?: string;
   }): Promise<FireflyTransactionResponse> {
     const transaction: FireflyTransaction = {
-      type: "withdrawal",
+      type: 'withdrawal',
       date: params.date,
       amount: (params.amount / 100).toFixed(2),
       description: params.description,
-      destination_name: params.vendor || "Unknown Vendor",
+      destination_name: params.vendor || 'Unknown Vendor',
       category_name: params.category,
       notes: params.notes
         ? `${params.notes}\n\nImported from Divorce Ledger - Document ID: ${params.documentId}`
         : `Imported from Divorce Ledger - Document ID: ${params.documentId}`,
       external_id: `divorce-ledger-doc-${params.documentId}`,
-      tags: ["divorce-ledger", "imported"],
+      tags: ['divorce-ledger', 'imported'],
     };
 
     return this.createTransaction(transaction);
@@ -221,17 +211,17 @@ export class FireflyIIIService {
     notes?: string;
   }): Promise<FireflyTransactionResponse> {
     const transaction: FireflyTransaction = {
-      type: "deposit",
+      type: 'deposit',
       date: params.date,
       amount: (params.amount / 100).toFixed(2),
       description: params.description,
-      source_name: params.source || "Unknown Source",
+      source_name: params.source || 'Unknown Source',
       category_name: params.category,
       notes: params.notes
         ? `${params.notes}\n\nImported from Divorce Ledger - Document ID: ${params.documentId}`
         : `Imported from Divorce Ledger - Document ID: ${params.documentId}`,
       external_id: `divorce-ledger-doc-${params.documentId}`,
-      tags: ["divorce-ledger", "imported"],
+      tags: ['divorce-ledger', 'imported'],
     };
 
     return this.createTransaction(transaction);
@@ -247,15 +237,15 @@ export class FireflyIIIService {
     category?: string | null;
   }): Promise<FireflyTransactionResponse> {
     const transaction: FireflyTransaction = {
-      type: "withdrawal",
+      type: 'withdrawal',
       date: expense.date,
       amount: (expense.amountCents / 100).toFixed(2),
-      description: expense.description || "Expense",
-      destination_name: expense.vendor || "Unknown Vendor",
+      description: expense.description || 'Expense',
+      destination_name: expense.vendor || 'Unknown Vendor',
       category_name: expense.category || undefined,
       notes: `Synced from Divorce Ledger - Expense ID: ${expense.id}`,
       external_id: `divorce-ledger-expense-${expense.id}`,
-      tags: ["divorce-ledger", "synced"],
+      tags: ['divorce-ledger', 'synced'],
     };
 
     return this.createTransaction(transaction);
@@ -270,24 +260,22 @@ export class FireflyIIIService {
     description?: string | null;
   }): Promise<FireflyTransactionResponse> {
     const transaction: FireflyTransaction = {
-      type: "deposit",
+      type: 'deposit',
       date: income.date,
       amount: (income.amountCents / 100).toFixed(2),
-      description: income.description || income.source || "Income",
-      source_name: income.source || "Unknown Source",
+      description: income.description || income.source || 'Income',
+      source_name: income.source || 'Unknown Source',
       notes: `Synced from Divorce Ledger - Income ID: ${income.id}`,
       external_id: `divorce-ledger-income-${income.id}`,
-      tags: ["divorce-ledger", "synced"],
+      tags: ['divorce-ledger', 'synced'],
     };
 
     return this.createTransaction(transaction);
   }
 
-  async getTransactionByExternalId(
-    externalId: string
-  ): Promise<FireflyTransactionResponse | null> {
+  async getTransactionByExternalId(externalId: string): Promise<FireflyTransactionResponse | null> {
     try {
-      const response = await this.client.get("/search/transactions", {
+      const response = await this.client.get('/search/transactions', {
         params: { query: `external_id:"${externalId}"` },
       });
       if (response.data.data && response.data.data.length > 0) {
@@ -295,10 +283,7 @@ export class FireflyIIIService {
       }
       return null;
     } catch (error) {
-      console.error(
-        "[FireflyIII] Failed to search transaction by external ID:",
-        error
-      );
+      console.error('[FireflyIII] Failed to search transaction by external ID:', error);
       return null;
     }
   }
@@ -306,9 +291,7 @@ export class FireflyIIIService {
 
 let fireflyInstance: FireflyIIIService | null = null;
 
-export function getFireflyService(
-  config?: FireflyConfig
-): FireflyIIIService | null {
+export function getFireflyService(config?: FireflyConfig): FireflyIIIService | null {
   if (config) {
     fireflyInstance = new FireflyIIIService(config);
     return fireflyInstance;

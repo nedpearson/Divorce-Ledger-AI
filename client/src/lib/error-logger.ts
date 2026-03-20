@@ -1,33 +1,33 @@
-type ErrorLogLevel = "error" | "warn" | "info";
+type ErrorLogLevel = 'error' | 'warn' | 'info';
 
 interface FrontendErrorReport {
-  type: "frontend-error";
+  type: 'frontend-error';
   level: ErrorLogLevel;
   route: string;
   message: string;
   stack?: string;
   userId?: string;
-  environment: "demo" | "live" | "unknown";
+  environment: 'demo' | 'live' | 'unknown';
   timestamp: string;
   componentStack?: string;
 }
 
 const isDev = import.meta.env.DEV;
 
-function getEnvironment(): "demo" | "live" | "unknown" {
+function getEnvironment(): 'demo' | 'live' | 'unknown' {
   const hostname = window.location.hostname;
-  if (hostname.includes("localhost") || hostname.includes("replit.dev")) {
-    return "demo";
+  if (hostname.includes('localhost') || hostname.includes('replit.dev')) {
+    return 'demo';
   }
-  if (hostname === "divorceledger.live") {
-    return "live";
+  if (hostname === 'divorceledger.live') {
+    return 'live';
   }
-  return "unknown";
+  return 'unknown';
 }
 
 function getUserId(): string | undefined {
   try {
-    const stored = localStorage.getItem("userId");
+    const stored = localStorage.getItem('userId');
     return stored || undefined;
   } catch {
     return undefined;
@@ -41,11 +41,11 @@ export function logFrontendError(
     componentStack?: string;
   } = {}
 ): void {
-  const { level = "error", componentStack } = options;
-  const errorObj = typeof error === "string" ? new Error(error) : error;
+  const { level = 'error', componentStack } = options;
+  const errorObj = typeof error === 'string' ? new Error(error) : error;
 
   const report: FrontendErrorReport = {
-    type: "frontend-error",
+    type: 'frontend-error',
     level,
     route: window.location.pathname,
     message: errorObj.message,
@@ -57,7 +57,7 @@ export function logFrontendError(
   };
 
   if (isDev) {
-    console.error("[Frontend Error]", report);
+    console.error('[Frontend Error]', report);
   } else {
     sendToBackend(report);
   }
@@ -65,26 +65,24 @@ export function logFrontendError(
 
 async function sendToBackend(report: FrontendErrorReport): Promise<void> {
   try {
-    await fetch("/api/log/frontend-error", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    await fetch('/api/log/frontend-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(report),
     });
   } catch {
-    console.error("[ErrorLogger] Failed to send error report");
+    console.error('[ErrorLogger] Failed to send error report');
   }
 }
 
 export function setupGlobalErrorHandlers(): void {
   window.onerror = (message, source, lineno, colno, error) => {
-    logFrontendError(error || String(message), { level: "error" });
+    logFrontendError(error || String(message), { level: 'error' });
     return false;
   };
 
-  window.addEventListener("unhandledrejection", (event) => {
-    const error = event.reason instanceof Error 
-      ? event.reason 
-      : new Error(String(event.reason));
-    logFrontendError(error, { level: "error" });
+  window.addEventListener('unhandledrejection', (event) => {
+    const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
+    logFrontendError(error, { level: 'error' });
   });
 }

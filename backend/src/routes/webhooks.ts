@@ -65,79 +65,94 @@ export async function webhookRoutes(fastify: FastifyInstance) {
    * POST /webhooks/document-upload
    * Document upload completion webhook
    */
-  fastify.post('/webhooks/document-upload', async (request: FastifyRequest, reply: FastifyReply) => {
-    const payload = request.body as {
-      user_id: string;
-      document_id: string;
-      storage_path: string;
-    };
+  fastify.post(
+    '/webhooks/document-upload',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const payload = request.body as {
+        user_id: string;
+        document_id: string;
+        storage_path: string;
+      };
 
-    if (!payload.user_id || !payload.document_id || !payload.storage_path) {
-      throw new ValidationError('Invalid webhook payload');
+      if (!payload.user_id || !payload.document_id || !payload.storage_path) {
+        throw new ValidationError('Invalid webhook payload');
+      }
+
+      logger.info({ documentId: payload.document_id }, 'Document upload webhook received');
+
+      // Trigger classification
+      try {
+        await classificationService.triggerClassification(payload.user_id, payload.document_id);
+      } catch (err) {
+        logger.error(
+          { error: err, documentId: payload.document_id },
+          'Failed to trigger classification'
+        );
+      }
+
+      return reply.send({
+        success: true,
+        message: 'Document upload processed',
+      });
     }
-
-    logger.info({ documentId: payload.document_id }, 'Document upload webhook received');
-
-    // Trigger classification
-    try {
-      await classificationService.triggerClassification(payload.user_id, payload.document_id);
-    } catch (err) {
-      logger.error({ error: err, documentId: payload.document_id }, 'Failed to trigger classification');
-    }
-
-    return reply.send({
-      success: true,
-      message: 'Document upload processed',
-    });
-  });
+  );
 
   /**
    * POST /webhooks/classification-complete
    * Classification completion webhook
    */
-  fastify.post('/webhooks/classification-complete', async (request: FastifyRequest, reply: FastifyReply) => {
-    const payload = request.body as {
-      user_id: string;
-      document_id: string;
-      classification_id: string;
-      primary_category: string;
-      confidence_score: number;
-    };
+  fastify.post(
+    '/webhooks/classification-complete',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const payload = request.body as {
+        user_id: string;
+        document_id: string;
+        classification_id: string;
+        primary_category: string;
+        confidence_score: number;
+      };
 
-    if (!payload.user_id || !payload.document_id || !payload.classification_id) {
-      throw new ValidationError('Invalid webhook payload');
-    }
+      if (!payload.user_id || !payload.document_id || !payload.classification_id) {
+        throw new ValidationError('Invalid webhook payload');
+      }
 
-    logger.info({ documentId: payload.document_id, classificationId: payload.classification_id }, 'Classification complete webhook received');
+      logger.info(
+        { documentId: payload.document_id, classificationId: payload.classification_id },
+        'Classification complete webhook received'
+      );
 
-    // Update document status
-    try {
-      await documentService.updateDocument(payload.user_id, payload.document_id, {
-        status: 'classified',
+      // Update document status
+      try {
+        await documentService.updateDocument(payload.user_id, payload.document_id, {
+          status: 'classified',
+        });
+
+        // Log audit event
+        await auditService.log({
+          user_id: payload.user_id,
+          action: 'classification_created',
+          resource_type: 'classification',
+          resource_id: payload.classification_id,
+          severity: 'info',
+          metadata: {
+            document_id: payload.document_id,
+            primary_category: payload.primary_category,
+            confidence_score: payload.confidence_score,
+          },
+        });
+      } catch (err) {
+        logger.error(
+          { error: err, documentId: payload.document_id },
+          'Failed to process classification complete webhook'
+        );
+      }
+
+      return reply.send({
+        success: true,
+        message: 'Classification complete processed',
       });
-
-      // Log audit event
-      await auditService.log({
-        user_id: payload.user_id,
-        action: 'classification_created',
-        resource_type: 'classification',
-        resource_id: payload.classification_id,
-        severity: 'info',
-        metadata: {
-          document_id: payload.document_id,
-          primary_category: payload.primary_category,
-          confidence_score: payload.confidence_score,
-        },
-      });
-    } catch (err) {
-      logger.error({ error: err, documentId: payload.document_id }, 'Failed to process classification complete webhook');
     }
-
-    return reply.send({
-      success: true,
-      message: 'Classification complete processed',
-    });
-  });
+  );
 }
 
 // Helper functions
@@ -172,7 +187,10 @@ async function handleUpdateWebhook(payload: any): Promise<void> {
     case 'documents':
       // Document updated
       if (old_record.status !== record.status) {
-        logger.info({ documentId: record.id, oldStatus: old_record.status, newStatus: record.status }, 'Document status changed');
+        logger.info(
+          { documentId: record.id, oldStatus: old_record.status, newStatus: record.status },
+          'Document status changed'
+        );
       }
       break;
     default:

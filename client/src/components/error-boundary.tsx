@@ -1,8 +1,8 @@
-import React from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AlertCircle, RefreshCw, MessageCircle, Home } from "lucide-react";
-import { logFrontendError } from "@/lib/error-logger";
+import React from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, RefreshCw, MessageCircle, Home } from 'lucide-react';
+import { logFrontendError } from '@/lib/error-logger';
 
 interface Props {
   children: React.ReactNode;
@@ -28,7 +28,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     logFrontendError(error, {
-      level: "error",
+      level: 'error',
       componentStack: errorInfo.componentStack || undefined,
     });
   }
@@ -38,7 +38,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
   };
 
   handleGoHome = () => {
-    window.location.href = "/home";
+    window.location.href = '/home';
   };
 
   render() {
@@ -59,32 +59,32 @@ export class ErrorBoundary extends React.Component<Props, State> {
                 An unexpected error occurred. You can try again or return to the home page.
               </p>
               {this.state.errorId && (
-                <p className="text-xs text-muted-foreground">
-                  Error ID: {this.state.errorId}
-                </p>
+                <p className="text-xs text-muted-foreground">Error ID: {this.state.errorId}</p>
               )}
               <div className="flex flex-col gap-2">
-                <Button 
-                  className="w-full" 
-                  onClick={this.handleRetry}
-                  data-testid="button-retry"
-                >
+                <Button className="w-full" onClick={this.handleRetry} data-testid="button-retry">
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Try Again
                 </Button>
-                <Button 
+                <Button
                   variant="outline"
-                  className="w-full" 
+                  className="w-full"
                   onClick={this.handleGoHome}
                   data-testid="button-go-home"
                 >
                   <Home className="mr-2 h-4 w-4" />
                   Go to Home
                 </Button>
-                <Button 
+                <Button
                   variant="ghost"
-                  className="w-full text-muted-foreground" 
-                  onClick={() => window.open("mailto:support@divorceledger.live?subject=Error%20Report%20" + this.state.errorId, "_blank")}
+                  className="w-full text-muted-foreground"
+                  onClick={() =>
+                    window.open(
+                      'mailto:support@divorceledger.live?subject=Error%20Report%20' +
+                        this.state.errorId,
+                      '_blank'
+                    )
+                  }
                   data-testid="button-contact-support"
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />

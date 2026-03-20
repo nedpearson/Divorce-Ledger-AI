@@ -2,9 +2,9 @@ import { getPool } from '../db';
 import { escapeIdentifier, escapeTableName, isDemoMode, createDemoResult } from './sql-utils';
 import { safeQuery } from '../lib/safeQuery';
 
-export type ExpectationType = 
+export type ExpectationType =
   | 'not_null'
-  | 'unique' 
+  | 'unique'
   | 'in_set'
   | 'between'
   | 'regex'
@@ -44,132 +44,188 @@ export class ExpectationSuite {
     this.targetSystem = targetSystem;
   }
 
-  expectColumnValuesToNotBeNull(table: string, column: string, severity: 'info' | 'warning' | 'critical' = 'warning'): this {
+  expectColumnValuesToNotBeNull(
+    table: string,
+    column: string,
+    severity: 'info' | 'warning' | 'critical' = 'warning'
+  ): this {
     this.expectations.push({
       name: `${table}.${column}_not_null`,
       type: 'not_null',
       table,
       column,
       parameters: {},
-      severity
+      severity,
     });
     return this;
   }
 
-  expectColumnValuesToBeUnique(table: string, column: string, severity: 'info' | 'warning' | 'critical' = 'warning'): this {
+  expectColumnValuesToBeUnique(
+    table: string,
+    column: string,
+    severity: 'info' | 'warning' | 'critical' = 'warning'
+  ): this {
     this.expectations.push({
       name: `${table}.${column}_unique`,
       type: 'unique',
       table,
       column,
       parameters: {},
-      severity
+      severity,
     });
     return this;
   }
 
-  expectColumnValuesToBeInSet(table: string, column: string, valueSet: any[], severity: 'info' | 'warning' | 'critical' = 'warning'): this {
+  expectColumnValuesToBeInSet(
+    table: string,
+    column: string,
+    valueSet: any[],
+    severity: 'info' | 'warning' | 'critical' = 'warning'
+  ): this {
     this.expectations.push({
       name: `${table}.${column}_in_set`,
       type: 'in_set',
       table,
       column,
       parameters: { valueSet },
-      severity
+      severity,
     });
     return this;
   }
 
-  expectColumnValuesToBeBetween(table: string, column: string, minValue: number, maxValue: number, severity: 'info' | 'warning' | 'critical' = 'warning'): this {
+  expectColumnValuesToBeBetween(
+    table: string,
+    column: string,
+    minValue: number,
+    maxValue: number,
+    severity: 'info' | 'warning' | 'critical' = 'warning'
+  ): this {
     this.expectations.push({
       name: `${table}.${column}_between`,
       type: 'between',
       table,
       column,
       parameters: { minValue, maxValue },
-      severity
+      severity,
     });
     return this;
   }
 
-  expectColumnValuesToMatchRegex(table: string, column: string, regex: string, severity: 'info' | 'warning' | 'critical' = 'warning'): this {
+  expectColumnValuesToMatchRegex(
+    table: string,
+    column: string,
+    regex: string,
+    severity: 'info' | 'warning' | 'critical' = 'warning'
+  ): this {
     this.expectations.push({
       name: `${table}.${column}_regex`,
       type: 'regex',
       table,
       column,
       parameters: { regex },
-      severity
+      severity,
     });
     return this;
   }
 
-  expectColumnStringLengthToBeBetween(table: string, column: string, minLength: number, maxLength: number, severity: 'info' | 'warning' | 'critical' = 'warning'): this {
+  expectColumnStringLengthToBeBetween(
+    table: string,
+    column: string,
+    minLength: number,
+    maxLength: number,
+    severity: 'info' | 'warning' | 'critical' = 'warning'
+  ): this {
     this.expectations.push({
       name: `${table}.${column}_length`,
       type: 'min_length',
       table,
       column,
       parameters: { minLength, maxLength },
-      severity
+      severity,
     });
     return this;
   }
 
-  expectReferentialIntegrity(table: string, column: string, referencedTable: string, referencedColumn: string, severity: 'info' | 'warning' | 'critical' = 'critical'): this {
+  expectReferentialIntegrity(
+    table: string,
+    column: string,
+    referencedTable: string,
+    referencedColumn: string,
+    severity: 'info' | 'warning' | 'critical' = 'critical'
+  ): this {
     this.expectations.push({
       name: `${table}.${column}_ref_${referencedTable}`,
       type: 'referential_integrity',
       table,
       column,
       parameters: { referencedTable, referencedColumn },
-      severity
+      severity,
     });
     return this;
   }
 
-  expectTableRowCountToBeBetween(table: string, minCount: number, maxCount: number, severity: 'info' | 'warning' | 'critical' = 'warning'): this {
+  expectTableRowCountToBeBetween(
+    table: string,
+    minCount: number,
+    maxCount: number,
+    severity: 'info' | 'warning' | 'critical' = 'warning'
+  ): this {
     this.expectations.push({
       name: `${table}_row_count`,
       type: 'row_count_range',
       table,
       parameters: { minCount, maxCount },
-      severity
+      severity,
     });
     return this;
   }
 
-  expectColumnToExist(table: string, column: string, severity: 'info' | 'warning' | 'critical' = 'critical'): this {
+  expectColumnToExist(
+    table: string,
+    column: string,
+    severity: 'info' | 'warning' | 'critical' = 'critical'
+  ): this {
     this.expectations.push({
       name: `${table}.${column}_exists`,
       type: 'column_exists',
       table,
       column,
       parameters: {},
-      severity
+      severity,
     });
     return this;
   }
 
-  expectDataFreshness(table: string, timestampColumn: string, maxAgeMinutes: number, severity: 'info' | 'warning' | 'critical' = 'warning'): this {
+  expectDataFreshness(
+    table: string,
+    timestampColumn: string,
+    maxAgeMinutes: number,
+    severity: 'info' | 'warning' | 'critical' = 'warning'
+  ): this {
     this.expectations.push({
       name: `${table}_freshness`,
       type: 'freshness',
       table,
       column: timestampColumn,
       parameters: { maxAgeMinutes },
-      severity
+      severity,
     });
     return this;
   }
 
-  expectCustomSql(name: string, table: string, sql: string, expectedResult: any, severity: 'info' | 'warning' | 'critical' = 'warning'): this {
+  expectCustomSql(
+    name: string,
+    table: string,
+    sql: string,
+    expectedResult: any,
+    severity: 'info' | 'warning' | 'critical' = 'warning'
+  ): this {
     this.expectations.push({
       name,
       type: 'custom_sql',
       table,
       parameters: { sql, expectedResult },
-      severity
+      severity,
     });
     return this;
   }
@@ -181,7 +237,7 @@ export class ExpectationSuite {
       for (const exp of this.expectations) {
         results.push({
           expectation: exp,
-          ...createDemoResult('Validation skipped in demo mode')
+          ...createDemoResult('Validation skipped in demo mode'),
         });
       }
       return results;
@@ -199,7 +255,7 @@ export class ExpectationSuite {
           passed: false,
           actualValue: 'error',
           expectedValue: 'success',
-          message: `Error evaluating expectation: ${error.message}`
+          message: `Error evaluating expectation: ${error.message}`,
         });
       }
     }
@@ -237,7 +293,7 @@ export class ExpectationSuite {
           passed: false,
           actualValue: 'unknown',
           expectedValue: 'valid expectation type',
-          message: `Unknown expectation type: ${exp.type}`
+          message: `Unknown expectation type: ${exp.type}`,
         };
     }
   }
@@ -245,7 +301,7 @@ export class ExpectationSuite {
   private async checkNotNull(pool: any, exp: Expectation): Promise<ExpectationResult> {
     const table = escapeTableName(exp.table);
     const column = escapeIdentifier(exp.column!);
-    
+
     const result = await safeQuery(
       pool,
       'expectations:notNull',
@@ -260,14 +316,14 @@ export class ExpectationSuite {
       passed,
       actualValue: String(nullCount),
       expectedValue: '0',
-      message: passed ? 'All values are non-null' : `Found ${nullCount} null values`
+      message: passed ? 'All values are non-null' : `Found ${nullCount} null values`,
     };
   }
 
   private async checkUnique(pool: any, exp: Expectation): Promise<ExpectationResult> {
     const table = escapeTableName(exp.table);
     const column = escapeIdentifier(exp.column!);
-    
+
     const result = await safeQuery(
       pool,
       'expectations:unique',
@@ -284,7 +340,7 @@ export class ExpectationSuite {
       actualValue: String(duplicateCount),
       expectedValue: '0',
       message: passed ? 'All values are unique' : `Found ${duplicateCount} duplicate groups`,
-      metadata: { duplicates: result.rows }
+      metadata: { duplicates: result.rows },
     };
   }
 
@@ -293,7 +349,7 @@ export class ExpectationSuite {
     const column = escapeIdentifier(exp.column!);
     const { valueSet } = exp.parameters;
     const placeholders = valueSet.map((_: any, i: number) => `$${i + 1}`).join(',');
-    
+
     const result = await safeQuery(
       pool,
       'expectations:inSet',
@@ -309,7 +365,9 @@ export class ExpectationSuite {
       passed,
       actualValue: String(invalidCount),
       expectedValue: '0',
-      message: passed ? 'All values are in the allowed set' : `Found ${invalidCount} values not in set`
+      message: passed
+        ? 'All values are in the allowed set'
+        : `Found ${invalidCount} values not in set`,
     };
   }
 
@@ -317,7 +375,7 @@ export class ExpectationSuite {
     const table = escapeTableName(exp.table);
     const column = escapeIdentifier(exp.column!);
     const { minValue, maxValue } = exp.parameters;
-    
+
     const result = await safeQuery(
       pool,
       'expectations:between',
@@ -333,7 +391,9 @@ export class ExpectationSuite {
       passed,
       actualValue: String(outOfRange),
       expectedValue: '0',
-      message: passed ? `All values are between ${minValue} and ${maxValue}` : `Found ${outOfRange} values out of range`
+      message: passed
+        ? `All values are between ${minValue} and ${maxValue}`
+        : `Found ${outOfRange} values out of range`,
     };
   }
 
@@ -341,7 +401,7 @@ export class ExpectationSuite {
     const table = escapeTableName(exp.table);
     const column = escapeIdentifier(exp.column!);
     const { regex } = exp.parameters;
-    
+
     const result = await safeQuery(
       pool,
       'expectations:regex',
@@ -357,7 +417,9 @@ export class ExpectationSuite {
       passed,
       actualValue: String(nonMatching),
       expectedValue: '0',
-      message: passed ? 'All values match the regex' : `Found ${nonMatching} values not matching pattern`
+      message: passed
+        ? 'All values match the regex'
+        : `Found ${nonMatching} values not matching pattern`,
     };
   }
 
@@ -365,7 +427,7 @@ export class ExpectationSuite {
     const table = escapeTableName(exp.table);
     const column = escapeIdentifier(exp.column!);
     const { minLength, maxLength } = exp.parameters;
-    
+
     const result = await safeQuery(
       pool,
       'expectations:stringLength',
@@ -381,7 +443,9 @@ export class ExpectationSuite {
       passed,
       actualValue: String(invalidLength),
       expectedValue: '0',
-      message: passed ? `All string lengths are between ${minLength} and ${maxLength}` : `Found ${invalidLength} values with invalid length`
+      message: passed
+        ? `All string lengths are between ${minLength} and ${maxLength}`
+        : `Found ${invalidLength} values with invalid length`,
     };
   }
 
@@ -391,7 +455,7 @@ export class ExpectationSuite {
     const { referencedTable, referencedColumn } = exp.parameters;
     const refTable = escapeTableName(referencedTable);
     const refColumn = escapeIdentifier(referencedColumn);
-    
+
     const result = await safeQuery(
       pool,
       'expectations:referentialIntegrity',
@@ -408,15 +472,20 @@ export class ExpectationSuite {
       passed,
       actualValue: String(orphaned),
       expectedValue: '0',
-      message: passed ? 'Referential integrity maintained' : `Found ${orphaned} orphaned records`
+      message: passed ? 'Referential integrity maintained' : `Found ${orphaned} orphaned records`,
     };
   }
 
   private async checkRowCount(pool: any, exp: Expectation): Promise<ExpectationResult> {
     const table = escapeTableName(exp.table);
     const { minCount, maxCount } = exp.parameters;
-    
-    const result = await safeQuery(pool, 'expectations:rowCount', `SELECT COUNT(*) as cnt FROM ${table}`, []);
+
+    const result = await safeQuery(
+      pool,
+      'expectations:rowCount',
+      `SELECT COUNT(*) as cnt FROM ${table}`,
+      []
+    );
     const count = parseInt(result.rows[0].cnt);
     const passed = count >= minCount && count <= maxCount;
 
@@ -425,7 +494,9 @@ export class ExpectationSuite {
       passed,
       actualValue: String(count),
       expectedValue: `${minCount}-${maxCount}`,
-      message: passed ? `Row count ${count} is within expected range` : `Row count ${count} is outside expected range`
+      message: passed
+        ? `Row count ${count} is within expected range`
+        : `Row count ${count} is outside expected range`,
     };
   }
 
@@ -444,7 +515,7 @@ export class ExpectationSuite {
       passed,
       actualValue: passed ? 'exists' : 'missing',
       expectedValue: 'exists',
-      message: passed ? `Column ${exp.column} exists` : `Column ${exp.column} does not exist`
+      message: passed ? `Column ${exp.column} exists` : `Column ${exp.column} does not exist`,
     };
   }
 
@@ -452,21 +523,21 @@ export class ExpectationSuite {
     const table = escapeTableName(exp.table);
     const column = escapeIdentifier(exp.column!);
     const { maxAgeMinutes } = exp.parameters;
-    
+
     const result = await safeQuery(
       pool,
       'expectations:freshness',
       `SELECT MAX(${column}) as latest FROM ${table}`,
       []
     );
-    
+
     if (!result.rows[0].latest) {
       return {
         expectation: exp,
         passed: false,
         actualValue: 'no data',
         expectedValue: `data within ${maxAgeMinutes} minutes`,
-        message: 'No data found in table'
+        message: 'No data found in table',
       };
     }
 
@@ -479,7 +550,9 @@ export class ExpectationSuite {
       passed,
       actualValue: `${Math.round(ageMinutes)} minutes`,
       expectedValue: `<= ${maxAgeMinutes} minutes`,
-      message: passed ? 'Data is fresh' : `Data is ${Math.round(ageMinutes)} minutes old, exceeds ${maxAgeMinutes} minute threshold`
+      message: passed
+        ? 'Data is fresh'
+        : `Data is ${Math.round(ageMinutes)} minutes old, exceeds ${maxAgeMinutes} minute threshold`,
     };
   }
 
@@ -494,7 +567,7 @@ export class ExpectationSuite {
       passed,
       actualValue: String(actualResult),
       expectedValue: String(expectedResult),
-      message: passed ? 'Custom SQL check passed' : 'Custom SQL check failed'
+      message: passed ? 'Custom SQL check passed' : 'Custom SQL check failed',
     };
   }
 
@@ -516,11 +589,21 @@ export function createAppExpectationSuite(): ExpectationSuite {
     .expectColumnValuesToNotBeNull('users', 'email', 'critical')
     .expectColumnValuesToNotBeNull('users', 'subscription_tier', 'critical')
     .expectColumnValuesToBeUnique('users', 'email', 'critical')
-    .expectColumnValuesToBeInSet('users', 'subscription_tier', ['free', 'individual', 'pro', 'team', 'enterprise'], 'critical')
+    .expectColumnValuesToBeInSet(
+      'users',
+      'subscription_tier',
+      ['free', 'individual', 'pro', 'team', 'enterprise'],
+      'critical'
+    )
     .expectColumnValuesToBeInSet('users', 'role', ['client', 'attorney', 'cpa', 'admin'], 'warning')
     .expectColumnValuesToNotBeNull('cases', 'user_id', 'critical')
     .expectReferentialIntegrity('cases', 'user_id', 'users', 'id', 'critical')
-    .expectColumnValuesToBeInSet('violations', 'status', ['pending', 'reviewed', 'approved'], 'warning')
+    .expectColumnValuesToBeInSet(
+      'violations',
+      'status',
+      ['pending', 'reviewed', 'approved'],
+      'warning'
+    )
     .expectColumnValuesToBeBetween('violations', 'severity_score', 1, 10, 'warning')
     .expectReferentialIntegrity('violations', 'user_id', 'users', 'id', 'critical')
     .expectColumnValuesToNotBeNull('transactions', 'amount', 'critical')

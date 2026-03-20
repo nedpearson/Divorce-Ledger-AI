@@ -51,6 +51,7 @@ Execute the following SQL files in order via Supabase SQL Editor:
 **File: `migrations/001_multi_tenant_foundation.sql`** (created in previous deliverable)
 
 This migration creates:
+
 - `profiles` table (user profiles with platform roles)
 - `workspaces` table (tenant isolation)
 - `workspace_members` table (user-workspace relationships)
@@ -73,6 +74,7 @@ This migration creates:
 **File: `migrations/002_rls_policies.sql`** (created in previous deliverable)
 
 This migration creates:
+
 - RLS helper functions (`is_platform_admin`, `has_workspace_role`, etc.)
 - Row-level security policies for all tables
 - Tenant isolation rules
@@ -143,6 +145,7 @@ ON CONFLICT (id) DO UPDATE SET platform_role = 'super_admin';
 ```
 
 To get your user ID:
+
 1. Sign up through the app first
 2. Check Supabase Dashboard → Authentication → Users
 3. Copy your User UID
@@ -152,13 +155,13 @@ To get your user ID:
 
 ```sql
 -- Check table count (should be 20+ tables)
-SELECT COUNT(*) FROM information_schema.tables 
+SELECT COUNT(*) FROM information_schema.tables
 WHERE table_schema = 'public';
 
 -- Verify RLS is enabled on all tables
-SELECT tablename, rowsecurity 
-FROM pg_tables 
-WHERE schemaname = 'public' 
+SELECT tablename, rowsecurity
+FROM pg_tables
+WHERE schemaname = 'public'
 ORDER BY tablename;
 
 -- All tables should show rowsecurity = true
@@ -191,6 +194,7 @@ LOG_LEVEL=info
 ```
 
 **Generate SESSION_SECRET:**
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
@@ -283,7 +287,7 @@ In Supabase Dashboard → Authentication → Providers:
    - Authorized redirect URI: `https://xxxxx.supabase.co/auth/v1/callback`
 
 2. **GitHub OAuth:**
-   - Enable GitHub provider  
+   - Enable GitHub provider
    - Add Client ID and Secret from GitHub OAuth Apps
    - Authorization callback URL: `https://xxxxx.supabase.co/auth/v1/callback`
 
@@ -292,7 +296,7 @@ In Supabase Dashboard → Authentication → Providers:
 ```sql
 -- Create storage buckets
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES 
+VALUES
   ('documents', 'documents', false, 52428800, ARRAY['application/pdf', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']),
   ('avatars', 'avatars', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp']);
 
@@ -337,18 +341,18 @@ Run security audit queries:
 
 ```sql
 -- Check that RLS is enabled on all tables
-SELECT 
-  schemaname, 
-  tablename, 
-  rowsecurity 
-FROM pg_tables 
-WHERE schemaname = 'public' 
+SELECT
+  schemaname,
+  tablename,
+  rowsecurity
+FROM pg_tables
+WHERE schemaname = 'public'
 AND rowsecurity = false;
 
 -- Should return 0 rows
 
 -- List all policies
-SELECT 
+SELECT
   schemaname,
   tablename,
   policyname,
@@ -402,7 +406,7 @@ await fastify.register(helmet, {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", 'data:', 'https:'],
     },
   },
 });
@@ -498,6 +502,7 @@ psql -h db.xxxxx.supabase.co -U postgres -d postgres < backup.sql
 
 **Cause:** RLS policy is blocking the operation
 **Solution:**
+
 1. Check if user has proper workspace membership
 2. Verify workspace status is 'active'
 3. Check platform_role in profiles table
@@ -507,6 +512,7 @@ psql -h db.xxxxx.supabase.co -U postgres -d postgres < backup.sql
 
 **Cause:** Firm workspace not yet approved
 **Solution:**
+
 1. Log in as super admin
 2. Go to /superadmin
 3. Approve the workspace
@@ -515,6 +521,7 @@ psql -h db.xxxxx.supabase.co -U postgres -d postgres < backup.sql
 
 **Cause:** Invalid credentials or network issue
 **Solution:**
+
 1. Verify SUPABASE_URL and keys in Railway env vars
 2. Check Supabase project status
 3. Verify service role key has not been rotated
@@ -531,6 +538,7 @@ psql -h db.xxxxx.supabase.co -U postgres -d postgres < backup.sql
 Your multi-tenant RBAC system is now deployed! Monitor the application closely in the first few days and use the audit logs to track any issues.
 
 **Next Steps:**
+
 1. Create your first super admin account
 2. Test all user flows
 3. Invite team members

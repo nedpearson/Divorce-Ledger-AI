@@ -1,6 +1,7 @@
 # Multi-Tenant RBAC Migration Guide
 
 ## Overview
+
 This folder contains SQL migrations to transform the Divorce Ledger AI application into a complete multi-tenant RBAC system.
 
 ## Migration Order
@@ -8,10 +9,12 @@ This folder contains SQL migrations to transform the Divorce Ledger AI applicati
 Execute these migrations in Supabase SQL Editor in the following order:
 
 ### 1. Migration 008: Multi-Tenant Foundation
+
 **File**: Copy from conversation - creates all core tables
+
 - profiles (with platform_role)
 - workspaces (tenant isolation)
-- workspace_members  
+- workspace_members
 - teams, team_members
 - matters, matter_members
 - invitations
@@ -24,7 +27,9 @@ Execute these migrations in Supabase SQL Editor in the following order:
 **Run Time**: ~30 seconds
 
 ### 2. Migration 009: RLS Policies
+
 **File**: Copy from conversation - creates all security policies
+
 - Helper functions (is_platform_admin, has_workspace_role, etc.)
 - RLS policies for all 14 tables
 - Strict tenant isolation
@@ -33,7 +38,9 @@ Execute these migrations in Supabase SQL Editor in the following order:
 **Run Time**: ~20 seconds
 
 ### 3. Migration 010: Update Documents Table
+
 **File**: Copy from conversation - updates existing documents table
+
 - Adds workspace_id and matter_id columns
 - Updates RLS policies for workspace-aware access
 - Creates performance indexes
@@ -74,6 +81,7 @@ Simply copy and paste each migration into Supabase SQL Editor and execute.
 ## Support
 
 If you encounter issues:
+
 1. Check Supabase logs for errors
 2. Verify prerequisites (Supabase project, auth enabled)
 3. Ensure migrations run in correct order

@@ -1,5 +1,5 @@
 function trimTrailingSlash(value: string): string {
-  return value.endsWith("/") ? value.slice(0, -1) : value;
+  return value.endsWith('/') ? value.slice(0, -1) : value;
 }
 
 export function getBaseUrl(): string {
@@ -20,7 +20,7 @@ export function getBaseUrl(): string {
   }
 
   // Replit environment detection
-  const replitDomain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
+  const replitDomain = process.env.REPLIT_DOMAINS?.split(',')[0]?.trim();
   if (replitDomain) {
     return `https://${replitDomain}`;
   }
@@ -30,13 +30,13 @@ export function getBaseUrl(): string {
     return `https://${replitDevDomain}`;
   }
 
-  const isProduction = process.env.NODE_ENV === "production";
-  const isLiveMode = process.env.APP_MODE === "live";
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isLiveMode = process.env.APP_MODE === 'live';
   if (isProduction || isLiveMode) {
-    return "https://divorceledger.live";
+    return 'https://divorceledger.live';
   }
 
-  return "http://localhost:5000";
+  return 'http://localhost:5000';
 }
 
 export function getBaseOrigin(): string | null {

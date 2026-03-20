@@ -61,7 +61,9 @@ export const ExtractedFieldsSchema = z.object({
   invoice_number: z.string().nullable().default(null),
   order_number: z.string().nullable().default(null),
   check_number: z.string().nullable().default(null),
-  payment_method: z.enum(['cash', 'credit', 'debit', 'ACH', 'check', 'transfer', 'unknown']).default('unknown'),
+  payment_method: z
+    .enum(['cash', 'credit', 'debit', 'ACH', 'check', 'transfer', 'unknown'])
+    .default('unknown'),
   merchant_city: z.string().nullable().default(null),
   merchant_state: z.string().nullable().default(null),
   line_items: z.array(LineItemSchema).default([]),
@@ -88,7 +90,7 @@ export type CategoryCandidate = z.infer<typeof CategoryCandidateSchema>;
 export const ExtractionOutputSchema = z.object({
   doc_type: DocTypeSchema,
   suggested_category: z.string(),
-  ledger_bucket: LedgerBucketSchema.default("UNKNOWN"),
+  ledger_bucket: LedgerBucketSchema.default('UNKNOWN'),
   finance_category: z.string().optional(),
   confidence: z.number().min(0).max(1),
   summary: z.string(),
@@ -122,7 +124,7 @@ export type FieldVerification = z.infer<typeof FieldVerificationSchema>;
 
 export const DATE_FIELDS = [
   'document_date',
-  'transaction_date', 
+  'transaction_date',
   'statement_period_start',
   'statement_period_end',
 ] as const;
@@ -139,12 +141,9 @@ export const MONEY_FIELDS = [
   'new_balance',
 ] as const;
 
-export const CRITICAL_FIELDS_REQUIRING_EVIDENCE = [
-  ...DATE_FIELDS,
-  ...MONEY_FIELDS,
-] as const;
+export const CRITICAL_FIELDS_REQUIRING_EVIDENCE = [...DATE_FIELDS, ...MONEY_FIELDS] as const;
 
-export type CriticalField = typeof CRITICAL_FIELDS_REQUIRING_EVIDENCE[number];
+export type CriticalField = (typeof CRITICAL_FIELDS_REQUIRING_EVIDENCE)[number];
 
 export const VerificationReportSchema = z.object({
   verified: z.record(z.string(), FieldVerificationSchema),
@@ -167,22 +166,22 @@ export function getFieldsMissingEvidence(
   extractedFields: ExtractedFields
 ): string[] {
   const missing: string[] = [];
-  
+
   for (const field of CRITICAL_FIELDS_REQUIRING_EVIDENCE) {
     const value = extractedFields[field as keyof ExtractedFields];
     if (value === null || value === undefined) continue;
-    
+
     const verification = verified[field];
     if (!verification) {
       missing.push(field);
       continue;
     }
-    
+
     if (!hasValidEvidence(verification)) {
       missing.push(field);
     }
   }
-  
+
   return missing;
 }
 
@@ -192,7 +191,7 @@ export const NormalizedAnalysisOutputSchema = z.object({
   analysis_run_id: z.string(),
   doc_type: DocTypeSchema,
   suggested_category: z.string(),
-  ledger_bucket: LedgerBucketSchema.default("UNKNOWN"),
+  ledger_bucket: LedgerBucketSchema.default('UNKNOWN'),
   finance_category: z.string().optional(),
   confidence: z.number().min(0).max(1),
   summary: z.string(),
@@ -204,14 +203,18 @@ export const NormalizedAnalysisOutputSchema = z.object({
   category_candidates: z.array(CategoryCandidateSchema).default([]),
   category_requires_review: z.boolean().default(true),
   verification: VerificationReportSchema.optional(),
-  extraction_pass_tokens: z.object({
-    input: z.number(),
-    output: z.number(),
-  }).optional(),
-  verification_pass_tokens: z.object({
-    input: z.number(),
-    output: z.number(),
-  }).optional(),
+  extraction_pass_tokens: z
+    .object({
+      input: z.number(),
+      output: z.number(),
+    })
+    .optional(),
+  verification_pass_tokens: z
+    .object({
+      input: z.number(),
+      output: z.number(),
+    })
+    .optional(),
   total_estimated_cost: z.number().optional(),
 });
 
@@ -237,31 +240,39 @@ export function parseLegacyNormalizedOutput(json: unknown): Partial<NormalizedAn
   if (!json || typeof json !== 'object') {
     return {};
   }
-  
+
   const obj = json as Record<string, unknown>;
-  
+
   return {
     model: typeof obj.model === 'string' ? obj.model : undefined,
     model_version: typeof obj.model_version === 'string' ? obj.model_version : undefined,
     analysis_run_id: typeof obj.analysis_run_id === 'string' ? obj.analysis_run_id : undefined,
-    doc_type: DocTypeSchema.safeParse(obj.doc_type).success 
-      ? (obj.doc_type as DocType) 
-      : 'other',
-    suggested_category: typeof obj.suggested_category === 'string' 
-      ? obj.suggested_category 
-      : (typeof obj.category === 'string' ? obj.category : 'Uncategorized'),
+    doc_type: DocTypeSchema.safeParse(obj.doc_type).success ? (obj.doc_type as DocType) : 'other',
+    suggested_category:
+      typeof obj.suggested_category === 'string'
+        ? obj.suggested_category
+        : typeof obj.category === 'string'
+          ? obj.category
+          : 'Uncategorized',
     confidence: typeof obj.confidence === 'number' ? obj.confidence : 0,
-    summary: typeof obj.summary === 'string' 
-      ? obj.summary 
-      : (typeof obj.extractedText === 'string' ? obj.extractedText : ''),
-    keywords: Array.isArray(obj.keywords) ? obj.keywords.filter((k): k is string => typeof k === 'string') : [],
-    extracted: ExtractedFieldsSchema.safeParse(obj.extracted).success 
+    summary:
+      typeof obj.summary === 'string'
+        ? obj.summary
+        : typeof obj.extractedText === 'string'
+          ? obj.extractedText
+          : '',
+    keywords: Array.isArray(obj.keywords)
+      ? obj.keywords.filter((k): k is string => typeof k === 'string')
+      : [],
+    extracted: ExtractedFieldsSchema.safeParse(obj.extracted).success
       ? (obj.extracted as ExtractedFields)
       : ExtractedFieldsSchema.parse({}),
     evidence: EvidenceSchema.safeParse(obj.evidence).success
       ? (obj.evidence as Evidence)
       : undefined,
-    warnings: Array.isArray(obj.warnings) ? obj.warnings.filter((w): w is string => typeof w === 'string') : [],
+    warnings: Array.isArray(obj.warnings)
+      ? obj.warnings.filter((w): w is string => typeof w === 'string')
+      : [],
     needs_user_review: typeof obj.needs_user_review === 'boolean' ? obj.needs_user_review : true,
   };
 }
@@ -272,7 +283,12 @@ export const REQUIRED_FIELDS_BY_DOC_TYPE: Record<DocType, (keyof ExtractedFields
   receipt: ['vendor_name', 'total_amount', 'transaction_date'],
   invoice: ['vendor_name', 'total_amount', 'document_date', 'invoice_number'],
   bank_statement: ['statement_period_start', 'statement_period_end', 'account_last4'],
-  credit_card_statement: ['statement_period_start', 'statement_period_end', 'account_last4', 'balance_due'],
+  credit_card_statement: [
+    'statement_period_start',
+    'statement_period_end',
+    'account_last4',
+    'balance_due',
+  ],
   paystub: ['payer', 'total_amount', 'document_date'],
   court_filing: ['document_date'],
   photo_evidence: [],

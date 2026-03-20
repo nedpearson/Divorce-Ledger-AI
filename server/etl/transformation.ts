@@ -64,7 +64,7 @@ interface FactBillingEvent {
 
 class TransformationService {
   transformUsers(users: any[]): DimUser[] {
-    return users.map(user => ({
+    return users.map((user) => ({
       userId: user.id,
       email: user.email || '',
       name: user.name || user.email?.split('@')[0] || 'Unknown',
@@ -75,10 +75,14 @@ class TransformationService {
   }
 
   transformViolations(violations: any[]): FactViolation[] {
-    return violations.map(v => {
+    return violations.map((v) => {
       let metadata: any = {};
       if (typeof v.metadata === 'string') {
-        try { metadata = JSON.parse(v.metadata); } catch { /* Invalid JSON metadata, use empty object */ }
+        try {
+          metadata = JSON.parse(v.metadata);
+        } catch {
+          /* Invalid JSON metadata, use empty object */
+        }
       } else if (v.metadata) {
         metadata = v.metadata;
       }
@@ -102,7 +106,7 @@ class TransformationService {
   }
 
   transformTransactions(transactions: any[]): FactTransaction[] {
-    return transactions.map(t => {
+    return transactions.map((t) => {
       const sourceTable = t.source_table || 'transactions';
       const isIncome = sourceTable === 'incomes';
       const isExpense = sourceTable === 'expenses';
@@ -134,10 +138,14 @@ class TransformationService {
   }
 
   transformBillingEvents(events: any[]): FactBillingEvent[] {
-    return events.map(e => {
+    return events.map((e) => {
       let metadata: any = {};
       if (typeof e.metadata === 'string') {
-        try { metadata = JSON.parse(e.metadata); } catch { /* Invalid JSON metadata, use empty object */ }
+        try {
+          metadata = JSON.parse(e.metadata);
+        } catch {
+          /* Invalid JSON metadata, use empty object */
+        }
       } else if (e.metadata) {
         metadata = e.metadata;
       }
@@ -165,14 +173,14 @@ class TransformationService {
 
   private normalizeCategory(category: string): string {
     const categoryMap: Record<string, string> = {
-      'financial': 'Financial Hiding',
-      'custody': 'Custody Violation',
-      'harassment': 'Communication Harassment',
-      'property': 'Property Damage',
-      'support': 'Support Non-Payment',
-      'visitation': 'Visitation Interference',
+      financial: 'Financial Hiding',
+      custody: 'Custody Violation',
+      harassment: 'Communication Harassment',
+      property: 'Property Damage',
+      support: 'Support Non-Payment',
+      visitation: 'Visitation Interference',
     };
-    
+
     const lowerCategory = category.toLowerCase();
     for (const [key, value] of Object.entries(categoryMap)) {
       if (lowerCategory.includes(key)) return value;
@@ -182,29 +190,29 @@ class TransformationService {
 
   private calculateSeverity(violation: any): number {
     let score = 5;
-    
+
     if (violation.audio_transcript) score += 2;
     if (violation.evidence_count > 0) score += violation.evidence_count;
     if (violation.type?.toLowerCase().includes('custody')) score += 3;
     if (violation.type?.toLowerCase().includes('financial')) score += 2;
-    
+
     return Math.min(score, 10);
   }
 
   async getOrCreateTimeKey(date: Date): Promise<number> {
     const dateStr = date.toISOString().split('T')[0];
-    
+
     const result = await safeQuery(
       getPool(),
       'etl.transformation:getTimeKey',
       'SELECT time_key FROM dim_time WHERE full_date = $1',
       [dateStr]
     );
-    
+
     if (result.rows.length > 0) {
       return result.rows[0].time_key;
     }
-    
+
     const insertResult = await safeQuery(
       getPool(),
       'etl.transformation:insertTimeKey',
@@ -224,14 +232,14 @@ class TransformationService {
         Math.ceil((date.getMonth() + 1) / 3),
         date.getFullYear(),
         date.getDay() === 0 || date.getDay() === 6,
-        new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate() === date.getDate()
+        new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate() === date.getDate(),
       ]
     );
-    
+
     if (insertResult.rows.length === 0) {
       throw new Error('Failed to create time dimension record');
     }
-    
+
     return insertResult.rows[0].time_key;
   }
 
@@ -242,11 +250,11 @@ class TransformationService {
       'SELECT user_key FROM dim_user WHERE user_id = $1 AND is_current = TRUE',
       [userId]
     );
-    
+
     if (result.rows.length > 0) {
       return result.rows[0].user_key;
     }
-    
+
     if (userData) {
       const insertResult = await safeQuery(
         getPool(),
@@ -254,15 +262,21 @@ class TransformationService {
         `INSERT INTO dim_user (user_id, email, name, subscription_tier, stripe_customer_id, created_at)
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING user_key`,
-        [userData.userId, userData.email, userData.name, userData.subscriptionTier, 
-         userData.stripeCustomerId, userData.createdAt]
+        [
+          userData.userId,
+          userData.email,
+          userData.name,
+          userData.subscriptionTier,
+          userData.stripeCustomerId,
+          userData.createdAt,
+        ]
       );
       if (insertResult.rows.length === 0) {
         throw new Error('Failed to create user dimension record');
       }
       return insertResult.rows[0].user_key;
     }
-    
+
     const insertResult = await safeQuery(
       getPool(),
       'etl.transformation:insertUserKeyUnknown',

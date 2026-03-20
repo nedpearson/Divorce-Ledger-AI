@@ -1,14 +1,27 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 import {
   Shield,
   FileText,
@@ -25,75 +38,79 @@ import {
   Download,
   RefreshCw,
   Play,
-} from "lucide-react";
+} from 'lucide-react';
 
 export default function GovernanceDashboard() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState('overview');
 
   const { data: summaryData, isLoading: summaryLoading } = useQuery<{ summary: any }>({
-    queryKey: ["/api/governance/summary"],
+    queryKey: ['/api/governance/summary'],
   });
 
   const { data: dsrData, isLoading: dsrLoading } = useQuery<{ requests: any[] }>({
-    queryKey: ["/api/governance/dsr"],
+    queryKey: ['/api/governance/dsr'],
   });
 
   const { data: policyData, isLoading: policyLoading } = useQuery<{ policies: any[] }>({
-    queryKey: ["/api/governance/retention/policies"],
+    queryKey: ['/api/governance/retention/policies'],
   });
 
   const { data: auditData, isLoading: auditLoading } = useQuery<{ entries: any[] }>({
-    queryKey: ["/api/governance/audit"],
+    queryKey: ['/api/governance/audit'],
   });
 
-  const { data: lineageData, isLoading: lineageLoading } = useQuery<{ nodes: any[]; edges: any[]; sources: any[] }>({
-    queryKey: ["/api/governance/lineage/graph"],
+  const { data: lineageData, isLoading: lineageLoading } = useQuery<{
+    nodes: any[];
+    edges: any[];
+    sources: any[];
+  }>({
+    queryKey: ['/api/governance/lineage/graph'],
   });
 
   const { data: qualityData, isLoading: qualityLoading } = useQuery<{ tests: any[] }>({
-    queryKey: ["/api/governance/quality/tests"],
+    queryKey: ['/api/governance/quality/tests'],
   });
 
   const executeRetentionMutation = useMutation({
     mutationFn: async (policyId: string) => {
-      return apiRequest("POST", `/api/governance/retention/execute/${policyId}`);
+      return apiRequest('POST', `/api/governance/retention/execute/${policyId}`);
     },
     onSuccess: () => {
       toast({
-        title: "Retention job started",
-        description: "The retention policy is now executing in the background.",
+        title: 'Retention job started',
+        description: 'The retention policy is now executing in the background.',
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/governance/retention/jobs"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/governance/retention/jobs'] });
     },
     onError: (error: any) => {
       toast({
-        title: "Execution failed",
+        title: 'Execution failed',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     },
   });
 
   const runQualityTestMutation = useMutation({
     mutationFn: async (testId: string) => {
-      return apiRequest("POST", `/api/governance/quality/tests/${testId}/run`);
+      return apiRequest('POST', `/api/governance/quality/tests/${testId}/run`);
     },
     onSuccess: (data: any) => {
       toast({
-        title: data.run?.passed ? "Test passed" : "Test failed",
-        description: data.run?.passed 
-          ? "Data quality test completed successfully" 
-          : "Data quality test found issues",
-        variant: data.run?.passed ? "default" : "destructive",
+        title: data.run?.passed ? 'Test passed' : 'Test failed',
+        description: data.run?.passed
+          ? 'Data quality test completed successfully'
+          : 'Data quality test found issues',
+        variant: data.run?.passed ? 'default' : 'destructive',
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/governance/quality/tests"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/governance/quality/tests'] });
     },
     onError: (error: any) => {
       toast({
-        title: "Test failed",
+        title: 'Test failed',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     },
   });
@@ -116,7 +133,7 @@ export default function GovernanceDashboard() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/governance"] })}
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/governance'] })}
             data-testid="button-refresh-governance"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -251,7 +268,10 @@ export default function GovernanceDashboard() {
                       <Shield className="h-4 w-4 text-green-600" />
                       <span>GDPR Compliance</span>
                     </div>
-                    <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                    >
                       Compliant
                     </Badge>
                   </div>
@@ -260,7 +280,10 @@ export default function GovernanceDashboard() {
                       <Shield className="h-4 w-4 text-green-600" />
                       <span>CCPA Compliance</span>
                     </div>
-                    <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                    >
                       Compliant
                     </Badge>
                   </div>
@@ -269,7 +292,10 @@ export default function GovernanceDashboard() {
                       <Lock className="h-4 w-4 text-green-600" />
                       <span>Data Encryption</span>
                     </div>
-                    <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                    >
                       AES-256-GCM
                     </Badge>
                   </div>
@@ -291,7 +317,10 @@ export default function GovernanceDashboard() {
                   ) : (
                     <div className="space-y-2">
                       {(auditData?.entries || []).slice(0, 5).map((entry: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between p-2 border rounded text-sm">
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-2 border rounded text-sm"
+                        >
                           <div className="flex items-center gap-2">
                             <Activity className="h-3 w-3 text-muted-foreground" />
                             <span className="font-medium">{entry.action}</span>
@@ -319,7 +348,9 @@ export default function GovernanceDashboard() {
               <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
                 <div>
                   <CardTitle>Data Subject Requests</CardTitle>
-                  <CardDescription>GDPR/CCPA access, erasure, and portability requests</CardDescription>
+                  <CardDescription>
+                    GDPR/CCPA access, erasure, and portability requests
+                  </CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
@@ -343,9 +374,11 @@ export default function GovernanceDashboard() {
                           <TableCell className="font-mono text-xs">{req.id.slice(0, 8)}</TableCell>
                           <TableCell>
                             <Badge variant="outline">
-                              {req.requestType === "access" && <Eye className="h-3 w-3 mr-1" />}
-                              {req.requestType === "erasure" && <Trash2 className="h-3 w-3 mr-1" />}
-                              {req.requestType === "portability" && <Download className="h-3 w-3 mr-1" />}
+                              {req.requestType === 'access' && <Eye className="h-3 w-3 mr-1" />}
+                              {req.requestType === 'erasure' && <Trash2 className="h-3 w-3 mr-1" />}
+                              {req.requestType === 'portability' && (
+                                <Download className="h-3 w-3 mr-1" />
+                              )}
                               {req.requestType}
                             </Badge>
                           </TableCell>
@@ -355,8 +388,11 @@ export default function GovernanceDashboard() {
                           <TableCell>
                             <Badge
                               variant={
-                                req.status === "completed" ? "default" :
-                                req.status === "pending" ? "secondary" : "destructive"
+                                req.status === 'completed'
+                                  ? 'default'
+                                  : req.status === 'pending'
+                                    ? 'secondary'
+                                    : 'destructive'
                               }
                             >
                               {req.status}
@@ -413,7 +449,7 @@ export default function GovernanceDashboard() {
                           <TableCell>
                             {policy.lastExecutedAt
                               ? new Date(policy.lastExecutedAt).toLocaleString()
-                              : "Never"}
+                              : 'Never'}
                           </TableCell>
                           <TableCell>
                             <Button
@@ -447,7 +483,9 @@ export default function GovernanceDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Data Lineage Graph</CardTitle>
-                <CardDescription>Visual representation of data flow through the system</CardDescription>
+                <CardDescription>
+                  Visual representation of data flow through the system
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {lineageLoading ? (
@@ -465,7 +503,9 @@ export default function GovernanceDashboard() {
                       </div>
                       <div className="p-4 border rounded-lg">
                         <p className="text-sm text-muted-foreground">Data Sources</p>
-                        <p className="text-2xl font-semibold">{lineageData?.sources?.length || 0}</p>
+                        <p className="text-2xl font-semibold">
+                          {lineageData?.sources?.length || 0}
+                        </p>
                       </div>
                     </div>
 
@@ -484,7 +524,9 @@ export default function GovernanceDashboard() {
                       <div className="text-center py-8 text-muted-foreground">
                         <GitBranch className="h-12 w-12 mx-auto mb-2 opacity-50" />
                         <p>No lineage data configured yet</p>
-                        <p className="text-sm">Add data sources and transformations to build the lineage graph</p>
+                        <p className="text-sm">
+                          Add data sources and transformations to build the lineage graph
+                        </p>
                       </div>
                     )}
                   </div>
@@ -525,8 +567,11 @@ export default function GovernanceDashboard() {
                           <TableCell>
                             <Badge
                               variant={
-                                test.severity === "critical" ? "destructive" :
-                                test.severity === "high" ? "destructive" : "secondary"
+                                test.severity === 'critical'
+                                  ? 'destructive'
+                                  : test.severity === 'high'
+                                    ? 'destructive'
+                                    : 'secondary'
                               }
                             >
                               {test.severity}
@@ -535,7 +580,9 @@ export default function GovernanceDashboard() {
                           <TableCell>
                             {test.lastRunStatus ? (
                               <Badge
-                                variant={test.lastRunStatus === "passed" ? "default" : "destructive"}
+                                variant={
+                                  test.lastRunStatus === 'passed' ? 'default' : 'destructive'
+                                }
                               >
                                 {test.lastRunStatus}
                               </Badge>
@@ -602,12 +649,14 @@ export default function GovernanceDashboard() {
                             <Badge variant="outline">{entry.action}</Badge>
                           </TableCell>
                           <TableCell className="font-mono text-sm">{entry.resourceType}</TableCell>
-                          <TableCell>{entry.userId || "System"}</TableCell>
-                          <TableCell className="font-mono text-xs">{entry.ipAddress || "-"}</TableCell>
+                          <TableCell>{entry.userId || 'System'}</TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {entry.ipAddress || '-'}
+                          </TableCell>
                           <TableCell>
                             {entry.responseStatus && (
                               <Badge
-                                variant={entry.responseStatus < 400 ? "default" : "destructive"}
+                                variant={entry.responseStatus < 400 ? 'default' : 'destructive'}
                               >
                                 {entry.responseStatus}
                               </Badge>

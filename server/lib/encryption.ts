@@ -14,39 +14,41 @@ function getEncryptionKey(): Buffer {
 
 export function encryptToken(plaintext: string): string {
   if (!plaintext) return plaintext;
-  
+
   const key = getEncryptionKey();
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-  
+
   let encrypted = cipher.update(plaintext, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  
+
   const authTag = cipher.getAuthTag();
-  
+
   return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
 }
 
 export function decryptToken(encrypted: string): string {
   if (!encrypted || !encrypted.includes(':')) return encrypted;
-  
+
   try {
     const key = getEncryptionKey();
     const [ivHex, authTagHex, ciphertext] = encrypted.split(':');
-    
+
     if (!ivHex || !authTagHex || !ciphertext) {
       return encrypted;
     }
-    
+
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(authTagHex, 'hex');
-    
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
+
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv, {
+      authTagLength: AUTH_TAG_LENGTH,
+    });
     decipher.setAuthTag(authTag);
-    
+
     let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    
+
     return decrypted;
   } catch (error) {
     console.error('Token decryption failed:', error);
@@ -71,16 +73,16 @@ export function encryptQBToken(plaintext: string): QBEncryptedToken {
   if (!plaintext) {
     return { encrypted: '', iv: '', authTag: '' };
   }
-  
+
   const key = getEncryptionKey();
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-  
+
   let encrypted = cipher.update(plaintext, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  
+
   const authTag = cipher.getAuthTag();
-  
+
   return {
     encrypted,
     iv: iv.toString('hex'),
@@ -92,18 +94,20 @@ export function decryptQBToken(encrypted: string, iv: string, authTag: string): 
   if (!encrypted || !iv || !authTag) {
     return '';
   }
-  
+
   try {
     const key = getEncryptionKey();
     const ivBuffer = Buffer.from(iv, 'hex');
     const authTagBuffer = Buffer.from(authTag, 'hex');
-    
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, ivBuffer, { authTagLength: AUTH_TAG_LENGTH });
+
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, ivBuffer, {
+      authTagLength: AUTH_TAG_LENGTH,
+    });
     decipher.setAuthTag(authTagBuffer);
-    
+
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    
+
     return decrypted;
   } catch (error) {
     console.error('QB token decryption failed');

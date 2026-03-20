@@ -5,12 +5,12 @@
  * Every route is hard-gated by requirePlatformAdmin middleware.
  * All mutations write to audit_log.
  */
-import { Router } from "express";
-import { db } from "../db";
-import { requirePlatformAdmin, requireSuperAdmin } from "../middleware/platform-admin";
-import { logAudit, getClientIp } from "../services/audit-log.service";
-import { resetDemoEnvironment, superadminResetDemoForLive } from "../demo-reset";
-import { getAppMode, isDemoMode } from "../config";
+import { Router } from 'express';
+import { db } from '../db';
+import { requirePlatformAdmin, requireSuperAdmin } from '../middleware/platform-admin';
+import { logAudit, getClientIp } from '../services/audit-log.service';
+import { resetDemoEnvironment, superadminResetDemoForLive } from '../demo-reset';
+import { getAppMode, isDemoMode } from '../config';
 import {
   auditLog,
   featureFlags,
@@ -21,33 +21,17 @@ import {
   platformAdminAllowlist,
   usageRollupsDaily,
   CREDIT_COST_MODEL,
-} from "@shared/platform-admin-schema";
+} from '@shared/platform-admin-schema';
 import {
   workspaces,
   workspaceMembers,
   matters,
   invitations,
   aiCreditTransactions,
-} from "@shared/workspace-schema";
-import {
-  users,
-  billingRecords,
-} from "@shared/schema";
-import {
-  eq,
-  and,
-  or,
-  ilike,
-  desc,
-  asc,
-  sql,
-  gte,
-  lte,
-  count,
-  sum,
-  inArray,
-} from "drizzle-orm";
-import { z } from "zod";
+} from '@shared/workspace-schema';
+import { users, billingRecords } from '@shared/schema';
+import { eq, and, or, ilike, desc, asc, sql, gte, lte, count, sum, inArray } from 'drizzle-orm';
+import { z } from 'zod';
 
 const router = Router();
 
@@ -62,7 +46,7 @@ router.use(requirePlatformAdmin);
 // - In demo mode: performs a full atomic reset via resetDemoEnvironment.
 // - In live mode: only clears the "demo" environment data while preserving
 //   the demo user account, then reseeds curated demo data via superadminResetDemoForLive.
-router.post("/demo/reset", requireSuperAdmin, async (req, res) => {
+router.post('/demo/reset', requireSuperAdmin, async (req, res) => {
   try {
     if (isDemoMode()) {
       await resetDemoEnvironment();
@@ -73,24 +57,24 @@ router.post("/demo/reset", requireSuperAdmin, async (req, res) => {
     await logAudit({
       actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
-      actionType: "demo.reset" as any,
-      targetType: "environment",
-      targetId: "demo",
+      actionType: 'demo.reset' as any,
+      targetType: 'environment',
+      targetId: 'demo',
       details: { appMode: getAppMode() },
       ipAddress: getClientIp(req),
     });
 
     res.json({ success: true });
   } catch (err: any) {
-    console.error("[/api/superadmin/demo/reset]", err);
-    res.status(500).json({ error: err.message || "Failed to reset demo environment" });
+    console.error('[/api/superadmin/demo/reset]', err);
+    res.status(500).json({ error: err.message || 'Failed to reset demo environment' });
   }
 });
 
 // ============================================================================
 // A) GLOBAL OVERVIEW
 // ============================================================================
-router.get("/overview", async (req, res) => {
+router.get('/overview', async (req, res) => {
   try {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
@@ -104,14 +88,17 @@ router.get("/overview", async (req, res) => {
       creditsConsumed30d,
     ] = await Promise.all([
       db.select({ c: count() }).from(users),
-      db.select({ c: count() }).from(workspaces).where(eq(workspaces.type, "firm")),
-      db.select({ c: count() }).from(workspaces).where(eq(workspaces.type, "consumer")),
-      db.select({ c: count() }).from(matters).where(eq(matters.status, "active")),
-      db.select({ c: count() }).from(workspaces)
-        .where(eq(workspaces.subscriptionStatus, "active")),
-      db.select({ c: count() }).from(workspaces)
-        .where(eq(workspaces.subscriptionStatus, "past_due")),
-      db.select({ total: sum(usageEvents.credits) }).from(usageEvents)
+      db.select({ c: count() }).from(workspaces).where(eq(workspaces.type, 'firm')),
+      db.select({ c: count() }).from(workspaces).where(eq(workspaces.type, 'consumer')),
+      db.select({ c: count() }).from(matters).where(eq(matters.status, 'active')),
+      db.select({ c: count() }).from(workspaces).where(eq(workspaces.subscriptionStatus, 'active')),
+      db
+        .select({ c: count() })
+        .from(workspaces)
+        .where(eq(workspaces.subscriptionStatus, 'past_due')),
+      db
+        .select({ total: sum(usageEvents.credits) })
+        .from(usageEvents)
         .where(gte(usageEvents.createdAt, thirtyDaysAgo)),
     ]);
 
@@ -122,13 +109,17 @@ router.get("/overview", async (req, res) => {
         cnt: count(),
       })
       .from(workspaces)
-      .where(eq(workspaces.subscriptionStatus, "active"))
+      .where(eq(workspaces.subscriptionStatus, 'active'))
       .groupBy(workspaces.subscriptionTier);
 
-    const planPrices = await db.select({ name: planDefinitions.name, priceCents: planDefinitions.priceCents })
+    const planPrices = await db
+      .select({ name: planDefinitions.name, priceCents: planDefinitions.priceCents })
       .from(planDefinitions);
-    const priceMap = Object.fromEntries(planPrices.map(p => [p.name, p.priceCents ?? 0]));
-    const mrrEstimate = mrrRows.reduce((acc, r) => acc + (priceMap[r.tier] ?? 0) * Number(r.cnt), 0);
+    const priceMap = Object.fromEntries(planPrices.map((p) => [p.name, p.priceCents ?? 0]));
+    const mrrEstimate = mrrRows.reduce(
+      (acc, r) => acc + (priceMap[r.tier] ?? 0) * Number(r.cnt),
+      0
+    );
 
     res.json({
       users: Number(totalUsers[0]?.c ?? 0),
@@ -141,7 +132,7 @@ router.get("/overview", async (req, res) => {
       creditsConsumed30d: Number(creditsConsumed30d[0]?.total ?? 0),
     });
   } catch (err: any) {
-    console.error("[superadmin/overview]", err);
+    console.error('[superadmin/overview]', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -151,7 +142,7 @@ router.get("/overview", async (req, res) => {
 // ============================================================================
 
 // List all workspaces (firms + consumers) with pagination/filter
-router.get("/workspaces", async (req, res) => {
+router.get('/workspaces', async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page ?? 1));
     const limit = Math.min(100, Number(req.query.limit ?? 25));
@@ -168,7 +159,13 @@ router.get("/workspaces", async (req, res) => {
     const where = conditions.length ? and(...conditions) : undefined;
 
     const [rows, totalRow] = await Promise.all([
-      db.select().from(workspaces).where(where).orderBy(desc(workspaces.createdAt)).limit(limit).offset(offset),
+      db
+        .select()
+        .from(workspaces)
+        .where(where)
+        .orderBy(desc(workspaces.createdAt))
+        .limit(limit)
+        .offset(offset),
       db.select({ c: count() }).from(workspaces).where(where),
     ]);
 
@@ -179,45 +176,62 @@ router.get("/workspaces", async (req, res) => {
 });
 
 // Get workspace detail (members, matters, billing status, recent audit)
-router.get("/workspaces/:workspaceId", async (req, res) => {
+router.get('/workspaces/:workspaceId', async (req, res) => {
   try {
     const { workspaceId } = req.params;
 
     const [workspace, members, mattersRows, auditRows, featureOvrs] = await Promise.all([
       db.query.workspaces.findFirst({ where: eq(workspaces.id, workspaceId) }),
       db.select().from(workspaceMembers).where(eq(workspaceMembers.workspaceId, workspaceId)),
-      db.select({ c: count() }).from(matters).where(
-        and(eq(matters.workspaceId, workspaceId), eq(matters.status, "active"))
-      ),
-      db.select().from(auditLog)
-        .where(and(eq(auditLog.targetType, "workspace"), eq(auditLog.targetId, workspaceId)))
-        .orderBy(desc(auditLog.createdAt)).limit(20),
-      db.select().from(workspaceFeatureOverrides).where(eq(workspaceFeatureOverrides.workspaceId, workspaceId)),
+      db
+        .select({ c: count() })
+        .from(matters)
+        .where(and(eq(matters.workspaceId, workspaceId), eq(matters.status, 'active'))),
+      db
+        .select()
+        .from(auditLog)
+        .where(and(eq(auditLog.targetType, 'workspace'), eq(auditLog.targetId, workspaceId)))
+        .orderBy(desc(auditLog.createdAt))
+        .limit(20),
+      db
+        .select()
+        .from(workspaceFeatureOverrides)
+        .where(eq(workspaceFeatureOverrides.workspaceId, workspaceId)),
     ]);
 
-    if (!workspace) return res.status(404).json({ error: "Workspace not found" });
+    if (!workspace) return res.status(404).json({ error: 'Workspace not found' });
 
-    res.json({ workspace, members, activeMatters: Number(mattersRows[0]?.c ?? 0), auditTrail: auditRows, featureOverrides: featureOvrs });
+    res.json({
+      workspace,
+      members,
+      activeMatters: Number(mattersRows[0]?.c ?? 0),
+      auditTrail: auditRows,
+      featureOverrides: featureOvrs,
+    });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // Approve / reject / suspend a workspace
-router.post("/workspaces/:workspaceId/status", async (req, res) => {
+router.post('/workspaces/:workspaceId/status', async (req, res) => {
   try {
     const { workspaceId } = req.params;
-    const schema = z.object({ action: z.enum(["approve", "reject", "suspend", "unsuspend"]), reason: z.string().optional() });
+    const schema = z.object({
+      action: z.enum(['approve', 'reject', 'suspend', 'unsuspend']),
+      reason: z.string().optional(),
+    });
     const { action, reason } = schema.parse(req.body);
 
     const statusMap: Record<string, string> = {
-      approve: "active",
-      reject: "canceled",
-      suspend: "suspended",
-      unsuspend: "active",
+      approve: 'active',
+      reject: 'canceled',
+      suspend: 'suspended',
+      unsuspend: 'active',
     };
 
-    await db.update(workspaces)
+    await db
+      .update(workspaces)
       .set({ subscriptionStatus: statusMap[action], updatedAt: new Date() })
       .where(eq(workspaces.id, workspaceId));
 
@@ -225,7 +239,7 @@ router.post("/workspaces/:workspaceId/status", async (req, res) => {
       actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
       actionType: `firm.${action}` as any,
-      targetType: "workspace",
+      targetType: 'workspace',
       targetId: workspaceId,
       details: { reason },
       ipAddress: getClientIp(req),
@@ -238,7 +252,7 @@ router.post("/workspaces/:workspaceId/status", async (req, res) => {
 });
 
 // Assign plan to workspace + optional entitlement overrides
-router.post("/workspaces/:workspaceId/plan", async (req, res) => {
+router.post('/workspaces/:workspaceId/plan', async (req, res) => {
   try {
     const { workspaceId } = req.params;
     const schema = z.object({
@@ -252,9 +266,10 @@ router.post("/workspaces/:workspaceId/plan", async (req, res) => {
     const plan = await db.query.planDefinitions.findFirst({
       where: eq(planDefinitions.name, body.planName),
     });
-    if (!plan) return res.status(404).json({ error: "Plan not found" });
+    if (!plan) return res.status(404).json({ error: 'Plan not found' });
 
-    await db.update(workspaces)
+    await db
+      .update(workspaces)
       .set({
         subscriptionTier: body.planName as any,
         aiCreditsLimit: body.aiCreditsOverride ?? plan.aiCreditsMonthly,
@@ -265,8 +280,8 @@ router.post("/workspaces/:workspaceId/plan", async (req, res) => {
     await logAudit({
       actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
-      actionType: "firm.plan_assign",
-      targetType: "workspace",
+      actionType: 'firm.plan_assign',
+      targetType: 'workspace',
       targetId: workspaceId,
       details: { planName: body.planName, overrides: body },
       ipAddress: getClientIp(req),
@@ -283,7 +298,7 @@ router.post("/workspaces/:workspaceId/plan", async (req, res) => {
 // ============================================================================
 
 // Global user search
-router.get("/users", async (req, res) => {
+router.get('/users', async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page ?? 1));
     const limit = Math.min(100, Number(req.query.limit ?? 25));
@@ -292,24 +307,27 @@ router.get("/users", async (req, res) => {
 
     const conditions: any[] = [];
     if (search) {
-      conditions.push(or(
-        ilike(users.email, `%${search}%`),
-        ilike(users.fullName, `%${search}%`)
-      ));
+      conditions.push(or(ilike(users.email, `%${search}%`), ilike(users.fullName, `%${search}%`)));
     }
     const where = conditions.length ? and(...conditions) : undefined;
 
     const [rows, totalRow] = await Promise.all([
-      db.select({
-        id: users.id,
-        email: users.email,
-        fullName: users.fullName,
-        status: users.status,
-        subscriptionTier: users.subscriptionTier,
-        platformRole: users.platformRole,
-        createdAt: users.createdAt,
-        lastLoginAt: users.lastLoginAt,
-      }).from(users).where(where).orderBy(desc(users.createdAt)).limit(limit).offset(offset),
+      db
+        .select({
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+          status: users.status,
+          subscriptionTier: users.subscriptionTier,
+          platformRole: users.platformRole,
+          createdAt: users.createdAt,
+          lastLoginAt: users.lastLoginAt,
+        })
+        .from(users)
+        .where(where)
+        .orderBy(desc(users.createdAt))
+        .limit(limit)
+        .offset(offset),
       db.select({ c: count() }).from(users).where(where),
     ]);
 
@@ -320,27 +338,31 @@ router.get("/users", async (req, res) => {
 });
 
 // Get user detail + workspace memberships
-router.get("/users/:userId", async (req, res) => {
+router.get('/users/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId as any),
       columns: { password: false, qbAccessTokenEncrypted: false, qbRefreshTokenEncrypted: false },
     });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const memberships = await db.select({
-      workspaceId: workspaceMembers.workspaceId,
-      role: workspaceMembers.role,
-      joinedAt: workspaceMembers.joinedAt,
-      workspaceName: workspaces.name,
-      workspaceType: workspaces.type,
-    })
+    const memberships = await db
+      .select({
+        workspaceId: workspaceMembers.workspaceId,
+        role: workspaceMembers.role,
+        joinedAt: workspaceMembers.joinedAt,
+        workspaceName: workspaces.name,
+        workspaceType: workspaces.type,
+      })
       .from(workspaceMembers)
       .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
       .where(eq(workspaceMembers.userId, userId));
 
-    const userEntries = await db.select().from(userEntitlements).where(eq(userEntitlements.userId, userId));
+    const userEntries = await db
+      .select()
+      .from(userEntitlements)
+      .where(eq(userEntitlements.userId, userId));
 
     res.json({ user, memberships, entitlements: userEntries });
   } catch (err: any) {
@@ -349,11 +371,18 @@ router.get("/users/:userId", async (req, res) => {
 });
 
 // Support actions: password_reset | invite_resend | force_signout | suspend | unsuspend
-router.post("/users/:userId/action", async (req, res) => {
+router.post('/users/:userId/action', async (req, res) => {
   try {
     const { userId } = req.params;
     const schema = z.object({
-      action: z.enum(["password_reset", "invite_resend", "force_signout", "suspend", "unsuspend", "role_adjust"]),
+      action: z.enum([
+        'password_reset',
+        'invite_resend',
+        'force_signout',
+        'suspend',
+        'unsuspend',
+        'role_adjust',
+      ]),
       workspaceId: z.string().optional(),
       newRole: z.string().optional(),
       reason: z.string().optional(),
@@ -361,32 +390,53 @@ router.post("/users/:userId/action", async (req, res) => {
     const body = schema.parse(req.body);
 
     const user = await db.query.users.findFirst({ where: eq(users.id, userId as any) });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
     let resultDetail: Record<string, unknown> = {};
 
-    if (body.action === "password_reset") {
+    if (body.action === 'password_reset') {
       // Generate a reset token; real email integration reuses existing email service
-      const crypto = await import("crypto");
-      const token = crypto.randomBytes(32).toString("hex");
+      const crypto = await import('crypto');
+      const token = crypto.randomBytes(32).toString('hex');
       const expires = new Date(Date.now() + 60 * 60 * 1000); // 1hr
-      await db.update(users).set({ passwordResetToken: token, passwordResetExpires: expires }).where(eq(users.id, userId as any));
-      resultDetail = { resetToken: token, expiresAt: expires.toISOString(), note: "Token generated; email dispatch uses existing /api/auth/forgot-password flow" };
-    } else if (body.action === "force_signout") {
+      await db
+        .update(users)
+        .set({ passwordResetToken: token, passwordResetExpires: expires })
+        .where(eq(users.id, userId as any));
+      resultDetail = {
+        resetToken: token,
+        expiresAt: expires.toISOString(),
+        note: 'Token generated; email dispatch uses existing /api/auth/forgot-password flow',
+      };
+    } else if (body.action === 'force_signout') {
       // Revoke all active sessions by clearing remember_me tokens — using existing schema
-      await db.update(users).set({ lastLoginAt: new Date(0) }).where(eq(users.id, userId as any));
-      resultDetail = { note: "Session invalidated via lastLoginAt reset; active cookies expire on next validation" };
-    } else if (body.action === "suspend") {
-      await db.update(users).set({ status: "suspended" }).where(eq(users.id, userId as any));
-    } else if (body.action === "unsuspend") {
-      await db.update(users).set({ status: "active" }).where(eq(users.id, userId as any));
-    } else if (body.action === "role_adjust" && body.workspaceId && body.newRole) {
-      await db.update(workspaceMembers)
+      await db
+        .update(users)
+        .set({ lastLoginAt: new Date(0) })
+        .where(eq(users.id, userId as any));
+      resultDetail = {
+        note: 'Session invalidated via lastLoginAt reset; active cookies expire on next validation',
+      };
+    } else if (body.action === 'suspend') {
+      await db
+        .update(users)
+        .set({ status: 'suspended' })
+        .where(eq(users.id, userId as any));
+    } else if (body.action === 'unsuspend') {
+      await db
+        .update(users)
+        .set({ status: 'active' })
+        .where(eq(users.id, userId as any));
+    } else if (body.action === 'role_adjust' && body.workspaceId && body.newRole) {
+      await db
+        .update(workspaceMembers)
         .set({ role: body.newRole as any })
-        .where(and(
-          eq(workspaceMembers.userId, userId),
-          eq(workspaceMembers.workspaceId, body.workspaceId)
-        ));
+        .where(
+          and(
+            eq(workspaceMembers.userId, userId),
+            eq(workspaceMembers.workspaceId, body.workspaceId)
+          )
+        );
       resultDetail = { workspaceId: body.workspaceId, newRole: body.newRole };
     }
 
@@ -394,7 +444,7 @@ router.post("/users/:userId/action", async (req, res) => {
       actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
       actionType: `user.${body.action}` as any,
-      targetType: "user",
+      targetType: 'user',
       targetId: userId,
       details: { ...resultDetail, reason: body.reason },
       ipAddress: getClientIp(req),
@@ -407,7 +457,7 @@ router.post("/users/:userId/action", async (req, res) => {
 });
 
 // Per-user feature override
-router.post("/users/:userId/entitlements", async (req, res) => {
+router.post('/users/:userId/entitlements', async (req, res) => {
   try {
     const { userId } = req.params;
     const schema = z.object({
@@ -429,15 +479,24 @@ router.post("/users/:userId/entitlements", async (req, res) => {
         setBy: req.platformAdmin!.email,
       })
       .onConflictDoUpdate({
-        target: [userEntitlements.userId, userEntitlements.workspaceId, userEntitlements.featureKey],
-        set: { enabled: body.enabled ?? undefined, limitValue: body.limitValue ?? undefined, setBy: req.platformAdmin!.email, setAt: new Date() },
+        target: [
+          userEntitlements.userId,
+          userEntitlements.workspaceId,
+          userEntitlements.featureKey,
+        ],
+        set: {
+          enabled: body.enabled ?? undefined,
+          limitValue: body.limitValue ?? undefined,
+          setBy: req.platformAdmin!.email,
+          setAt: new Date(),
+        },
       });
 
     await logAudit({
       actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
-      actionType: "user.feature_override",
-      targetType: "user",
+      actionType: 'user.feature_override',
+      targetType: 'user',
       targetId: userId,
       details: body,
       ipAddress: getClientIp(req),
@@ -453,7 +512,7 @@ router.post("/users/:userId/entitlements", async (req, res) => {
 // D) PLAN MANAGEMENT
 // ============================================================================
 
-router.get("/plans", async (_req, res) => {
+router.get('/plans', async (_req, res) => {
   try {
     const plans = await db.select().from(planDefinitions).orderBy(asc(planDefinitions.priceCents));
     res.json(plans);
@@ -462,7 +521,7 @@ router.get("/plans", async (_req, res) => {
   }
 });
 
-router.put("/plans/:planId", requireSuperAdmin, async (req, res) => {
+router.put('/plans/:planId', requireSuperAdmin, async (req, res) => {
   try {
     const { planId } = req.params;
     const schema = z.object({
@@ -478,15 +537,16 @@ router.put("/plans/:planId", requireSuperAdmin, async (req, res) => {
     });
     const body = schema.parse(req.body);
 
-    await db.update(planDefinitions)
+    await db
+      .update(planDefinitions)
       .set({ ...body, updatedAt: new Date() })
       .where(eq(planDefinitions.id, planId));
 
     await logAudit({
       actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
-      actionType: "plan.update",
-      targetType: "plan",
+      actionType: 'plan.update',
+      targetType: 'plan',
       targetId: planId,
       details: body,
       ipAddress: getClientIp(req),
@@ -499,24 +559,32 @@ router.put("/plans/:planId", requireSuperAdmin, async (req, res) => {
 });
 
 // Preview effective entitlements for a workspace/user
-router.get("/plans/preview/:workspaceId", async (req, res) => {
+router.get('/plans/preview/:workspaceId', async (req, res) => {
   try {
     const { workspaceId } = req.params;
     const userId = req.query.userId as string | undefined;
 
-    const workspace = await db.query.workspaces.findFirst({ where: eq(workspaces.id, workspaceId) });
-    if (!workspace) return res.status(404).json({ error: "Workspace not found" });
+    const workspace = await db.query.workspaces.findFirst({
+      where: eq(workspaces.id, workspaceId),
+    });
+    if (!workspace) return res.status(404).json({ error: 'Workspace not found' });
 
     const plan = await db.query.planDefinitions.findFirst({
       where: eq(planDefinitions.name, workspace.subscriptionTier),
     });
 
-    const wsOverrides = await db.select().from(workspaceFeatureOverrides)
+    const wsOverrides = await db
+      .select()
+      .from(workspaceFeatureOverrides)
       .where(eq(workspaceFeatureOverrides.workspaceId, workspaceId));
 
     const userOvrs = userId
-      ? await db.select().from(userEntitlements)
-        .where(and(eq(userEntitlements.userId, userId), eq(userEntitlements.workspaceId, workspaceId)))
+      ? await db
+          .select()
+          .from(userEntitlements)
+          .where(
+            and(eq(userEntitlements.userId, userId), eq(userEntitlements.workspaceId, workspaceId))
+          )
       : [];
 
     const globalFlags = await db.select().from(featureFlags);
@@ -535,7 +603,13 @@ router.get("/plans/preview/:workspaceId", async (req, res) => {
       }
     }
 
-    res.json({ workspace, plan, effectiveFeatures: effective, wsOverrides, userOverrides: userOvrs });
+    res.json({
+      workspace,
+      plan,
+      effectiveFeatures: effective,
+      wsOverrides,
+      userOverrides: userOvrs,
+    });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -545,26 +619,31 @@ router.get("/plans/preview/:workspaceId", async (req, res) => {
 // E) BILLING MANAGEMENT
 // ============================================================================
 
-router.get("/billing", async (req, res) => {
+router.get('/billing', async (req, res) => {
   try {
     const status = req.query.status as string | undefined;
     const conditions: any[] = [];
     if (status) conditions.push(eq(workspaces.subscriptionStatus, status));
     const where = conditions.length ? and(...conditions) : undefined;
 
-    const rows = await db.select({
-      id: workspaces.id,
-      name: workspaces.name,
-      type: workspaces.type,
-      subscriptionTier: workspaces.subscriptionTier,
-      subscriptionStatus: workspaces.subscriptionStatus,
-      stripeCustomerId: workspaces.stripeCustomerId,
-      stripeSubscriptionId: workspaces.stripeSubscriptionId,
-      billingCycleStart: workspaces.billingCycleStart,
-      aiCreditsBalance: workspaces.aiCreditsBalance,
-      aiCreditsLimit: workspaces.aiCreditsLimit,
-      updatedAt: workspaces.updatedAt,
-    }).from(workspaces).where(where).orderBy(desc(workspaces.updatedAt)).limit(200);
+    const rows = await db
+      .select({
+        id: workspaces.id,
+        name: workspaces.name,
+        type: workspaces.type,
+        subscriptionTier: workspaces.subscriptionTier,
+        subscriptionStatus: workspaces.subscriptionStatus,
+        stripeCustomerId: workspaces.stripeCustomerId,
+        stripeSubscriptionId: workspaces.stripeSubscriptionId,
+        billingCycleStart: workspaces.billingCycleStart,
+        aiCreditsBalance: workspaces.aiCreditsBalance,
+        aiCreditsLimit: workspaces.aiCreditsLimit,
+        updatedAt: workspaces.updatedAt,
+      })
+      .from(workspaces)
+      .where(where)
+      .orderBy(desc(workspaces.updatedAt))
+      .limit(200);
 
     res.json(rows);
   } catch (err: any) {
@@ -573,22 +652,23 @@ router.get("/billing", async (req, res) => {
 });
 
 // Grace-period override (extend entitlement without touching Stripe)
-router.post("/billing/:workspaceId/grace", async (req, res) => {
+router.post('/billing/:workspaceId/grace', async (req, res) => {
   try {
     const { workspaceId } = req.params;
     const schema = z.object({ days: z.number().int().min(1).max(90), reason: z.string() });
     const { days, reason } = schema.parse(req.body);
 
     const graceTo = new Date(Date.now() + days * 86400_000);
-    await db.update(workspaces)
-      .set({ subscriptionStatus: "active", updatedAt: new Date() })
+    await db
+      .update(workspaces)
+      .set({ subscriptionStatus: 'active', updatedAt: new Date() })
       .where(eq(workspaces.id, workspaceId));
 
     await logAudit({
       actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
-      actionType: "billing.grace_period",
-      targetType: "workspace",
+      actionType: 'billing.grace_period',
+      targetType: 'workspace',
       targetId: workspaceId,
       details: { days, graceTo: graceTo.toISOString(), reason },
       ipAddress: getClientIp(req),
@@ -604,7 +684,7 @@ router.post("/billing/:workspaceId/grace", async (req, res) => {
 // F) FEATURE FLAG MANAGEMENT
 // ============================================================================
 
-router.get("/features", async (_req, res) => {
+router.get('/features', async (_req, res) => {
   try {
     const flags = await db.select().from(featureFlags).orderBy(asc(featureFlags.key));
     res.json(flags);
@@ -614,20 +694,21 @@ router.get("/features", async (_req, res) => {
 });
 
 // Toggle global feature flag
-router.patch("/features/:key", requireSuperAdmin, async (req, res) => {
+router.patch('/features/:key', requireSuperAdmin, async (req, res) => {
   try {
     const { key } = req.params;
     const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
 
-    await db.update(featureFlags)
+    await db
+      .update(featureFlags)
       .set({ enabled, updatedBy: req.platformAdmin!.email, updatedAt: new Date() })
       .where(eq(featureFlags.key, key));
 
     await logAudit({
       actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
-      actionType: "feature.global_toggle",
-      targetType: "feature",
+      actionType: 'feature.global_toggle',
+      targetType: 'feature',
       targetId: key,
       details: { enabled },
       ipAddress: getClientIp(req),
@@ -640,7 +721,7 @@ router.patch("/features/:key", requireSuperAdmin, async (req, res) => {
 });
 
 // Toggle feature for a specific workspace
-router.post("/features/:key/workspace/:workspaceId", async (req, res) => {
+router.post('/features/:key/workspace/:workspaceId', async (req, res) => {
   try {
     const { key, workspaceId } = req.params;
     const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
@@ -656,8 +737,8 @@ router.post("/features/:key/workspace/:workspaceId", async (req, res) => {
     await logAudit({
       actorId: req.platformAdmin!.id,
       actorEmail: req.platformAdmin!.email,
-      actionType: "feature.workspace_toggle",
-      targetType: "workspace",
+      actionType: 'feature.workspace_toggle',
+      targetType: 'workspace',
       targetId: workspaceId,
       details: { featureKey: key, enabled },
       ipAddress: getClientIp(req),
@@ -673,7 +754,7 @@ router.post("/features/:key/workspace/:workspaceId", async (req, res) => {
 // G) AUDIT LOG SEARCH + EXPORT
 // ============================================================================
 
-router.get("/audit-log", async (req, res) => {
+router.get('/audit-log', async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page ?? 1));
     const limit = Math.min(200, Number(req.query.limit ?? 50));
@@ -686,7 +767,10 @@ router.get("/audit-log", async (req, res) => {
 
     const conditions: any[] = [];
     if (userId) conditions.push(eq(auditLog.actorId, userId));
-    if (workspaceId) conditions.push(and(eq(auditLog.targetType, "workspace"), eq(auditLog.targetId, workspaceId)));
+    if (workspaceId)
+      conditions.push(
+        and(eq(auditLog.targetType, 'workspace'), eq(auditLog.targetId, workspaceId))
+      );
     if (actionType) conditions.push(ilike(auditLog.actionType, `%${actionType}%`));
     if (from) conditions.push(gte(auditLog.createdAt, from));
     if (to) conditions.push(lte(auditLog.createdAt, to));
@@ -694,22 +778,44 @@ router.get("/audit-log", async (req, res) => {
     const where = conditions.length ? and(...conditions) : undefined;
 
     const [rows, totalRow] = await Promise.all([
-      db.select().from(auditLog).where(where).orderBy(desc(auditLog.createdAt)).limit(limit).offset(offset),
+      db
+        .select()
+        .from(auditLog)
+        .where(where)
+        .orderBy(desc(auditLog.createdAt))
+        .limit(limit)
+        .offset(offset),
       db.select({ c: count() }).from(auditLog).where(where),
     ]);
 
     // Export as CSV if requested
-    if (req.query.format === "csv") {
+    if (req.query.format === 'csv') {
       const csv = [
-        ["id", "actor_email", "action_type", "target_type", "target_id", "ip_address", "created_at", "details"].join(","),
-        ...rows.map(r => [
-          r.id, r.actorEmail, r.actionType, r.targetType ?? "", r.targetId ?? "",
-          r.ipAddress ?? "", r.createdAt?.toISOString() ?? "",
-          JSON.stringify(r.details ?? {}).replace(/,/g, ";"),
-        ].join(","))
-      ].join("\n");
-      res.setHeader("Content-Type", "text/csv");
-      res.setHeader("Content-Disposition", "attachment; filename=audit_log.csv");
+        [
+          'id',
+          'actor_email',
+          'action_type',
+          'target_type',
+          'target_id',
+          'ip_address',
+          'created_at',
+          'details',
+        ].join(','),
+        ...rows.map((r) =>
+          [
+            r.id,
+            r.actorEmail,
+            r.actionType,
+            r.targetType ?? '',
+            r.targetId ?? '',
+            r.ipAddress ?? '',
+            r.createdAt?.toISOString() ?? '',
+            JSON.stringify(r.details ?? {}).replace(/,/g, ';'),
+          ].join(',')
+        ),
+      ].join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=audit_log.csv');
       return res.send(csv);
     }
 
@@ -723,7 +829,7 @@ router.get("/audit-log", async (req, res) => {
 // H) USAGE + PROFITABILITY ANALYTICS
 // ============================================================================
 
-router.get("/analytics/usage", async (req, res) => {
+router.get('/analytics/usage', async (req, res) => {
   try {
     const days = Number(req.query.days ?? 30);
     const since = new Date(Date.now() - days * 86400_000);
@@ -760,24 +866,28 @@ router.get("/analytics/usage", async (req, res) => {
   }
 });
 
-router.get("/analytics/profitability", async (req, res) => {
+router.get('/analytics/profitability', async (req, res) => {
   try {
     const plans = await db.select().from(planDefinitions).where(eq(planDefinitions.isActive, true));
 
-    const report = plans.map(plan => {
+    const report = plans.map((plan) => {
       const monthly = plan.aiCreditsMonthly;
       const revenueCents = plan.priceCents;
 
-      const scenarios = (["light", "typical", "heavy"] as const).map(scenario => {
+      const scenarios = (['light', 'typical', 'heavy'] as const).map((scenario) => {
         const multiplier = CREDIT_COST_MODEL.scenarioMultiplier[scenario];
         const creditsUsed = Math.round(monthly * multiplier);
-        const costCents = Math.round(creditsUsed * CREDIT_COST_MODEL.costPerCreditCents[scenario] * 100);
+        const costCents = Math.round(
+          creditsUsed * CREDIT_COST_MODEL.costPerCreditCents[scenario] * 100
+        );
         const grossMarginCents = revenueCents - costCents;
-        const grossMarginPct = revenueCents > 0 ? Math.round((grossMarginCents / revenueCents) * 100) : 0;
+        const grossMarginPct =
+          revenueCents > 0 ? Math.round((grossMarginCents / revenueCents) * 100) : 0;
         // Break-even: how many credits can we afford to include?
-        const breakEvenCredits = revenueCents > 0
-          ? Math.floor(revenueCents / (CREDIT_COST_MODEL.costPerCreditCents[scenario] * 100))
-          : 0;
+        const breakEvenCredits =
+          revenueCents > 0
+            ? Math.floor(revenueCents / (CREDIT_COST_MODEL.costPerCreditCents[scenario] * 100))
+            : 0;
         return {
           scenario,
           creditsUsed,
@@ -807,7 +917,7 @@ router.get("/analytics/profitability", async (req, res) => {
 // I) ADMIN SELF-INFO (used by client to check platform admin status)
 // ============================================================================
 
-router.get("/me", (req, res) => {
+router.get('/me', (req, res) => {
   res.json({
     id: req.platformAdmin!.id,
     email: req.platformAdmin!.email,

@@ -1,22 +1,52 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/auth";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Link2, Link2Off, RefreshCw, CheckCircle, AlertCircle, Clock, User, Shield, CreditCard, Key, Loader2, Trash2, RotateCcw, Database, Smartphone, Monitor, Laptop, Globe, LogOut, ShieldAlert, ShieldCheck, MapPin } from "lucide-react";
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/auth';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  Link2,
+  Link2Off,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  User,
+  Shield,
+  CreditCard,
+  Key,
+  Loader2,
+  Trash2,
+  RotateCcw,
+  Database,
+  Smartphone,
+  Monitor,
+  Laptop,
+  Globe,
+  LogOut,
+  ShieldAlert,
+  ShieldCheck,
+  MapPin,
+} from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,10 +57,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { SiQuickbooks } from "react-icons/si";
-import { Switch } from "@/components/ui/switch";
-import { Flame } from "lucide-react";
+} from '@/components/ui/alert-dialog';
+import { SiQuickbooks } from 'react-icons/si';
+import { Switch } from '@/components/ui/switch';
+import { Flame } from 'lucide-react';
 
 interface QuickBooksStatus {
   connected: boolean;
@@ -66,18 +96,20 @@ interface UserProfile {
 }
 
 const profileFormSchema = z.object({
-  fullName: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
+  fullName: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
 });
 
-const passwordFormSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(1, "Please confirm your password"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const passwordFormSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
@@ -90,8 +122,8 @@ function QuickBooksIntegration() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('qb_success') === 'true') {
       toast({
-        title: "QuickBooks Connected",
-        description: "Your QuickBooks account has been successfully linked.",
+        title: 'QuickBooks Connected',
+        description: 'Your QuickBooks account has been successfully linked.',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/quickbooks/status'] });
       window.history.replaceState({}, '', '/settings');
@@ -99,9 +131,9 @@ function QuickBooksIntegration() {
     if (params.get('qb_error')) {
       const error = params.get('qb_error');
       toast({
-        title: "QuickBooks Connection Failed",
+        title: 'QuickBooks Connection Failed',
         description: getErrorMessage(error),
-        variant: "destructive",
+        variant: 'destructive',
       });
       window.history.replaceState({}, '', '/settings');
     }
@@ -116,15 +148,15 @@ function QuickBooksIntegration() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/quickbooks/status'] });
       toast({
-        title: "Disconnected",
-        description: "Your QuickBooks account has been disconnected.",
+        title: 'Disconnected',
+        description: 'Your QuickBooks account has been disconnected.',
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to disconnect QuickBooks. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to disconnect QuickBooks. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -134,27 +166,33 @@ function QuickBooksIntegration() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/quickbooks/status'] });
       toast({
-        title: "Token Refreshed",
-        description: "Your QuickBooks connection has been refreshed.",
+        title: 'Token Refreshed',
+        description: 'Your QuickBooks connection has been refreshed.',
       });
     },
     onError: () => {
       toast({
-        title: "Refresh Failed",
-        description: "Failed to refresh token. You may need to reconnect.",
-        variant: "destructive",
+        title: 'Refresh Failed',
+        description: 'Failed to refresh token. You may need to reconnect.',
+        variant: 'destructive',
       });
     },
   });
 
   function getErrorMessage(error: string | null): string {
     switch (error) {
-      case 'not_authenticated': return 'Please log in to connect QuickBooks.';
-      case 'oauth_denied': return 'You denied access to QuickBooks.';
-      case 'state_mismatch': return 'Security validation failed. Please try again.';
-      case 'token_exchange_failed': return 'Failed to complete authentication.';
-      case 'not_configured': return 'QuickBooks integration is not configured.';
-      default: return 'An unexpected error occurred.';
+      case 'not_authenticated':
+        return 'Please log in to connect QuickBooks.';
+      case 'oauth_denied':
+        return 'You denied access to QuickBooks.';
+      case 'state_mismatch':
+        return 'Security validation failed. Please try again.';
+      case 'token_exchange_failed':
+        return 'Failed to complete authentication.';
+      case 'not_configured':
+        return 'QuickBooks integration is not configured.';
+      default:
+        return 'An unexpected error occurred.';
     }
   }
 
@@ -166,16 +204,16 @@ function QuickBooksIntegration() {
         window.location.href = data.authUrl;
       } else {
         toast({
-          title: "Error",
-          description: data.message || "Failed to get authorization URL",
-          variant: "destructive",
+          title: 'Error',
+          description: data.message || 'Failed to get authorization URL',
+          variant: 'destructive',
         });
       }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to connect to QuickBooks",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to connect to QuickBooks',
+        variant: 'destructive',
       });
     }
   };
@@ -233,7 +271,9 @@ function QuickBooksIntegration() {
               {status.connectedAt && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Connected</span>
-                  <span className="text-sm">{new Date(status.connectedAt).toLocaleDateString()}</span>
+                  <span className="text-sm">
+                    {new Date(status.connectedAt).toLocaleDateString()}
+                  </span>
                 </div>
               )}
               {status.lastSyncAt && (
@@ -251,17 +291,19 @@ function QuickBooksIntegration() {
               </div>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => refreshMutation.mutate()}
                 disabled={refreshMutation.isPending}
                 data-testid="button-qb-refresh"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${refreshMutation.isPending ? 'animate-spin' : ''}`}
+                />
                 Refresh Token
               </Button>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={() => disconnectMutation.mutate()}
                 disabled={disconnectMutation.isPending}
                 data-testid="button-qb-disconnect"
@@ -274,8 +316,8 @@ function QuickBooksIntegration() {
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              Connect your QuickBooks account to automatically import transactions, 
-              invoices, and financial reports into your case documentation.
+              Connect your QuickBooks account to automatically import transactions, invoices, and
+              financial reports into your case documentation.
             </p>
             <ul className="text-sm text-muted-foreground space-y-1">
               <li className="flex items-center gap-2">
@@ -303,8 +345,8 @@ function QuickBooksIntegration() {
 }
 
 const fireflyFormSchema = z.object({
-  instanceUrl: z.string().url("Must be a valid URL"),
-  accessToken: z.string().min(10, "Access token is required"),
+  instanceUrl: z.string().url('Must be a valid URL'),
+  accessToken: z.string().min(10, 'Access token is required'),
   autoSyncEnabled: z.boolean().optional().default(false),
 });
 
@@ -321,8 +363,8 @@ function FireflyIntegration() {
   const form = useForm<FireflyFormValues>({
     resolver: zodResolver(fireflyFormSchema),
     defaultValues: {
-      instanceUrl: "",
-      accessToken: "",
+      instanceUrl: '',
+      accessToken: '',
       autoSyncEnabled: false,
     },
   });
@@ -337,15 +379,16 @@ function FireflyIntegration() {
       setShowForm(false);
       form.reset();
       toast({
-        title: "Firefly III Connected",
-        description: "Your Firefly III instance has been successfully linked.",
+        title: 'Firefly III Connected',
+        description: 'Your Firefly III instance has been successfully linked.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Connection Failed",
-        description: error?.message || "Failed to connect to Firefly III. Please check your settings.",
-        variant: "destructive",
+        title: 'Connection Failed',
+        description:
+          error?.message || 'Failed to connect to Firefly III. Please check your settings.',
+        variant: 'destructive',
       });
     },
   });
@@ -355,15 +398,15 @@ function FireflyIntegration() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/firefly/status'] });
       toast({
-        title: "Disconnected",
-        description: "Your Firefly III connection has been removed.",
+        title: 'Disconnected',
+        description: 'Your Firefly III connection has been removed.',
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to disconnect. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to disconnect. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -374,15 +417,15 @@ function FireflyIntegration() {
       const data = await res.json();
       queryClient.invalidateQueries({ queryKey: ['/api/firefly/status'] });
       toast({
-        title: "Sync Complete",
-        description: data.message || "All records have been synced to Firefly III.",
+        title: 'Sync Complete',
+        description: data.message || 'All records have been synced to Firefly III.',
       });
     },
     onError: () => {
       toast({
-        title: "Sync Failed",
-        description: "Failed to sync records. Please try again.",
-        variant: "destructive",
+        title: 'Sync Failed',
+        description: 'Failed to sync records. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -438,7 +481,9 @@ function FireflyIntegration() {
               {status.instanceUrl && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Instance</span>
-                  <span className="text-sm font-medium truncate max-w-[200px]">{status.instanceUrl}</span>
+                  <span className="text-sm font-medium truncate max-w-[200px]">
+                    {status.instanceUrl}
+                  </span>
                 </div>
               )}
               {status.instanceVersion && (
@@ -455,23 +500,25 @@ function FireflyIntegration() {
               )}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Sync Status</span>
-                <Badge variant={status.lastSyncStatus === "success" ? "secondary" : "outline"}>
-                  {status.lastSyncStatus || "Never synced"}
+                <Badge variant={status.lastSyncStatus === 'success' ? 'secondary' : 'outline'}>
+                  {status.lastSyncStatus || 'Never synced'}
                 </Badge>
               </div>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 onClick={() => syncAllMutation.mutate()}
                 disabled={syncAllMutation.isPending}
                 data-testid="button-firefly-sync"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${syncAllMutation.isPending ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${syncAllMutation.isPending ? 'animate-spin' : ''}`}
+                />
                 Sync All Records
               </Button>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={() => disconnectMutation.mutate()}
                 disabled={disconnectMutation.isPending}
                 data-testid="button-firefly-disconnect"
@@ -491,8 +538,8 @@ function FireflyIntegration() {
                   <FormItem>
                     <FormLabel>Firefly III URL</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         placeholder="https://firefly.example.com"
                         data-testid="input-firefly-url"
                       />
@@ -508,8 +555,8 @@ function FireflyIntegration() {
                   <FormItem>
                     <FormLabel>Personal Access Token</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         type="password"
                         placeholder="Enter your Personal Access Token"
                         data-testid="input-firefly-token"
@@ -517,23 +564,24 @@ function FireflyIntegration() {
                     </FormControl>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground">
-                      Generate a token in Firefly III: Profile {'>'} OAuth {'>'} Personal Access Tokens
+                      Generate a token in Firefly III: Profile {'>'} OAuth {'>'} Personal Access
+                      Tokens
                     </p>
                   </FormItem>
                 )}
               />
               <div className="flex gap-2">
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={connectMutation.isPending}
                   data-testid="button-firefly-connect-submit"
                 >
                   {connectMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Connect
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => setShowForm(false)}
                   data-testid="button-firefly-cancel"
                 >
@@ -545,8 +593,8 @@ function FireflyIntegration() {
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              Connect to your self-hosted Firefly III instance to automatically sync 
-              expenses and income from your documents.
+              Connect to your self-hosted Firefly III instance to automatically sync expenses and
+              income from your documents.
             </p>
             <ul className="text-sm text-muted-foreground space-y-1">
               <li className="flex items-center gap-2">
@@ -576,7 +624,7 @@ function FireflyIntegration() {
 function ProfileSettings() {
   const { toast } = useToast();
   const { user: authUser, logout } = useAuth();
-  
+
   const { data: profileData, isLoading } = useQuery<{ user: UserProfile }>({
     queryKey: ['/api/auth/me'],
   });
@@ -586,8 +634,8 @@ function ProfileSettings() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      fullName: "",
-      email: "",
+      fullName: '',
+      email: '',
     },
   });
 
@@ -607,17 +655,17 @@ function ProfileSettings() {
     },
     onSuccess: (data: { user: UserProfile }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem('user', JSON.stringify(data.user));
       toast({
-        title: "Profile Updated",
-        description: "Your profile has been updated successfully.",
+        title: 'Profile Updated',
+        description: 'Your profile has been updated successfully.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Update Failed",
-        description: error?.message || "Failed to update profile. Please try again.",
-        variant: "destructive",
+        title: 'Update Failed',
+        description: error?.message || 'Failed to update profile. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -646,11 +694,12 @@ function ProfileSettings() {
     );
   }
 
-  const initials = profile?.fullName
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase() || "?";
+  const initials =
+    profile?.fullName
+      ?.split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase() || '?';
 
   return (
     <Card data-testid="card-profile-settings">
@@ -671,7 +720,7 @@ function ProfileSettings() {
             <p className="font-medium">{profile?.fullName}</p>
             <p className="text-sm text-muted-foreground">{profile?.email}</p>
             <Badge variant="secondary" className="mt-1">
-              {profile?.role === "client" ? "Client" : profile?.role}
+              {profile?.role === 'client' ? 'Client' : profile?.role}
             </Badge>
           </div>
         </div>
@@ -685,8 +734,8 @@ function ProfileSettings() {
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
+                    <Input
+                      {...field}
                       placeholder="Enter your full name"
                       data-testid="input-fullname"
                     />
@@ -702,8 +751,8 @@ function ProfileSettings() {
                 <FormItem>
                   <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
+                    <Input
+                      {...field}
                       type="email"
                       placeholder="Enter your email"
                       data-testid="input-email"
@@ -713,8 +762,8 @@ function ProfileSettings() {
                 </FormItem>
               )}
             />
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={updateProfileMutation.isPending}
               data-testid="button-save-profile"
             >
@@ -730,31 +779,31 @@ function ProfileSettings() {
 
 function PasswordSettings() {
   const { toast } = useToast();
-  
+
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema),
     defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
     },
   });
 
   const changePasswordMutation = useMutation({
-    mutationFn: (data: { currentPassword: string; newPassword: string }) => 
+    mutationFn: (data: { currentPassword: string; newPassword: string }) =>
       apiRequest('POST', '/api/auth/change-password', data),
     onSuccess: () => {
       form.reset();
       toast({
-        title: "Password Changed",
-        description: "Your password has been changed successfully.",
+        title: 'Password Changed',
+        description: 'Your password has been changed successfully.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Password Change Failed",
-        description: error?.message || "Failed to change password. Please try again.",
-        variant: "destructive",
+        title: 'Password Change Failed',
+        description: error?.message || 'Failed to change password. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -785,8 +834,8 @@ function PasswordSettings() {
                 <FormItem>
                   <FormLabel>Current Password</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
+                    <Input
+                      {...field}
                       type="password"
                       placeholder="Enter current password"
                       data-testid="input-current-password"
@@ -803,8 +852,8 @@ function PasswordSettings() {
                 <FormItem>
                   <FormLabel>New Password</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
+                    <Input
+                      {...field}
                       type="password"
                       placeholder="Enter new password"
                       data-testid="input-new-password"
@@ -821,8 +870,8 @@ function PasswordSettings() {
                 <FormItem>
                   <FormLabel>Confirm New Password</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
+                    <Input
+                      {...field}
                       type="password"
                       placeholder="Confirm new password"
                       data-testid="input-confirm-password"
@@ -832,12 +881,14 @@ function PasswordSettings() {
                 </FormItem>
               )}
             />
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={changePasswordMutation.isPending}
               data-testid="button-change-password"
             >
-              {changePasswordMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {changePasswordMutation.isPending && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
               Change Password
             </Button>
           </form>
@@ -855,19 +906,19 @@ function SubscriptionSettings() {
   const profile = profileData?.user;
 
   const tierNames: Record<string, string> = {
-    free: "Free",
-    basic: "Basic",
-    pro: "Pro",
-    team: "Team",
-    enterprise: "Enterprise",
+    free: 'Free',
+    basic: 'Basic',
+    pro: 'Pro',
+    team: 'Team',
+    enterprise: 'Enterprise',
   };
 
   const tierColors: Record<string, string> = {
-    free: "secondary",
-    basic: "default",
-    pro: "default",
-    team: "default",
-    enterprise: "default",
+    free: 'secondary',
+    basic: 'default',
+    pro: 'default',
+    team: 'default',
+    enterprise: 'default',
   };
 
   if (isLoading) {
@@ -905,11 +956,11 @@ function SubscriptionSettings() {
             <p className="font-medium">Current Plan</p>
             <p className="text-sm text-muted-foreground">Your active subscription</p>
           </div>
-          <Badge 
-            variant={tierColors[profile?.subscriptionTier || "free"] as any}
+          <Badge
+            variant={tierColors[profile?.subscriptionTier || 'free'] as any}
             className="text-sm"
           >
-            {tierNames[profile?.subscriptionTier || "free"] || profile?.subscriptionTier}
+            {tierNames[profile?.subscriptionTier || 'free'] || profile?.subscriptionTier}
           </Badge>
         </div>
 
@@ -943,11 +994,13 @@ function SubscriptionSettings() {
           <div>
             <p className="font-medium">Subscription Status</p>
             <p className="text-sm text-muted-foreground">
-              {profile?.subscriptionStatus === "active" ? "Your subscription is active" : "Subscription inactive"}
+              {profile?.subscriptionStatus === 'active'
+                ? 'Your subscription is active'
+                : 'Subscription inactive'}
             </p>
           </div>
-          <Badge variant={profile?.subscriptionStatus === "active" ? "default" : "secondary"}>
-            {profile?.subscriptionStatus === "active" ? (
+          <Badge variant={profile?.subscriptionStatus === 'active' ? 'default' : 'secondary'}>
+            {profile?.subscriptionStatus === 'active' ? (
               <span className="flex items-center gap-1">
                 <CheckCircle className="h-3 w-3" />
                 Active
@@ -955,7 +1008,7 @@ function SubscriptionSettings() {
             ) : (
               <span className="flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
-                {profile?.subscriptionStatus || "Inactive"}
+                {profile?.subscriptionStatus || 'Inactive'}
               </span>
             )}
           </Badge>
@@ -989,8 +1042,8 @@ function DemoDataReset() {
     onSuccess: () => {
       queryClient.invalidateQueries();
       toast({
-        title: "Sample Data Added",
-        description: "Your sandbox now has sample financial data. Refreshing...",
+        title: 'Sample Data Added',
+        description: 'Your sandbox now has sample financial data. Refreshing...',
       });
       setIsSeeding(false);
       setTimeout(() => {
@@ -999,9 +1052,9 @@ function DemoDataReset() {
     },
     onError: () => {
       toast({
-        title: "Seed Failed",
-        description: "Failed to add sample data. Please try again.",
-        variant: "destructive",
+        title: 'Seed Failed',
+        description: 'Failed to add sample data. Please try again.',
+        variant: 'destructive',
       });
       setIsSeeding(false);
     },
@@ -1012,8 +1065,9 @@ function DemoDataReset() {
     onSuccess: () => {
       queryClient.invalidateQueries();
       toast({
-        title: "Demo Data Reset",
-        description: "All demo data has been cleared and reset with fresh sample data. Refreshing...",
+        title: 'Demo Data Reset',
+        description:
+          'All demo data has been cleared and reset with fresh sample data. Refreshing...',
       });
       setIsResetting(false);
       setTimeout(() => {
@@ -1022,30 +1076,31 @@ function DemoDataReset() {
     },
     onError: () => {
       toast({
-        title: "Reset Failed",
-        description: "Failed to reset demo data. Please try again.",
-        variant: "destructive",
+        title: 'Reset Failed',
+        description: 'Failed to reset demo data. Please try again.',
+        variant: 'destructive',
       });
       setIsResetting(false);
     },
   });
 
   const eraseMutation = useMutation({
-    mutationFn: () => fetch('/api/demo/erase', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Environment': environment || 'demo',
-      },
-    }).then(res => {
-      if (!res.ok) throw new Error('Erase failed');
-      return res.json();
-    }),
+    mutationFn: () =>
+      fetch('/api/demo/erase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Environment': environment || 'demo',
+        },
+      }).then((res) => {
+        if (!res.ok) throw new Error('Erase failed');
+        return res.json();
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries();
       toast({
-        title: "Data Erased",
-        description: "All your data has been completely erased. Refreshing...",
+        title: 'Data Erased',
+        description: 'All your data has been completely erased. Refreshing...',
       });
       setIsErasing(false);
       setTimeout(() => {
@@ -1054,17 +1109,17 @@ function DemoDataReset() {
     },
     onError: () => {
       toast({
-        title: "Erase Failed",
-        description: "Failed to erase data. Please try again.",
-        variant: "destructive",
+        title: 'Erase Failed',
+        description: 'Failed to erase data. Please try again.',
+        variant: 'destructive',
       });
       setIsErasing(false);
     },
   });
 
   // Check if user is in a demo or test environment
-  const isTestUser = environment?.startsWith("demo-test");
-  const isDemoOrTest = environment === "demo" || isTestUser;
+  const isTestUser = environment?.startsWith('demo-test');
+  const isDemoOrTest = environment === 'demo' || isTestUser;
 
   if (!isDemoOrTest) {
     return null;
@@ -1075,12 +1130,12 @@ function DemoDataReset() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <RotateCcw className="h-5 w-5" />
-          {isTestUser ? "Test Environment" : "Demo Data"}
+          {isTestUser ? 'Test Environment' : 'Demo Data'}
         </CardTitle>
         <CardDescription>
-          {isTestUser 
+          {isTestUser
             ? `You're in sandbox: ${environment}. Your data won't be auto-reset.`
-            : "Reset or erase demo data"}
+            : 'Reset or erase demo data'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1101,7 +1156,8 @@ function DemoDataReset() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Reset Demo Data?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will delete all your current demo data and regenerate fresh sample data. This action cannot be undone.
+                    This will delete all your current demo data and regenerate fresh sample data.
+                    This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -1119,7 +1175,7 @@ function DemoDataReset() {
                         Resetting...
                       </>
                     ) : (
-                      "Reset with Sample Data"
+                      'Reset with Sample Data'
                     )}
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -1134,9 +1190,9 @@ function DemoDataReset() {
             <p className="text-sm text-muted-foreground">
               Add sample financial records to explore the app's features.
             </p>
-            <Button 
-              variant="outline" 
-              className="w-full" 
+            <Button
+              variant="outline"
+              className="w-full"
               onClick={() => {
                 setIsSeeding(true);
                 seedMutation.mutate();
@@ -1159,12 +1215,12 @@ function DemoDataReset() {
           </div>
         )}
 
-        <div className={!isTestUser ? "border-t pt-4 space-y-2" : "border-t pt-4 space-y-2"}>
+        <div className={!isTestUser ? 'border-t pt-4 space-y-2' : 'border-t pt-4 space-y-2'}>
           <p className="text-sm font-medium">Erase All Data</p>
           <p className="text-sm text-muted-foreground">
-            {isTestUser 
-              ? "Clears all your test data. Start fresh with an empty sandbox."
-              : "Completely clears all demo data without regenerating sample data. Start from scratch."}
+            {isTestUser
+              ? 'Clears all your test data. Start fresh with an empty sandbox.'
+              : 'Completely clears all demo data without regenerating sample data. Start from scratch.'}
           </p>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -1177,7 +1233,9 @@ function DemoDataReset() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Erase All Demo Data?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete ALL your demo data including financial records, documents, violations, journals, conversations, and recommendations. No sample data will be regenerated. This action cannot be undone.
+                  This will permanently delete ALL your demo data including financial records,
+                  documents, violations, journals, conversations, and recommendations. No sample
+                  data will be regenerated. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -1196,7 +1254,7 @@ function DemoDataReset() {
                       Erasing...
                     </>
                   ) : (
-                    "Yes, Erase Everything"
+                    'Yes, Erase Everything'
                   )}
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -1243,35 +1301,36 @@ interface SecurityEvent {
 function SecuritySettings() {
   const { toast } = useToast();
   const [revokingSession, setRevokingSession] = useState<string | null>(null);
-  
+
   const { data: devicesData, isLoading: devicesLoading } = useQuery<{ devices: UserDevice[] }>({
     queryKey: ['/api/security/devices'],
   });
-  
+
   const { data: sessionsData, isLoading: sessionsLoading } = useQuery<{ sessions: AuthSession[] }>({
     queryKey: ['/api/security/sessions'],
   });
-  
+
   const { data: eventsData, isLoading: eventsLoading } = useQuery<{ events: SecurityEvent[] }>({
     queryKey: ['/api/security/events'],
   });
 
   const revokeSessionMutation = useMutation({
-    mutationFn: (sessionId: string) => apiRequest('POST', `/api/security/sessions/${sessionId}/revoke`),
+    mutationFn: (sessionId: string) =>
+      apiRequest('POST', `/api/security/sessions/${sessionId}/revoke`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/security/sessions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/security/events'] });
       toast({
-        title: "Session Revoked",
-        description: "The session has been terminated successfully.",
+        title: 'Session Revoked',
+        description: 'The session has been terminated successfully.',
       });
       setRevokingSession(null);
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to revoke session. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to revoke session. Please try again.',
+        variant: 'destructive',
       });
       setRevokingSession(null);
     },
@@ -1283,15 +1342,15 @@ function SecuritySettings() {
       queryClient.invalidateQueries({ queryKey: ['/api/security/sessions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/security/events'] });
       toast({
-        title: "All Sessions Revoked",
-        description: "All sessions except the current one have been terminated.",
+        title: 'All Sessions Revoked',
+        description: 'All sessions except the current one have been terminated.',
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to revoke sessions. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to revoke sessions. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -1303,15 +1362,15 @@ function SecuritySettings() {
       queryClient.invalidateQueries({ queryKey: ['/api/security/sessions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/security/events'] });
       toast({
-        title: "Device Blocked",
-        description: "This device has been blocked and all its sessions terminated.",
+        title: 'Device Blocked',
+        description: 'This device has been blocked and all its sessions terminated.',
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to block device. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to block device. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -1343,7 +1402,7 @@ function SecuritySettings() {
   };
 
   const formatEventType = (eventType: string) => {
-    return eventType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return eventType.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
   const formatTimeAgo = (date: string) => {
@@ -1375,9 +1434,7 @@ function SecuritySettings() {
                 <Shield className="h-5 w-5" />
                 Active Sessions
               </CardTitle>
-              <CardDescription>
-                Manage your logged-in sessions across devices
-              </CardDescription>
+              <CardDescription>Manage your logged-in sessions across devices</CardDescription>
             </div>
             {sessions.length > 1 && (
               <AlertDialog>
@@ -1391,7 +1448,8 @@ function SecuritySettings() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Sign out of all devices?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will terminate all sessions except your current one. You'll need to sign in again on other devices.
+                      This will terminate all sessions except your current one. You'll need to sign
+                      in again on other devices.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -1406,7 +1464,7 @@ function SecuritySettings() {
                           Signing Out...
                         </>
                       ) : (
-                        "Sign Out Everywhere"
+                        'Sign Out Everywhere'
                       )}
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -1426,8 +1484,8 @@ function SecuritySettings() {
           ) : (
             <div className="space-y-3">
               {sessions.map((session) => (
-                <div 
-                  key={session.id} 
+                <div
+                  key={session.id}
                   className={`flex items-center justify-between p-3 rounded-lg border ${session.isCurrent ? 'bg-primary/5 border-primary/20' : 'bg-muted/50'}`}
                   data-testid={`session-${session.id}`}
                 >
@@ -1439,11 +1497,14 @@ function SecuritySettings() {
                           {session.ipAddress || 'Unknown location'}
                         </p>
                         {session.isCurrent && (
-                          <Badge variant="default" className="text-xs">Current</Badge>
+                          <Badge variant="default" className="text-xs">
+                            Current
+                          </Badge>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Last active: {session.lastActiveAt ? formatTimeAgo(session.lastActiveAt) : 'Unknown'}
+                        Last active:{' '}
+                        {session.lastActiveAt ? formatTimeAgo(session.lastActiveAt) : 'Unknown'}
                       </p>
                     </div>
                   </div>
@@ -1478,9 +1539,7 @@ function SecuritySettings() {
             <Smartphone className="h-5 w-5" />
             Your Devices
           </CardTitle>
-          <CardDescription>
-            Devices that have logged into your account
-          </CardDescription>
+          <CardDescription>Devices that have logged into your account</CardDescription>
         </CardHeader>
         <CardContent>
           {devicesLoading ? (
@@ -1493,8 +1552,8 @@ function SecuritySettings() {
           ) : (
             <div className="space-y-3">
               {devices.map((device) => (
-                <div 
-                  key={device.id} 
+                <div
+                  key={device.id}
                   className={`flex items-center justify-between p-3 rounded-lg border ${device.isBlocked ? 'bg-destructive/5 border-destructive/20' : 'bg-muted/50'}`}
                   data-testid={`device-${device.id}`}
                 >
@@ -1504,15 +1563,21 @@ function SecuritySettings() {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium">{device.deviceName}</p>
                         {device.isTrusted && (
-                          <Badge variant="secondary" className="text-xs">Trusted</Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            Trusted
+                          </Badge>
                         )}
                         {device.isBlocked && (
-                          <Badge variant="destructive" className="text-xs">Blocked</Badge>
+                          <Badge variant="destructive" className="text-xs">
+                            Blocked
+                          </Badge>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {[device.browser, device.os].filter(Boolean).join(' on ') || 'Unknown browser/OS'}
-                        {device.lastActiveAt && ` • Last seen: ${formatTimeAgo(device.lastActiveAt)}`}
+                        {[device.browser, device.os].filter(Boolean).join(' on ') ||
+                          'Unknown browser/OS'}
+                        {device.lastActiveAt &&
+                          ` • Last seen: ${formatTimeAgo(device.lastActiveAt)}`}
                       </p>
                     </div>
                   </div>
@@ -1531,7 +1596,8 @@ function SecuritySettings() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Block this device?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will block "{device.deviceName}" and terminate all sessions from this device. This cannot be undone.
+                            This will block "{device.deviceName}" and terminate all sessions from
+                            this device. This cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -1560,9 +1626,7 @@ function SecuritySettings() {
             <ShieldCheck className="h-5 w-5" />
             Recent Security Activity
           </CardTitle>
-          <CardDescription>
-            Review recent login attempts and security events
-          </CardDescription>
+          <CardDescription>Review recent login attempts and security events</CardDescription>
         </CardHeader>
         <CardContent>
           {eventsLoading ? (
@@ -1576,8 +1640,8 @@ function SecuritySettings() {
           ) : (
             <div className="space-y-2">
               {events.slice(0, 10).map((event) => (
-                <div 
-                  key={event.id} 
+                <div
+                  key={event.id}
                   className="flex items-center justify-between py-2 border-b last:border-0"
                   data-testid={`event-${event.id}`}
                 >
@@ -1596,7 +1660,7 @@ function SecuritySettings() {
                       </div>
                     </div>
                   </div>
-                  <Badge 
+                  <Badge
                     variant={event.eventStatus === 'success' ? 'secondary' : 'destructive'}
                     className="text-xs"
                   >
@@ -1622,10 +1686,18 @@ export default function Settings() {
 
       <Tabs defaultValue="integrations" className="w-full">
         <TabsList>
-          <TabsTrigger value="integrations" data-testid="tab-integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="account" data-testid="tab-account">Account</TabsTrigger>
-          <TabsTrigger value="security" data-testid="tab-security">Security</TabsTrigger>
-          <TabsTrigger value="data" data-testid="tab-data">Data</TabsTrigger>
+          <TabsTrigger value="integrations" data-testid="tab-integrations">
+            Integrations
+          </TabsTrigger>
+          <TabsTrigger value="account" data-testid="tab-account">
+            Account
+          </TabsTrigger>
+          <TabsTrigger value="security" data-testid="tab-security">
+            Security
+          </TabsTrigger>
+          <TabsTrigger value="data" data-testid="tab-data">
+            Data
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="integrations" className="mt-6 space-y-6">

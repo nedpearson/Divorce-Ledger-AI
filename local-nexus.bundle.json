@@ -29,18 +29,66 @@
     "schema_overview": "Tables: users, cases, transactions, assets, debts, income, violations, documents, alerts, audit_logs, subscriptions. Managed by Drizzle ORM."
   },
   "keys": [
-    { "key_name": "Database URL", "env_var": "DATABASE_URL", "description": "Full PostgreSQL connection string (overrides individual PG* vars)" },
-    { "key_name": "Session Secret", "env_var": "SESSION_SECRET", "description": "Express session encryption key (required)" },
-    { "key_name": "Admin Secret", "env_var": "ADMIN_SECRET", "description": "Secret for admin API operations" },
-    { "key_name": "OpenAI API Key", "env_var": "OPENAI_API_KEY", "description": "OpenAI for AI document analysis" },
-    { "key_name": "Google GenAI Key", "env_var": "GOOGLE_GENAI_API_KEY", "description": "Google Gemini for AI extraction" },
-    { "key_name": "Stripe Secret Key", "env_var": "STRIPE_SECRET_KEY", "description": "Stripe for subscription billing" },
-    { "key_name": "Stripe Publishable Key", "env_var": "VITE_STRIPE_PUBLIC_KEY", "description": "Stripe publishable key (frontend)" },
-    { "key_name": "Twilio Account SID", "env_var": "TWILIO_ACCOUNT_SID", "description": "Twilio for SMS / 2FA" },
-    { "key_name": "Twilio Auth Token", "env_var": "TWILIO_AUTH_TOKEN", "description": "Twilio auth token" },
-    { "key_name": "SendGrid API Key", "env_var": "SENDGRID_API_KEY", "description": "SendGrid for transactional email" },
-    { "key_name": "Appwrite Endpoint", "env_var": "APPWRITE_ENDPOINT", "description": "Appwrite document storage endpoint" },
-    { "key_name": "Appwrite API Key", "env_var": "APPWRITE_API_KEY", "description": "Appwrite server-side API key" }
+    {
+      "key_name": "Database URL",
+      "env_var": "DATABASE_URL",
+      "description": "Full PostgreSQL connection string (overrides individual PG* vars)"
+    },
+    {
+      "key_name": "Session Secret",
+      "env_var": "SESSION_SECRET",
+      "description": "Express session encryption key (required)"
+    },
+    {
+      "key_name": "Admin Secret",
+      "env_var": "ADMIN_SECRET",
+      "description": "Secret for admin API operations"
+    },
+    {
+      "key_name": "OpenAI API Key",
+      "env_var": "OPENAI_API_KEY",
+      "description": "OpenAI for AI document analysis"
+    },
+    {
+      "key_name": "Google GenAI Key",
+      "env_var": "GOOGLE_GENAI_API_KEY",
+      "description": "Google Gemini for AI extraction"
+    },
+    {
+      "key_name": "Stripe Secret Key",
+      "env_var": "STRIPE_SECRET_KEY",
+      "description": "Stripe for subscription billing"
+    },
+    {
+      "key_name": "Stripe Publishable Key",
+      "env_var": "VITE_STRIPE_PUBLIC_KEY",
+      "description": "Stripe publishable key (frontend)"
+    },
+    {
+      "key_name": "Twilio Account SID",
+      "env_var": "TWILIO_ACCOUNT_SID",
+      "description": "Twilio for SMS / 2FA"
+    },
+    {
+      "key_name": "Twilio Auth Token",
+      "env_var": "TWILIO_AUTH_TOKEN",
+      "description": "Twilio auth token"
+    },
+    {
+      "key_name": "SendGrid API Key",
+      "env_var": "SENDGRID_API_KEY",
+      "description": "SendGrid for transactional email"
+    },
+    {
+      "key_name": "Appwrite Endpoint",
+      "env_var": "APPWRITE_ENDPOINT",
+      "description": "Appwrite document storage endpoint"
+    },
+    {
+      "key_name": "Appwrite API Key",
+      "env_var": "APPWRITE_API_KEY",
+      "description": "Appwrite server-side API key"
+    }
   ],
   "requested_port": 5000,
   "auto_assign_port": false,

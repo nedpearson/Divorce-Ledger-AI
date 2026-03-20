@@ -41,26 +41,21 @@ SELECT COUNT(*) FROM public.users;
 ```typescript
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 async function batchImport(data: any[], tableName: string) {
   const BATCH_SIZE = 1000;
   let imported = 0;
   let errors = 0;
-  
+
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE);
-    
+
     try {
-      const { data: result, error } = await supabase
-        .from(tableName)
-        .insert(batch);
-      
+      const { data: result, error } = await supabase.from(tableName).insert(batch);
+
       if (error) throw error;
-      
+
       imported += batch.length;
       console.log(`Imported ${imported}/${data.length} records`);
     } catch (error) {
@@ -68,7 +63,7 @@ async function batchImport(data: any[], tableName: string) {
       errors += batch.length;
     }
   }
-  
+
   return { imported, errors };
 }
 
@@ -94,16 +89,16 @@ async function streamingImport(filePath: string, tableName: string) {
   const batchSize = 500;
   let batch: any[] = [];
   let totalImported = 0;
-  
+
   const transformer = new Transform({
     objectMode: true,
     async transform(record, encoding, callback) {
       batch.push(record);
-      
+
       if (batch.length >= batchSize) {
         const currentBatch = [...batch];
         batch = [];
-        
+
         try {
           await supabase.from(tableName).insert(currentBatch);
           totalImported += currentBatch.length;
@@ -112,7 +107,7 @@ async function streamingImport(filePath: string, tableName: string) {
           console.error('Batch insert failed:', error);
         }
       }
-      
+
       callback();
     },
     async flush(callback) {
@@ -122,9 +117,9 @@ async function streamingImport(filePath: string, tableName: string) {
       }
       console.log(`Total imported: ${totalImported}`);
       callback();
-    }
+    },
   });
-  
+
   return new Promise((resolve, reject) => {
     createReadStream(filePath)
       .pipe(parser)
@@ -172,20 +167,23 @@ pg_dump --data-only \
 
 ```typescript
 async function exportUserData(userId: string) {
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-  
+  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
   // Fetch all user-related data
   const [user, documents, classifications, jobs, auditLogs] = await Promise.all([
     supabase.from('users').select('*').eq('id', userId).single(),
     supabase.from('documents').select('*').eq('user_id', userId),
-    supabase.from('classifications').select('*').eq('document_id', documents.data?.map(d => d.id)),
+    supabase
+      .from('classifications')
+      .select('*')
+      .eq(
+        'document_id',
+        documents.data?.map((d) => d.id)
+      ),
     supabase.from('jobs').select('*').eq('user_id', userId),
-    supabase.from('audit_logs').select('*').eq('user_id', userId)
+    supabase.from('audit_logs').select('*').eq('user_id', userId),
   ]);
-  
+
   // Package as structured export
   const exportData = {
     exported_at: new Date().toISOString(),
@@ -195,23 +193,21 @@ async function exportUserData(userId: string) {
       documents: documents.data,
       classifications: classifications.data,
       jobs: jobs.data,
-      audit_logs: auditLogs.data
-    }
+      audit_logs: auditLogs.data,
+    },
   };
-  
+
   // Save to exports bucket
   const exportPath = `${userId}/export_${Date.now()}.json`;
-  await supabase.storage
-    .from('exports')
-    .upload(exportPath, JSON.stringify(exportData, null, 2), {
-      contentType: 'application/json'
-    });
-  
+  await supabase.storage.from('exports').upload(exportPath, JSON.stringify(exportData, null, 2), {
+    contentType: 'application/json',
+  });
+
   // Generate signed URL for download
   const { data: signedUrl } = await supabase.storage
     .from('exports')
     .createSignedUrl(exportPath, 86400); // 24 hours
-  
+
   return signedUrl.signedUrl;
 }
 ```
@@ -224,24 +220,24 @@ async function exportUserData(userId: string) {
 async function incrementalBackup(sinceTimestamp: string) {
   const tables = ['users', 'documents', 'classifications', 'jobs'];
   const backupData: Record<string, any[]> = {};
-  
+
   for (const table of tables) {
     const { data, error } = await supabase
       .from(table)
       .select('*')
       .gte('updated_at', sinceTimestamp)
       .order('updated_at', { ascending: true });
-    
+
     if (error) throw error;
-    
+
     backupData[table] = data;
     console.log(`Backed up ${data.length} records from ${table}`);
   }
-  
+
   // Save to backup storage
   const backupPath = `backups/incremental_${Date.now()}.json`;
   await fs.writeFile(backupPath, JSON.stringify(backupData, null, 2));
-  
+
   return backupPath;
 }
 
@@ -255,49 +251,45 @@ await incrementalBackup(lastBackup);
 ### Chunked Export for Multi-Million Row Tables
 
 ```typescript
-async function exportLargeTable(
-  tableName: string,
-  outputPath: string,
-  chunkSize: number = 10000
-) {
+async function exportLargeTable(tableName: string, outputPath: string, chunkSize: number = 10000) {
   let offset = 0;
   let hasMore = true;
   let totalExported = 0;
-  
+
   const writeStream = createWriteStream(outputPath);
   writeStream.write('[');
-  
+
   while (hasMore) {
     const { data, error } = await supabase
       .from(tableName)
       .select('*')
       .range(offset, offset + chunkSize - 1);
-    
+
     if (error) throw error;
-    
+
     if (data.length === 0) {
       hasMore = false;
       break;
     }
-    
+
     // Write chunk to file
-    const chunk = data.map(row => JSON.stringify(row)).join(',\n');
+    const chunk = data.map((row) => JSON.stringify(row)).join(',\n');
     if (totalExported > 0) writeStream.write(',\n');
     writeStream.write(chunk);
-    
+
     totalExported += data.length;
     offset += chunkSize;
-    
+
     console.log(`Exported ${totalExported} records from ${tableName}`);
-    
+
     if (data.length < chunkSize) {
       hasMore = false;
     }
   }
-  
+
   writeStream.write(']');
   writeStream.end();
-  
+
   return totalExported;
 }
 ```
@@ -313,28 +305,28 @@ async function validateReferentialIntegrity(dataToImport: {
   document_versions: any[];
 }) {
   const errors: string[] = [];
-  
+
   // Check all document user_ids exist in users
-  const userIds = new Set(dataToImport.users.map(u => u.id));
+  const userIds = new Set(dataToImport.users.map((u) => u.id));
   for (const doc of dataToImport.documents) {
     if (!userIds.has(doc.user_id)) {
       errors.push(`Document ${doc.id} references non-existent user ${doc.user_id}`);
     }
   }
-  
+
   // Check all document_versions reference existing documents
-  const documentIds = new Set(dataToImport.documents.map(d => d.id));
+  const documentIds = new Set(dataToImport.documents.map((d) => d.id));
   for (const version of dataToImport.document_versions) {
     if (!documentIds.has(version.document_id)) {
       errors.push(`Version ${version.id} references non-existent document ${version.document_id}`);
     }
   }
-  
+
   if (errors.length > 0) {
     console.error('Referential integrity errors:', errors);
     throw new Error(`Validation failed with ${errors.length} errors`);
   }
-  
+
   console.log('✅ Referential integrity validation passed');
 }
 ```
@@ -381,25 +373,25 @@ import { CronJob } from 'cron';
 
 const dailyBackup = new CronJob('0 2 * * *', async () => {
   console.log('Starting daily backup at', new Date());
-  
+
   try {
     // 1. Incremental database backup
     const lastBackup = await getLastBackupTimestamp();
     const backupPath = await incrementalBackup(lastBackup);
-    
+
     // 2. Upload to external storage (S3, Google Cloud Storage, etc.)
     await uploadToExternalStorage(backupPath);
-    
+
     // 3. Verify backup integrity
     await verifyBackupIntegrity(backupPath);
-    
+
     // 4. Update backup metadata
     await saveBackupMetadata({
       timestamp: new Date(),
       path: backupPath,
-      status: 'success'
+      status: 'success',
     });
-    
+
     console.log('✅ Daily backup completed successfully');
   } catch (error) {
     console.error('❌ Daily backup failed:', error);
@@ -474,7 +466,7 @@ psql "postgresql://postgres:[PASSWORD]@db.[NEW_PROJECT_REF].supabase.co:5432/pos
 ```typescript
 async function generateGDPRExport(userId: string) {
   const exportData = await exportUserData(userId);
-  
+
   // Format as standardized JSON
   const gdprExport = {
     version: '1.0',
@@ -493,7 +485,7 @@ async function generateGDPRExport(userId: string) {
       activity_logs: export Data.audit_logs
     }
   };
-  
+
   return gdprExport;
 }
 ```
@@ -505,29 +497,29 @@ async function eraseUserData(userId: string) {
   // 1. Export data for compliance record
   const exportPath = await generateGDPRExport(userId);
   await archiveExport(exportPath);
-  
+
   // 2. Delete storage files
   await deleteUserFiles(userId);
-  
+
   // 3. Soft delete database records
   await supabase.rpc('soft_delete_user', { target_user_id: userId });
-  
+
   // 4. Anonymize audit logs (keep for compliance)
   await supabase
     .from('audit_logs')
     .update({
       user_id: null,
-      metadata: supabase.functions.anonymize_pii('metadata')
+      metadata: supabase.functions.anonymize_pii('metadata'),
     })
     .eq('user_id', userId);
-  
+
   // 5. Log erasure request
   await supabase.from('audit_logs').insert({
     action: 'user_data_erased',
     resource_type: 'user',
     resource_id: userId,
     severity: 'info',
-    metadata: { reason: 'gdpr_request' }
+    metadata: { reason: 'gdpr_request' },
   });
 }
 ```

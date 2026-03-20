@@ -102,7 +102,7 @@ serve(async (req) => {
         if (existingDoc && !force) {
           const existingUpdated = new Date(existingDoc.updated_at);
           const fileModified = new Date(file.modifiedTime);
-          
+
           if (fileModified <= existingUpdated) {
             skipped++;
             continue;
@@ -153,9 +153,7 @@ serve(async (req) => {
           }
         } else {
           // Create new document
-          const { error: createError } = await supabase
-            .from('documents')
-            .insert(documentData);
+          const { error: createError } = await supabase.from('documents').insert(documentData);
 
           if (createError) {
             throw new Error(`Failed to create document: ${createError.message}`);
@@ -212,12 +210,12 @@ serve(async (req) => {
 async function fetchGoogleDriveFiles(credentials: any): Promise<ExternalFile[]> {
   // In production, use Google Drive API with proper OAuth
   console.log('Fetching files from Google Drive (placeholder)');
-  
+
   const response = await fetch(
     'https://www.googleapis.com/drive/v3/files?pageSize=100&fields=files(id,name,mimeType,size,modifiedTime)',
     {
       headers: {
-        'Authorization': `Bearer ${credentials.access_token}`,
+        Authorization: `Bearer ${credentials.access_token}`,
       },
     }
   );
@@ -236,11 +234,11 @@ async function fetchGoogleDriveFiles(credentials: any): Promise<ExternalFile[]> 
 async function fetchDropboxFiles(credentials: any): Promise<ExternalFile[]> {
   // In production, use Dropbox API
   console.log('Fetching files from Dropbox (placeholder)');
-  
+
   const response = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${credentials.access_token}`,
+      Authorization: `Bearer ${credentials.access_token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -254,7 +252,7 @@ async function fetchDropboxFiles(credentials: any): Promise<ExternalFile[]> {
   }
 
   const data = await response.json();
-  
+
   return (data.entries || []).map((entry: any) => ({
     id: entry.id,
     name: entry.name,
@@ -270,10 +268,10 @@ async function fetchDropboxFiles(credentials: any): Promise<ExternalFile[]> {
 async function fetchOneDriveFiles(credentials: any): Promise<ExternalFile[]> {
   // In production, use Microsoft Graph API
   console.log('Fetching files from OneDrive (placeholder)');
-  
+
   const response = await fetch('https://graph.microsoft.com/v1.0/me/drive/root/children', {
     headers: {
-      'Authorization': `Bearer ${credentials.access_token}`,
+      Authorization: `Bearer ${credentials.access_token}`,
     },
   });
 
@@ -282,7 +280,7 @@ async function fetchOneDriveFiles(credentials: any): Promise<ExternalFile[]> {
   }
 
   const data = await response.json();
-  
+
   return (data.value || []).map((item: any) => ({
     id: item.id,
     name: item.name,
@@ -311,7 +309,7 @@ async function downloadExternalFile(
       const dropboxResponse = await fetch('https://content.dropboxapi.com/2/files/download', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${credentials.access_token}`,
+          Authorization: `Bearer ${credentials.access_token}`,
           'Dropbox-API-Arg': JSON.stringify({ path: file.id }),
         },
       });
@@ -325,7 +323,7 @@ async function downloadExternalFile(
 
   const response = await fetch(downloadUrl, {
     headers: {
-      'Authorization': `Bearer ${credentials.access_token}`,
+      Authorization: `Bearer ${credentials.access_token}`,
     },
   });
 

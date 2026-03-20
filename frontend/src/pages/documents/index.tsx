@@ -47,9 +47,7 @@ export default function DocumentsPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Documents</h1>
-            <p className="mt-2 text-gray-600">
-              Manage and organize your legal documents
-            </p>
+            <p className="mt-2 text-gray-600">Manage and organize your legal documents</p>
           </div>
 
           {/* Actions Bar */}
@@ -125,9 +123,7 @@ export default function DocumentsPage() {
 
           {/* Error */}
           {error && (
-            <div className="mb-6 p-4 text-sm text-red-800 bg-red-50 rounded-lg">
-              {error}
-            </div>
+            <div className="mb-6 p-4 text-sm text-red-800 bg-red-50 rounded-lg">{error}</div>
           )}
 
           {/* Loading */}
@@ -154,9 +150,9 @@ export default function DocumentsPage() {
           {pagination.total > pagination.limit && (
             <div className="mt-8 flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                Showing {Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total)} to{' '}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}{' '}
-                documents
+                Showing {Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total)}{' '}
+                to {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                {pagination.total} documents
               </div>
 
               <div className="flex space-x-2">

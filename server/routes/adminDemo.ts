@@ -10,7 +10,8 @@ const router = Router();
  * in live/production mode. These checks are redundant but critical for safety.
  */
 
-const LIVE_MODE_BLOCK_MESSAGE = 'BLOCKED: This endpoint is disabled in live/production mode to protect data integrity.';
+const LIVE_MODE_BLOCK_MESSAGE =
+  'BLOCKED: This endpoint is disabled in live/production mode to protect data integrity.';
 
 /**
  * POST /internal/admin/demo/reset
@@ -21,9 +22,9 @@ router.post('/internal/admin/demo/reset', async (req, res) => {
   // CRITICAL: Block in live mode - double safety check
   if (isLiveMode()) {
     console.error(`[SECURITY] BLOCKED: Demo reset attempt in LIVE mode from IP: ${req.ip}`);
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: LIVE_MODE_BLOCK_MESSAGE,
-      code: 'LIVE_MODE_PROTECTED'
+      code: 'LIVE_MODE_PROTECTED',
     });
   }
 
@@ -42,9 +43,9 @@ router.post('/internal/admin/demo/reset', async (req, res) => {
 
   try {
     console.log(`[DEMO] Manual reset triggered via internal endpoint. Initiator: ${req.ip}`);
-    
+
     await resetDemoEnvironment();
-    
+
     console.log('[DEMO] Manual reset successful.');
     return res.json({ ok: true, mode: 'demo' });
   } catch (err) {
@@ -61,9 +62,9 @@ router.post('/internal/admin/demo/erase', async (req, res) => {
   // CRITICAL: Block in live mode
   if (isLiveMode()) {
     console.error(`[SECURITY] BLOCKED: Demo erase attempt in LIVE mode from IP: ${req.ip}`);
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: LIVE_MODE_BLOCK_MESSAGE,
-      code: 'LIVE_MODE_PROTECTED'
+      code: 'LIVE_MODE_PROTECTED',
     });
   }
 

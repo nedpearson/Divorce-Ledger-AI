@@ -117,9 +117,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const response = await api.documents.update(id, data);
       set({ currentDocument: response.data.data, loading: false });
       // Update in list if present
-      const documents = get().documents.map((doc) =>
-        doc.id === id ? response.data.data : doc
-      );
+      const documents = get().documents.map((doc) => (doc.id === id ? response.data.data : doc));
       set({ documents });
     } catch (error: any) {
       set({ error: error.message, loading: false });

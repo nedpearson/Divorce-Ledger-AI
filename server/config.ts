@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 /**
  * Canonical APP_MODE type
@@ -13,7 +13,10 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   DATABASE_URL: z.string().optional(), // Allow server to start without DB
   SESSION_SECRET: z.string().optional(), // Allow server to start in degraded mode
-  CRON_ENABLED: z.string().optional().transform(v => v === 'true'),
+  CRON_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
 });
 
 // Cache the parsed config
@@ -22,7 +25,8 @@ let _config: z.infer<typeof envSchema> | null = null;
 export function getConfig() {
   if (!_config) {
     const rawData = {
-      APP_MODE: process.env.APP_MODE || (process.env.NODE_ENV === 'production' ? 'live' : 'development'),
+      APP_MODE:
+        process.env.APP_MODE || (process.env.NODE_ENV === 'production' ? 'live' : 'development'),
       NODE_ENV: process.env.NODE_ENV,
       DATABASE_URL: process.env.DATABASE_URL,
       SESSION_SECRET: process.env.SESSION_SECRET,
@@ -53,20 +57,26 @@ export function validateEnv() {
 
   // 1. Detect dangerous overlaps
   if (mode === 'live' && nodeEnv === 'development') {
-    throw new Error("DANGEROUS_CONFIG: APP_MODE=live cannot run with NODE_ENV=development. Possible production data exposure.");
+    throw new Error(
+      'DANGEROUS_CONFIG: APP_MODE=live cannot run with NODE_ENV=development. Possible production data exposure.'
+    );
   }
 
   if (nodeEnv === 'production' && mode === 'development') {
-    throw new Error("INVALID_CONFIG: APP_MODE=development cannot run in production environment.");
+    throw new Error('INVALID_CONFIG: APP_MODE=development cannot run in production environment.');
   }
 
   // 2. Require DATABASE_URL and SESSION_SECRET in production
   if (nodeEnv === 'production' || mode === 'live') {
     if (!process.env.DATABASE_URL) {
-      throw new Error("MISSING_CONFIG: DATABASE_URL is required in production. Set it in Railway environment variables.");
+      throw new Error(
+        'MISSING_CONFIG: DATABASE_URL is required in production. Set it in Railway environment variables.'
+      );
     }
     if (!process.env.SESSION_SECRET) {
-      throw new Error("MISSING_CONFIG: SESSION_SECRET is required in production. Set it in Railway environment variables.");
+      throw new Error(
+        'MISSING_CONFIG: SESSION_SECRET is required in production. Set it in Railway environment variables.'
+      );
     }
   }
 
@@ -80,5 +90,5 @@ export function validateEnv() {
     }
   }
 
-  console.log("✅ [Config] Environment sanity check passed.");
+  console.log('✅ [Config] Environment sanity check passed.');
 }

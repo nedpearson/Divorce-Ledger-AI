@@ -1,6 +1,6 @@
 /**
  * LLM Provider Abstraction Layer
- * 
+ *
  * Supports multiple LLM providers for document analysis:
  * - Claude 3.5 Sonnet (recommended for financial documents)
  * - GPT-4o (excellent for vision and OCR)
@@ -35,8 +35,8 @@ export const MODEL_CONFIGS = {
     provider: 'claude' as LLMProvider,
     maxTokens: 8192,
     supportsVision: true,
-    costPer1MInput: 3.00,
-    costPer1MOutput: 15.00,
+    costPer1MInput: 3.0,
+    costPer1MOutput: 15.0,
     description: 'Best for structured financial data extraction and complex reasoning',
   },
   'gpt-4o': {
@@ -44,8 +44,8 @@ export const MODEL_CONFIGS = {
     provider: 'openai' as LLMProvider,
     maxTokens: 4096,
     supportsVision: true,
-    costPer1MInput: 2.50,
-    costPer1MOutput: 10.00,
+    costPer1MInput: 2.5,
+    costPer1MOutput: 10.0,
     description: 'Excellent for vision and OCR tasks',
   },
   'gpt-4o-mini': {
@@ -54,7 +54,7 @@ export const MODEL_CONFIGS = {
     maxTokens: 4096,
     supportsVision: true,
     costPer1MInput: 0.15,
-    costPer1MOutput: 0.60,
+    costPer1MOutput: 0.6,
     description: 'Cost-effective OpenAI option',
   },
   'gemini-2.0-flash': {
@@ -72,7 +72,7 @@ export const MODEL_CONFIGS = {
     maxTokens: 8192,
     supportsVision: true,
     costPer1MInput: 0.075,
-    costPer1MOutput: 0.30,
+    costPer1MOutput: 0.3,
     description: 'Previous generation Gemini model',
   },
 } as const;
@@ -107,9 +107,9 @@ function getOpenAIClient(): OpenAI {
         'OpenAI API key not configured. Set OPENAI_API_KEY or AI_INTEGRATIONS_OPENAI_API_KEY environment variable.'
       );
     }
-    openaiClient = new OpenAI({ 
+    openaiClient = new OpenAI({
       apiKey,
-      ...(baseURL && { baseURL })
+      ...(baseURL && { baseURL }),
     });
     logger.info('OpenAI client initialized', { usingProxy: !!baseURL });
   }
@@ -151,11 +151,13 @@ async function callClaude(
     // PDFs should be converted to images before being passed here
     if (message.mimeType.includes('pdf')) {
       // Skip PDF - it should be converted to image or text extracted beforehand
-      logger.warn('PDF passed to Claude as image - this may not work', { mimeType: message.mimeType });
+      logger.warn('PDF passed to Claude as image - this may not work', {
+        mimeType: message.mimeType,
+      });
     } else {
       // Add image for vision analysis
       const validMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-      const mimeType = validMimeTypes.includes(message.mimeType) 
+      const mimeType = validMimeTypes.includes(message.mimeType)
         ? (message.mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp')
         : 'image/jpeg'; // default fallback
 
@@ -334,12 +336,12 @@ export function estimateLLMCost(
  */
 export function getConfiguredModel(): ModelName {
   const envModel = process.env.DOCUMENT_ANALYSIS_MODEL as ModelName | undefined;
-  
+
   // Validate that the model exists in our config
   if (envModel && envModel in MODEL_CONFIGS) {
     return envModel;
   }
-  
+
   // Default to Claude 3.5 Sonnet for best accuracy
   return 'claude';
 }

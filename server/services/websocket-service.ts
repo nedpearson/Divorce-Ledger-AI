@@ -1,8 +1,8 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import { DashboardService, DashboardMetrics } from './dashboard-service';
-import { getBaseOrigin } from './lib/baseUrl';
-import { createLogger } from './lib/logger';
+import { getBaseOrigin } from '../lib/baseUrl';
+import { createLogger } from '../lib/logger';
 
 const logger = createLogger('WebSocket');
 
@@ -24,10 +24,10 @@ export class WebSocketService {
     if (baseOrigin && !allowedOrigins.includes(baseOrigin)) {
       allowedOrigins.push(baseOrigin);
     }
-    
+
     // Add domains from REPLIT_DOMAINS if available
     if (process.env.REPLIT_DOMAINS) {
-      const replitDomains = process.env.REPLIT_DOMAINS.split(',').map(d => `https://${d.trim()}`);
+      const replitDomains = process.env.REPLIT_DOMAINS.split(',').map((d) => `https://${d.trim()}`);
       allowedOrigins.push(...replitDomains);
     }
 
@@ -38,7 +38,7 @@ export class WebSocketService {
     if (process.env.RAILWAY_STATIC_URL) {
       allowedOrigins.push(process.env.RAILWAY_STATIC_URL);
     }
-    
+
     this.io = new SocketIOServer(httpServer, {
       cors: {
         origin: allowedOrigins,

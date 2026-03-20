@@ -1,11 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
-import { AI_CREDIT_COSTS } from "@shared/workspace-schema";
-import OpenAI from "openai";
-import {
-  consumeCredits,
-  refundCredits,
-  InsufficientCreditsError,
-} from "./ai-credits.service";
+import { GoogleGenAI } from '@google/genai';
+import { AI_CREDIT_COSTS } from '@shared/workspace-schema';
+import OpenAI from 'openai';
+import { consumeCredits, refundCredits, InsufficientCreditsError } from './ai-credits.service';
 
 let _geminiClient: GoogleGenAI | null = null;
 let _openaiClient: OpenAI | null = null;
@@ -19,7 +15,7 @@ function getGeminiClient(): GoogleGenAI {
     _geminiClient = new GoogleGenAI({
       apiKey,
       httpOptions: {
-        apiVersion: "",
+        apiVersion: '',
         baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
       },
     });
@@ -48,7 +44,7 @@ export interface FinancialData {
   amount: number;
   vendor: string;
   date: string;
-  type: "income" | "expense" | "asset" | "debt";
+  type: 'income' | 'expense' | 'asset' | 'debt';
   description?: string;
 }
 
@@ -62,24 +58,24 @@ export interface CaptureAnalysisResult {
 }
 
 const DOCUMENT_CATEGORIES = [
-  "financial",
-  "tax",
-  "legal",
-  "custody",
-  "medical",
-  "property",
-  "correspondence",
-  "other",
+  'financial',
+  'tax',
+  'legal',
+  'custody',
+  'medical',
+  'property',
+  'correspondence',
+  'other',
 ];
 
 const VIOLATION_TYPES = [
-  "custody",
-  "financial_hiding",
-  "harassment",
-  "child_neglect",
-  "court_order",
-  "property_damage",
-  "other",
+  'custody',
+  'financial_hiding',
+  'harassment',
+  'child_neglect',
+  'court_order',
+  'property_damage',
+  'other',
 ];
 
 export async function analyzeDocumentImage(
@@ -93,13 +89,10 @@ export async function analyzeDocumentImage(
   let charged = false;
 
   if (workspaceId && userId !== undefined) {
-    const chargeResult = await consumeCredits(
-      workspaceId,
-      userId,
-      cost,
-      "image_analysis",
-      { fileName, mimeType }
-    );
+    const chargeResult = await consumeCredits(workspaceId, userId, cost, 'image_analysis', {
+      fileName,
+      mimeType,
+    });
 
     if (!chargeResult.success) {
       throw new InsufficientCreditsError(chargeResult.error);
@@ -110,10 +103,10 @@ export async function analyzeDocumentImage(
 
   try {
     const response = await gemini.get().models.generateContent({
-      model: "gemini-2.0-flash", // Reverting to stable or known version
+      model: 'gemini-2.0-flash', // Reverting to stable or known version
       contents: [
         {
-          role: "user",
+          role: 'user',
           parts: [
             {
               inlineData: {
@@ -128,7 +121,7 @@ IMPORTANT: Extract the COMPLETE text content from the document - every word, eve
 
 Provide a JSON response with:
 1. "title": A descriptive title for this document (max 50 chars)
-2. "category": One of: ${DOCUMENT_CATEGORIES.join(", ")}
+2. "category": One of: ${DOCUMENT_CATEGORIES.join(', ')}
 3. "extractedText": The COMPLETE text content you can read from the document. Extract EVERYTHING - all paragraphs, all sections, all text visible in the image. Do NOT summarize.
 4. "suggestedLink": Where this should be linked - one of: "finances", "timeline", "case", "evidence"
 5. "confidence": Your confidence in this analysis from 0.0 to 1.0
@@ -143,45 +136,41 @@ Respond ONLY with valid JSON, no additional text.`,
       ],
     });
 
-    const content = response.text || "{}";
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, "").trim();
+    const content = response.text || '{}';
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const result = JSON.parse(cleanedContent);
 
-    const financialData = result.financialData && result.financialData.amount 
-      ? {
-          amount: parseFloat(result.financialData.amount) || 0,
-          vendor: result.financialData.vendor || "Unknown",
-          date: result.financialData.date || new Date().toISOString().split("T")[0],
-          type: ["income", "expense", "asset", "debt"].includes(result.financialData.type) 
-            ? result.financialData.type 
-            : "expense",
-          description: result.financialData.description || result.title,
-        } as FinancialData
-      : undefined;
+    const financialData =
+      result.financialData && result.financialData.amount
+        ? ({
+            amount: parseFloat(result.financialData.amount) || 0,
+            vendor: result.financialData.vendor || 'Unknown',
+            date: result.financialData.date || new Date().toISOString().split('T')[0],
+            type: ['income', 'expense', 'asset', 'debt'].includes(result.financialData.type)
+              ? result.financialData.type
+              : 'expense',
+            description: result.financialData.description || result.title,
+          } as FinancialData)
+        : undefined;
 
     return {
-      title: result.title || fileName.replace(/\.[^/.]+$/, ""),
-      category: DOCUMENT_CATEGORIES.includes(result.category) ? result.category : "other",
-      extractedText: result.extractedText || "Document content extracted",
-      suggestedLink: result.suggestedLink || "finances",
+      title: result.title || fileName.replace(/\.[^/.]+$/, ''),
+      category: DOCUMENT_CATEGORIES.includes(result.category) ? result.category : 'other',
+      extractedText: result.extractedText || 'Document content extracted',
+      suggestedLink: result.suggestedLink || 'finances',
       confidence: Math.max(0, Math.min(1, parseFloat(result.confidence) || 0.7)),
       financialData,
     };
   } catch (error) {
     if (charged && workspaceId && userId !== undefined) {
-      await refundCredits(
-        workspaceId,
-        userId,
-        cost,
-        "image_analysis_failed"
-      );
+      await refundCredits(workspaceId, userId, cost, 'image_analysis_failed');
     }
-    console.error("Document image analysis failed:", error);
+    console.error('Document image analysis failed:', error);
     return {
-      title: fileName.replace(/\.[^/.]+$/, ""),
-      category: "other",
-      extractedText: "Unable to analyze document - please review manually",
-      suggestedLink: "case",
+      title: fileName.replace(/\.[^/.]+$/, ''),
+      category: 'other',
+      extractedText: 'Unable to analyze document - please review manually',
+      suggestedLink: 'case',
       confidence: 0,
     };
   }
@@ -202,7 +191,7 @@ export async function analyzeViolationImage(
       workspaceId,
       userId,
       cost,
-      "violation_image_analysis",
+      'violation_image_analysis',
       { fileName, mimeType }
     );
 
@@ -215,10 +204,10 @@ export async function analyzeViolationImage(
 
   try {
     const response = await gemini.get().models.generateContent({
-      model: "gemini-2.5-flash",
+      model: 'gemini-2.5-flash',
       contents: [
         {
-          role: "user",
+          role: 'user',
           parts: [
             {
               inlineData: {
@@ -233,7 +222,7 @@ IMPORTANT: If there is text in the image, extract ALL of it completely. If it's 
 
 Provide a JSON response with:
 1. "title": A descriptive title for this evidence (max 50 chars)
-2. "category": The type of violation - one of: ${VIOLATION_TYPES.join(", ")}
+2. "category": The type of violation - one of: ${VIOLATION_TYPES.join(', ')}
 3. "extractedText": If this contains text, extract ALL text completely. If it's a photo, provide a detailed description of everything visible. Do NOT summarize or truncate.
 4. "suggestedLink": Where this should be linked - one of: "timeline", "case", "evidence"
 5. "confidence": Your confidence in this analysis from 0.0 to 1.0
@@ -247,32 +236,27 @@ Respond ONLY with valid JSON, no additional text.`,
       ],
     });
 
-    const content = response.text || "{}";
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, "").trim();
+    const content = response.text || '{}';
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const result = JSON.parse(cleanedContent);
 
     return {
-      title: result.title || "Violation Evidence",
-      category: VIOLATION_TYPES.includes(result.category) ? result.category : "other",
-      extractedText: result.extractedText || "Evidence captured - please review",
-      suggestedLink: result.suggestedLink || "timeline",
+      title: result.title || 'Violation Evidence',
+      category: VIOLATION_TYPES.includes(result.category) ? result.category : 'other',
+      extractedText: result.extractedText || 'Evidence captured - please review',
+      suggestedLink: result.suggestedLink || 'timeline',
       confidence: Math.max(0, Math.min(1, parseFloat(result.confidence) || 0.7)),
     };
   } catch (error) {
     if (charged && workspaceId && userId !== undefined) {
-      await refundCredits(
-        workspaceId,
-        userId,
-        cost,
-        "violation_image_analysis_failed"
-      );
+      await refundCredits(workspaceId, userId, cost, 'violation_image_analysis_failed');
     }
-    console.error("Violation image analysis failed:", error);
+    console.error('Violation image analysis failed:', error);
     return {
-      title: "Violation Evidence",
-      category: "other",
-      extractedText: "Unable to analyze image - please review manually",
-      suggestedLink: "timeline",
+      title: 'Violation Evidence',
+      category: 'other',
+      extractedText: 'Unable to analyze image - please review manually',
+      suggestedLink: 'timeline',
       confidence: 0,
     };
   }
@@ -281,7 +265,7 @@ Respond ONLY with valid JSON, no additional text.`,
 export async function transcribeVoiceNote(
   base64Audio: string,
   mimeType: string,
-  type: "document" | "violation",
+  type: 'document' | 'violation',
   workspaceId?: string,
   userId?: string | number
 ): Promise<CaptureAnalysisResult> {
@@ -289,13 +273,10 @@ export async function transcribeVoiceNote(
   let charged = false;
 
   if (workspaceId && userId !== undefined) {
-    const chargeResult = await consumeCredits(
-      workspaceId,
-      userId,
-      cost,
-      "voice_transcription",
-      { mimeType, type }
-    );
+    const chargeResult = await consumeCredits(workspaceId, userId, cost, 'voice_transcription', {
+      mimeType,
+      type,
+    });
 
     if (!chargeResult.success) {
       throw new InsufficientCreditsError(chargeResult.error);
@@ -305,13 +286,13 @@ export async function transcribeVoiceNote(
   }
 
   try {
-    const categories = type === "document" ? DOCUMENT_CATEGORIES : VIOLATION_TYPES;
+    const categories = type === 'document' ? DOCUMENT_CATEGORIES : VIOLATION_TYPES;
 
     const response = await gemini.get().models.generateContent({
-      model: "gemini-2.5-flash",
+      model: 'gemini-2.5-flash',
       contents: [
         {
-          role: "user",
+          role: 'user',
           parts: [
             {
               inlineData: {
@@ -322,15 +303,17 @@ export async function transcribeVoiceNote(
             {
               text: `You are a legal assistant for divorce proceedings. Listen to this audio recording and transcribe it, then analyze the content.
 
-${type === "document" 
-  ? "This recording is describing a document or financial information."
-  : "This recording is describing a potential court order violation."}
+${
+  type === 'document'
+    ? 'This recording is describing a document or financial information.'
+    : 'This recording is describing a potential court order violation.'
+}
 
 Provide a JSON response with:
 1. "title": A descriptive title based on the audio content (max 50 chars)
-2. "category": Categorize the content - one of: ${categories.join(", ")}
+2. "category": Categorize the content - one of: ${categories.join(', ')}
 3. "extractedText": The full transcription of the audio (max 1000 chars)
-4. "suggestedLink": Where this should be linked - one of: ${type === "document" ? '"finances", "case", "evidence"' : '"timeline", "case", "evidence"'}
+4. "suggestedLink": Where this should be linked - one of: ${type === 'document' ? '"finances", "case", "evidence"' : '"timeline", "case", "evidence"'}
 5. "confidence": Your confidence in the transcription accuracy from 0.0 to 1.0
 
 Respond ONLY with valid JSON, no additional text.`,
@@ -340,32 +323,27 @@ Respond ONLY with valid JSON, no additional text.`,
       ],
     });
 
-    const content = response.text || "{}";
-    const cleanedContent = content.replace(/```json\n?|\n?```/g, "").trim();
+    const content = response.text || '{}';
+    const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const result = JSON.parse(cleanedContent);
 
     return {
-      title: result.title || "Voice Note",
-      category: categories.includes(result.category) ? result.category : "other",
-      extractedText: result.extractedText || "Voice note transcription",
-      suggestedLink: result.suggestedLink || (type === "document" ? "finances" : "timeline"),
+      title: result.title || 'Voice Note',
+      category: categories.includes(result.category) ? result.category : 'other',
+      extractedText: result.extractedText || 'Voice note transcription',
+      suggestedLink: result.suggestedLink || (type === 'document' ? 'finances' : 'timeline'),
       confidence: Math.max(0, Math.min(1, parseFloat(result.confidence) || 0.7)),
     };
   } catch (error) {
     if (charged && workspaceId && userId !== undefined) {
-      await refundCredits(
-        workspaceId,
-        userId,
-        cost,
-        "voice_transcription_failed"
-      );
+      await refundCredits(workspaceId, userId, cost, 'voice_transcription_failed');
     }
-    console.error("Voice transcription failed:", error);
+    console.error('Voice transcription failed:', error);
     return {
-      title: "Voice Note",
-      category: "other",
-      extractedText: "Unable to transcribe audio - please review manually",
-      suggestedLink: type === "document" ? "finances" : "timeline",
+      title: 'Voice Note',
+      category: 'other',
+      extractedText: 'Unable to transcribe audio - please review manually',
+      suggestedLink: type === 'document' ? 'finances' : 'timeline',
       confidence: 0,
     };
   }
@@ -381,13 +359,9 @@ export async function analyzeDocumentText(
   let charged = false;
 
   if (workspaceId && userId !== undefined) {
-    const chargeResult = await consumeCredits(
-      workspaceId,
-      userId,
-      cost,
-      "document_text_analysis",
-      { fileName }
-    );
+    const chargeResult = await consumeCredits(workspaceId, userId, cost, 'document_text_analysis', {
+      fileName,
+    });
 
     if (!chargeResult.success) {
       throw new InsufficientCreditsError(chargeResult.error);
@@ -398,10 +372,10 @@ export async function analyzeDocumentText(
 
   try {
     const response = await openai.get().chat.completions.create({
-      model: "gpt-4o-mini",
+      model: 'gpt-4o-mini',
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: `You are a legal document analyst for divorce proceedings. Analyze this document content and categorize it.
 
 Document Name: ${fileName}
@@ -409,7 +383,7 @@ Content: ${text.slice(0, 2000)}
 
 Provide a JSON response with:
 1. "title": A descriptive title for this document (max 50 chars)
-2. "category": One of: ${DOCUMENT_CATEGORIES.join(", ")}
+2. "category": One of: ${DOCUMENT_CATEGORIES.join(', ')}
 3. "extractedText": A summary of the key points (max 500 chars)
 4. "suggestedLink": Where this should be linked - one of: "finances", "timeline", "case", "evidence"
 5. "confidence": Your confidence from 0.0 to 1.0
@@ -417,35 +391,30 @@ Provide a JSON response with:
 Respond ONLY with valid JSON.`,
         },
       ],
-      response_format: { type: "json_object" },
+      response_format: { type: 'json_object' },
       max_tokens: 500,
     });
 
-    const content = response.choices[0]?.message?.content || "{}";
+    const content = response.choices[0]?.message?.content || '{}';
     const result = JSON.parse(content);
 
     return {
-      title: result.title || fileName.replace(/\.[^/.]+$/, ""),
-      category: DOCUMENT_CATEGORIES.includes(result.category) ? result.category : "other",
+      title: result.title || fileName.replace(/\.[^/.]+$/, ''),
+      category: DOCUMENT_CATEGORIES.includes(result.category) ? result.category : 'other',
       extractedText: result.extractedText || text.slice(0, 500),
-      suggestedLink: result.suggestedLink || "case",
+      suggestedLink: result.suggestedLink || 'case',
       confidence: Math.max(0, Math.min(1, parseFloat(result.confidence) || 0.7)),
     };
   } catch (error) {
     if (charged && workspaceId && userId !== undefined) {
-      await refundCredits(
-        workspaceId,
-        userId,
-        cost,
-        "document_text_analysis_failed"
-      );
+      await refundCredits(workspaceId, userId, cost, 'document_text_analysis_failed');
     }
-    console.error("Document text analysis failed:", error);
+    console.error('Document text analysis failed:', error);
     return {
-      title: fileName.replace(/\.[^/.]+$/, ""),
-      category: "other",
+      title: fileName.replace(/\.[^/.]+$/, ''),
+      category: 'other',
       extractedText: text.slice(0, 500),
-      suggestedLink: "case",
+      suggestedLink: 'case',
       confidence: 0,
     };
   }

@@ -1,6 +1,6 @@
 /**
  * DATABASE SCHEMA & CONSTRAINT VALIDATION
- * 
+ *
  * Run with: npx tsx scripts/validate-database.ts
  */
 
@@ -79,7 +79,13 @@ class DatabaseValidator {
     console.log('\n🔑 Validating Key Columns...\n');
 
     const columnChecks: Record<string, string[]> = {
-      users: ['id', 'email', 'subscription_tier', 'violations_count_this_month', 'stripe_customer_id'],
+      users: [
+        'id',
+        'email',
+        'subscription_tier',
+        'violations_count_this_month',
+        'stripe_customer_id',
+      ],
       billing_records: ['id', 'user_id', 'tier', 'amount_cents', 'status'],
       tier_migrations: ['id', 'user_id', 'from_tier', 'to_tier', 'grace_period_days'],
       usage_audit: ['id', 'user_id', 'tier', 'violations_count', 'storage_used_mb'],
@@ -176,7 +182,6 @@ class DatabaseValidator {
         details: `${users} users found`,
       });
       console.log(`   ${users > 0 ? '✅' : '❌'} Users table has records (${users})`);
-
     } catch (error) {
       console.log(`   ❌ Data integrity check failed: ${(error as Error).message}`);
     }
@@ -202,7 +207,6 @@ class DatabaseValidator {
       const versionResult = await this.query('SELECT version()');
       const version = versionResult[0]?.version || 'Unknown';
       console.log(`   ✅ PostgreSQL version: ${version.split(' ').slice(0, 2).join(' ')}`);
-
     } catch (error) {
       this.checks.push({
         table: 'connection',
@@ -220,7 +224,7 @@ class DatabaseValidator {
     try {
       // Count records in key tables
       const tables = ['users', 'violations', 'billing_records', 'tier_migrations', 'usage_audit'];
-      
+
       for (const table of tables) {
         try {
           const result = await this.query(`SELECT COUNT(*) as count FROM ${table}`);
@@ -230,7 +234,6 @@ class DatabaseValidator {
           console.log(`   ⚠️  ${table}: Unable to count`);
         }
       }
-
     } catch (error) {
       console.log(`   ❌ Storage metrics failed: ${(error as Error).message}`);
     }
@@ -253,9 +256,11 @@ class DatabaseValidator {
 
     if (failed > 0) {
       console.log('Failed Checks:');
-      this.checks.filter((c) => !c.passed).forEach((c) => {
-        console.log(`  ❌ ${c.table}.${c.check}: ${c.details || 'Failed'}`);
-      });
+      this.checks
+        .filter((c) => !c.passed)
+        .forEach((c) => {
+          console.log(`  ❌ ${c.table}.${c.check}: ${c.details || 'Failed'}`);
+        });
     }
 
     console.log('\n' + '='.repeat(70));

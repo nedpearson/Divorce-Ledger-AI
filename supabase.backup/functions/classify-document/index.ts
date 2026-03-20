@@ -246,9 +246,7 @@ async function classifyDocument(content: string, document: any) {
       amounts: [{ amount: 50000, currency: 'USD', context: 'Child support' }],
       accounts: [],
     },
-    citations: [
-      { citation: 'Family Code § 3600', jurisdiction: 'California' },
-    ],
+    citations: [{ citation: 'Family Code § 3600', jurisdiction: 'California' }],
     summary:
       'This is a court filing document related to child custody and support proceedings between two parties.',
     modelUsed: 'gpt-4',

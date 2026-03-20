@@ -1,7 +1,7 @@
-import { db } from "../db";
-import { users, quickbooksSyncLog } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
-import { encryptQBToken, decryptQBToken, encryptState, decryptState } from "../lib/encryption";
+import { db } from '../db';
+import { users, quickbooksSyncLog } from '@shared/schema';
+import { eq, and, sql } from 'drizzle-orm';
+import { encryptQBToken, decryptQBToken, encryptState, decryptState } from '../lib/encryption';
 
 const QB_API_LIMIT_PER_DAY = 100;
 
@@ -20,7 +20,9 @@ export class QuickBooksService {
   constructor() {
     this.clientId = process.env.QB_CLIENT_ID || '';
     this.clientSecret = process.env.QB_CLIENT_SECRET || '';
-    this.redirectUri = process.env.QB_REDIRECT_URI || `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'divorceledger.replit.app'}/api/quickbooks/callback`;
+    this.redirectUri =
+      process.env.QB_REDIRECT_URI ||
+      `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'divorceledger.replit.app'}/api/quickbooks/callback`;
     this.environment = (process.env.QB_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox';
   }
 
@@ -35,9 +37,10 @@ export class QuickBooksService {
 
     const state = encryptState(userId);
     const scopes = encodeURIComponent('com.intuit.quickbooks.accounting');
-    const baseUrl = this.environment === 'sandbox' 
-      ? 'https://appcenter.intuit.com/connect/oauth2'
-      : 'https://appcenter.intuit.com/connect/oauth2';
+    const baseUrl =
+      this.environment === 'sandbox'
+        ? 'https://appcenter.intuit.com/connect/oauth2'
+        : 'https://appcenter.intuit.com/connect/oauth2';
 
     return `${baseUrl}?client_id=${this.clientId}&response_type=code&scope=${scopes}&redirect_uri=${encodeURIComponent(this.redirectUri)}&state=${encodeURIComponent(state)}`;
   }
@@ -49,9 +52,9 @@ export class QuickBooksService {
     const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${auth}`,
+        Authorization: `Basic ${auth}`,
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
@@ -86,9 +89,9 @@ export class QuickBooksService {
       const response = await fetch(tokenUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Basic ${auth}`,
+          Authorization: `Basic ${auth}`,
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         body: new URLSearchParams({
           grant_type: 'refresh_token',
@@ -109,7 +112,15 @@ export class QuickBooksService {
       };
 
       await this.storeUserTokens(userId, tokens, user.realmId!);
-      await this.logAction(userId, 'token_refresh', undefined, undefined, 'POST', '/oauth2/v1/tokens/bearer', 200);
+      await this.logAction(
+        userId,
+        'token_refresh',
+        undefined,
+        undefined,
+        'POST',
+        '/oauth2/v1/tokens/bearer',
+        200
+      );
 
       return tokens;
     } catch (error) {
@@ -118,24 +129,32 @@ export class QuickBooksService {
     }
   }
 
-  async storeUserTokens(userId: string, tokens: QBTokens, realmId: string, companyName?: string): Promise<void> {
+  async storeUserTokens(
+    userId: string,
+    tokens: QBTokens,
+    realmId: string,
+    companyName?: string
+  ): Promise<void> {
     const accessTokenEnc = encryptQBToken(tokens.accessToken);
     const refreshTokenEnc = encryptQBToken(tokens.refreshToken);
 
-    await db.update(users).set({
-      qbAccessTokenEncrypted: accessTokenEnc.encrypted,
-      qbAccessTokenIv: accessTokenEnc.iv,
-      qbAccessTokenAuthTag: accessTokenEnc.authTag,
-      qbRefreshTokenEncrypted: refreshTokenEnc.encrypted,
-      qbRefreshTokenIv: refreshTokenEnc.iv,
-      qbRefreshTokenAuthTag: refreshTokenEnc.authTag,
-      qbRealmId: realmId,
-      qbTokenExpiresAt: tokens.expiresAt,
-      qbConnected: true,
-      qbConnectedAt: new Date(),
-      qbScopes: ['com.intuit.quickbooks.accounting'],
-      ...(companyName && { qbCompanyName: companyName }),
-    }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({
+        qbAccessTokenEncrypted: accessTokenEnc.encrypted,
+        qbAccessTokenIv: accessTokenEnc.iv,
+        qbAccessTokenAuthTag: accessTokenEnc.authTag,
+        qbRefreshTokenEncrypted: refreshTokenEnc.encrypted,
+        qbRefreshTokenIv: refreshTokenEnc.iv,
+        qbRefreshTokenAuthTag: refreshTokenEnc.authTag,
+        qbRealmId: realmId,
+        qbTokenExpiresAt: tokens.expiresAt,
+        qbConnected: true,
+        qbConnectedAt: new Date(),
+        qbScopes: ['com.intuit.quickbooks.accounting'],
+        ...(companyName && { qbCompanyName: companyName }),
+      })
+      .where(eq(users.id, userId));
   }
 
   async getUserQBCredentials(userId: string): Promise<{
@@ -183,18 +202,10 @@ export class QuickBooksService {
 
     const isLegacy = !user.qb_access_token_iv && !!user.qb_token_iv;
 
-    const accessToken = decryptQBToken(
-      user.qb_access_token_encrypted,
-      accessIv,
-      accessAuthTag
-    );
+    const accessToken = decryptQBToken(user.qb_access_token_encrypted, accessIv, accessAuthTag);
 
-    const refreshToken = user.qb_refresh_token_encrypted 
-      ? decryptQBToken(
-          user.qb_refresh_token_encrypted, 
-          refreshIv,
-          refreshAuthTag
-        )
+    const refreshToken = user.qb_refresh_token_encrypted
+      ? decryptQBToken(user.qb_refresh_token_encrypted, refreshIv, refreshAuthTag)
       : null;
 
     return {
@@ -214,7 +225,9 @@ export class QuickBooksService {
     }
 
     if (!creds.accessToken || !creds.refreshToken) {
-      console.log(`[QB Migration] User ${userId} has legacy tokens but decryption failed - requires reconnection`);
+      console.log(
+        `[QB Migration] User ${userId} has legacy tokens but decryption failed - requires reconnection`
+      );
       return;
     }
 
@@ -234,13 +247,24 @@ export class QuickBooksService {
       WHERE id = ${userId}
     `);
 
-    await this.logAction(userId, 'token_migration', undefined, undefined, undefined, undefined, undefined, 'Migrated from legacy shared IV/authTag to separate fields');
-    console.log(`[QB Migration] Successfully migrated user ${userId} to new token encryption format`);
+    await this.logAction(
+      userId,
+      'token_migration',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'Migrated from legacy shared IV/authTag to separate fields'
+    );
+    console.log(
+      `[QB Migration] Successfully migrated user ${userId} to new token encryption format`
+    );
   }
 
   async getValidAccessToken(userId: string): Promise<{ token: string; realmId: string } | null> {
     await this.migrateUserTokensIfNeeded(userId);
-    
+
     const creds = await this.getUserQBCredentials(userId);
     if (!creds || !creds.connected || !creds.accessToken) {
       return null;
@@ -257,11 +281,15 @@ export class QuickBooksService {
 
   async checkRateLimit(userId: string): Promise<{ allowed: boolean; remaining: number }> {
     const today = new Date().toISOString().split('T')[0];
-    
-    const result = await db.select({
-      qbApiCallsToday: users.qbApiCallsToday,
-      qbDailyResetAt: users.qbDailyResetAt,
-    }).from(users).where(eq(users.id, userId)).limit(1);
+
+    const result = await db
+      .select({
+        qbApiCallsToday: users.qbApiCallsToday,
+        qbDailyResetAt: users.qbDailyResetAt,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
     if (!result.length) {
       return { allowed: false, remaining: 0 };
@@ -269,42 +297,60 @@ export class QuickBooksService {
 
     const user = result[0];
     const resetDate = user.qbDailyResetAt;
-    
+
     if (!resetDate || resetDate !== today) {
-      await db.update(users).set({
-        qbApiCallsToday: 0,
-        qbDailyResetAt: today,
-      }).where(eq(users.id, userId));
+      await db
+        .update(users)
+        .set({
+          qbApiCallsToday: 0,
+          qbDailyResetAt: today,
+        })
+        .where(eq(users.id, userId));
       return { allowed: true, remaining: QB_API_LIMIT_PER_DAY };
     }
 
     const remaining = QB_API_LIMIT_PER_DAY - (user.qbApiCallsToday || 0);
-    return { 
-      allowed: remaining > 0, 
-      remaining: Math.max(0, remaining) 
+    return {
+      allowed: remaining > 0,
+      remaining: Math.max(0, remaining),
     };
   }
 
   async incrementApiCallCount(userId: string): Promise<void> {
-    await db.update(users).set({
-      qbApiCallsToday: sql`COALESCE(${users.qbApiCallsToday}, 0) + 1`,
-    }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({
+        qbApiCallsToday: sql`COALESCE(${users.qbApiCallsToday}, 0) + 1`,
+      })
+      .where(eq(users.id, userId));
   }
 
   async disconnectUser(userId: string, reason?: string): Promise<void> {
-    await db.update(users).set({
-      qbAccessTokenEncrypted: null,
-      qbAccessTokenIv: null,
-      qbAccessTokenAuthTag: null,
-      qbRefreshTokenEncrypted: null,
-      qbRefreshTokenIv: null,
-      qbRefreshTokenAuthTag: null,
-      qbTokenExpiresAt: null,
-      qbConnected: false,
-      qbScopes: null,
-    }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({
+        qbAccessTokenEncrypted: null,
+        qbAccessTokenIv: null,
+        qbAccessTokenAuthTag: null,
+        qbRefreshTokenEncrypted: null,
+        qbRefreshTokenIv: null,
+        qbRefreshTokenAuthTag: null,
+        qbTokenExpiresAt: null,
+        qbConnected: false,
+        qbScopes: null,
+      })
+      .where(eq(users.id, userId));
 
-    await this.logAction(userId, 'disconnect', undefined, undefined, undefined, undefined, undefined, reason);
+    await this.logAction(
+      userId,
+      'disconnect',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      reason
+    );
   }
 
   async getConnectionStatus(userId: string): Promise<{
@@ -314,12 +360,16 @@ export class QuickBooksService {
     lastSyncAt: Date | null;
     apiCallsRemaining: number;
   }> {
-    const result = await db.select({
-      qbConnected: users.qbConnected,
-      qbCompanyName: users.qbCompanyName,
-      qbConnectedAt: users.qbConnectedAt,
-      qbLastSyncAt: users.qbLastSyncAt,
-    }).from(users).where(eq(users.id, userId)).limit(1);
+    const result = await db
+      .select({
+        qbConnected: users.qbConnected,
+        qbCompanyName: users.qbCompanyName,
+        qbConnectedAt: users.qbConnectedAt,
+        qbLastSyncAt: users.qbLastSyncAt,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
     if (!result.length) {
       return {
@@ -367,16 +417,20 @@ export class QuickBooksService {
     });
   }
 
-  async fetchCompanyInfo(accessToken: string, realmId: string): Promise<{ companyName: string } | null> {
+  async fetchCompanyInfo(
+    accessToken: string,
+    realmId: string
+  ): Promise<{ companyName: string } | null> {
     try {
-      const baseUrl = this.environment === 'sandbox'
-        ? 'https://sandbox-quickbooks.api.intuit.com'
-        : 'https://quickbooks.api.intuit.com';
+      const baseUrl =
+        this.environment === 'sandbox'
+          ? 'https://sandbox-quickbooks.api.intuit.com'
+          : 'https://quickbooks.api.intuit.com';
 
       const response = await fetch(`${baseUrl}/v3/company/${realmId}/companyinfo/${realmId}`, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
         },
       });
 

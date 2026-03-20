@@ -1,11 +1,11 @@
 /**
  * Basic smoke tests for Divorce Ledger frontend
- * 
+ *
  * These tests verify that page modules export correctly and core utilities work.
  * For full DOM rendering tests, install @testing-library/react.
- * 
+ *
  * To run: cd client && npx vitest run --config vitest.config.ts
- * 
+ *
  * Manual testing checklist:
  * 1. Dashboard: Loading spinner visible, data loads without blank screen
  * 2. Documents: Empty state shows when no docs, error toast on failed upload

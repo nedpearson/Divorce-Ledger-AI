@@ -1,6 +1,6 @@
 /**
  * Health Check Routes
- * 
+ *
  * GET /health - Simple health check (legacy/simple)
  * GET /api/health - Quick health check (< 1s)
  * GET /api/health/detailed - Detailed health check (1-5s)
@@ -255,7 +255,11 @@ router.get('/routes', async (req: Request, res: Response) => {
     routes: [
       // Health & System
       { method: 'GET', path: '/api/health', description: 'Quick health check' },
-      { method: 'GET', path: '/api/health/detailed', description: 'Detailed health with record counts' },
+      {
+        method: 'GET',
+        path: '/api/health/detailed',
+        description: 'Detailed health with record counts',
+      },
       { method: 'GET', path: '/api/health/firefly', description: 'Firefly III integration status' },
       { method: 'GET', path: '/api/routes', description: 'This route listing' },
 
@@ -271,15 +275,35 @@ router.get('/routes', async (req: Request, res: Response) => {
       // Appwrite Document Intake
       { method: 'GET', path: '/api/appwrite/status', description: 'Appwrite connection status' },
       { method: 'POST', path: '/api/appwrite/setup', description: 'Initialize Appwrite resources' },
-      { method: 'POST', path: '/api/appwrite/files/upload', description: 'Upload file to Appwrite' },
+      {
+        method: 'POST',
+        path: '/api/appwrite/files/upload',
+        description: 'Upload file to Appwrite',
+      },
       { method: 'GET', path: '/api/appwrite/files', description: 'List uploaded files' },
       { method: 'GET', path: '/api/appwrite/files/:id', description: 'Get file details' },
-      { method: 'POST', path: '/api/appwrite/files/:id/analyze', description: 'Trigger AI analysis' },
-      { method: 'POST', path: '/api/appwrite/files/:id/approve', description: 'Approve suggested data' },
-      { method: 'POST', path: '/api/appwrite/files/:id/retry', description: 'Retry failed analysis' },
+      {
+        method: 'POST',
+        path: '/api/appwrite/files/:id/analyze',
+        description: 'Trigger AI analysis',
+      },
+      {
+        method: 'POST',
+        path: '/api/appwrite/files/:id/approve',
+        description: 'Approve suggested data',
+      },
+      {
+        method: 'POST',
+        path: '/api/appwrite/files/:id/retry',
+        description: 'Retry failed analysis',
+      },
       { method: 'DELETE', path: '/api/appwrite/files/:id', description: 'Delete file' },
       { method: 'GET', path: '/api/appwrite/categories', description: 'Document categories' },
-      { method: 'GET', path: '/api/appwrite/dev/selftest', description: 'Run document intake selftest' },
+      {
+        method: 'GET',
+        path: '/api/appwrite/dev/selftest',
+        description: 'Run document intake selftest',
+      },
 
       // Documents (PostgreSQL pipeline)
       { method: 'GET', path: '/api/documents', description: 'List documents' },

@@ -10,13 +10,14 @@ A **fully offline-capable Progressive Web App (PWA)** that allows users to captu
 ✅ **Installable mobile app (Add to Home Screen)**  
 ✅ **Self-standing offline functionality**  
 ✅ **Saves information on the phone**  
-✅ **WiFi-based sync when on same network as desktop**  
+✅ **WiFi-based sync when on same network as desktop**
 
 ---
 
 ## 📦 Files Created
 
 ### Core Services
+
 1. **client/src/lib/wifi-sync.ts** (393 lines)
    - Network detection (same WiFi as desktop)
    - Auto-sync every 30 seconds
@@ -34,6 +35,7 @@ A **fully offline-capable Progressive Web App (PWA)** that allows users to captu
    - Storage info and cleanup functions
 
 ### UI Components
+
 3. **client/src/pages/mobile-install.tsx** (228 lines)
    - QR code generation
    - Installation instructions (iOS/Android)
@@ -59,6 +61,7 @@ A **fully offline-capable Progressive Web App (PWA)** that allows users to captu
    - Handles beforeinstallprompt event
 
 ### Infrastructure
+
 7. **client/public/sw.js** (Enhanced)
    - Added background sync support
    - Document cache store
@@ -71,12 +74,14 @@ A **fully offline-capable Progressive Web App (PWA)** that allows users to captu
    - Updated app name and description
 
 ### Backend
+
 9. **server/routes/health.routes.ts** (Enhanced)
    - New `/api/network-info` endpoint
    - Returns local IP address
    - Hostname and port info
 
 ### Documentation
+
 10. **docs/MOBILE_OFFLINE_PWA.md** (600+ lines)
     - Complete technical guide
     - API reference
@@ -106,19 +111,21 @@ A **fully offline-capable Progressive Web App (PWA)** that allows users to captu
 ### Stores
 
 **1. documents** (NEW)
+
 ```typescript
 {
-  id: string;              // UUID
-  title: string;           // Document title
-  category: string;        // Category
-  fileName: string;        // Original filename
-  fileData: Blob;          // Actual file
-  timestamp: number;       // When captured
-  synced: boolean;         // Sync status
+  id: string; // UUID
+  title: string; // Document title
+  category: string; // Category
+  fileName: string; // Original filename
+  fileData: Blob; // Actual file
+  timestamp: number; // When captured
+  synced: boolean; // Sync status
 }
 ```
 
 **2. violations** (NEW)
+
 ```typescript
 {
   id: string;
@@ -136,6 +143,7 @@ A **fully offline-capable Progressive Web App (PWA)** that allows users to captu
 ```
 
 **3. syncMetadata** (NEW)
+
 ```typescript
 {
   id: 'metadata';
@@ -146,6 +154,7 @@ A **fully offline-capable Progressive Web App (PWA)** that allows users to captu
 ```
 
 **4. syncQueue** (EXISTING)
+
 ```typescript
 {
   id: string;
@@ -162,6 +171,7 @@ A **fully offline-capable Progressive Web App (PWA)** that allows users to captu
 ## 🔄 How It Works
 
 ### 1. Installation Flow
+
 ```
 Desktop: Open /mobile-install
     ↓
@@ -181,6 +191,7 @@ Launches standalone (no browser UI)
 ```
 
 ### 2. Offline Capture Flow
+
 ```
 User captures document
     ↓
@@ -197,6 +208,7 @@ If ONLINE:
 ```
 
 ### 3. WiFi Sync Flow
+
 ```
 Every 30 seconds:
     ↓
@@ -218,6 +230,7 @@ If responds:
 ```
 
 ### 4. Background Sync
+
 ```
 User goes offline
     ↓
@@ -257,24 +270,28 @@ http://localhost:5000/mobile-install
 ## 📊 Key Features
 
 ### Automatic WiFi Detection
+
 - Pings `/api/health` to detect same network
 - Only syncs when desktop is reachable
 - 3-second timeout prevents long waits
 - Falls back gracefully if offline
 
 ### Smart Sync Strategy
+
 - **Network-first**: Try server first
 - **Cache fallback**: Use local if offline
 - **Auto-retry**: Failed items stay queued
 - **Batch upload**: Syncs all pending items
 
 ### Storage Management
+
 - **Quota**: Uses browser's available storage
 - **Cleanup**: Auto-removes synced items (optional)
 - **Monitoring**: Track usage via getStorageInfo()
 - **Alerts**: Warns when storage is low
 
 ### User Experience
+
 - **Sync indicator**: Always visible in header
 - **Pending count**: Shows unsynced items
 - **Last sync time**: "5m ago", "Just now", etc.
@@ -295,27 +312,28 @@ http://localhost:5000/mobile-install
 
 ## 📱 Compatibility
 
-| Device | Browser | Status |
-|--------|---------|--------|
-| iPhone | Safari 11.3+ | ✅ Full |
-| Android | Chrome 68+ | ✅ Full |
-| iPad | Safari 11.3+ | ✅ Full |
-| Android Tablet | Chrome 68+ | ✅ Full |
+| Device         | Browser      | Status  |
+| -------------- | ------------ | ------- |
+| iPhone         | Safari 11.3+ | ✅ Full |
+| Android        | Chrome 68+   | ✅ Full |
+| iPad           | Safari 11.3+ | ✅ Full |
+| Android Tablet | Chrome 68+   | ✅ Full |
 
 ---
 
 ## 🎓 Usage Examples
 
 ### Example 1: Offline Capture
+
 ```typescript
 // User is offline, captures document
 import { saveOfflineDocument } from '@/lib/offline-db';
 import { triggerBackgroundSync } from '@/lib/wifi-sync';
 
 const id = await saveOfflineDocument({
-  title: "Custody Agreement",
-  category: "legal",
-  fileName: "custody.pdf",
+  title: 'Custody Agreement',
+  category: 'legal',
+  fileName: 'custody.pdf',
   fileData: pdfBlob,
 });
 
@@ -326,6 +344,7 @@ triggerBackgroundSync();
 ```
 
 ### Example 2: Manual Sync
+
 ```typescript
 import { syncOfflineData } from '@/lib/wifi-sync';
 
@@ -339,6 +358,7 @@ console.log(`
 ```
 
 ### Example 3: Monitor Sync Status
+
 ```typescript
 import { onSyncStatusChange } from '@/lib/wifi-sync';
 
@@ -376,6 +396,7 @@ Service worker logs with `[SW]` prefix:
 ```
 
 ### Check Storage
+
 ```javascript
 import { getStorageInfo } from '@/lib/offline-db';
 
@@ -385,6 +406,7 @@ console.log('Available:', (info.quota / 1024 / 1024).toFixed(2), 'MB');
 ```
 
 ### View Pending Items
+
 ```javascript
 import { getUnsyncedDocuments, getUnsyncedViolations } from '@/lib/offline-db';
 
@@ -454,7 +476,7 @@ You now have a **fully functional offline-first PWA** that:
 **Total lines of code added**: ~1,900 lines  
 **Time to implement**: Approximately 3-4 hours  
 **Files created**: 11 new files  
-**Files modified**: 3 existing files  
+**Files modified**: 3 existing files
 
 ## 📚 Next Steps
 

@@ -123,8 +123,8 @@ export default function SettingsPage() {
                       storagePercentage >= 90
                         ? 'bg-red-600'
                         : storagePercentage >= 75
-                        ? 'bg-yellow-500'
-                        : 'bg-green-600'
+                          ? 'bg-yellow-500'
+                          : 'bg-green-600'
                     }`}
                     style={{ width: `${Math.min(storagePercentage, 100)}%` }}
                   ></div>

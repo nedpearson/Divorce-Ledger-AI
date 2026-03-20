@@ -5,12 +5,12 @@ import WorkspaceStatusGuard from '@/components/guards/WorkspaceStatusGuard';
 import WorkspaceSwitcher from '@/components/WorkspaceSwitcher';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { supabase } from '@/lib/supabase';
-import { 
-  BriefcaseIcon, 
-  UserGroupIcon, 
+import {
+  BriefcaseIcon,
+  UserGroupIcon,
   DocumentTextIcon,
   PlusIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
@@ -65,15 +65,24 @@ export default function FirmDashboard() {
 
       // Load stats
       const [allMattersRes, teamRes, docsRes] = await Promise.all([
-        supabase.from('matters').select('status', { count: 'exact' }).eq('workspace_id', activeWorkspaceId),
-        supabase.from('workspace_members').select('id', { count: 'exact' }).eq('workspace_id', activeWorkspaceId),
-        supabase.from('documents').select('id', { count: 'exact' }).eq('workspace_id', activeWorkspaceId),
+        supabase
+          .from('matters')
+          .select('status', { count: 'exact' })
+          .eq('workspace_id', activeWorkspaceId),
+        supabase
+          .from('workspace_members')
+          .select('id', { count: 'exact' })
+          .eq('workspace_id', activeWorkspaceId),
+        supabase
+          .from('documents')
+          .select('id', { count: 'exact' })
+          .eq('workspace_id', activeWorkspaceId),
       ]);
 
       const allMatters = allMattersRes.data || [];
       setStats({
         totalMatters: allMatters.length,
-        activeMatters: allMatters.filter(m => m.status === 'active').length,
+        activeMatters: allMatters.filter((m) => m.status === 'active').length,
         teamMembers: teamRes.count || 0,
         documentsCount: docsRes.count || 0,
       });
@@ -88,8 +97,8 @@ export default function FirmDashboard() {
 
   return (
     <AuthGuard>
-      <RoleGuard 
-        requireWorkspaceType="firm" 
+      <RoleGuard
+        requireWorkspaceType="firm"
         requireWorkspaceRole={['firm_owner', 'firm_admin', 'firm_staff']}
         fallbackPath="/"
       >
@@ -119,8 +128,12 @@ export default function FirmDashboard() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Total Matters</dt>
-                          <dd className="text-2xl font-semibold text-gray-900">{stats.totalMatters}</dd>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Total Matters
+                          </dt>
+                          <dd className="text-2xl font-semibold text-gray-900">
+                            {stats.totalMatters}
+                          </dd>
                         </dl>
                       </div>
                     </div>
@@ -135,8 +148,12 @@ export default function FirmDashboard() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Active Matters</dt>
-                          <dd className="text-2xl font-semibold text-green-600">{stats.activeMatters}</dd>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Active Matters
+                          </dt>
+                          <dd className="text-2xl font-semibold text-green-600">
+                            {stats.activeMatters}
+                          </dd>
                         </dl>
                       </div>
                     </div>
@@ -151,8 +168,12 @@ export default function FirmDashboard() {
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Team Members</dt>
-                          <dd className="text-2xl font-semibold text-gray-900">{stats.teamMembers}</dd>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Team Members
+                          </dt>
+                          <dd className="text-2xl font-semibold text-gray-900">
+                            {stats.teamMembers}
+                          </dd>
                         </dl>
                       </div>
                     </div>
@@ -168,7 +189,9 @@ export default function FirmDashboard() {
                       <div className="ml-5 w-0 flex-1">
                         <dl>
                           <dt className="text-sm font-medium text-gray-500 truncate">Documents</dt>
-                          <dd className="text-2xl font-semibold text-gray-900">{stats.documentsCount}</dd>
+                          <dd className="text-2xl font-semibold text-gray-900">
+                            {stats.documentsCount}
+                          </dd>
                         </dl>
                       </div>
                     </div>
@@ -195,7 +218,9 @@ export default function FirmDashboard() {
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                       </div>
                     ) : matters.length === 0 ? (
-                      <p className="text-gray-500 text-center py-8">No matters yet. Create your first matter to get started.</p>
+                      <p className="text-gray-500 text-center py-8">
+                        No matters yet. Create your first matter to get started.
+                      </p>
                     ) : (
                       <ul className="divide-y divide-gray-200">
                         {matters.map((matter) => (
@@ -203,12 +228,18 @@ export default function FirmDashboard() {
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center">
-                                  <h4 className="text-sm font-medium text-gray-900">{matter.title}</h4>
-                                  <span className={`ml-3 px-2 py-1 text-xs font-medium rounded-full ${
-                                    matter.status === 'active' ? 'bg-green-100 text-green-800' :
-                                    matter.status === 'closed' ? 'bg-gray-100 text-gray-800' :
-                                    'bg-yellow-100 text-yellow-800'
-                                  }`}>
+                                  <h4 className="text-sm font-medium text-gray-900">
+                                    {matter.title}
+                                  </h4>
+                                  <span
+                                    className={`ml-3 px-2 py-1 text-xs font-medium rounded-full ${
+                                      matter.status === 'active'
+                                        ? 'bg-green-100 text-green-800'
+                                        : matter.status === 'closed'
+                                          ? 'bg-gray-100 text-gray-800'
+                                          : 'bg-yellow-100 text-yellow-800'
+                                    }`}
+                                  >
                                     {matter.status}
                                   </span>
                                 </div>

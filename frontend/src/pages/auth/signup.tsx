@@ -136,14 +136,15 @@ export default function Signup() {
                     placeholder="••••••••"
                   />
                 </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Must be at least 8 characters
-                </p>
+                <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters</p>
               </div>
 
               {/* Confirm Password */}
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Confirm password
                 </label>
                 <div className="mt-1 relative">
@@ -186,7 +187,10 @@ export default function Signup() {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Already have an account?{' '}
-                <Link href="/auth/login" className="font-medium text-primary-600 hover:text-primary-500">
+                <Link
+                  href="/auth/login"
+                  className="font-medium text-primary-600 hover:text-primary-500"
+                >
                   Sign in
                 </Link>
               </p>

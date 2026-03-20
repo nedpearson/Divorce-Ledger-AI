@@ -23,12 +23,11 @@ Welcome to Divorce Ledger AI! This tour will guide you through the key features 
 ### 1. Dashboard Overview
 
 ![Dashboard Screenshot](public/images/dashboard.png)
-*The main dashboard provides a summary of your cases, recent activity, and quick access to core modules.*
+_The main dashboard provides a summary of your cases, recent activity, and quick access to core modules._
 
 ### 2. Case Management
 
 ![Case Management Screenshot](public/images/case-management.png)
-
 
 <div align="center">
 	<img src="public/images/branding-logo.png" alt="Divorce Ledger AI Logo" width="180" />
@@ -86,7 +85,6 @@ Welcome to Divorce Ledger AI! This tour will guide you through the key features 
 </div>
 
 ---
-
 
 ---
 

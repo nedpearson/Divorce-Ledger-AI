@@ -1,7 +1,7 @@
-import { db } from './db';
+import { db } from '../db';
 import { violations, users, evidenceFiles, cases, type EvidenceFile } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
-import { tierEnforcementService } from './tier-enforcement';
+import { tierEnforcementService } from '../tier-enforcement';
 
 export interface MediaFile {
   id: string;
@@ -29,15 +29,14 @@ export interface ViolationMediaData {
 }
 
 const TIER_FILE_LIMITS = {
-  free: 10 * 1024 * 1024,        // 10MB
-  individual: 50 * 1024 * 1024,  // 50MB
-  pro: 100 * 1024 * 1024,        // 100MB
-  team: 250 * 1024 * 1024,       // 250MB
+  free: 10 * 1024 * 1024, // 10MB
+  individual: 50 * 1024 * 1024, // 50MB
+  pro: 100 * 1024 * 1024, // 100MB
+  team: 250 * 1024 * 1024, // 250MB
   enterprise: 500 * 1024 * 1024, // 500MB
 };
 
 export class MediaService {
-  
   getMaxFileSizeForTier(tier: string): number {
     return TIER_FILE_LIMITS[tier as keyof typeof TIER_FILE_LIMITS] || TIER_FILE_LIMITS.free;
   }
@@ -66,22 +65,25 @@ export class MediaService {
       console.warn(`Tier Warning: ${tierCheck.warning}`);
     }
 
-    const [evidence] = await db.insert(evidenceFiles).values({
-      violationId,
-      userId,
-      fileName,
-      fileType,
-      fileSize: fileSizeBytes,
-      objectPath: `media/${violationId}/${fileName}`,
-      environment,
-      evidenceSource: 'media_upload',
-      evidenceMetadata: {
-        mimeType,
-        durationSeconds,
-        processingStatus: 'pending',
-        uploadTimestamp: new Date().toISOString(),
-      },
-    }).returning();
+    const [evidence] = await db
+      .insert(evidenceFiles)
+      .values({
+        violationId,
+        userId,
+        fileName,
+        fileType,
+        fileSize: fileSizeBytes,
+        objectPath: `media/${violationId}/${fileName}`,
+        environment,
+        evidenceSource: 'media_upload',
+        evidenceMetadata: {
+          mimeType,
+          durationSeconds,
+          processingStatus: 'pending',
+          uploadTimestamp: new Date().toISOString(),
+        },
+      })
+      .returning();
 
     await tierEnforcementService.logUsageMetrics(userId, environment);
 
@@ -90,8 +92,9 @@ export class MediaService {
   }
 
   async saveTranscript(violationId: string, transcript: string): Promise<void> {
-    await db.update(violations)
-      .set({ 
+    await db
+      .update(violations)
+      .set({
         audioTranscript: transcript,
       })
       .where(eq(violations.id, violationId));
@@ -100,9 +103,7 @@ export class MediaService {
   }
 
   async classifyViolation(violationId: string): Promise<any> {
-    const [violation] = await db.select()
-      .from(violations)
-      .where(eq(violations.id, violationId));
+    const [violation] = await db.select().from(violations).where(eq(violations.id, violationId));
 
     if (!violation?.audioTranscript) {
       throw new Error('No transcript available for classification');
@@ -110,15 +111,18 @@ export class MediaService {
 
     const classification = this.analyzeTranscript(violation.audioTranscript);
 
-    await db.update(violations)
-      .set({ 
+    await db
+      .update(violations)
+      .set({
         aiClassification: classification.type,
         severityScore: classification.severity,
         aiConfidenceScore: classification.confidence,
       })
       .where(eq(violations.id, violationId));
 
-    console.log(`Violation classified: ${classification.type} (Severity: ${classification.severity}, Confidence: ${classification.confidence})`);
+    console.log(
+      `Violation classified: ${classification.type} (Severity: ${classification.severity}, Confidence: ${classification.confidence})`
+    );
     return classification;
   }
 
@@ -127,7 +131,15 @@ export class MediaService {
 
     const patterns: Record<string, { keywords: string[]; threshold: number }> = {
       harassment: {
-        keywords: ['constant', 'repeated', "won't stop", 'every day', 'always', "can't handle", 'fed up'],
+        keywords: [
+          'constant',
+          'repeated',
+          "won't stop",
+          'every day',
+          'always',
+          "can't handle",
+          'fed up',
+        ],
         threshold: 0.4,
       },
       control: {
@@ -151,7 +163,7 @@ export class MediaService {
     const scores: Record<string, number> = {};
 
     for (const [type, pattern] of Object.entries(patterns)) {
-      const matches = pattern.keywords.filter(keyword => lowerTranscript.includes(keyword));
+      const matches = pattern.keywords.filter((keyword) => lowerTranscript.includes(keyword));
       const matchRate = matches.length / pattern.keywords.length;
 
       if (matchRate >= pattern.threshold) {
@@ -187,27 +199,28 @@ export class MediaService {
   }
 
   async getMediaForViolation(violationId: string): Promise<ViolationMediaData> {
-    const [violation] = await db.select()
-      .from(violations)
-      .where(eq(violations.id, violationId));
+    const [violation] = await db.select().from(violations).where(eq(violations.id, violationId));
 
     if (!violation) {
       throw new Error(`Violation ${violationId} not found`);
     }
 
-    const mediaFiles = await db.select()
+    const mediaFiles = await db
+      .select()
       .from(evidenceFiles)
-      .where(and(
-        eq(evidenceFiles.violationId, violationId),
-        eq(evidenceFiles.evidenceSource, 'media_upload')
-      ));
+      .where(
+        and(
+          eq(evidenceFiles.violationId, violationId),
+          eq(evidenceFiles.evidenceSource, 'media_upload')
+        )
+      );
 
     let totalDuration = 0;
     const formattedFiles = mediaFiles.map((m: EvidenceFile) => {
       const metadata = (m.evidenceMetadata as Record<string, unknown>) || {};
       const duration = metadata.durationSeconds as number | undefined;
       if (duration) totalDuration += duration;
-      
+
       return {
         id: m.id,
         violationId: m.violationId,
@@ -218,7 +231,8 @@ export class MediaService {
         storageUrl: m.objectPath || '',
         durationSeconds: duration,
         transcript: metadata.transcript as string | undefined,
-        processingStatus: (metadata.processingStatus as MediaFile['processingStatus']) || 'completed',
+        processingStatus:
+          (metadata.processingStatus as MediaFile['processingStatus']) || 'completed',
       };
     });
 
@@ -237,19 +251,29 @@ export class MediaService {
 
   private extractKeyPhrases(transcript: string): string[] {
     if (!transcript) return [];
-    
+
     const keywords = [
-      'permission', 'children', 'custody', 'agreement', 
-      'frustrated', 'threatening', 'abuse', 'scared',
-      'court order', 'violation', 'money', 'hiding',
+      'permission',
+      'children',
+      'custody',
+      'agreement',
+      'frustrated',
+      'threatening',
+      'abuse',
+      'scared',
+      'court order',
+      'violation',
+      'money',
+      'hiding',
     ];
-    
+
     const lowerTranscript = transcript.toLowerCase();
-    return keywords.filter(kw => lowerTranscript.includes(kw));
+    return keywords.filter((kw) => lowerTranscript.includes(kw));
   }
 
   async getViolationsThisMonth(userId: string): Promise<number> {
-    const result = await db.select({ count: sql<number>`count(*)` })
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
       .from(violations)
       .where(
         and(
@@ -262,7 +286,8 @@ export class MediaService {
   }
 
   async getViolationsThisMonthByCase(caseId: string): Promise<number> {
-    const result = await db.select({ count: sql<number>`count(*)` })
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
       .from(violations)
       .where(
         and(
@@ -274,10 +299,10 @@ export class MediaService {
     return Number(result[0]?.count || 0);
   }
 
-  async updateUserTierMetrics(userId: string): Promise<{ totalViolations: number; recommendedTier: string }> {
-    const userCases = await db.select()
-      .from(cases)
-      .where(eq(cases.userId, userId));
+  async updateUserTierMetrics(
+    userId: string
+  ): Promise<{ totalViolations: number; recommendedTier: string }> {
+    const userCases = await db.select().from(cases).where(eq(cases.userId, userId));
 
     let totalViolations = 0;
 
@@ -295,11 +320,14 @@ export class MediaService {
       recommendedTier = 'individual';
     }
 
-    await db.update(users)
+    await db
+      .update(users)
       .set({ violationsCountThisMonth: totalViolations })
       .where(eq(users.id, userId));
 
-    console.log(`Updated tier metrics for user ${userId}: ${totalViolations} violations, recommended: ${recommendedTier}`);
+    console.log(
+      `Updated tier metrics for user ${userId}: ${totalViolations} violations, recommended: ${recommendedTier}`
+    );
 
     return { totalViolations, recommendedTier };
   }

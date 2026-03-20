@@ -53,10 +53,13 @@ serve(async (req) => {
     });
 
     // Extract IP and user agent from request if not provided
-    const finalIpAddress = ip_address || req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const finalIpAddress =
+      ip_address || req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     const finalUserAgent = user_agent || req.headers.get('user-agent') || 'unknown';
 
-    console.log(`Logging audit event: ${action} on ${resource_type} by user ${user_id || 'system'}`);
+    console.log(
+      `Logging audit event: ${action} on ${resource_type} by user ${user_id || 'system'}`
+    );
 
     // Insert audit log
     const { data, error } = await supabase
@@ -141,7 +144,7 @@ async function sendWebhookNotifications(auditLog: any, supabase: any): Promise<v
 
     if (webhookUrl) {
       console.log('Sending webhook notification to:', webhookUrl);
-      
+
       await fetch(webhookUrl, {
         method: 'POST',
         headers: {
@@ -156,7 +159,7 @@ async function sendWebhookNotifications(auditLog: any, supabase: any): Promise<v
 
     if (slackWebhookUrl) {
       console.log('Sending Slack notification');
-      
+
       const slackMessage = {
         text: `🚨 Critical Audit Event`,
         blocks: [
@@ -224,14 +227,14 @@ async function sendEmailNotification(auditLog: any, supabase: any): Promise<void
   try {
     // Get user email
     const { data: userData } = await supabase.auth.admin.getUserById(auditLog.user_id);
-    
+
     if (!userData?.user?.email) {
       return;
     }
 
     // In production, integrate with email service (SendGrid, Mailgun, etc.)
     console.log(`Would send email notification to: ${userData.user.email}`);
-    
+
     // Example: Using Supabase Edge Function to send email
     // await supabase.functions.invoke('send-email', {
     //   body: {

@@ -11,12 +11,7 @@ export const documentTypeEnum = z.enum([
 ]);
 
 // Document status enum
-export const documentStatusEnum = z.enum([
-  'pending',
-  'processing',
-  'classified',
-  'failed',
-]);
+export const documentStatusEnum = z.enum(['pending', 'processing', 'classified', 'failed']);
 
 // Create document schema
 export const createDocumentSchema = z.object({

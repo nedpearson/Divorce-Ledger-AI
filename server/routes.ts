@@ -1,35 +1,40 @@
-import type { Express, Request, Response, NextFunction } from "express";
-import { createServer, type Server } from "http";
-import { z } from "zod";
-import { eq, or, lt, sql } from "drizzle-orm";
-import rateLimit from "express-rate-limit";
-import crypto from "crypto";
-import { db } from "./db";
-import { users } from "@shared/schema";
-import { storage, seedDemoData, seedTestUsers, TEST_USERS } from "./storage";
-import { resetDemoEnvironment, eraseDemoData, eraseEnvironmentData, isTestEnvironment } from "./demo-reset";
-import { isLiveMode, isDemoMode } from "./config";
-import { generateCourtFilingPDF, generateWatermarkedCourtFilingPDF } from "./pdf-export";
-import { mediaService } from "./media-service";
-import { tierEnforcementService, TierEnforcementService } from "./tier-enforcement";
-import { billingService, BillingService } from "./billing-service";
-import { tierMigrationService } from "./tier-migration-service";
-import { quotaResetService } from "./quota-reset-service";
-import { analyticsService } from "./analytics-service";
-import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import analyticsRoutes from "./routes/analytics.routes";
-import healthRoutes from "./routes/health.routes";
-import quickbooksRoutes from "./routes/quickbooks.routes";
-import etlRoutes from "./routes/etl.routes";
-import eventsRoutes from "./routes/events.routes";
-import docsRoutes from "./routes/docs.routes";
-import dataQualityRoutes from "./routes/data-quality.routes";
-import analyticsDashboardRoutes from "./routes/analytics-dashboard.routes";
-import governanceRoutes from "./routes/governance.routes";
-import fireflyRoutes from "./routes/firefly";
-import appwriteRoutes from "./routes/appwrite.routes";
-import workspaceBillingRoutes from "./routes/workspace-billing.routes";
-import platformAdminRoutes from "./routes/platform-admin.routes";
+import type { Express, Request, Response, NextFunction } from 'express';
+import { createServer, type Server } from 'http';
+import { z } from 'zod';
+import { eq, or, lt, sql } from 'drizzle-orm';
+import rateLimit from 'express-rate-limit';
+import crypto from 'crypto';
+import { db } from './db';
+import { users } from '@shared/schema';
+import { storage, seedDemoData, seedTestUsers, TEST_USERS } from './storage';
+import {
+  resetDemoEnvironment,
+  eraseDemoData,
+  eraseEnvironmentData,
+  isTestEnvironment,
+} from './demo-reset';
+import { isLiveMode, isDemoMode } from './config';
+import { generateCourtFilingPDF, generateWatermarkedCourtFilingPDF } from './pdf-export';
+import { mediaService } from './services/media-service';
+import { tierEnforcementService, TierEnforcementService } from './tier-enforcement';
+import { billingService, BillingService } from './services/billing-service';
+import { tierMigrationService } from './services/tier-migration-service';
+import { quotaResetService } from './services/quota-reset-service';
+import { analyticsService } from './services/analytics-service';
+import { registerObjectStorageRoutes } from './replit_integrations/object_storage';
+import analyticsRoutes from './routes/analytics.routes';
+import healthRoutes from './routes/health.routes';
+import quickbooksRoutes from './routes/quickbooks.routes';
+import etlRoutes from './routes/etl.routes';
+import eventsRoutes from './routes/events.routes';
+import docsRoutes from './routes/docs.routes';
+import dataQualityRoutes from './routes/data-quality.routes';
+import analyticsDashboardRoutes from './routes/analytics-dashboard.routes';
+import governanceRoutes from './routes/governance.routes';
+import fireflyRoutes from './routes/firefly';
+import appwriteRoutes from './routes/appwrite.routes';
+import workspaceBillingRoutes from './routes/workspace-billing.routes';
+import platformAdminRoutes from './routes/platform-admin.routes';
 import {
   canCreateCase,
   canAddViolation,
@@ -46,18 +51,45 @@ import {
   getRemainingMediaUploads,
   getMaxVideoLength,
   canUseAIClassification,
-} from "@shared/tier-utils";
-import { SUBSCRIPTION_TIERS, DOCUMENT_CATEGORIES, type User, type DocumentCategory, insertW2RecordSchema, adminMfaChallenges } from "@shared/schema";
-import { analyzeDocument, classifyViolation, getMockDocumentAnalysis, extractFinancialData } from "./services/ai-document.service";
-import { analyzeDocumentWithIntake, mapDocTypeToCategory, mapCategoryToRecordType, type DocumentIntakeResult, documentIntakeResultSchema } from "./services/document-intake.service";
-import { analyzeDocumentImage, analyzeViolationImage, transcribeVoiceNote } from "./services/ai-capture.service";
-import { processDocumentUploadEvent, executeOrchestratorActions, type DocumentUploadEvent, type OrchestratorResponse } from "./services/intake-orchestrator.service";
+} from '@shared/tier-utils';
+import {
+  SUBSCRIPTION_TIERS,
+  DOCUMENT_CATEGORIES,
+  type User,
+  type DocumentCategory,
+  insertW2RecordSchema,
+  adminMfaChallenges,
+} from '@shared/schema';
+import {
+  analyzeDocument,
+  classifyViolation,
+  getMockDocumentAnalysis,
+  extractFinancialData,
+} from './services/ai-document.service';
+import {
+  analyzeDocumentWithIntake,
+  mapDocTypeToCategory,
+  mapCategoryToRecordType,
+  type DocumentIntakeResult,
+  documentIntakeResultSchema,
+} from './services/document-intake.service';
+import {
+  analyzeDocumentImage,
+  analyzeViolationImage,
+  transcribeVoiceNote,
+} from './services/ai-capture.service';
+import {
+  processDocumentUploadEvent,
+  executeOrchestratorActions,
+  type DocumentUploadEvent,
+  type OrchestratorResponse,
+} from './services/intake-orchestrator.service';
 
-import { requireAuth, requireAdmin } from "./middleware/authz";
+import { requireAuth, requireAdmin } from './middleware/authz';
 
 function resolveWorkspaceId(req: Request): string | undefined {
   const contextId = (req as any).workspace?.id as string | undefined;
-  const headerId = req.headers["x-workspace-id"] as string | undefined;
+  const headerId = req.headers['x-workspace-id'] as string | undefined;
   const queryId = req.query.workspaceId as string | undefined;
   const bodyId = (req as any).body?.workspaceId as string | undefined;
   return contextId || headerId || queryId || bodyId;
@@ -68,7 +100,7 @@ function resolveWorkspaceId(req: Request): string | undefined {
 const loginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10000, // effectively unlimited; real guard is the skip function below
-  message: { error: "Too many login attempts. Please try again in 15 minutes." },
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
   // Skip rate limiting in development mode (checked at request time so .env is loaded)
@@ -142,7 +174,15 @@ const createAlertSchema = z.object({
 });
 
 const createViolationSchema = z.object({
-  type: z.enum(["custody", "financial_hiding", "property_damage", "child_neglect", "court_order", "harassment", "other"]),
+  type: z.enum([
+    'custody',
+    'financial_hiding',
+    'property_damage',
+    'child_neglect',
+    'court_order',
+    'harassment',
+    'other',
+  ]),
   description: z.string().min(10).max(5000),
   location: z.string().max(500).optional().nullable(),
   mediaUrls: z.array(z.string()).optional().nullable(),
@@ -155,7 +195,7 @@ const createViolationSchema = z.object({
 
 const createMessageSchema = z.object({
   senderId: z.string().min(1),
-  senderRole: z.enum(["client", "attorney", "cpa", "admin"]),
+  senderRole: z.enum(['client', 'attorney', 'cpa', 'admin']),
   senderName: z.string().min(1),
   content: z.string().min(1).max(10000),
   attachmentUrl: z.string().url().nullable().optional(),
@@ -225,13 +265,13 @@ async function transcribeVoiceWithGemini(
     const result = await transcribeVoiceNote(
       audioBase64,
       mimeType,
-      "document",
+      'document',
       workspaceId,
       userId
     );
-    return result.extractedText || "";
+    return result.extractedText || '';
   } catch (error) {
-    console.error("Gemini voice transcription failed:", error);
+    console.error('Gemini voice transcription failed:', error);
     throw error;
   }
 }
@@ -242,15 +282,17 @@ async function analyzeSentimentWithOpenAI(text: string): Promise<{
   hasNegative: boolean;
   topics: string[];
 }> {
-  const OpenAI = (await import("openai")).default;
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY });
+  const OpenAI = (await import('openai')).default;
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  });
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: 'gpt-4o-mini',
       messages: [
         {
-          role: "system",
+          role: 'system',
           content: `You are a sentiment analyzer for divorce-related communications. Analyze the following message and return JSON with:
 - score: number from -1 (very negative) to 1 (very positive)
 - label: "positive", "neutral", or "negative"
@@ -265,27 +307,27 @@ Focus on identifying:
 - Custody or parenting conflicts
 - General negativity or conflict
 
-Be conservative - only flag clearly negative content, not neutral disagreements.`
+Be conservative - only flag clearly negative content, not neutral disagreements.`,
         },
         {
-          role: "user",
-          content: text
-        }
+          role: 'user',
+          content: text,
+        },
       ],
-      response_format: { type: "json_object" },
-      max_tokens: 200
+      response_format: { type: 'json_object' },
+      max_tokens: 200,
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    const result = JSON.parse(response.choices[0].message.content || '{}');
     return {
       score: result.score ?? 0,
-      label: result.label || "neutral",
+      label: result.label || 'neutral',
       hasNegative: result.hasNegative ?? false,
-      topics: result.topics || []
+      topics: result.topics || [],
     };
   } catch (error) {
-    console.error("OpenAI sentiment analysis failed:", error);
-    return { score: 0, label: "neutral", hasNegative: false, topics: [] };
+    console.error('OpenAI sentiment analysis failed:', error);
+    return { score: 0, label: 'neutral', hasNegative: false, topics: [] };
   }
 }
 
@@ -293,68 +335,71 @@ async function generateSentimentReportSummary(
   negativeMessages: Array<{ content: string; senderName: string; createdAt: Date }>,
   topicBreakdown: Record<string, any[]>
 ): Promise<{ summary: string; recommendations: string }> {
-  const OpenAI = (await import("openai")).default;
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY });
+  const OpenAI = (await import('openai')).default;
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  });
 
   try {
     const topics = Object.keys(topicBreakdown);
-    const messagesSummary = negativeMessages.slice(0, 20).map(m =>
-      `- ${m.senderName} (${new Date(m.createdAt).toLocaleDateString()}): "${m.content.substring(0, 200)}..."`
-    ).join("\n");
+    const messagesSummary = negativeMessages
+      .slice(0, 20)
+      .map(
+        (m) =>
+          `- ${m.senderName} (${new Date(m.createdAt).toLocaleDateString()}): "${m.content.substring(0, 200)}..."`
+      )
+      .join('\n');
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: 'gpt-4o-mini',
       messages: [
         {
-          role: "system",
+          role: 'system',
           content: `You are a professional family counselor/mediator preparing a communication analysis report for use by therapists, mediators, or legal counsel. Provide an objective, professional summary of negative communication patterns. Return JSON with:
 - summary: A professional 2-3 paragraph summary of the communication patterns observed, suitable for inclusion in a therapeutic or legal report
-- recommendations: Specific, actionable recommendations for improving communication, suitable for a family therapist or mediator`
+- recommendations: Specific, actionable recommendations for improving communication, suitable for a family therapist or mediator`,
         },
         {
-          role: "user",
+          role: 'user',
           content: `Analyze these negative communication patterns:
 
-Topics of conflict: ${topics.join(", ")}
+Topics of conflict: ${topics.join(', ')}
 Number of negative messages: ${negativeMessages.length}
 
 Sample messages:
 ${messagesSummary}
 
 Topic breakdown:
-${JSON.stringify(topicBreakdown, null, 2)}`
-        }
+${JSON.stringify(topicBreakdown, null, 2)}`,
+        },
       ],
-      response_format: { type: "json_object" },
-      max_tokens: 800
+      response_format: { type: 'json_object' },
+      max_tokens: 800,
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    const result = JSON.parse(response.choices[0].message.content || '{}');
     return {
-      summary: result.summary || "Analysis complete.",
-      recommendations: result.recommendations || "Consider working with a professional mediator."
+      summary: result.summary || 'Analysis complete.',
+      recommendations: result.recommendations || 'Consider working with a professional mediator.',
     };
   } catch (error) {
-    console.error("OpenAI report summary generation failed:", error);
+    console.error('OpenAI report summary generation failed:', error);
     return {
       summary: `Found ${negativeMessages.length} negative messages across ${Object.keys(topicBreakdown).length} topics.`,
-      recommendations: "Review the detailed breakdown below for specific patterns."
+      recommendations: 'Review the detailed breakdown below for specific patterns.',
     };
   }
 }
 
-import { cronScheduler } from "./cron-scheduler";
+import { cronScheduler } from './cron-scheduler';
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
+export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   // Seed demo data and test users on startup
   try {
     await seedDemoData();
     await seedTestUsers();
   } catch (err: any) {
-    console.error("Failed to seed demo/test data:", err.message);
+    console.error('Failed to seed demo/test data:', err.message);
   }
 
   // Register object storage routes for evidence file uploads
@@ -370,7 +415,7 @@ export async function registerRoutes(
   });
 
   // Apply general API rate limiting
-  app.use("/api", apiRateLimiter);
+  app.use('/api', apiRateLimiter);
 
   // Register health check routes
   app.use('/api', healthRoutes);
@@ -382,28 +427,30 @@ export async function registerRoutes(
   // Platform Super Admin routes — gated by requirePlatformAdmin middleware
   app.use('/api/superadmin', platformAdminRoutes);
 
-  app.post("/api/admin/demo-reset", async (req, res) => {
+  app.post('/api/admin/demo-reset', async (req, res) => {
     // CRITICAL: Block in live mode
     if (isLiveMode()) {
-      console.error(`[SECURITY] BLOCKED: /api/admin/demo-reset attempt in LIVE mode from IP: ${req.ip}`);
+      console.error(
+        `[SECURITY] BLOCKED: /api/admin/demo-reset attempt in LIVE mode from IP: ${req.ip}`
+      );
       return res.status(403).json({
-        error: "BLOCKED: Demo reset is disabled in live/production mode",
-        code: "LIVE_MODE_PROTECTED"
+        error: 'BLOCKED: Demo reset is disabled in live/production mode',
+        code: 'LIVE_MODE_PROTECTED',
       });
     }
 
     if (!isDemoMode()) {
-      return res.status(403).json({ error: "Demo reset only available in demo mode" });
+      return res.status(403).json({ error: 'Demo reset only available in demo mode' });
     }
 
     if (!req.isAuthenticated() || !req.user?.isAdmin) {
-      return res.status(403).json({ message: "Admin access required" });
+      return res.status(403).json({ message: 'Admin access required' });
     }
     try {
       await eraseDemoData();
-      res.json({ message: "Demo environment reset successfully" });
+      res.json({ message: 'Demo environment reset successfully' });
     } catch (error: any) {
-      console.error("Demo reset error:", error);
+      console.error('Demo reset error:', error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -422,7 +469,7 @@ export async function registerRoutes(
     const taskMap: Record<string, string> = {
       'reset-quotas': 'Reset Monthly Quotas',
       'process-billing': 'Process Monthly Billings',
-      'apply-migrations': 'Apply Pending Tier Migrations'
+      'apply-migrations': 'Apply Pending Tier Migrations',
     };
 
     const actualTaskName = taskMap[taskName];
@@ -483,16 +530,23 @@ export async function registerRoutes(
     console.log('✅ API Documentation & ETL Routes Loaded');
   } else {
     // Return graceful 404s/501s or just bypass for these namespaces
-    app.use(['/api/quickbooks', '/api/firefly', '/api/appwrite', '/api/etl', '/api/docs'], (req, res) => {
-      res.status(501).json({ error: "Integration not enabled locally. Set ENABLE_OPTIONAL_INTEGRATIONS=true" });
-    });
+    app.use(
+      ['/api/quickbooks', '/api/firefly', '/api/appwrite', '/api/etl', '/api/docs'],
+      (req, res) => {
+        res.status(501).json({
+          error: 'Integration not enabled locally. Set ENABLE_OPTIONAL_INTEGRATIONS=true',
+        });
+      }
+    );
   }
 
   // Helper to generate remember-me token with password binding for invalidation
   // Password hash is used in HMAC key so token becomes invalid when password changes
   const REMEMBER_ME_SECRET = process.env.REMEMBER_ME_SECRET || process.env.SESSION_SECRET;
   if (!REMEMBER_ME_SECRET) {
-    console.warn('⚠️ REMEMBER_ME_SECRET not set - using fallback. Set SESSION_SECRET or REMEMBER_ME_SECRET for production.');
+    console.warn(
+      '⚠️ REMEMBER_ME_SECRET not set - using fallback. Set SESSION_SECRET or REMEMBER_ME_SECRET for production.'
+    );
   }
   const REMEMBER_ME_BASE_KEY = REMEMBER_ME_SECRET || 'divorceledger-dev-secret-not-for-production';
   const REMEMBER_ME_EXPIRY_DAYS = 30;
@@ -500,7 +554,7 @@ export async function registerRoutes(
   function generateRememberMeToken(userId: string, passwordHash: string): string {
     const payload = {
       userId,
-      exp: Date.now() + REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60 * 1000
+      exp: Date.now() + REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
     };
     const data = Buffer.from(JSON.stringify(payload)).toString('base64');
     // Include full password hash in HMAC key - any password change invalidates all tokens
@@ -532,9 +586,12 @@ export async function registerRoutes(
   // a session on a phone after scanning a QR code from the desktop app.
   const MOBILE_LINK_SECRET = process.env.MOBILE_LINK_SECRET || process.env.SESSION_SECRET;
   if (!MOBILE_LINK_SECRET) {
-    console.warn('⚠️ MOBILE_LINK_SECRET not set - using fallback. Set SESSION_SECRET or MOBILE_LINK_SECRET for production.');
+    console.warn(
+      '⚠️ MOBILE_LINK_SECRET not set - using fallback. Set SESSION_SECRET or MOBILE_LINK_SECRET for production.'
+    );
   }
-  const MOBILE_LINK_KEY = MOBILE_LINK_SECRET || 'divorceledger-mobile-dev-secret-not-for-production';
+  const MOBILE_LINK_KEY =
+    MOBILE_LINK_SECRET || 'divorceledger-mobile-dev-secret-not-for-production';
   const MOBILE_LINK_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
   interface MobileLinkPayload {
@@ -593,12 +650,18 @@ export async function registerRoutes(
     }
   }
 
-  app.get("/api/auth/demo-auto-login", async (req, res) => {
+  app.get('/api/auth/demo-auto-login', async (req, res) => {
     try {
-      if (process.env.DEMO_MODE !== 'true') return res.redirect("/login");
-      const email = (process.env.DEMO_EMAIL !== 'demo@example.com' && process.env.DEMO_EMAIL ? process.env.DEMO_EMAIL : 'client.demo@example.com').trim().toLowerCase();
+      if (process.env.DEMO_MODE !== 'true') return res.redirect('/login');
+      const email = (
+        process.env.DEMO_EMAIL !== 'demo@example.com' && process.env.DEMO_EMAIL
+          ? process.env.DEMO_EMAIL
+          : 'client.demo@example.com'
+      )
+        .trim()
+        .toLowerCase();
       const user = await storage.getUserByEmail(email);
-      if (!user) return res.redirect("/login");
+      if (!user) return res.redirect('/login');
 
       const refreshTokenHash = crypto.randomBytes(32).toString('hex');
       const session = await storage.createSession({
@@ -616,22 +679,22 @@ export async function registerRoutes(
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        path: '/'
+        path: '/',
       });
-      res.redirect("/");
+      res.redirect('/');
     } catch (e) {
       console.error(e);
-      res.redirect("/login");
+      res.redirect('/login');
     }
   });
 
-  app.post("/api/auth/login", loginRateLimiter, async (req, res) => {
+  app.post('/api/auth/login', loginRateLimiter, async (req, res) => {
     try {
       const { email: rawEmail, password, environment, rememberMe } = req.body;
 
       // Validate input
       if (!rawEmail || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
+        return res.status(400).json({ error: 'Email and password are required' });
       }
 
       // Normalize email consistently (must match bootstrap normalization)
@@ -645,7 +708,7 @@ export async function registerRoutes(
       if (!user) {
         console.log(`[AUTH] User not found: ${email}`);
         // Generic error to prevent user enumeration
-        return res.status(401).json({ error: "Incorrect email or password" });
+        return res.status(401).json({ error: 'Incorrect email or password' });
       }
 
       console.log(`[AUTH] User found: ${user.id} (${email})`);
@@ -653,12 +716,16 @@ export async function registerRoutes(
       // Check if user is suspended
       if (user.status === 'suspended') {
         console.log(`[AUTH] Login blocked - user suspended: ${email}`);
-        return res.status(403).json({ error: "Your account has been suspended. Please contact support." });
+        return res
+          .status(403)
+          .json({ error: 'Your account has been suspended. Please contact support.' });
       }
 
       if (user.status !== 'active') {
         console.log(`[AUTH] Login blocked - user status '${user.status}': ${email}`);
-        return res.status(403).json({ error: "Your account is not active. Please contact support." });
+        return res
+          .status(403)
+          .json({ error: 'Your account is not active. Please contact support.' });
       }
 
       // Verify password
@@ -669,17 +736,17 @@ export async function registerRoutes(
       let passwordValid: boolean;
 
       if (isDemoUser) {
-        const demoPassword = process.env.DEMO_PASSWORD || "demo1234";
+        const demoPassword = process.env.DEMO_PASSWORD || 'demo1234';
         passwordValid = password === demoPassword;
       } else {
-        const { verifyPassword } = await import("./auth");
+        const { verifyPassword } = await import('./auth');
         passwordValid = await verifyPassword(password, user.password);
       }
 
       if (!passwordValid) {
         console.log(`[AUTH] Password verification failed for ${email}`);
         // Generic error to prevent user enumeration
-        return res.status(401).json({ error: "Incorrect email or password" });
+        return res.status(401).json({ error: 'Incorrect email or password' });
       }
 
       console.log(`[AUTH] Password verification succeeded for ${email}`);
@@ -721,7 +788,7 @@ export async function registerRoutes(
           });
 
           if (!smsResult.success) {
-            console.error("Failed to send 2FA SMS:", smsResult.error);
+            console.error('Failed to send 2FA SMS:', smsResult.error);
             // Fall back to allowing login without 2FA if SMS fails
             // (could be Twilio not configured in test)
           } else {
@@ -747,12 +814,12 @@ export async function registerRoutes(
               requires2fa: true,
               userId: user.id,
               maskedPhone: maskPhoneNumber(phoneNumber),
-              environment: user.environment || environment || "demo",
+              environment: user.environment || environment || 'demo',
               rememberMe: !!rememberMe,
             });
           }
         } catch (smsError) {
-          console.error("2FA SMS error (falling back to direct login):", smsError);
+          console.error('2FA SMS error (falling back to direct login):', smsError);
           // Fall through to complete login without 2FA if SMS system fails
         }
       }
@@ -764,7 +831,7 @@ export async function registerRoutes(
       const { password: _, ...userWithoutPassword } = user;
 
       // Use the user's stored environment (important for test users who have their own sandbox)
-      const userEnvironment = user.environment || environment || "demo";
+      const userEnvironment = user.environment || environment || 'demo';
 
       // Create session and device record for non-2FA login
       const userAgent = req.headers['user-agent'] || 'Unknown';
@@ -793,17 +860,19 @@ export async function registerRoutes(
 
       // Create session with 30-day expiry
       const refreshTokenHash = crypto.randomBytes(32).toString('hex');
-      const session = await storage.createSession({
-        userId: user.id,
-        deviceId: device?.id || null,
-        refreshTokenHash,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        ipAddress,
-        mfaVerified: false,
-      }).catch(err => {
-        console.error("Session creation failed:", err);
-        throw err;
-      });
+      const session = await storage
+        .createSession({
+          userId: user.id,
+          deviceId: device?.id || null,
+          refreshTokenHash,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          ipAddress,
+          mfaVerified: false,
+        })
+        .catch((err) => {
+          console.error('Session creation failed:', err);
+          throw err;
+        });
 
       console.log(`[AUTH] Created session ${session.id} for user ${user.id}`);
 
@@ -816,7 +885,7 @@ export async function registerRoutes(
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        path: '/'
+        path: '/',
       });
 
       // Explicitly set headers for frontend to catch
@@ -842,13 +911,13 @@ export async function registerRoutes(
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
           maxAge: REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
-          path: '/'
+          path: '/',
         });
       }
 
       return res.json({
         user: userWithoutPassword,
-        environment: userEnvironment
+        environment: userEnvironment,
       });
     } catch (error: any) {
       const traceId = `login_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
@@ -861,21 +930,24 @@ export async function registerRoutes(
         traceId,
       });
       // Distinguish DB-unavailable errors from generic failures
-      const isDbDown = error?.message?.includes('Tenant or user not found')
-        || error?.message?.includes('ENOTFOUND')
-        || error?.message?.includes('ECONNREFUSED')
-        || error?.message?.includes('database not available')
-        || error?.code === 'ECONNREFUSED'
-        || error?.code === 'ENOTFOUND';
+      const isDbDown =
+        error?.message?.includes('Tenant or user not found') ||
+        error?.message?.includes('ENOTFOUND') ||
+        error?.message?.includes('ECONNREFUSED') ||
+        error?.message?.includes('database not available') ||
+        error?.code === 'ECONNREFUSED' ||
+        error?.code === 'ENOTFOUND';
       if (isDbDown) {
-        return res.status(503).json({ error: "Database is temporarily unavailable. Please try again in a moment." });
+        return res
+          .status(503)
+          .json({ error: 'Database is temporarily unavailable. Please try again in a moment.' });
       }
-      res.status(500).json({ error: "Login failed. Please try again." });
+      res.status(500).json({ error: 'Login failed. Please try again.' });
     }
   });
 
   // Session restore from remember-me cookie or session_id cookie (2FA)
-  app.get("/api/auth/session", async (req, res) => {
+  app.get('/api/auth/session', async (req, res) => {
     try {
       const rememberMeToken = req.cookies?.remember_me;
       const sessionId = req.cookies?.session_id;
@@ -888,19 +960,19 @@ export async function registerRoutes(
           if (user) {
             if (user.status === 'suspended') {
               res.clearCookie('session_id', { path: '/' });
-              return res.status(403).json({ error: "Account suspended" });
+              return res.status(403).json({ error: 'Account suspended' });
             }
 
             // Update session activity
             await storage.updateSession(sessionId, {
-              lastActivityAt: new Date()
+              lastActivityAt: new Date(),
             });
             await storage.updateUserLastLogin(user.id);
 
             const { password: _, ...userWithoutPassword } = user;
             return res.json({
               user: userWithoutPassword,
-              environment: user.environment || 'demo'
+              environment: user.environment || 'demo',
             });
           }
         }
@@ -910,7 +982,7 @@ export async function registerRoutes(
 
       // Fall back to remember_me token (non-2FA direct login)
       if (!rememberMeToken) {
-        return res.status(401).json({ error: "No session" });
+        return res.status(401).json({ error: 'No session' });
       }
 
       // First decode to get userId (without verification)
@@ -921,14 +993,14 @@ export async function registerRoutes(
         userId = payload.userId;
       } catch {
         res.clearCookie('remember_me', { path: '/' });
-        return res.status(401).json({ error: "Invalid session format" });
+        return res.status(401).json({ error: 'Invalid session format' });
       }
 
       // Lookup user to get password hash for verification
       const user = await storage.getUser(userId);
       if (!user) {
         res.clearCookie('remember_me', { path: '/' });
-        return res.status(401).json({ error: "User not found" });
+        return res.status(401).json({ error: 'User not found' });
       }
 
       // Now verify token with user's current password hash
@@ -936,13 +1008,13 @@ export async function registerRoutes(
       const verified = verifyRememberMeToken(rememberMeToken, user.password);
       if (!verified) {
         res.clearCookie('remember_me', { path: '/' });
-        return res.status(401).json({ error: "Session expired" });
+        return res.status(401).json({ error: 'Session expired' });
       }
 
       // Check if user is suspended
       if (user.status === 'suspended') {
         res.clearCookie('remember_me', { path: '/' });
-        return res.status(403).json({ error: "Account suspended" });
+        return res.status(403).json({ error: 'Account suspended' });
       }
 
       // Update last login
@@ -958,22 +1030,22 @@ export async function registerRoutes(
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
-        path: '/'
+        path: '/',
       });
 
       const { password: _, ...userWithoutPassword } = user;
       res.json({
         user: userWithoutPassword,
-        environment: userEnvironment
+        environment: userEnvironment,
       });
     } catch (error) {
-      console.error("Session restore error:", error);
-      res.status(500).json({ error: "Session restore failed" });
+      console.error('Session restore error:', error);
+      res.status(500).json({ error: 'Session restore failed' });
     }
   });
 
   // Logout - clear remember-me cookie and session
-  app.post("/api/auth/logout", async (req, res) => {
+  app.post('/api/auth/logout', async (req, res) => {
     const rememberMeToken = req.cookies?.remember_me;
     const sessionId = req.cookies?.session_id;
 
@@ -1028,11 +1100,11 @@ export async function registerRoutes(
 
   // Generate a short-lived mobile link token for the currently authenticated user.
   // This is called from the desktop app to embed into a QR code.
-  app.post("/api/mobile/link", requireAuth, async (req, res) => {
+  app.post('/api/mobile/link', requireAuth, async (req, res) => {
     try {
       const user = req.user;
       if (!user) {
-        return res.status(401).json({ error: "Authentication required" });
+        return res.status(401).json({ error: 'Authentication required' });
       }
 
       const issuedAt = Date.now();
@@ -1047,36 +1119,40 @@ export async function registerRoutes(
 
       return res.json({ token, expiresAt });
     } catch (error) {
-      console.error("Mobile link generation error:", error);
-      return res.status(500).json({ error: "Failed to generate mobile link" });
+      console.error('Mobile link generation error:', error);
+      return res.status(500).json({ error: 'Failed to generate mobile link' });
     }
   });
 
   // Complete mobile authentication from a deep-link token.
   // This endpoint is called by the mobile browser after scanning the QR.
-  app.get("/api/mobile/auth/complete", async (req, res) => {
+  app.get('/api/mobile/auth/complete', async (req, res) => {
     try {
       const token = req.query.token as string | undefined;
       if (!token) {
-        return res.status(400).json({ error: "Token is required" });
+        return res.status(400).json({ error: 'Token is required' });
       }
 
       const payload = decodeMobileLinkToken(token);
       if (!payload) {
-        return res.status(400).json({ error: "Invalid or expired token" });
+        return res.status(400).json({ error: 'Invalid or expired token' });
       }
 
       const user = await storage.getUser(payload.userId);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
 
       if (user.status === 'suspended') {
-        return res.status(403).json({ error: "Your account has been suspended. Please contact support." });
+        return res
+          .status(403)
+          .json({ error: 'Your account has been suspended. Please contact support.' });
       }
 
       if (user.status !== 'active') {
-        return res.status(403).json({ error: "Your account is not active. Please contact support." });
+        return res
+          .status(403)
+          .json({ error: 'Your account is not active. Please contact support.' });
       }
 
       // Create a normal session for the mobile device, similar to /api/auth/login.
@@ -1104,17 +1180,19 @@ export async function registerRoutes(
       }
 
       const refreshTokenHash = crypto.randomBytes(32).toString('hex');
-      const session = await storage.createSession({
-        userId: user.id,
-        deviceId: device?.id || null,
-        refreshTokenHash,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        ipAddress,
-        mfaVerified: true,
-      }).catch(err => {
-        console.error("Mobile link session creation failed:", err);
-        throw err;
-      });
+      const session = await storage
+        .createSession({
+          userId: user.id,
+          deviceId: device?.id || null,
+          refreshTokenHash,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          ipAddress,
+          mfaVerified: true,
+        })
+        .catch((err) => {
+          console.error('Mobile link session creation failed:', err);
+          throw err;
+        });
 
       // Clear any existing session cookie before setting a new one
       res.clearCookie('session_id', { path: '/' });
@@ -1147,8 +1225,8 @@ export async function registerRoutes(
         environment,
       });
     } catch (error) {
-      console.error("Mobile auth complete error:", error);
-      return res.status(500).json({ error: "Failed to complete mobile login" });
+      console.error('Mobile auth complete error:', error);
+      return res.status(500).json({ error: 'Failed to complete mobile login' });
     }
   });
 
@@ -1163,26 +1241,28 @@ export async function registerRoutes(
     sendVerificationSms,
     maskPhoneNumber,
     parseUserAgent,
-    hashFingerprint
+    hashFingerprint,
   } = await import('./sms');
 
   // Send 2FA code via SMS
-  app.post("/api/auth/2fa/send", loginRateLimiter, async (req, res) => {
+  app.post('/api/auth/2fa/send', loginRateLimiter, async (req, res) => {
     try {
       const { userId, phoneNumber } = req.body;
 
       if (!userId) {
-        return res.status(400).json({ error: "User ID required" });
+        return res.status(400).json({ error: 'User ID required' });
       }
 
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
 
       const phone = phoneNumber || user.phoneNumber;
       if (!phone) {
-        return res.status(400).json({ error: "No phone number on file. Please add a phone number first." });
+        return res
+          .status(400)
+          .json({ error: 'No phone number on file. Please add a phone number first.' });
       }
 
       // Check for existing active challenge
@@ -1192,15 +1272,18 @@ export async function registerRoutes(
           ? Date.now() - new Date(existingChallenge.lastResendAt).getTime()
           : 60000;
 
-        if (timeSinceLastResend < 30000) { // 30 second cooldown
+        if (timeSinceLastResend < 30000) {
+          // 30 second cooldown
           return res.status(429).json({
-            error: "Please wait before requesting another code",
-            retryAfter: Math.ceil((30000 - timeSinceLastResend) / 1000)
+            error: 'Please wait before requesting another code',
+            retryAfter: Math.ceil((30000 - timeSinceLastResend) / 1000),
           });
         }
 
         if (existingChallenge.resendCount >= 5) {
-          return res.status(429).json({ error: "Too many resend attempts. Please try again later." });
+          return res
+            .status(429)
+            .json({ error: 'Too many resend attempts. Please try again later.' });
         }
       }
 
@@ -1232,7 +1315,7 @@ export async function registerRoutes(
           userAgent: req.headers['user-agent'],
           metadata: { error: smsResult.error },
         });
-        return res.status(500).json({ error: "Failed to send verification code" });
+        return res.status(500).json({ error: 'Failed to send verification code' });
       }
 
       // Create or update MFA challenge
@@ -1267,33 +1350,35 @@ export async function registerRoutes(
 
       res.json({
         success: true,
-        message: "Verification code sent",
+        message: 'Verification code sent',
         maskedPhone: maskPhoneNumber(phone),
         expiresIn: 600, // 10 minutes in seconds
       });
     } catch (error) {
-      console.error("2FA send error:", error);
-      res.status(500).json({ error: "Failed to send verification code" });
+      console.error('2FA send error:', error);
+      res.status(500).json({ error: 'Failed to send verification code' });
     }
   });
 
   // Verify 2FA code
-  app.post("/api/auth/2fa/verify", loginRateLimiter, async (req, res) => {
+  app.post('/api/auth/2fa/verify', loginRateLimiter, async (req, res) => {
     try {
       const { userId, code, deviceFingerprint, rememberMe } = req.body;
 
       if (!userId || !code) {
-        return res.status(400).json({ error: "User ID and code required" });
+        return res.status(400).json({ error: 'User ID and code required' });
       }
 
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
 
       const challenge = await storage.getActiveMfaChallenge(userId);
       if (!challenge) {
-        return res.status(400).json({ error: "No active verification challenge. Please request a new code." });
+        return res
+          .status(400)
+          .json({ error: 'No active verification challenge. Please request a new code.' });
       }
 
       // Check attempt count
@@ -1307,7 +1392,9 @@ export async function registerRoutes(
           riskScore: 80,
           riskFactors: ['max_attempts_exceeded'],
         });
-        return res.status(429).json({ error: "Too many failed attempts. Please request a new code." });
+        return res
+          .status(429)
+          .json({ error: 'Too many failed attempts. Please request a new code.' });
       }
 
       // Increment attempts
@@ -1327,8 +1414,8 @@ export async function registerRoutes(
 
         const remainingAttempts = challenge.maxAttempts - challenge.attemptCount - 1;
         return res.status(400).json({
-          error: "Invalid verification code",
-          remainingAttempts
+          error: 'Invalid verification code',
+          remainingAttempts,
         });
       }
 
@@ -1386,7 +1473,7 @@ export async function registerRoutes(
             userAgent,
             riskScore: 90,
           });
-          return res.status(403).json({ error: "This device has been blocked. Contact support." });
+          return res.status(403).json({ error: 'This device has been blocked. Contact support.' });
         }
 
         // Mark device as trusted if rememberMe is enabled
@@ -1434,7 +1521,7 @@ export async function registerRoutes(
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: sessionExpiryDays * 24 * 60 * 60 * 1000,
-        path: '/'
+        path: '/',
       });
 
       // Log successful verification
@@ -1468,24 +1555,24 @@ export async function registerRoutes(
         routine: error?.routine,
         traceId,
       });
-      res.status(500).json({ error: "Verification failed. Please try again." });
+      res.status(500).json({ error: 'Verification failed. Please try again.' });
     }
   });
 
   // Get user's devices
-  app.get("/api/security/devices", async (req, res) => {
+  app.get('/api/security/devices', async (req, res) => {
     try {
       const userId = req.headers['x-user-id'] as string;
       if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const devices = await storage.getUserDevices(userId);
       const sessions = await storage.getActiveSessionsForUser(userId);
 
       // Map sessions to devices
-      const devicesWithSessions = devices.map(device => {
-        const activeSessions = sessions.filter(s => s.deviceId === device.id);
+      const devicesWithSessions = devices.map((device) => {
+        const activeSessions = sessions.filter((s) => s.deviceId === device.id);
         return {
           ...device,
           activeSessions: activeSessions.length,
@@ -1495,27 +1582,27 @@ export async function registerRoutes(
 
       res.json({ devices: devicesWithSessions });
     } catch (error) {
-      console.error("Get devices error:", error);
-      res.status(500).json({ error: "Failed to get devices" });
+      console.error('Get devices error:', error);
+      res.status(500).json({ error: 'Failed to get devices' });
     }
   });
 
   // Block/unblock device
-  app.post("/api/security/devices/:id/block", async (req, res) => {
+  app.post('/api/security/devices/:id/block', async (req, res) => {
     try {
       const userId = req.headers['x-user-id'] as string;
       if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const { id } = req.params;
       const { block } = req.body;
 
       const devices = await storage.getUserDevices(userId);
-      const device = devices.find(d => d.id === id);
+      const device = devices.find((d) => d.id === id);
 
       if (!device) {
-        return res.status(404).json({ error: "Device not found" });
+        return res.status(404).json({ error: 'Device not found' });
       }
 
       if (block) {
@@ -1540,27 +1627,27 @@ export async function registerRoutes(
         userAgent: req.headers['user-agent'],
       });
 
-      res.json({ success: true, message: block ? "Device blocked" : "Device unblocked" });
+      res.json({ success: true, message: block ? 'Device blocked' : 'Device unblocked' });
     } catch (error) {
-      console.error("Block device error:", error);
-      res.status(500).json({ error: "Failed to update device" });
+      console.error('Block device error:', error);
+      res.status(500).json({ error: 'Failed to update device' });
     }
   });
 
   // Get user's sessions
-  app.get("/api/security/sessions", async (req, res) => {
+  app.get('/api/security/sessions', async (req, res) => {
     try {
       const userId = req.headers['x-user-id'] as string;
       if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const sessions = await storage.getActiveSessionsForUser(userId);
       const devices = await storage.getUserDevices(userId);
 
       // Enrich sessions with device info
-      const sessionsWithDevices = sessions.map(session => {
-        const device = devices.find(d => d.id === session.deviceId);
+      const sessionsWithDevices = sessions.map((session) => {
+        const device = devices.find((d) => d.id === session.deviceId);
         return {
           id: session.id,
           deviceName: device?.deviceName || 'Unknown Device',
@@ -1576,25 +1663,25 @@ export async function registerRoutes(
 
       res.json({ sessions: sessionsWithDevices });
     } catch (error) {
-      console.error("Get sessions error:", error);
-      res.status(500).json({ error: "Failed to get sessions" });
+      console.error('Get sessions error:', error);
+      res.status(500).json({ error: 'Failed to get sessions' });
     }
   });
 
   // Revoke a specific session (logout from device)
-  app.post("/api/security/sessions/:id/revoke", async (req, res) => {
+  app.post('/api/security/sessions/:id/revoke', async (req, res) => {
     try {
       const userId = req.headers['x-user-id'] as string;
       if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const { id } = req.params;
       const sessions = await storage.getUserSessions(userId);
-      const session = sessions.find(s => s.id === id);
+      const session = sessions.find((s) => s.id === id);
 
       if (!session) {
-        return res.status(404).json({ error: "Session not found" });
+        return res.status(404).json({ error: 'Session not found' });
       }
 
       await storage.revokeSession(id, 'user_revoke');
@@ -1609,19 +1696,19 @@ export async function registerRoutes(
         metadata: { revokedBy: 'user' },
       });
 
-      res.json({ success: true, message: "Session logged out" });
+      res.json({ success: true, message: 'Session logged out' });
     } catch (error) {
-      console.error("Revoke session error:", error);
-      res.status(500).json({ error: "Failed to revoke session" });
+      console.error('Revoke session error:', error);
+      res.status(500).json({ error: 'Failed to revoke session' });
     }
   });
 
   // Logout all other sessions
-  app.post("/api/security/sessions/revoke-all", async (req, res) => {
+  app.post('/api/security/sessions/revoke-all', async (req, res) => {
     try {
       const userId = req.headers['x-user-id'] as string;
       if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const currentSessionId = req.cookies?.session_id;
@@ -1635,19 +1722,19 @@ export async function registerRoutes(
         userAgent: req.headers['user-agent'],
       });
 
-      res.json({ success: true, message: "All other sessions logged out" });
+      res.json({ success: true, message: 'All other sessions logged out' });
     } catch (error) {
-      console.error("Revoke all sessions error:", error);
-      res.status(500).json({ error: "Failed to revoke sessions" });
+      console.error('Revoke all sessions error:', error);
+      res.status(500).json({ error: 'Failed to revoke sessions' });
     }
   });
 
   // Get security events (user's login history)
-  app.get("/api/security/events", async (req, res) => {
+  app.get('/api/security/events', async (req, res) => {
     try {
       const userId = req.headers['x-user-id'] as string;
       if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const limit = parseInt(req.query.limit as string) || 50;
@@ -1655,27 +1742,29 @@ export async function registerRoutes(
 
       res.json({ events });
     } catch (error) {
-      console.error("Get security events error:", error);
-      res.status(500).json({ error: "Failed to get security events" });
+      console.error('Get security events error:', error);
+      res.status(500).json({ error: 'Failed to get security events' });
     }
   });
 
   // Update phone number (requires current session)
-  app.post("/api/security/phone", async (req, res) => {
+  app.post('/api/security/phone', async (req, res) => {
     try {
       const userId = req.headers['x-user-id'] as string;
       if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const { phoneNumber } = req.body;
       if (!phoneNumber) {
-        return res.status(400).json({ error: "Phone number required" });
+        return res.status(400).json({ error: 'Phone number required' });
       }
 
       // Validate E.164 format
       if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
-        return res.status(400).json({ error: "Invalid phone number format. Use international format: +1234567890" });
+        return res
+          .status(400)
+          .json({ error: 'Invalid phone number format. Use international format: +1234567890' });
       }
 
       await storage.updateUserPhone(userId, phoneNumber);
@@ -1691,33 +1780,35 @@ export async function registerRoutes(
 
       res.json({
         success: true,
-        message: "Phone number updated. Please verify your new number.",
+        message: 'Phone number updated. Please verify your new number.',
         maskedPhone: maskPhoneNumber(phoneNumber),
       });
     } catch (error) {
-      console.error("Update phone error:", error);
-      res.status(500).json({ error: "Failed to update phone number" });
+      console.error('Update phone error:', error);
+      res.status(500).json({ error: 'Failed to update phone number' });
     }
   });
 
   // Enable/disable 2FA
-  app.post("/api/security/2fa/settings", async (req, res) => {
+  app.post('/api/security/2fa/settings', async (req, res) => {
     try {
       const userId = req.headers['x-user-id'] as string;
       if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const { enabled, method = 'sms' } = req.body;
 
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
 
       // If enabling 2FA, require verified phone
       if (enabled && !user.phoneVerifiedAt) {
-        return res.status(400).json({ error: "Please verify your phone number before enabling 2FA" });
+        return res
+          .status(400)
+          .json({ error: 'Please verify your phone number before enabling 2FA' });
       }
 
       if (enabled) {
@@ -1737,11 +1828,13 @@ export async function registerRoutes(
 
       res.json({
         success: true,
-        message: enabled ? "Two-factor authentication enabled" : "Two-factor authentication disabled"
+        message: enabled
+          ? 'Two-factor authentication enabled'
+          : 'Two-factor authentication disabled',
       });
     } catch (error) {
-      console.error("2FA settings error:", error);
-      res.status(500).json({ error: "Failed to update 2FA settings" });
+      console.error('2FA settings error:', error);
+      res.status(500).json({ error: 'Failed to update 2FA settings' });
     }
   });
 
@@ -1758,56 +1851,58 @@ export async function registerRoutes(
   console.log('   POST /api/security/2fa/settings');
 
   // Sign up - create new user account
-  app.post("/api/auth/signup", loginRateLimiter, async (req, res) => {
+  app.post('/api/auth/signup', loginRateLimiter, async (req, res) => {
     try {
       const { email, password, fullName, phoneNumber, environment } = req.body;
 
       // Validate required fields
       if (!email || !password || !fullName || !phoneNumber) {
-        return res.status(400).json({ error: "Email, password, full name, and phone number are required" });
+        return res
+          .status(400)
+          .json({ error: 'Email, password, full name, and phone number are required' });
       }
 
       // Validate phone number format (E.164)
       const phoneRegex = /^\+[1-9]\d{10,14}$/;
       if (!phoneRegex.test(phoneNumber)) {
-        return res.status(400).json({ error: "Invalid phone number format" });
+        return res.status(400).json({ error: 'Invalid phone number format' });
       }
 
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: "Invalid email format" });
+        return res.status(400).json({ error: 'Invalid email format' });
       }
 
       // Validate password strength
       if (password.length < 8) {
-        return res.status(400).json({ error: "Password must be at least 8 characters" });
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
       }
 
       // Validate full name
       if (fullName.length < 2) {
-        return res.status(400).json({ error: "Full name must be at least 2 characters" });
+        return res.status(400).json({ error: 'Full name must be at least 2 characters' });
       }
 
       // Check if email already exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
-        return res.status(400).json({ error: "An account with this email already exists" });
+        return res.status(400).json({ error: 'An account with this email already exists' });
       }
 
       // Hash password
-      const { hashPassword } = await import("./auth");
+      const { hashPassword } = await import('./auth');
       const hashedPassword = await hashPassword(password);
 
       // Check if this is the super admin email
-      const SUPER_ADMIN_EMAIL = "nedpearson@gmail.com";
+      const SUPER_ADMIN_EMAIL = 'nedpearson@gmail.com';
       const isAdminUser = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 
       // Determine the correct environment
       // For live signups, generate a unique live environment ID (live-xxxx format)
       // Demo users get the shared "demo" environment
-      let userEnvironment = environment || "demo";
-      if (userEnvironment === "live") {
+      let userEnvironment = environment || 'demo';
+      if (userEnvironment === 'live') {
         // Generate unique live environment ID for data isolation
         userEnvironment = `live-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
       }
@@ -1819,17 +1914,17 @@ export async function registerRoutes(
         fullName,
         phoneNumber,
         twoFactorEnabled: true,
-        role: isAdminUser ? "admin" : "client",
+        role: isAdminUser ? 'admin' : 'client',
         isAdmin: isAdminUser,
         environment: userEnvironment,
       });
 
       // Send welcome email with BCC to admin
       try {
-        const { sendWelcomeEmail } = await import("./email");
+        const { sendWelcomeEmail } = await import('./email');
         await sendWelcomeEmail(email.toLowerCase(), fullName);
       } catch (emailError) {
-        console.error("Failed to send welcome email:", emailError);
+        console.error('Failed to send welcome email:', emailError);
       }
 
       // Return user data (password excluded)
@@ -1840,100 +1935,107 @@ export async function registerRoutes(
       res.status(201).json({
         user: userWithoutPassword,
         environment: userEnvironment,
-        message: "Account created successfully"
+        message: 'Account created successfully',
       });
     } catch (error) {
-      console.error("Signup error:", error);
-      res.status(500).json({ error: "Failed to create account" });
+      console.error('Signup error:', error);
+      res.status(500).json({ error: 'Failed to create account' });
     }
   });
 
   // Get current user profile
-  app.get("/api/auth/me", async (req, res) => {
+  app.get('/api/auth/me', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const user = await storage.getUser(userId);
 
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
 
       const { password: _, ...userWithoutPassword } = user;
       res.json({ user: userWithoutPassword });
     } catch (error) {
-      console.error("Get profile error:", error);
-      res.status(500).json({ error: "Failed to get profile" });
+      console.error('Get profile error:', error);
+      res.status(500).json({ error: 'Failed to get profile' });
     }
   });
 
   // Update user profile
-  app.patch("/api/auth/profile", async (req, res) => {
+  app.patch('/api/auth/profile', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const { fullName, email, profilePhoto } = req.body;
 
       // Validate input
-      if (fullName !== undefined && (typeof fullName !== "string" || fullName.length < 2)) {
-        return res.status(400).json({ error: "Full name must be at least 2 characters" });
+      if (fullName !== undefined && (typeof fullName !== 'string' || fullName.length < 2)) {
+        return res.status(400).json({ error: 'Full name must be at least 2 characters' });
       }
 
       if (email !== undefined) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-          return res.status(400).json({ error: "Invalid email format" });
+          return res.status(400).json({ error: 'Invalid email format' });
         }
 
         // Check if email is already taken by another user
         const existingUser = await storage.getUserByEmail(email);
         if (existingUser && existingUser.id !== userId) {
-          return res.status(400).json({ error: "Email is already in use" });
+          return res.status(400).json({ error: 'Email is already in use' });
         }
       }
 
-      const updatedUser = await storage.updateUserProfile(userId, { fullName, email, profilePhoto });
+      const updatedUser = await storage.updateUserProfile(userId, {
+        fullName,
+        email,
+        profilePhoto,
+      });
 
       if (!updatedUser) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
 
       const { password: _, ...userWithoutPassword } = updatedUser;
       res.json({ user: userWithoutPassword });
     } catch (error) {
-      console.error("Update profile error:", error);
-      res.status(500).json({ error: "Failed to update profile" });
+      console.error('Update profile error:', error);
+      res.status(500).json({ error: 'Failed to update profile' });
     }
   });
 
   // Change password
-  app.post("/api/auth/change-password", async (req, res) => {
+  app.post('/api/auth/change-password', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const { currentPassword, newPassword } = req.body;
 
       if (!currentPassword || !newPassword) {
-        return res.status(400).json({ error: "Current password and new password are required" });
+        return res.status(400).json({ error: 'Current password and new password are required' });
       }
 
       if (newPassword.length < 6) {
-        return res.status(400).json({ error: "New password must be at least 6 characters" });
+        return res.status(400).json({ error: 'New password must be at least 6 characters' });
       }
 
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
 
-      const { isPasswordHashed, hashPassword, verifyPassword } = await import("./auth");
+      const { isPasswordHashed, hashPassword, verifyPassword } = await import('./auth');
 
       // Verify current password
       if (isPasswordHashed(user.password)) {
         const passwordValid = await verifyPassword(currentPassword, user.password);
         if (!passwordValid) {
-          return res.status(401).json({ error: "Current password is incorrect" });
+          return res.status(401).json({ error: 'Current password is incorrect' });
         }
       } else {
         if (currentPassword !== user.password) {
-          return res.status(401).json({ error: "Current password is incorrect" });
+          return res.status(401).json({ error: 'Current password is incorrect' });
         }
       }
 
@@ -1941,37 +2043,39 @@ export async function registerRoutes(
       const hashedPassword = await hashPassword(newPassword);
       await storage.updateUserPassword(userId, hashedPassword);
 
-      res.json({ success: true, message: "Password changed successfully" });
+      res.json({ success: true, message: 'Password changed successfully' });
     } catch (error) {
-      console.error("Change password error:", error);
-      res.status(500).json({ error: "Failed to change password" });
+      console.error('Change password error:', error);
+      res.status(500).json({ error: 'Failed to change password' });
     }
   });
 
   // Forgot password - send reset email
-  app.post("/api/auth/forgot-password", loginRateLimiter, async (req, res) => {
+  app.post('/api/auth/forgot-password', loginRateLimiter, async (req, res) => {
     try {
       const { email } = req.body;
 
       if (!email) {
-        return res.status(400).json({ error: "Email is required" });
+        return res.status(400).json({ error: 'Email is required' });
       }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: "Invalid email format" });
+        return res.status(400).json({ error: 'Invalid email format' });
       }
 
       const user = await storage.getUserByEmail(email.toLowerCase());
 
       // Always return success message for security (don't reveal if email exists)
       if (!user) {
-        return res.json({ message: "If an account exists with this email, you will receive a password reset link." });
+        return res.json({
+          message: 'If an account exists with this email, you will receive a password reset link.',
+        });
       }
 
       // Generate reset token
-      const crypto = await import("crypto");
-      const resetToken = crypto.randomBytes(32).toString("hex");
+      const crypto = await import('crypto');
+      const resetToken = crypto.randomBytes(32).toString('hex');
       const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
       // Store reset token
@@ -1979,76 +2083,85 @@ export async function registerRoutes(
 
       // Send reset email
       try {
-        const { sendPasswordResetEmail } = await import("./email");
+        const { sendPasswordResetEmail } = await import('./email');
         await sendPasswordResetEmail(user.email, user.fullName, resetToken);
       } catch (emailError) {
-        console.error("Failed to send password reset email:", emailError);
-        return res.status(500).json({ error: "Failed to send password reset email. Please try again." });
+        console.error('Failed to send password reset email:', emailError);
+        return res
+          .status(500)
+          .json({ error: 'Failed to send password reset email. Please try again.' });
       }
 
-      res.json({ message: "If an account exists with this email, you will receive a password reset link." });
+      res.json({
+        message: 'If an account exists with this email, you will receive a password reset link.',
+      });
     } catch (error) {
-      console.error("Forgot password error:", error);
-      res.status(500).json({ error: "Failed to process password reset request" });
+      console.error('Forgot password error:', error);
+      res.status(500).json({ error: 'Failed to process password reset request' });
     }
   });
 
   // Reset password with token
-  app.post("/api/auth/reset-password", async (req, res) => {
+  app.post('/api/auth/reset-password', async (req, res) => {
     try {
       const { token, newPassword } = req.body;
 
       if (!token || !newPassword) {
-        return res.status(400).json({ error: "Token and new password are required" });
+        return res.status(400).json({ error: 'Token and new password are required' });
       }
 
       if (newPassword.length < 8) {
-        return res.status(400).json({ error: "Password must be at least 8 characters" });
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
       }
 
       const user = await storage.getUserByPasswordResetToken(token);
 
       if (!user) {
-        return res.status(400).json({ error: "Invalid or expired reset token" });
+        return res.status(400).json({ error: 'Invalid or expired reset token' });
       }
 
       // Check if token has expired
       if (!user.passwordResetExpires || new Date() > new Date(user.passwordResetExpires)) {
         await storage.clearPasswordResetToken(user.id);
-        return res.status(400).json({ error: "Reset token has expired. Please request a new one." });
+        return res
+          .status(400)
+          .json({ error: 'Reset token has expired. Please request a new one.' });
       }
 
       // Hash and save new password
-      const { hashPassword } = await import("./auth");
+      const { hashPassword } = await import('./auth');
       const hashedPassword = await hashPassword(newPassword);
       await storage.updateUserPassword(user.id, hashedPassword);
 
       // Clear the reset token
       await storage.clearPasswordResetToken(user.id);
 
-      res.json({ success: true, message: "Password has been reset successfully. You can now log in with your new password." });
+      res.json({
+        success: true,
+        message: 'Password has been reset successfully. You can now log in with your new password.',
+      });
     } catch (error) {
-      console.error("Reset password error:", error);
-      res.status(500).json({ error: "Failed to reset password" });
+      console.error('Reset password error:', error);
+      res.status(500).json({ error: 'Failed to reset password' });
     }
   });
 
   // Admin middleware - checks if user is admin
   const requireAdmin = async (req: any, res: any, next: any) => {
-    const userId = req.headers["x-user-id"] as string;
+    const userId = req.headers['x-user-id'] as string;
     if (!userId) {
-      return res.status(401).json({ error: "Authentication required" });
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     const user = await storage.getUser(userId);
     if (!user) {
-      return res.status(401).json({ error: "User not found" });
+      return res.status(401).json({ error: 'User not found' });
     }
 
     // Check if user is admin (email-based or flag-based)
-    const SUPER_ADMIN_EMAIL = "nedpearson@gmail.com";
+    const SUPER_ADMIN_EMAIL = 'nedpearson@gmail.com';
     if (!user.isAdmin && user.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
-      return res.status(403).json({ error: "Admin access required" });
+      return res.status(403).json({ error: 'Admin access required' });
     }
 
     req.adminUser = user;
@@ -2056,12 +2169,12 @@ export async function registerRoutes(
   };
 
   // Admin: Get all users (metadata only, no documents)
-  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+  app.get('/api/admin/users', requireAdmin, async (req, res) => {
     try {
       const allUsers = await storage.getAllUsers();
 
       // Return user metadata only - explicitly exclude any document-related fields
-      const userMetadata = allUsers.map(user => ({
+      const userMetadata = allUsers.map((user) => ({
         id: user.id,
         email: user.email,
         fullName: user.fullName,
@@ -2081,90 +2194,94 @@ export async function registerRoutes(
 
       res.json({ users: userMetadata });
     } catch (error) {
-      console.error("Admin get users error:", error);
-      res.status(500).json({ error: "Failed to fetch users" });
+      console.error('Admin get users error:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
     }
   });
 
   // Admin: Update user status (active/suspended)
-  app.patch("/api/admin/users/:userId/status", requireAdmin, async (req, res) => {
+  app.patch('/api/admin/users/:userId/status', requireAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
       const { status } = req.body;
 
-      if (!["active", "suspended", "pending"].includes(status)) {
-        return res.status(400).json({ error: "Invalid status. Must be 'active', 'suspended', or 'pending'" });
+      if (!['active', 'suspended', 'pending'].includes(status)) {
+        return res
+          .status(400)
+          .json({ error: "Invalid status. Must be 'active', 'suspended', or 'pending'" });
       }
 
       // Prevent admin from suspending themselves
       const adminUser = (req as any).adminUser;
       if (userId === adminUser.id) {
-        return res.status(400).json({ error: "Cannot change your own status" });
+        return res.status(400).json({ error: 'Cannot change your own status' });
       }
 
       await storage.updateUserStatus(userId, status);
       res.json({ success: true, message: `User status updated to ${status}` });
     } catch (error) {
-      console.error("Admin update user status error:", error);
-      res.status(500).json({ error: "Failed to update user status" });
+      console.error('Admin update user status error:', error);
+      res.status(500).json({ error: 'Failed to update user status' });
     }
   });
 
   // Admin: Update user subscription tier
-  app.patch("/api/admin/users/:userId/tier", requireAdmin, async (req, res) => {
+  app.patch('/api/admin/users/:userId/tier', requireAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
       const { tier } = req.body;
 
-      const validTiers = ["free", "individual", "pro", "team", "enterprise"];
+      const validTiers = ['free', 'individual', 'pro', 'team', 'enterprise'];
       if (!validTiers.includes(tier)) {
-        return res.status(400).json({ error: `Invalid tier. Must be one of: ${validTiers.join(", ")}` });
+        return res
+          .status(400)
+          .json({ error: `Invalid tier. Must be one of: ${validTiers.join(', ')}` });
       }
 
       const updatedUser = await storage.updateUserTierAndRole(userId, { subscriptionTier: tier });
       if (!updatedUser) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
 
       res.json({ success: true, message: `User tier updated to ${tier}` });
     } catch (error) {
-      console.error("Admin update user tier error:", error);
-      res.status(500).json({ error: "Failed to update user tier" });
+      console.error('Admin update user tier error:', error);
+      res.status(500).json({ error: 'Failed to update user tier' });
     }
   });
 
   // Admin: Update user role/admin status
-  app.patch("/api/admin/users/:userId/role", requireAdmin, async (req, res) => {
+  app.patch('/api/admin/users/:userId/role', requireAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
       const { isAdmin } = req.body;
 
-      if (typeof isAdmin !== "boolean") {
-        return res.status(400).json({ error: "isAdmin must be a boolean" });
+      if (typeof isAdmin !== 'boolean') {
+        return res.status(400).json({ error: 'isAdmin must be a boolean' });
       }
 
       // Prevent admin from removing their own admin status
       const adminUser = (req as any).adminUser;
       if (userId === adminUser.id && !isAdmin) {
-        return res.status(400).json({ error: "Cannot remove your own admin status" });
+        return res.status(400).json({ error: 'Cannot remove your own admin status' });
       }
 
       await storage.updateUserAdminStatus(userId, isAdmin);
       res.json({ success: true, message: `User admin status updated to ${isAdmin}` });
     } catch (error) {
-      console.error("Admin update user role error:", error);
-      res.status(500).json({ error: "Failed to update user role" });
+      console.error('Admin update user role error:', error);
+      res.status(500).json({ error: 'Failed to update user role' });
     }
   });
 
   // Admin: Get user usage statistics (aggregated, no document content)
-  app.get("/api/admin/users/:userId/usage", requireAdmin, async (req, res) => {
+  app.get('/api/admin/users/:userId/usage', requireAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
       const user = await storage.getUser(userId);
 
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
 
       // Return only aggregated usage data, no document content
@@ -2177,61 +2294,69 @@ export async function registerRoutes(
           subscriptionTier: user.subscriptionTier,
           subscriptionStatus: user.subscriptionStatus,
           billingCycleStart: user.billingCycleStart,
-        }
+        },
       });
     } catch (error) {
-      console.error("Admin get user usage error:", error);
-      res.status(500).json({ error: "Failed to fetch user usage" });
+      console.error('Admin get user usage error:', error);
+      res.status(500).json({ error: 'Failed to fetch user usage' });
     }
   });
 
   // Admin: Reset user monthly usage counts
-  app.post("/api/admin/users/:userId/reset-usage", requireAdmin, async (req, res) => {
+  app.post('/api/admin/users/:userId/reset-usage', requireAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
 
       await storage.resetMonthlyViolationCount(userId);
       await storage.resetMonthlyUsageCounts(userId);
 
-      res.json({ success: true, message: "User monthly usage counts reset" });
+      res.json({ success: true, message: 'User monthly usage counts reset' });
     } catch (error) {
-      console.error("Admin reset user usage error:", error);
-      res.status(500).json({ error: "Failed to reset user usage" });
+      console.error('Admin reset user usage error:', error);
+      res.status(500).json({ error: 'Failed to reset user usage' });
     }
   });
 
-  app.get("/api/dashboard/stats", async (req, res) => {
+  app.get('/api/dashboard/stats', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const stats = await storage.getDashboardStats((req as any).session?.userId || "demo-client-user", environment);
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const stats = await storage.getDashboardStats(
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
       res.json(stats);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch stats" });
+      res.status(500).json({ error: 'Failed to fetch stats' });
     }
   });
 
   // AI Pattern Detection endpoint - analyzes violations for recurring patterns (Pro+ tier)
-  app.get("/api/patterns", async (req, res) => {
+  app.get('/api/patterns', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
 
       // Check tier for AI pattern detection access
-      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
+      const user = await storage.getUser((req as any).session?.userId || 'demo-client-user');
       if (user && !canUseAIPatternDetection(user)) {
         return res.status(403).json({
-          error: "Upgrade required",
-          reason: "AI Pattern Detection requires a Pro plan or higher.",
+          error: 'Upgrade required',
+          reason: 'AI Pattern Detection requires a Pro plan or higher.',
           upgradeRequired: true,
-          feature: "ai_pattern_detection",
+          feature: 'ai_pattern_detection',
         });
       }
 
-      const violations = await storage.getViolations((req as any).session?.userId || "demo-client-user", environment);
+      const violations = await storage.getViolations(
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
 
       interface Pattern {
         type: string;
         description: string;
-        severity: "low" | "moderate" | "high" | "critical";
+        severity: 'low' | 'moderate' | 'high' | 'critical';
         count: number;
         recommendation: string;
         occurrences: Array<{ date: string; description: string }>;
@@ -2252,23 +2377,25 @@ export async function registerRoutes(
       for (const [type, items] of Object.entries(byType)) {
         if (items.length >= 2) {
           // Check for time-based patterns (within 2 weeks)
-          const sorted = items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          const sorted = items.sort(
+            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
           const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
-          const recentItems = sorted.filter(v => new Date(v.timestamp).getTime() > twoWeeksAgo);
+          const recentItems = sorted.filter((v) => new Date(v.timestamp).getTime() > twoWeeksAgo);
 
           if (recentItems.length >= 2) {
-            const typeName = type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-            let severity: Pattern["severity"] = "low";
-            let recommendation = "";
+            const typeName = type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+            let severity: Pattern['severity'] = 'low';
+            let recommendation = '';
 
             if (recentItems.length >= 4) {
-              severity = "critical";
+              severity = 'critical';
               recommendation = `Strong pattern established. Consider filing emergency motion with ${recentItems.length} documented incidents.`;
             } else if (recentItems.length >= 3) {
-              severity = "high";
+              severity = 'high';
               recommendation = `Pattern confirmed. Document one more occurrence to establish grounds for motion.`;
             } else if (recentItems.length >= 2) {
-              severity = "moderate";
+              severity = 'moderate';
               recommendation = `Emerging pattern detected. Continue documenting to strengthen case.`;
             }
 
@@ -2278,7 +2405,7 @@ export async function registerRoutes(
               severity,
               count: recentItems.length,
               recommendation,
-              occurrences: recentItems.map(v => ({
+              occurrences: recentItems.map((v) => ({
                 date: new Date(v.timestamp).toISOString(),
                 description: v.description.substring(0, 100),
               })),
@@ -2297,14 +2424,14 @@ export async function registerRoutes(
 
         for (const [location, locItems] of Object.entries(byLocation)) {
           if (locItems.length >= 2) {
-            const typeName = type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+            const typeName = type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
             patterns.push({
               type: `${type}_location`,
               description: `${typeName} at "${location}" ${locItems.length}x`,
-              severity: locItems.length >= 3 ? "moderate" : "low",
+              severity: locItems.length >= 3 ? 'moderate' : 'low',
               count: locItems.length,
               recommendation: `Same location pattern: ${location}. Document for court presentation.`,
-              occurrences: locItems.map(v => ({
+              occurrences: locItems.map((v) => ({
                 date: new Date(v.timestamp).toISOString(),
                 description: v.description.substring(0, 100),
               })),
@@ -2317,43 +2444,49 @@ export async function registerRoutes(
       const severityOrder = { critical: 0, high: 1, moderate: 2, low: 3 };
       patterns.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 
-      res.json({ patterns, totalViolations: violations.filter(v => !v.isDraft).length });
+      res.json({ patterns, totalViolations: violations.filter((v) => !v.isDraft).length });
     } catch (error) {
-      console.error("Pattern detection failed:", error);
-      res.status(500).json({ error: "Failed to analyze patterns" });
+      console.error('Pattern detection failed:', error);
+      res.status(500).json({ error: 'Failed to analyze patterns' });
     }
   });
 
-  app.get("/api/transactions/recent", async (req, res) => {
+  app.get('/api/transactions/recent', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       console.log(`[API] /transactions/recent -> userId: ${userId}, environment: ${environment}`);
       const transactions = await storage.getRecentTransactions(userId, environment, 7);
       res.json(transactions);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch transactions" });
+      res.status(500).json({ error: 'Failed to fetch transactions' });
     }
   });
 
-  app.get("/api/transactions", async (req, res) => {
+  app.get('/api/transactions', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const transactions = await storage.getTransactions(userId, environment);
       res.json(transactions);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch transactions" });
+      res.status(500).json({ error: 'Failed to fetch transactions' });
     }
   });
 
-  app.post("/api/transactions", async (req, res) => {
+  app.post('/api/transactions', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const parsed = createTransactionSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+        return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
       const transaction = await storage.createTransaction({
         ...parsed.data,
@@ -2362,32 +2495,36 @@ export async function registerRoutes(
       });
       res.json(transaction);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create transaction" });
+      res.status(500).json({ error: 'Failed to create transaction' });
     }
   });
 
-  app.get("/api/assets", async (req, res) => {
+  app.get('/api/assets', async (req, res) => {
     try {
-      const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const headerUserId = req.headers['x-user-id'] as string;
+      const userId =
+        (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       console.log(`[Assets API] Fetching for userId: ${userId}, environment: ${environment}`);
       const assets = await storage.getAssets(userId, environment);
       console.log(`[Assets API] Found ${assets.length} assets`);
       res.json(assets);
     } catch (error) {
-      console.error("[Assets API] Error:", error);
-      res.status(500).json({ error: "Failed to fetch assets" });
+      console.error('[Assets API] Error:', error);
+      res.status(500).json({ error: 'Failed to fetch assets' });
     }
   });
 
-  app.post("/api/assets", async (req, res) => {
+  app.post('/api/assets', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const parsed = createAssetSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+        return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
       const asset = await storage.createAsset({
         ...parsed.data,
@@ -2396,43 +2533,49 @@ export async function registerRoutes(
       });
       res.json(asset);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create asset" });
+      res.status(500).json({ error: 'Failed to create asset' });
     }
   });
 
-  app.delete("/api/assets/:id", async (req, res) => {
+  app.delete('/api/assets/:id', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       await storage.deleteAsset(req.params.id, userId, environment);
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to delete asset" });
+      res.status(500).json({ error: 'Failed to delete asset' });
     }
   });
 
-  app.get("/api/debts", async (req, res) => {
+  app.get('/api/debts', async (req, res) => {
     try {
-      const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const headerUserId = req.headers['x-user-id'] as string;
+      const userId =
+        (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       console.log(`[Debts API] Fetching for userId: ${userId}, environment: ${environment}`);
       const debts = await storage.getDebts(userId, environment);
       console.log(`[Debts API] Found ${debts.length} debts`);
       res.json(debts);
     } catch (error) {
-      console.error("[Debts API] Error:", error);
-      res.status(500).json({ error: "Failed to fetch debts" });
+      console.error('[Debts API] Error:', error);
+      res.status(500).json({ error: 'Failed to fetch debts' });
     }
   });
 
-  app.post("/api/debts", async (req, res) => {
+  app.post('/api/debts', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const parsed = createDebtSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+        return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
       const debt = await storage.createDebt({
         ...parsed.data,
@@ -2441,43 +2584,49 @@ export async function registerRoutes(
       });
       res.json(debt);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create debt" });
+      res.status(500).json({ error: 'Failed to create debt' });
     }
   });
 
-  app.delete("/api/debts/:id", async (req, res) => {
+  app.delete('/api/debts/:id', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       await storage.deleteDebt(req.params.id, userId, environment);
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to delete debt" });
+      res.status(500).json({ error: 'Failed to delete debt' });
     }
   });
 
-  app.get("/api/incomes", async (req, res) => {
+  app.get('/api/incomes', async (req, res) => {
     try {
-      const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const headerUserId = req.headers['x-user-id'] as string;
+      const userId =
+        (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       console.log(`[Incomes API] Fetching for userId: ${userId}, environment: ${environment}`);
       const incomes = await storage.getIncomes(userId, environment);
       console.log(`[Incomes API] Found ${incomes.length} incomes`);
       res.json(incomes);
     } catch (error) {
-      console.error("[Incomes API] Error:", error);
-      res.status(500).json({ error: "Failed to fetch incomes" });
+      console.error('[Incomes API] Error:', error);
+      res.status(500).json({ error: 'Failed to fetch incomes' });
     }
   });
 
-  app.post("/api/incomes", async (req, res) => {
+  app.post('/api/incomes', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const parsed = createIncomeSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+        return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
       const income = await storage.createIncome({
         ...parsed.data,
@@ -2486,43 +2635,49 @@ export async function registerRoutes(
       });
       res.json(income);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create income" });
+      res.status(500).json({ error: 'Failed to create income' });
     }
   });
 
-  app.delete("/api/incomes/:id", async (req, res) => {
+  app.delete('/api/incomes/:id', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       await storage.deleteIncome(req.params.id, userId, environment);
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to delete income" });
+      res.status(500).json({ error: 'Failed to delete income' });
     }
   });
 
-  app.get("/api/expenses", async (req, res) => {
+  app.get('/api/expenses', async (req, res) => {
     try {
-      const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const headerUserId = req.headers['x-user-id'] as string;
+      const userId =
+        (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       console.log(`[Expenses API] Fetching for userId: ${userId}, environment: ${environment}`);
       const expenses = await storage.getExpenses(userId, environment);
       console.log(`[Expenses API] Found ${expenses.length} expenses`);
       res.json(expenses);
     } catch (error) {
-      console.error("[Expenses API] Error:", error);
-      res.status(500).json({ error: "Failed to fetch expenses" });
+      console.error('[Expenses API] Error:', error);
+      res.status(500).json({ error: 'Failed to fetch expenses' });
     }
   });
 
-  app.post("/api/expenses", async (req, res) => {
+  app.post('/api/expenses', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const parsed = createExpenseSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+        return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
       const expense = await storage.createExpense({
         ...parsed.data,
@@ -2531,29 +2686,35 @@ export async function registerRoutes(
       });
       res.json(expense);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create expense" });
+      res.status(500).json({ error: 'Failed to create expense' });
     }
   });
 
-  app.delete("/api/expenses/:id", async (req, res) => {
+  app.delete('/api/expenses/:id', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       await storage.deleteExpense(req.params.id, userId, environment);
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to delete expense" });
+      res.status(500).json({ error: 'Failed to delete expense' });
     }
   });
 
   // Financial Drilldown API - QuickBooks-style detail views
-  app.get("/api/finances/:type", async (req, res) => {
+  app.get('/api/finances/:type', async (req, res) => {
     try {
-      const environment = (req.query.env as string) || (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const userId = (req.headers["x-user-id"] as string) || (req as any).session?.userId;
+      const environment =
+        (req.query.env as string) ||
+        (req.query.environment as string) ||
+        (req.headers['x-environment'] as string) ||
+        'demo';
+      const userId = (req.headers['x-user-id'] as string) || (req as any).session?.userId;
 
       if (!userId) {
-        return res.status(401).json({ error: "Authentication required" });
+        return res.status(401).json({ error: 'Authentication required' });
       }
 
       const { type } = req.params;
@@ -2561,81 +2722,89 @@ export async function registerRoutes(
       let records: unknown[] = [];
 
       switch (type) {
-        case "assets":
+        case 'assets':
           records = await storage.getAssets(userId, environment);
           break;
-        case "debts":
+        case 'debts':
           records = await storage.getDebts(userId, environment);
           break;
-        case "income":
+        case 'income':
           records = await storage.getIncomes(userId, environment);
           break;
-        case "expenses":
+        case 'expenses':
           records = await storage.getExpenses(userId, environment);
           break;
-        case "transactions":
+        case 'transactions':
           records = await storage.getTransactions(userId, environment);
           break;
         default:
-          return res.status(400).json({ error: "Invalid financial type" });
+          return res.status(400).json({ error: 'Invalid financial type' });
       }
 
       res.json({ records });
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch financial records" });
+      res.status(500).json({ error: 'Failed to fetch financial records' });
     }
   });
 
-  app.get("/api/alerts", async (req, res) => {
+  app.get('/api/alerts', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const alerts = await storage.getAlerts(userId, environment);
       res.json(alerts);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch alerts" });
+      res.status(500).json({ error: 'Failed to fetch alerts' });
     }
   });
 
-  app.post("/api/alerts", async (req, res) => {
+  app.post('/api/alerts', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const parsed = createAlertSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+        return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
       const alert = await storage.createAlert({
         ...parsed.data,
-        userId: (req as any).session?.userId || "demo-client-user",
+        userId: (req as any).session?.userId || 'demo-client-user',
         environment,
       });
       res.json(alert);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create alert" });
+      res.status(500).json({ error: 'Failed to create alert' });
     }
   });
 
-  app.patch("/api/alerts/:id/read", async (req, res) => {
+  app.patch('/api/alerts/:id/read', async (req, res) => {
     try {
       await storage.markAlertRead(req.params.id);
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to mark alert as read" });
+      res.status(500).json({ error: 'Failed to mark alert as read' });
     }
   });
 
   // Documents API
-  app.delete("/api/documents/:id", async (req, res) => {
-    const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-client-user";
-    const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+  app.delete('/api/documents/:id', async (req, res) => {
+    const userId =
+      (req as any).session?.userId ||
+      (req as any).session?.userId ||
+      (req.headers['x-user-id'] as string) ||
+      'demo-client-user';
+    const environment =
+      (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
     if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
       const id = req.params.id; // UUID string, not integer
       const doc = await storage.getDocument(id);
       if (!doc || doc.userId !== userId) {
-        return res.status(404).json({ error: "Document not found" });
+        return res.status(404).json({ error: 'Document not found' });
       }
       await storage.deleteDocument(id, userId, environment);
       res.json({ success: true });
@@ -2644,29 +2813,36 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/documents", async (req, res) => {
+  app.get('/api/documents', async (req, res) => {
     try {
-      const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const headerUserId = req.headers['x-user-id'] as string;
+      const userId =
+        (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       console.log(`[Documents API] Fetching for userId: ${userId}, environment: ${environment}`);
       const docs = await storage.getDocuments(userId, environment);
       console.log(`[Documents API] Found ${docs.length} documents`);
       res.json(docs);
     } catch (error) {
-      console.error("[Documents API] Error:", error);
-      res.status(500).json({ error: "Failed to fetch documents" });
+      console.error('[Documents API] Error:', error);
+      res.status(500).json({ error: 'Failed to fetch documents' });
     }
   });
 
-  app.post("/api/documents", async (req, res) => {
+  app.post('/api/documents', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const userId =
+        (req as any).session?.userId ||
+        (req as any).session?.userId ||
+        (req.headers['x-user-id'] as string) ||
+        'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const workspaceId = resolveWorkspaceId(req);
       const parsed = createDocumentSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+        return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
       const doc = await storage.createDocument({
         ...parsed.data,
@@ -2674,18 +2850,25 @@ export async function registerRoutes(
         environment,
       });
 
-      console.log(`[Documents API] Created document: ${doc.id}, title: ${doc.title}, category: ${doc.category}, fileUrl: ${doc.fileUrl || 'none'}`);
+      console.log(
+        `[Documents API] Created document: ${doc.id}, title: ${doc.title}, category: ${doc.category}, fileUrl: ${doc.fileUrl || 'none'}`
+      );
 
       // Warn if document was created without fileUrl (potential upload issue)
       if (!doc.fileUrl && (doc.fileName || doc.fileType)) {
-        console.warn(`[Documents API] WARNING: Document ${doc.id} has fileName/fileType but no fileUrl - file may not have been uploaded correctly`);
+        console.warn(
+          `[Documents API] WARNING: Document ${doc.id} has fileName/fileType but no fileUrl - file may not have been uploaded correctly`
+        );
       }
 
       // Background AI analysis if file info is present or if it's a financial document
       const hasFileInfo = doc.fileUrl && (doc.fileName || doc.fileType);
-      if (doc.category === "financial" || hasFileInfo) {
-        console.log(`[Documents API] Triggering analysis for document: ${doc.id}, fileUrl: ${doc.fileUrl}, fileName: ${doc.fileName}`);
-        const { analyzeAndPersist, isFinancialDocumentType } = await import("./services/analyzeAndPersist");
+      if (doc.category === 'financial' || hasFileInfo) {
+        console.log(
+          `[Documents API] Triggering analysis for document: ${doc.id}, fileUrl: ${doc.fileUrl}, fileName: ${doc.fileName}`
+        );
+        const { analyzeAndPersist, isFinancialDocumentType } =
+          await import('./services/analyzeAndPersist');
 
         // Use a separate async block to not block the response
         (async () => {
@@ -2693,21 +2876,23 @@ export async function registerRoutes(
             // If it has file info, do preliminary analysis first
             if (doc.fileUrl && (doc.fileName || doc.fileType)) {
               // Always trigger analyzeAndPersist for documents with files
-              console.log(`[Documents API] Document has file: ${doc.id} - running analysis pipeline`);
+              console.log(
+                `[Documents API] Document has file: ${doc.id} - running analysis pipeline`
+              );
 
               // Try preliminary analysis if we have fileName and fileType
               if (doc.fileName && doc.fileType) {
                 const analysis = await analyzeDocument(
                   doc.fileName,
                   doc.fileType,
-                  doc.description || "",
+                  doc.description || '',
                   workspaceId,
                   userId
                 );
                 if (analysis && analysis.confidence > 0.6) {
                   await storage.updateDocument(doc.id, {
                     category: analysis.category,
-                    description: `${doc.description || ""}\n\n[AI Analysis]\nSummary: ${analysis.summary}\nTags: ${analysis.suggestedTags.join(", ")}`
+                    description: `${doc.description || ''}\n\n[AI Analysis]\nSummary: ${analysis.summary}\nTags: ${analysis.suggestedTags.join(', ')}`,
                   });
                 }
               }
@@ -2715,65 +2900,81 @@ export async function registerRoutes(
               // Always run full analysis pipeline for documents with files
               console.log(`[Documents API] Running forensic analysis for document: ${doc.id}`);
               await analyzeAndPersist(doc.id, { createRecords: true });
-            } else if (doc.category === "financial") {
+            } else if (doc.category === 'financial') {
               // Even without file info, if user explicitly marked as financial, try to analyze if description contains text
-              console.log(`[Documents API] Document marked as financial: ${doc.id} - triggering forensic analysis`);
+              console.log(
+                `[Documents API] Document marked as financial: ${doc.id} - triggering forensic analysis`
+              );
               await analyzeAndPersist(doc.id, { createRecords: true });
             }
           } catch (err) {
-            console.error("[Documents API] Analysis background error:", err);
+            console.error('[Documents API] Analysis background error:', err);
           }
         })();
       }
 
       res.json(doc);
     } catch (error) {
-      console.error("Failed to create document:", error);
-      res.status(500).json({ error: "Failed to create document" });
+      console.error('Failed to create document:', error);
+      res.status(500).json({ error: 'Failed to create document' });
     }
   });
 
-  app.post("/api/capture/analyze", async (req, res) => {
+  app.post('/api/capture/analyze', async (req, res) => {
     try {
       const { base64Data, mimeType, fileName, captureType, source } = req.body;
-      const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-client-user";
+      const userId =
+        (req as any).session?.userId ||
+        (req as any).session?.userId ||
+        (req.headers['x-user-id'] as string) ||
+        'demo-client-user';
       const workspaceId = resolveWorkspaceId(req);
       let result;
-      if (captureType === "document") {
-        if (source === "voice") {
-          result = await transcribeVoiceNote(base64Data, mimeType, "document", workspaceId, userId);
+      if (captureType === 'document') {
+        if (source === 'voice') {
+          result = await transcribeVoiceNote(base64Data, mimeType, 'document', workspaceId, userId);
         } else {
           result = await analyzeDocumentImage(base64Data, mimeType, fileName, workspaceId, userId);
         }
       } else {
-        if (source === "voice") {
-          result = await transcribeVoiceNote(base64Data, mimeType, "violation", workspaceId, userId);
+        if (source === 'voice') {
+          result = await transcribeVoiceNote(
+            base64Data,
+            mimeType,
+            'violation',
+            workspaceId,
+            userId
+          );
         } else {
           result = await analyzeViolationImage(base64Data, mimeType, fileName, workspaceId, userId);
         }
       }
       res.json({ success: true, data: result });
     } catch (error) {
-      console.error("Capture analysis error:", error);
-      res.status(500).json({ success: false, error: "Analysis failed" });
+      console.error('Capture analysis error:', error);
+      res.status(500).json({ success: false, error: 'Analysis failed' });
     }
   });
 
   // Extract financial data from uploaded document for auto-populating forms
-  app.post("/api/capture/extract-financial", async (req, res) => {
+  app.post('/api/capture/extract-financial', async (req, res) => {
     try {
       const { fileName, fileType, base64Data } = req.body;
-      const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-client-user";
+      const userId =
+        (req as any).session?.userId ||
+        (req as any).session?.userId ||
+        (req.headers['x-user-id'] as string) ||
+        'demo-client-user';
       const workspaceId = resolveWorkspaceId(req);
 
       if (!fileName || !fileType) {
         return res.status(400).json({
           success: false,
-          error: "fileName and fileType are required"
+          error: 'fileName and fileType are required',
         });
       }
 
-      let ocrText = "";
+      let ocrText = '';
 
       // If base64 data provided, run OCR first to extract text
       if (base64Data) {
@@ -2785,9 +2986,9 @@ export async function registerRoutes(
             workspaceId,
             userId
           );
-          ocrText = ocrResult.extractedText || "";
+          ocrText = ocrResult.extractedText || '';
         } catch (ocrError) {
-          console.log("OCR extraction failed, using filename only:", ocrError);
+          console.log('OCR extraction failed, using filename only:', ocrError);
         }
       }
 
@@ -2801,55 +3002,57 @@ export async function registerRoutes(
 
       res.json({
         success: true,
-        data: extraction
+        data: extraction,
       });
     } catch (error) {
-      console.error("Financial data extraction error:", error);
+      console.error('Financial data extraction error:', error);
       res.status(500).json({
         success: false,
-        error: "Failed to extract financial data",
+        error: 'Failed to extract financial data',
         data: {
-          recordType: "unknown",
-          category: "Other",
-          description: "",
+          recordType: 'unknown',
+          category: 'Other',
+          description: '',
           amount: null,
           vendor: null,
           date: null,
-          frequency: "monthly",
+          frequency: 'monthly',
           confidence: 0,
-          extractedText: "Extraction failed - please enter data manually"
-        }
+          extractedText: 'Extraction failed - please enter data manually',
+        },
       });
     }
   });
 
   // Comprehensive Document Intake & Auto-Categorization - returns full analysis for approval
-  app.post("/api/capture/document-intake", async (req, res) => {
+  app.post('/api/capture/document-intake', async (req, res) => {
     try {
       // Validate request body with Zod
       const intakeRequestSchema = z.object({
-        fileName: z.string().min(1, "fileName is required"),
-        fileType: z.string().min(1, "fileType is required"),
+        fileName: z.string().min(1, 'fileName is required'),
+        fileType: z.string().min(1, 'fileType is required'),
         base64Data: z.string().optional(),
-        languageHint: z.string().optional().default("en"),
-        uiLanguage: z.string().optional().default("en")
+        languageHint: z.string().optional().default('en'),
+        uiLanguage: z.string().optional().default('en'),
       });
 
       const validationResult = intakeRequestSchema.safeParse(req.body);
       if (!validationResult.success) {
         return res.status(400).json({
           success: false,
-          error: validationResult.error.errors.map(e => e.message).join(", ")
+          error: validationResult.error.errors.map((e) => e.message).join(', '),
         });
       }
 
       const { fileName, fileType, base64Data, languageHint, uiLanguage } = validationResult.data;
-      const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const headerUserId = req.headers['x-user-id'] as string;
+      const userId =
+        (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const workspaceId = resolveWorkspaceId(req);
 
-      let rawText = "";
+      let rawText = '';
 
       // If base64 data provided, run OCR first to extract text
       if (base64Data) {
@@ -2861,9 +3064,9 @@ export async function registerRoutes(
             workspaceId,
             userId
           );
-          rawText = ocrResult.extractedText || "";
+          rawText = ocrResult.extractedText || '';
         } catch (ocrError) {
-          console.log("OCR extraction failed, using filename only:", ocrError);
+          console.log('OCR extraction failed, using filename only:', ocrError);
         }
       }
 
@@ -2873,29 +3076,39 @@ export async function registerRoutes(
       const existingIncomes = await storage.getIncomes(userId, environment);
       const existingExpenses = await storage.getExpenses(userId, environment);
 
-      const knownVendors = Array.from(new Set([
-        ...existingExpenses.map(e => e.vendor).filter((v): v is string => v !== null && v !== undefined),
-        ...existingIncomes.map(i => i.source).filter((s): s is string => s !== null && s !== undefined)
-      ]));
+      const knownVendors = Array.from(
+        new Set([
+          ...existingExpenses
+            .map((e) => e.vendor)
+            .filter((v): v is string => v !== null && v !== undefined),
+          ...existingIncomes
+            .map((i) => i.source)
+            .filter((s): s is string => s !== null && s !== undefined),
+        ])
+      );
 
-      const knownCategories = Array.from(new Set([
-        ...existingExpenses.map(e => e.category).filter((c): c is string => c !== null && c !== undefined)
-      ]));
+      const knownCategories = Array.from(
+        new Set([
+          ...existingExpenses
+            .map((e) => e.category)
+            .filter((c): c is string => c !== null && c !== undefined),
+        ])
+      );
 
       // Run comprehensive document intake analysis
       const intakeResult = await analyzeDocumentWithIntake(
         rawText,
         fileName,
         fileType,
-        languageHint || "en",
-        uiLanguage || "en",
+        languageHint || 'en',
+        uiLanguage || 'en',
         {
           known_vendors: knownVendors,
           known_categories: knownCategories.length > 0 ? knownCategories : undefined,
           user_profile: {
-            jurisdiction: "US",
-            currency: "USD"
-          }
+            jurisdiction: 'US',
+            currency: 'USD',
+          },
         }
       );
 
@@ -2905,18 +3118,18 @@ export async function registerRoutes(
 
       // Add validation warnings if source_trace is incomplete
       const validationWarnings: string[] = [];
-      const hasAmountSourceTrace = intakeResult.source_trace?.some(
-        (st: any) => st.field.includes("amount")
+      const hasAmountSourceTrace = intakeResult.source_trace?.some((st: any) =>
+        st.field.includes('amount')
       );
       const hasCategorySourceTrace = intakeResult.source_trace?.some(
-        (st: any) => st.field.includes("category") || st.field.includes("doc_type")
+        (st: any) => st.field.includes('category') || st.field.includes('doc_type')
       );
 
       if (intakeResult.amounts?.total_amount_normalized && !hasAmountSourceTrace) {
-        validationWarnings.push("Amount extracted but no source trace provided - please verify");
+        validationWarnings.push('Amount extracted but no source trace provided - please verify');
       }
       if (!hasCategorySourceTrace) {
-        validationWarnings.push("Classification has no source trace - based on inference");
+        validationWarnings.push('Classification has no source trace - based on inference');
       }
 
       res.json({
@@ -2926,87 +3139,110 @@ export async function registerRoutes(
           internal_category: internalCategory,
           suggested_record_type: recordType,
           requires_approval: true,
-          validation_warnings: validationWarnings
-        }
+          validation_warnings: validationWarnings,
+        },
       });
     } catch (error) {
-      console.error("Document intake analysis error:", error);
+      console.error('Document intake analysis error:', error);
       res.status(500).json({
         success: false,
-        error: "Document intake analysis failed",
-        data: null
+        error: 'Document intake analysis failed',
+        data: null,
       });
     }
   });
 
   // Approve and save document intake result - creates document and financial records
-  app.post("/api/capture/document-intake/approve", async (req, res) => {
+  app.post('/api/capture/document-intake/approve', async (req, res) => {
     try {
       // Validate request body with Zod
       const approvalRequestSchema = z.object({
         intakeResult: z.object({
           doc_type: z.string(),
           summary: z.string().optional(),
-          classifications: z.object({
-            primary_category: z.string(),
-            sub_category: z.string().optional()
-          }).optional(),
-          dates: z.object({
-            document_date_normalized: z.string().nullable().optional()
-          }).optional(),
-          amounts: z.object({
-            total_amount_normalized: z.number().nullable().optional()
-          }).optional(),
-          ledger_actions_proposed: z.array(z.object({
-            action_type: z.enum(["ADD_TRANSACTION", "UPDATE_TRANSACTION", "NO_LEDGER_ACTION"]),
-            transaction: z.object({
-              suggested_date: z.string().nullable().optional(),
-              suggested_amount: z.number().nullable().optional(),
-              suggested_category: z.string().optional(),
-              suggested_sub_category: z.string().optional(),
-              suggested_counterparty: z.string().nullable().optional(),
-              notes_for_user: z.string().optional()
-            }).optional()
-          })).optional(),
-          confidence: z.object({
-            overall: z.number().optional()
-          }).optional(),
-          approval_request: z.object({
-            message_to_user: z.string().optional()
-          }).optional(),
-          source_trace: z.array(z.any()).optional()
+          classifications: z
+            .object({
+              primary_category: z.string(),
+              sub_category: z.string().optional(),
+            })
+            .optional(),
+          dates: z
+            .object({
+              document_date_normalized: z.string().nullable().optional(),
+            })
+            .optional(),
+          amounts: z
+            .object({
+              total_amount_normalized: z.number().nullable().optional(),
+            })
+            .optional(),
+          ledger_actions_proposed: z
+            .array(
+              z.object({
+                action_type: z.enum(['ADD_TRANSACTION', 'UPDATE_TRANSACTION', 'NO_LEDGER_ACTION']),
+                transaction: z
+                  .object({
+                    suggested_date: z.string().nullable().optional(),
+                    suggested_amount: z.number().nullable().optional(),
+                    suggested_category: z.string().optional(),
+                    suggested_sub_category: z.string().optional(),
+                    suggested_counterparty: z.string().nullable().optional(),
+                    notes_for_user: z.string().optional(),
+                  })
+                  .optional(),
+              })
+            )
+            .optional(),
+          confidence: z
+            .object({
+              overall: z.number().optional(),
+            })
+            .optional(),
+          approval_request: z
+            .object({
+              message_to_user: z.string().optional(),
+            })
+            .optional(),
+          source_trace: z.array(z.any()).optional(),
         }),
         fileName: z.string().min(1),
         fileUrl: z.string().nullable().optional(),
         fileType: z.string().nullable().optional(),
         createFinancialRecords: z.boolean().optional().default(true),
-        overrides: z.object({
-          category: z.string().optional(),
-          description: z.string().optional(),
-          recordType: z.string().optional(),
-          financialCategory: z.string().optional(),
-          vendor: z.string().optional(),
-          amount: z.number().optional(),
-          date: z.string().optional()
-        }).optional()
+        overrides: z
+          .object({
+            category: z.string().optional(),
+            description: z.string().optional(),
+            recordType: z.string().optional(),
+            financialCategory: z.string().optional(),
+            vendor: z.string().optional(),
+            amount: z.number().optional(),
+            date: z.string().optional(),
+          })
+          .optional(),
       });
 
       const validationResult = approvalRequestSchema.safeParse(req.body);
       if (!validationResult.success) {
         return res.status(400).json({
           success: false,
-          error: "Invalid approval request: " + validationResult.error.errors.map(e => e.message).join(", ")
+          error:
+            'Invalid approval request: ' +
+            validationResult.error.errors.map((e) => e.message).join(', '),
         });
       }
 
-      const { intakeResult, fileName, fileUrl, fileType, createFinancialRecords, overrides } = validationResult.data;
-      const headerUserId = req.headers["x-user-id"] as string;
-      const userId = (req as any).session?.userId || (headerUserId && headerUserId.trim()) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const { intakeResult, fileName, fileUrl, fileType, createFinancialRecords, overrides } =
+        validationResult.data;
+      const headerUserId = req.headers['x-user-id'] as string;
+      const userId =
+        (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
 
       // Merge overrides with intake result
       const finalCategory = overrides?.category || mapDocTypeToCategory(intakeResult.doc_type);
-      const finalDescription = overrides?.description || intakeResult.summary || "";
+      const finalDescription = overrides?.description || intakeResult.summary || '';
 
       // Create the document record
       const documentData = {
@@ -3014,7 +3250,7 @@ export async function registerRoutes(
         environment,
         title: fileName,
         category: finalCategory,
-        description: `${finalDescription}\n\n[AI Analysis] ${intakeResult.approval_request?.message_to_user || ""}`,
+        description: `${finalDescription}\n\n[AI Analysis] ${intakeResult.approval_request?.message_to_user || ''}`,
         fileName,
         fileUrl: fileUrl || null,
         fileType: fileType || null,
@@ -3024,7 +3260,7 @@ export async function registerRoutes(
         aiAnalysisJson: JSON.stringify(intakeResult),
         date: intakeResult.dates?.document_date_normalized
           ? new Date(intakeResult.dates.document_date_normalized)
-          : new Date()
+          : new Date(),
       };
 
       const savedDocument = await storage.createDocument(documentData);
@@ -3036,74 +3272,76 @@ export async function registerRoutes(
       const ledgerActions = intakeResult.ledger_actions_proposed ?? [];
       if (createFinancialRecords && ledgerActions.length > 0) {
         for (const ledgerAction of ledgerActions) {
-          if (ledgerAction.action_type === "ADD_TRANSACTION" && ledgerAction.transaction) {
+          if (ledgerAction.action_type === 'ADD_TRANSACTION' && ledgerAction.transaction) {
             const tx = ledgerAction.transaction;
             const amount = overrides?.amount ?? tx.suggested_amount;
             const amountInCents = Math.round((amount || 0) * 100);
 
             if (amountInCents > 0) {
-              const recordType = overrides?.recordType || mapCategoryToRecordType(tx.suggested_category || "");
+              const recordType =
+                overrides?.recordType || mapCategoryToRecordType(tx.suggested_category || '');
               const category = overrides?.financialCategory || tx.suggested_category;
               const vendor = overrides?.vendor || tx.suggested_counterparty;
-              const date = overrides?.date || tx.suggested_date || new Date().toISOString().split('T')[0];
+              const date =
+                overrides?.date || tx.suggested_date || new Date().toISOString().split('T')[0];
 
               try {
                 let record = null;
                 switch (recordType) {
-                  case "income":
+                  case 'income':
                     record = await storage.createIncome({
                       userId,
                       environment,
-                      source: vendor || "Unknown",
+                      source: vendor || 'Unknown',
                       amount: amountInCents,
-                      frequency: "monthly",
-                      owner: "self",
+                      frequency: 'monthly',
+                      owner: 'self',
                       verified: false,
                       startDate: date,
                       vendor: vendor || null,
-                      documentId: savedDocument.id
+                      documentId: savedDocument.id,
                     });
                     break;
-                  case "expense":
+                  case 'expense':
                     record = await storage.createExpense({
                       userId,
                       environment,
-                      category: category || "Other",
-                      description: `Extracted from: ${fileName}\n${tx.notes_for_user || ""}`,
+                      category: category || 'Other',
+                      description: `Extracted from: ${fileName}\n${tx.notes_for_user || ''}`,
                       amount: amountInCents,
-                      frequency: "monthly",
-                      owner: "self",
+                      frequency: 'monthly',
+                      owner: 'self',
                       vendor: vendor || null,
                       startDate: date,
-                      documentId: savedDocument.id
+                      documentId: savedDocument.id,
                     });
                     break;
-                  case "asset":
+                  case 'asset':
                     record = await storage.createAsset({
                       userId,
                       environment,
                       name: vendor || fileName,
-                      category: category || "Other",
+                      category: category || 'Other',
                       value: amountInCents,
-                      ownership: "self",
+                      ownership: 'self',
                       verified: false,
                       acquiredDate: date,
                       vendor: vendor || null,
-                      documentId: savedDocument.id
+                      documentId: savedDocument.id,
                     });
                     break;
-                  case "debt":
+                  case 'debt':
                     record = await storage.createDebt({
                       userId,
                       environment,
-                      name: vendor || "Unknown",
-                      category: category || "Other",
+                      name: vendor || 'Unknown',
+                      category: category || 'Other',
                       amount: amountInCents,
-                      ownership: "self",
+                      ownership: 'self',
                       monthlyPayment: null,
                       openedDate: date,
                       vendor: vendor || null,
-                      documentId: savedDocument.id
+                      documentId: savedDocument.id,
                     });
                     break;
                 }
@@ -3111,16 +3349,16 @@ export async function registerRoutes(
                   createdRecords.push({ type: recordType, record });
                 }
               } catch (err) {
-                console.error("Failed to create financial record:", err);
+                console.error('Failed to create financial record:', err);
                 skippedActions.push(`Failed to create ${recordType} record`);
               }
             } else {
-              skippedActions.push("Skipped action with zero/invalid amount");
+              skippedActions.push('Skipped action with zero/invalid amount');
             }
-          } else if (ledgerAction.action_type === "UPDATE_TRANSACTION") {
-            skippedActions.push("UPDATE_TRANSACTION not yet implemented");
-          } else if (ledgerAction.action_type === "NO_LEDGER_ACTION") {
-            skippedActions.push("No ledger action needed per AI analysis");
+          } else if (ledgerAction.action_type === 'UPDATE_TRANSACTION') {
+            skippedActions.push('UPDATE_TRANSACTION not yet implemented');
+          } else if (ledgerAction.action_type === 'NO_LEDGER_ACTION') {
+            skippedActions.push('No ledger action needed per AI analysis');
           }
         }
       }
@@ -3130,69 +3368,76 @@ export async function registerRoutes(
         document: savedDocument,
         financialRecords: createdRecords,
         skippedActions,
-        message: createdRecords.length > 0
-          ? `Document saved with ${createdRecords.length} financial record(s) created`
-          : "Document saved successfully"
+        message:
+          createdRecords.length > 0
+            ? `Document saved with ${createdRecords.length} financial record(s) created`
+            : 'Document saved successfully',
       });
     } catch (error) {
-      console.error("Document intake approval error:", error);
+      console.error('Document intake approval error:', error);
       res.status(500).json({
         success: false,
-        error: "Failed to save document"
+        error: 'Failed to save document',
       });
     }
   });
 
   // Backend Intake Orchestrator - handles full document upload workflow
   // Follows strict input/output schema per orchestrator specification
-  app.post("/api/orchestrator/document-upload", async (req, res) => {
+  app.post('/api/orchestrator/document-upload', async (req, res) => {
     try {
       const orchestratorEventSchema = z.object({
-        event_type: z.literal("DOCUMENT_UPLOADED"),
-        ui_language: z.string().default("en"),
+        event_type: z.literal('DOCUMENT_UPLOADED'),
+        ui_language: z.string().default('en'),
         file: z.object({
           file_id: z.string(),
           file_name: z.string(),
           mime_type: z.string(),
           storage_url: z.string().nullable(),
-          pages: z.number().nullable()
+          pages: z.number().nullable(),
         }),
         ocr: z.object({
           raw_text: z.string().nullable(),
           language_hint: z.string().nullable(),
-          engine: z.enum(["tesseract", "vision_api", "unknown"]).nullable()
+          engine: z.enum(['tesseract', 'vision_api', 'unknown']).nullable(),
         }),
         user_context: z.object({
           user_id: z.string(),
           matter_id: z.string(),
-          jurisdiction: z.string().default("US"),
-          currency: z.string().default("USD")
+          jurisdiction: z.string().default('US'),
+          currency: z.string().default('USD'),
         }),
-        existing_context: z.object({
-          known_accounts: z.array(z.string()).default([]),
-          known_vendors: z.array(z.string()).default([]),
-          known_categories: z.array(z.string()).default([]),
-          open_transactions: z.array(z.any()).default([]),
-          approval_policies: z.object({
-            require_manual_confirmation_for_all: z.boolean().default(true),
-            auto_approve_low_risk: z.boolean().default(false)
-          }).default({})
-        }).default({}),
-        intake_engine_result: documentIntakeResultSchema.optional()
+        existing_context: z
+          .object({
+            known_accounts: z.array(z.string()).default([]),
+            known_vendors: z.array(z.string()).default([]),
+            known_categories: z.array(z.string()).default([]),
+            open_transactions: z.array(z.any()).default([]),
+            approval_policies: z
+              .object({
+                require_manual_confirmation_for_all: z.boolean().default(true),
+                auto_approve_low_risk: z.boolean().default(false),
+              })
+              .default({}),
+          })
+          .default({}),
+        intake_engine_result: documentIntakeResultSchema.optional(),
       });
 
       const validationResult = orchestratorEventSchema.safeParse(req.body);
       if (!validationResult.success) {
         return res.status(400).json({
-          status: "fatal_error",
-          actions: [{
-            type: "LOG_ERROR",
-            payload: {
-              code: "INVALID_EVENT_SCHEMA",
-              details: validationResult.error.errors.map(e => e.message).join("; "),
-              context: { file_id: req.body?.file?.file_id || "unknown" }
-            }
-          }]
+          status: 'fatal_error',
+          actions: [
+            {
+              type: 'LOG_ERROR',
+              payload: {
+                code: 'INVALID_EVENT_SCHEMA',
+                details: validationResult.error.errors.map((e) => e.message).join('; '),
+                context: { file_id: req.body?.file?.file_id || 'unknown' },
+              },
+            },
+          ],
         });
       }
 
@@ -3210,71 +3455,80 @@ export async function registerRoutes(
         execution: {
           intakeResult: executionResult.intakeResult || null,
           persistedData: executionResult.persistedData || null,
-          approvalScreen: executionResult.approvalScreen || null
-        }
+          approvalScreen: executionResult.approvalScreen || null,
+        },
       });
     } catch (error) {
-      console.error("Orchestrator error:", error);
+      console.error('Orchestrator error:', error);
       res.status(500).json({
-        status: "fatal_error",
-        actions: [{
-          type: "LOG_ERROR",
-          payload: {
-            code: "ORCHESTRATOR_EXCEPTION",
-            details: error instanceof Error ? error.message : "Unknown error",
-            context: {}
-          }
-        }]
+        status: 'fatal_error',
+        actions: [
+          {
+            type: 'LOG_ERROR',
+            payload: {
+              code: 'ORCHESTRATOR_EXCEPTION',
+              details: error instanceof Error ? error.message : 'Unknown error',
+              context: {},
+            },
+          },
+        ],
       });
     }
   });
 
   // Batch re-analyze all documents - force option reprocesses all
-  app.post("/api/documents/reanalyze", async (req, res) => {
+  app.post('/api/documents/reanalyze', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const force = req.query.force === "true" || req.body?.force === true;
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const force = req.query.force === 'true' || req.body?.force === true;
       const allDocs = await storage.getDocuments(userId, environment);
 
       // Filter documents that need analysis
       // With force=true, reanalyze ALL documents with files
       // Without force, only analyze those without [AI Analysis] tag
-      const docsToAnalyze = allDocs.filter(doc => {
+      const docsToAnalyze = allDocs.filter((doc) => {
         if (!doc.fileUrl || !doc.fileName) return false;
         if (force) return true;
-        return !(doc.description || "").includes("[AI Analysis]");
+        return !(doc.description || '').includes('[AI Analysis]');
       });
 
       res.json({
         total: docsToAnalyze.length,
-        documentIds: docsToAnalyze.map(d => d.id),
+        documentIds: docsToAnalyze.map((d) => d.id),
         message: force
           ? `Force re-analyzing ${docsToAnalyze.length} documents`
-          : `Found ${docsToAnalyze.length} documents pending analysis`
+          : `Found ${docsToAnalyze.length} documents pending analysis`,
       });
     } catch (error) {
-      console.error("Reanalyze scan error:", error);
-      res.status(500).json({ error: "Failed to scan documents for analysis" });
+      console.error('Reanalyze scan error:', error);
+      res.status(500).json({ error: 'Failed to scan documents for analysis' });
     }
   });
 
   // Analyze a single document by ID and create financial records from extracted data
-  app.post("/api/documents/:id/analyze", async (req, res) => {
+  app.post('/api/documents/:id/analyze', async (req, res) => {
     try {
       const doc = await storage.getDocument(req.params.id);
       if (!doc) {
-        return res.status(404).json({ error: "Document not found" });
+        return res.status(404).json({ error: 'Document not found' });
       }
 
       if (!doc.fileName || !doc.fileType) {
-        return res.json({ success: false, message: "No file attached to analyze" });
+        return res.json({ success: false, message: 'No file attached to analyze' });
       }
 
-      const force = req.query.force === "true" || req.body?.force === true;
+      const force = req.query.force === 'true' || req.body?.force === true;
 
       // Helper function to create financial record from OCR data
-      const createFinancialRecord = async (ocrResult: any, docId: string, userId: string, environment: string) => {
+      const createFinancialRecord = async (
+        ocrResult: any,
+        docId: string,
+        userId: string,
+        environment: string
+      ) => {
         if (!ocrResult.financialData) return null;
 
         const { amount, vendor, date, type, description } = ocrResult.financialData;
@@ -3282,76 +3536,81 @@ export async function registerRoutes(
 
         // Validate amount - don't create records with zero or negative amounts
         if (!amountInCents || amountInCents <= 0) {
-          console.log("Skipping financial record creation: invalid amount", amount);
+          console.log('Skipping financial record creation: invalid amount', amount);
           return null;
         }
 
         try {
-          if (type === "income") {
+          if (type === 'income') {
             return await storage.createIncome({
               userId,
               environment,
-              source: vendor || "Unknown Source",
+              source: vendor || 'Unknown Source',
               amount: amountInCents,
-              frequency: "one-time",
-              owner: "self",
+              frequency: 'one-time',
+              owner: 'self',
               vendor: vendor || null,
               documentId: docId,
               startDate: date || null,
             });
-          } else if (type === "expense") {
+          } else if (type === 'expense') {
             return await storage.createExpense({
               userId,
               environment,
-              category: doc.category || "other",
-              description: description || vendor || "Expense",
+              category: doc.category || 'other',
+              description: description || vendor || 'Expense',
               amount: amountInCents,
-              frequency: "one-time",
-              owner: "self",
+              frequency: 'one-time',
+              owner: 'self',
               vendor: vendor || null,
               documentId: docId,
               startDate: date || null,
             });
-          } else if (type === "asset") {
+          } else if (type === 'asset') {
             return await storage.createAsset({
               userId,
               environment,
-              name: vendor || description || "Asset",
+              name: vendor || description || 'Asset',
               value: amountInCents,
-              category: "other",
-              ownership: "joint",
+              category: 'other',
+              ownership: 'joint',
               vendor: vendor || null,
               documentId: docId,
               acquiredDate: date || null,
             });
-          } else if (type === "debt") {
+          } else if (type === 'debt') {
             return await storage.createDebt({
               userId,
               environment,
-              name: vendor || description || "Debt",
+              name: vendor || description || 'Debt',
               amount: amountInCents,
-              category: "other",
-              ownership: "joint",
+              category: 'other',
+              ownership: 'joint',
               vendor: vendor || null,
               documentId: docId,
               openedDate: date || null,
             });
           }
         } catch (createError) {
-          console.error("Failed to create financial record:", createError);
+          console.error('Failed to create financial record:', createError);
         }
         return null;
       };
 
       let analysis;
-      const userId = doc.userId || "demo-client-user";
-      const environment = doc.environment || "demo";
+      const userId = doc.userId || 'demo-client-user';
+      const environment = doc.environment || 'demo';
       const workspaceId = resolveWorkspaceId(req);
 
       // If we have a fileUrl that's an objectPath (starts with /objects/), fetch from object storage
-      if (doc.fileUrl && doc.fileUrl.startsWith('/objects/') && (doc.fileType.includes('image') || doc.fileType.includes('pdf'))) {
+      if (
+        doc.fileUrl &&
+        doc.fileUrl.startsWith('/objects/') &&
+        (doc.fileType.includes('image') || doc.fileType.includes('pdf'))
+      ) {
         try {
-          const { objectStorageService } = await import("./replit_integrations/object_storage/objectStorage");
+          const { objectStorageService } =
+            await import('./replit_integrations/object_storage/objectStorage');
           const objectFile = await objectStorageService.getObjectEntityFile(doc.fileUrl);
           const [buffer] = await objectFile.download();
           const base64Data = buffer.toString('base64');
@@ -3368,11 +3627,11 @@ export async function registerRoutes(
             // Update document with analysis
             const newDescription = force
               ? `[AI Analysis - ${new Date().toISOString().split('T')[0]}]\nExtracted Text: ${ocrResult.extractedText}\nCategory: ${ocrResult.category}`
-              : `${doc.description || ""}\n\n[AI Analysis]\nExtracted Text: ${ocrResult.extractedText}\nCategory: ${ocrResult.category}`;
+              : `${doc.description || ''}\n\n[AI Analysis]\nExtracted Text: ${ocrResult.extractedText}\nCategory: ${ocrResult.category}`;
 
             await storage.updateDocument(doc.id, {
               category: ocrResult.category,
-              description: newDescription
+              description: newDescription,
             });
 
             // Create financial record if financialData was extracted
@@ -3385,11 +3644,11 @@ export async function registerRoutes(
               success: true,
               analysis: ocrResult,
               financialRecordCreated: !!financialRecord,
-              financialRecord
+              financialRecord,
             });
           }
         } catch (fetchError) {
-          console.error("Failed to fetch file from object storage for OCR analysis:", fetchError);
+          console.error('Failed to fetch file from object storage for OCR analysis:', fetchError);
         }
       } else if (doc.fileUrl && (doc.fileType.includes('image') || doc.fileType.includes('pdf'))) {
         try {
@@ -3409,28 +3668,33 @@ export async function registerRoutes(
             if (ocrResult.confidence > 0.5 || force) {
               const newDescription = force
                 ? `[AI Analysis - ${new Date().toISOString().split('T')[0]}]\nExtracted Text: ${ocrResult.extractedText}\nCategory: ${ocrResult.category}`
-                : `${doc.description || ""}\n\n[AI Analysis]\nExtracted Text: ${ocrResult.extractedText}\nCategory: ${ocrResult.category}`;
+                : `${doc.description || ''}\n\n[AI Analysis]\nExtracted Text: ${ocrResult.extractedText}\nCategory: ${ocrResult.category}`;
 
               await storage.updateDocument(doc.id, {
                 category: ocrResult.category,
-                description: newDescription
+                description: newDescription,
               });
 
               let financialRecord = null;
               if (ocrResult.financialData) {
-                financialRecord = await createFinancialRecord(ocrResult, doc.id, userId, environment);
+                financialRecord = await createFinancialRecord(
+                  ocrResult,
+                  doc.id,
+                  userId,
+                  environment
+                );
               }
 
               return res.json({
                 success: true,
                 analysis: ocrResult,
                 financialRecordCreated: !!financialRecord,
-                financialRecord
+                financialRecord,
               });
             }
           }
         } catch (fetchError) {
-          console.error("Failed to fetch file for OCR analysis:", fetchError);
+          console.error('Failed to fetch file for OCR analysis:', fetchError);
         }
       }
 
@@ -3438,7 +3702,7 @@ export async function registerRoutes(
       analysis = await analyzeDocument(
         doc.fileName,
         doc.fileType,
-        doc.description || "",
+        doc.description || '',
         workspaceId,
         userId
       );
@@ -3446,192 +3710,204 @@ export async function registerRoutes(
       if (analysis && (analysis.confidence > 0.5 || force)) {
         await storage.updateDocument(doc.id, {
           category: analysis.category,
-          description: `${doc.description || ""}\n\n[AI Analysis]\nSummary: ${analysis.summary}\nTags: ${analysis.suggestedTags.join(", ")}`
+          description: `${doc.description || ''}\n\n[AI Analysis]\nSummary: ${analysis.summary}\nTags: ${analysis.suggestedTags.join(', ')}`,
         });
         res.json({ success: true, analysis });
       } else {
-        res.json({ success: false, message: "Analysis confidence too low" });
+        res.json({ success: false, message: 'Analysis confidence too low' });
       }
     } catch (error) {
-      console.error("Document analysis error:", error);
-      res.status(500).json({ error: "Failed to analyze document" });
+      console.error('Document analysis error:', error);
+      res.status(500).json({ error: 'Failed to analyze document' });
     }
   });
 
   // Get single document by ID
-  app.get("/api/documents/:id", async (req, res) => {
+  app.get('/api/documents/:id', async (req, res) => {
     try {
-      const userId = (req.headers["x-user-id"] as string) || (req as any).session?.userId;
+      const userId = (req.headers['x-user-id'] as string) || (req as any).session?.userId;
       if (!userId) {
-        return res.status(401).json({ error: "Authentication required" });
+        return res.status(401).json({ error: 'Authentication required' });
       }
 
       const doc = await storage.getDocument(req.params.id);
       if (!doc) {
-        return res.status(404).json({ error: "Document not found" });
+        return res.status(404).json({ error: 'Document not found' });
       }
 
       // Verify document belongs to the requesting user
       if (doc.userId !== userId) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: 'Access denied' });
       }
 
       res.json(doc);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch document" });
+      res.status(500).json({ error: 'Failed to fetch document' });
     }
   });
 
   // NOTE: DELETE /api/documents/:id is already defined earlier (line ~2348) with proper auth
 
   // Forensic Financial Document Parser - Comprehensive parsing with audit trail
-  app.post("/api/documents/:id/forensic-parse", async (req, res) => {
+  app.post('/api/documents/:id/forensic-parse', async (req, res) => {
     try {
-      const { parseFinancialDocument, validateParseResult, mapDocTypeToFinanceCategory, mapDocTypeToRecordType } = await import("./services/parseDocument");
-      const { documentLineItems, documentParseResults } = await import("@shared/schema");
+      const {
+        parseFinancialDocument,
+        validateParseResult,
+        mapDocTypeToFinanceCategory,
+        mapDocTypeToRecordType,
+      } = await import('./services/parseDocument');
+      const { documentLineItems, documentParseResults } = await import('@shared/schema');
 
       // Authenticate user
-      const userId = (req.headers["x-user-id"] as string) || (req as any).session?.userId;
+      const userId = (req.headers['x-user-id'] as string) || (req as any).session?.userId;
       if (!userId) {
-        return res.status(401).json({ error: "Authentication required" });
+        return res.status(401).json({ error: 'Authentication required' });
       }
 
       const doc = await storage.getDocument(req.params.id);
       if (!doc) {
-        return res.status(404).json({ error: "Document not found" });
+        return res.status(404).json({ error: 'Document not found' });
       }
 
       // Authorization: Verify document belongs to requesting user
       if (doc.userId !== userId) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: 'Access denied' });
       }
 
-      const environment = (req.query.environment as string) || doc.environment || "demo";
-      const provider = (req.query.provider as "openai" | "gemini") || "openai";
-      const createRecords = req.query.create_records !== "false";
+      const environment = (req.query.environment as string) || doc.environment || 'demo';
+      const provider = (req.query.provider as 'openai' | 'gemini') || 'openai';
+      const createRecords = req.query.create_records !== 'false';
 
-      let extractedText = doc.description || "";
+      const extractedText = doc.description || '';
       let imageBase64: string | undefined;
       let imageMimeType: string | undefined;
 
-      if (doc.fileUrl && doc.fileType?.startsWith("image/")) {
+      if (doc.fileUrl && doc.fileType?.startsWith('image/')) {
         try {
           const response = await fetch(doc.fileUrl);
           if (response.ok) {
             const arrayBuffer = await response.arrayBuffer();
-            imageBase64 = Buffer.from(arrayBuffer).toString("base64");
+            imageBase64 = Buffer.from(arrayBuffer).toString('base64');
             imageMimeType = doc.fileType;
           }
         } catch (fetchErr) {
-          console.error("Failed to fetch document image:", fetchErr);
+          console.error('Failed to fetch document image:', fetchErr);
         }
       }
 
-      const parseResult = await parseFinancialDocument(
-        extractedText,
-        doc.fileName || "document",
-        { provider, imageBase64, imageMimeType }
-      );
+      const parseResult = await parseFinancialDocument(extractedText, doc.fileName || 'document', {
+        provider,
+        imageBase64,
+        imageMimeType,
+      });
 
       const validation = validateParseResult(parseResult.document);
 
-      const parseResultRecord = await db.insert(documentParseResults).values({
-        documentId: doc.id,
-        userId,
-        docType: parseResult.document.doc_type,
-        parseStatus: parseResult.document.parse_status,
-        language: parseResult.document.language,
-        currency: parseResult.document.currency,
-        vendorName: parseResult.document.vendor_name,
-        accountNumber: parseResult.document.account_number,
-        billingPeriodStart: parseResult.document.billing_period_start,
-        billingPeriodEnd: parseResult.document.billing_period_end,
-        statementDate: parseResult.document.statement_date,
-        dueDate: parseResult.document.due_date,
-        totalAmountDue: parseResult.document.total_amount_due
-          ? Math.round(parseResult.document.total_amount_due * 100)
-          : null,
-        totalAmountText: parseResult.document.total_amount_text,
-        customerName: parseResult.document.customer_name,
-        serviceAddress: parseResult.document.service_address,
-        mailingAddress: parseResult.document.mailing_address,
-        rawLlmResponse: parseResult.document as any,
-        notes: parseResult.document.notes,
-        requestTokens: parseResult.usage.requestTokens,
-        responseTokens: parseResult.usage.responseTokens,
-        latencyMs: parseResult.latencyMs,
-        environment,
-      }).returning();
+      const parseResultRecord = await db
+        .insert(documentParseResults)
+        .values({
+          documentId: doc.id,
+          userId,
+          docType: parseResult.document.doc_type,
+          parseStatus: parseResult.document.parse_status,
+          language: parseResult.document.language,
+          currency: parseResult.document.currency,
+          vendorName: parseResult.document.vendor_name,
+          accountNumber: parseResult.document.account_number,
+          billingPeriodStart: parseResult.document.billing_period_start,
+          billingPeriodEnd: parseResult.document.billing_period_end,
+          statementDate: parseResult.document.statement_date,
+          dueDate: parseResult.document.due_date,
+          totalAmountDue: parseResult.document.total_amount_due
+            ? Math.round(parseResult.document.total_amount_due * 100)
+            : null,
+          totalAmountText: parseResult.document.total_amount_text,
+          customerName: parseResult.document.customer_name,
+          serviceAddress: parseResult.document.service_address,
+          mailingAddress: parseResult.document.mailing_address,
+          rawLlmResponse: parseResult.document as any,
+          notes: parseResult.document.notes,
+          requestTokens: parseResult.usage.requestTokens,
+          responseTokens: parseResult.usage.responseTokens,
+          latencyMs: parseResult.latencyMs,
+          environment,
+        })
+        .returning();
 
       const createdLineItems: any[] = [];
       for (let i = 0; i < parseResult.document.line_items.length; i++) {
         const item = parseResult.document.line_items[i];
-        const lineItem = await db.insert(documentLineItems).values({
-          documentId: doc.id,
-          userId,
-          lineItemIndex: i,
-          label: item.label,
-          categoryHint: item.category_hint,
-          amount: Math.round(item.amount * 100),
-          amountText: item.amount_text,
-          isCreditOrRefund: item.is_credit_or_refund,
-          isRecurringGuess: item.is_recurring_guess,
-          pageNumber: item.page_number,
-          surroundingTextSnippet: item.surrounding_text_snippet,
-          environment,
-        }).returning();
+        const lineItem = await db
+          .insert(documentLineItems)
+          .values({
+            documentId: doc.id,
+            userId,
+            lineItemIndex: i,
+            label: item.label,
+            categoryHint: item.category_hint,
+            amount: Math.round(item.amount * 100),
+            amountText: item.amount_text,
+            isCreditOrRefund: item.is_credit_or_refund,
+            isRecurringGuess: item.is_recurring_guess,
+            pageNumber: item.page_number,
+            surroundingTextSnippet: item.surrounding_text_snippet,
+            environment,
+          })
+          .returning();
         createdLineItems.push(lineItem[0]);
       }
 
       const createdFinancialRecords: any[] = [];
-      if (createRecords && validation.isValid && parseResult.document.parse_status === "success") {
+      if (createRecords && validation.isValid && parseResult.document.parse_status === 'success') {
         const recordType = mapDocTypeToRecordType(parseResult.document.doc_type);
         const financeCategory = mapDocTypeToFinanceCategory(parseResult.document.doc_type);
 
         if (parseResult.document.total_amount_due && parseResult.document.total_amount_due > 0) {
           const amountInCents = Math.round(parseResult.document.total_amount_due * 100);
-          const date = parseResult.document.statement_date ||
+          const date =
+            parseResult.document.statement_date ||
             parseResult.document.due_date ||
-            new Date().toISOString().split("T")[0];
+            new Date().toISOString().split('T')[0];
 
           try {
             let record = null;
             switch (recordType) {
-              case "expense":
+              case 'expense':
                 record = await storage.createExpense({
                   userId,
                   environment,
                   category: financeCategory,
-                  description: `${parseResult.document.vendor_name || "Unknown"} - Parsed from document`,
+                  description: `${parseResult.document.vendor_name || 'Unknown'} - Parsed from document`,
                   amount: amountInCents,
-                  frequency: "one-time",
-                  owner: "self",
+                  frequency: 'one-time',
+                  owner: 'self',
                   vendor: parseResult.document.vendor_name || null,
                   documentId: doc.id,
                   startDate: date,
                 });
                 break;
-              case "income":
+              case 'income':
                 record = await storage.createIncome({
                   userId,
                   environment,
-                  source: parseResult.document.vendor_name || "Unknown",
+                  source: parseResult.document.vendor_name || 'Unknown',
                   amount: amountInCents,
-                  frequency: "one-time",
-                  owner: "self",
+                  frequency: 'one-time',
+                  owner: 'self',
                   vendor: parseResult.document.vendor_name || null,
                   documentId: doc.id,
                   startDate: date,
                 });
                 break;
-              case "debt":
+              case 'debt':
                 record = await storage.createDebt({
                   userId,
                   environment,
-                  name: parseResult.document.vendor_name || "Unknown Debt",
+                  name: parseResult.document.vendor_name || 'Unknown Debt',
                   category: financeCategory,
                   amount: amountInCents,
-                  ownership: "self",
+                  ownership: 'self',
                   monthlyPayment: null,
                   vendor: parseResult.document.vendor_name || null,
                   documentId: doc.id,
@@ -3643,16 +3919,17 @@ export async function registerRoutes(
               createdFinancialRecords.push({ type: recordType, record });
 
               for (const lineItemRecord of createdLineItems) {
-                await db.update(documentLineItems)
+                await db
+                  .update(documentLineItems)
                   .set({
                     linkedRecordType: recordType,
-                    linkedRecordId: record.id
+                    linkedRecordId: record.id,
                   })
                   .where(eq(documentLineItems.id, lineItemRecord.id));
               }
             }
           } catch (createErr) {
-            console.error("Failed to create financial record:", createErr);
+            console.error('Failed to create financial record:', createErr);
           }
         }
       }
@@ -3660,8 +3937,9 @@ export async function registerRoutes(
       await storage.updateDocument(doc.id, {
         aiCategory: mapDocTypeToFinanceCategory(parseResult.document.doc_type),
         aiConfidence: parseResult.classification.confidence,
-        aiSummary: `${parseResult.document.doc_type}: ${parseResult.document.vendor_name || "Unknown"} - ${parseResult.document.currency} ${parseResult.document.total_amount_due || 0}`,
-        aiAnalysisStatus: parseResult.document.parse_status === "success" ? "completed" : "needs_review",
+        aiSummary: `${parseResult.document.doc_type}: ${parseResult.document.vendor_name || 'Unknown'} - ${parseResult.document.currency} ${parseResult.document.total_amount_due || 0}`,
+        aiAnalysisStatus:
+          parseResult.document.parse_status === 'success' ? 'completed' : 'needs_review',
         aiAnalyzedAt: new Date(),
       });
 
@@ -3677,196 +3955,224 @@ export async function registerRoutes(
         usage: parseResult.usage,
       });
     } catch (error) {
-      console.error("Forensic parse error:", error);
-      res.status(500).json({ error: "Failed to parse document" });
+      console.error('Forensic parse error:', error);
+      res.status(500).json({ error: 'Failed to parse document' });
     }
   });
 
   // Get document line items for audit trail
-  app.get("/api/documents/:id/line-items", async (req, res) => {
+  app.get('/api/documents/:id/line-items', async (req, res) => {
     try {
-      const { documentLineItems } = await import("@shared/schema");
+      const { documentLineItems } = await import('@shared/schema');
 
       // Authenticate user
-      const userId = (req.headers["x-user-id"] as string) || (req as any).session?.userId;
+      const userId = (req.headers['x-user-id'] as string) || (req as any).session?.userId;
       if (!userId) {
-        return res.status(401).json({ error: "Authentication required" });
+        return res.status(401).json({ error: 'Authentication required' });
       }
 
       const doc = await storage.getDocument(req.params.id);
       if (!doc) {
-        return res.status(404).json({ error: "Document not found" });
+        return res.status(404).json({ error: 'Document not found' });
       }
 
       // Authorization: Verify document belongs to requesting user
       if (doc.userId !== userId) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: 'Access denied' });
       }
 
-      const lineItems = await db.select()
+      const lineItems = await db
+        .select()
         .from(documentLineItems)
         .where(eq(documentLineItems.documentId, req.params.id))
         .orderBy(documentLineItems.lineItemIndex);
 
       res.json(lineItems);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch line items" });
+      res.status(500).json({ error: 'Failed to fetch line items' });
     }
   });
 
   // Get parse results for a document
-  app.get("/api/documents/:id/parse-results", async (req, res) => {
+  app.get('/api/documents/:id/parse-results', async (req, res) => {
     try {
-      const { documentParseResults } = await import("@shared/schema");
+      const { documentParseResults } = await import('@shared/schema');
 
       // Authenticate user
-      const userId = (req.headers["x-user-id"] as string) || (req as any).session?.userId;
+      const userId = (req.headers['x-user-id'] as string) || (req as any).session?.userId;
       if (!userId) {
-        return res.status(401).json({ error: "Authentication required" });
+        return res.status(401).json({ error: 'Authentication required' });
       }
 
       const doc = await storage.getDocument(req.params.id);
       if (!doc) {
-        return res.status(404).json({ error: "Document not found" });
+        return res.status(404).json({ error: 'Document not found' });
       }
 
       // Authorization: Verify document belongs to requesting user
       if (doc.userId !== userId) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: 'Access denied' });
       }
 
-      const results = await db.select()
+      const results = await db
+        .select()
         .from(documentParseResults)
         .where(eq(documentParseResults.documentId, req.params.id))
         .orderBy(documentParseResults.createdAt);
 
       res.json(results);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch parse results" });
+      res.status(500).json({ error: 'Failed to fetch parse results' });
     }
   });
 
   // Calendar Events API
-  app.get("/api/calendar-events", async (req, res) => {
+  app.get('/api/calendar-events', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const events = await storage.getCalendarEvents((req as any).session?.userId || "demo-client-user", environment);
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const events = await storage.getCalendarEvents(
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
       res.json(events);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch calendar events" });
+      res.status(500).json({ error: 'Failed to fetch calendar events' });
     }
   });
 
-  app.post("/api/calendar-events", async (req, res) => {
+  app.post('/api/calendar-events', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const parsed = createCalendarEventSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+        return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
       const event = await storage.createCalendarEvent({
         ...parsed.data,
         startDate: new Date(parsed.data.startDate),
         endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
-        userId: (req as any).session?.userId || "demo-client-user",
+        userId: (req as any).session?.userId || 'demo-client-user',
         environment,
       });
       res.json(event);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create calendar event" });
+      res.status(500).json({ error: 'Failed to create calendar event' });
     }
   });
 
-  app.delete("/api/calendar-events/:id", async (req, res) => {
+  app.delete('/api/calendar-events/:id', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      await storage.deleteCalendarEvent(req.params.id, (req as any).session?.userId || "demo-client-user", environment);
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      await storage.deleteCalendarEvent(
+        req.params.id,
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to delete calendar event" });
+      res.status(500).json({ error: 'Failed to delete calendar event' });
     }
   });
 
   // Legal Documents API
-  app.get("/api/legal-documents", async (req, res) => {
+  app.get('/api/legal-documents', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const docs = await storage.getLegalDocuments((req as any).session?.userId || "demo-client-user", environment);
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const docs = await storage.getLegalDocuments(
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
       res.json(docs);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch legal documents" });
+      res.status(500).json({ error: 'Failed to fetch legal documents' });
     }
   });
 
-  app.post("/api/legal-documents", async (req, res) => {
+  app.post('/api/legal-documents', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const parsed = createLegalDocumentSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+        return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
       const doc = await storage.createLegalDocument({
         ...parsed.data,
-        userId: (req as any).session?.userId || "demo-client-user",
+        userId: (req as any).session?.userId || 'demo-client-user',
         environment,
       });
       res.json(doc);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create legal document" });
+      res.status(500).json({ error: 'Failed to create legal document' });
     }
   });
 
-  app.delete("/api/legal-documents/:id", async (req, res) => {
+  app.delete('/api/legal-documents/:id', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      await storage.deleteLegalDocument(req.params.id, (req as any).session?.userId || "demo-client-user", environment);
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      await storage.deleteLegalDocument(
+        req.params.id,
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to delete legal document" });
+      res.status(500).json({ error: 'Failed to delete legal document' });
     }
   });
 
   // Child Support Payments API
-  app.get("/api/child-support-payments", async (req, res) => {
+  app.get('/api/child-support-payments', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const payments = await storage.getChildSupportPayments((req as any).session?.userId || "demo-client-user", environment);
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const payments = await storage.getChildSupportPayments(
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
       res.json(payments);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch child support payments" });
+      res.status(500).json({ error: 'Failed to fetch child support payments' });
     }
   });
 
-  app.post("/api/child-support-payments", async (req, res) => {
+  app.post('/api/child-support-payments', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const parsed = createChildSupportPaymentSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+        return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
       const payment = await storage.createChildSupportPayment({
         ...parsed.data,
         dueDate: new Date(parsed.data.dueDate),
         paidDate: parsed.data.paidDate ? new Date(parsed.data.paidDate) : null,
-        userId: (req as any).session?.userId || "demo-client-user",
+        userId: (req as any).session?.userId || 'demo-client-user',
         environment,
       });
       res.json(payment);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create child support payment" });
+      res.status(500).json({ error: 'Failed to create child support payment' });
     }
   });
 
-  app.patch("/api/child-support-payments/:id", async (req, res) => {
+  app.patch('/api/child-support-payments/:id', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const parsed = updateChildSupportPaymentSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+        return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
       const payment = await storage.updateChildSupportPayment(
         req.params.id,
-        "demo-client-user",
+        'demo-client-user',
         environment,
         {
           ...parsed.data,
@@ -3874,65 +4180,90 @@ export async function registerRoutes(
         }
       );
       if (!payment) {
-        return res.status(404).json({ error: "Payment not found" });
+        return res.status(404).json({ error: 'Payment not found' });
       }
       res.json(payment);
     } catch (error) {
-      res.status(500).json({ error: "Failed to update child support payment" });
+      res.status(500).json({ error: 'Failed to update child support payment' });
     }
   });
 
-  app.delete("/api/child-support-payments/:id", async (req, res) => {
+  app.delete('/api/child-support-payments/:id', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      await storage.deleteChildSupportPayment(req.params.id, (req as any).session?.userId || "demo-client-user", environment);
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      await storage.deleteChildSupportPayment(
+        req.params.id,
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to delete child support payment" });
+      res.status(500).json({ error: 'Failed to delete child support payment' });
     }
   });
 
-  const validViolationStatuses = ["pending", "reviewed", "approved"] as const;
-  const validViolationTypes = ["custody", "financial_hiding", "property_damage", "child_neglect", "court_order", "harassment", "other"] as const;
+  const validViolationStatuses = ['pending', 'reviewed', 'approved'] as const;
+  const validViolationTypes = [
+    'custody',
+    'financial_hiding',
+    'property_damage',
+    'child_neglect',
+    'court_order',
+    'harassment',
+    'other',
+  ] as const;
 
-  app.get("/api/violations", async (req, res) => {
+  app.get('/api/violations', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const user = await storage.getUser((req as any).session?.userId || 'demo-client-user');
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
       const violationsList = await storage.getViolations(user.id, environment);
       res.json(violationsList);
     } catch (error: any) {
-      console.error("[Violations API] Error fetching violations:", error);
-      res.status(500).json({ error: "Failed to fetch violations", details: error.message });
+      console.error('[Violations API] Error fetching violations:', error);
+      res.status(500).json({ error: 'Failed to fetch violations', details: error.message });
     }
   });
 
-  app.post("/api/violations", async (req, res) => {
+  app.post('/api/violations', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
 
       // Validate input using Zod schema
       const parsed = createViolationSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+        return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
 
-      const { type, description, location, mediaUrls, photoCount, videoDuration, witnesses, isDraft, audioTranscript } = parsed.data;
+      const {
+        type,
+        description,
+        location,
+        mediaUrls,
+        photoCount,
+        videoDuration,
+        witnesses,
+        isDraft,
+        audioTranscript,
+      } = parsed.data;
 
-      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
+      const user = await storage.getUser((req as any).session?.userId || 'demo-client-user');
 
       // Check tier limits for non-draft violations
       if (!isDraft && user) {
         const check = canAddViolation(user);
         if (!check.allowed) {
           return res.status(403).json({
-            error: "Upgrade required",
+            error: 'Upgrade required',
             reason: check.reason,
             upgradeRequired: true,
-            feature: "unlimited_violations",
+            feature: 'unlimited_violations',
           });
         }
 
@@ -3941,24 +4272,24 @@ export async function registerRoutes(
           const voiceCheck = canUseVoiceTranscription(user);
           if (!voiceCheck.allowed) {
             return res.status(403).json({
-              error: "Voice limit reached",
+              error: 'Voice limit reached',
               reason: voiceCheck.reason,
               upgradeRequired: true,
-              feature: "voice_transcription",
+              feature: 'voice_transcription',
             });
           }
         }
 
         // Check media upload limit if media is provided
-        const mediaCount = (mediaUrls?.length || 0);
+        const mediaCount = mediaUrls?.length || 0;
         if (mediaCount > 0) {
           const mediaCheck = canUploadMedia(user);
           if (!mediaCheck.allowed) {
             return res.status(403).json({
-              error: "Media limit reached",
+              error: 'Media limit reached',
               reason: mediaCheck.reason,
               upgradeRequired: true,
-              feature: "media_uploads",
+              feature: 'media_uploads',
             });
           }
 
@@ -3967,10 +4298,10 @@ export async function registerRoutes(
             const maxVideoLength = getMaxVideoLength(user);
             if (maxVideoLength !== -1 && videoDuration > maxVideoLength) {
               return res.status(403).json({
-                error: "Video too long",
+                error: 'Video too long',
                 reason: `Your plan allows videos up to ${maxVideoLength} seconds. Upgrade to Pro for unlimited video length.`,
                 upgradeRequired: true,
-                feature: "video_length",
+                feature: 'video_length',
               });
             }
           }
@@ -3986,67 +4317,86 @@ export async function registerRoutes(
         videoDuration: videoDuration || null,
         witnesses: witnesses || null,
         isDraft: isDraft || false,
-        status: "pending",
-        userId: (req as any).session?.userId || "demo-client-user",
+        status: 'pending',
+        userId: (req as any).session?.userId || 'demo-client-user',
         environment,
         audioTranscript: audioTranscript || null,
       });
 
       // Increment usage counts for non-draft violations
       if (!isDraft) {
-        await storage.incrementViolationCount((req as any).session?.userId || "demo-client-user");
+        await storage.incrementViolationCount((req as any).session?.userId || 'demo-client-user');
 
         // Increment voice transcription count if used
         if (audioTranscript && audioTranscript.trim()) {
-          await storage.incrementVoiceTranscriptionCount((req as any).session?.userId || "demo-client-user");
+          await storage.incrementVoiceTranscriptionCount(
+            (req as any).session?.userId || 'demo-client-user'
+          );
         }
 
         // Increment media upload count if used
-        const mediaCount = (mediaUrls?.length || 0);
+        const mediaCount = mediaUrls?.length || 0;
         if (mediaCount > 0) {
-          await storage.incrementMediaUploadCount((req as any).session?.userId || "demo-client-user", mediaCount);
+          await storage.incrementMediaUploadCount(
+            (req as any).session?.userId || 'demo-client-user',
+            mediaCount
+          );
         }
       }
 
       res.json(violation);
     } catch (error) {
-      res.status(500).json({ error: "Failed to create violation" });
+      res.status(500).json({ error: 'Failed to create violation' });
     }
   });
 
-  app.patch("/api/violations/:id/status", async (req, res) => {
+  app.patch('/api/violations/:id/status', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const { status } = req.body;
 
       if (!status || !validViolationStatuses.includes(status)) {
-        return res.status(400).json({ error: "Invalid status. Must be: pending, reviewed, or approved" });
+        return res
+          .status(400)
+          .json({ error: 'Invalid status. Must be: pending, reviewed, or approved' });
       }
 
-      const violation = await storage.updateViolationStatus(req.params.id, (req as any).session?.userId || "demo-client-user", environment, status);
+      const violation = await storage.updateViolationStatus(
+        req.params.id,
+        (req as any).session?.userId || 'demo-client-user',
+        environment,
+        status
+      );
       if (!violation) {
-        return res.status(404).json({ error: "Violation not found" });
+        return res.status(404).json({ error: 'Violation not found' });
       }
       res.json(violation);
     } catch (error) {
-      res.status(500).json({ error: "Failed to update violation status" });
+      res.status(500).json({ error: 'Failed to update violation status' });
     }
   });
 
-  app.delete("/api/violations/:id", async (req, res) => {
+  app.delete('/api/violations/:id', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      await storage.deleteViolation(req.params.id, (req as any).session?.userId || "demo-client-user", environment);
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      await storage.deleteViolation(
+        req.params.id,
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to delete violation" });
+      res.status(500).json({ error: 'Failed to delete violation' });
     }
   });
 
-  app.get("/api/filings/export", async (req, res) => {
+  app.get('/api/filings/export', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const userId = "demo-client-user";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const userId = 'demo-client-user';
 
       const violations = await storage.getViolations(userId, environment);
       const transactions = await storage.getTransactions(userId, environment);
@@ -4056,8 +4406,8 @@ export async function registerRoutes(
         violations,
         transactions,
         userInfo: {
-          fullName: user?.fullName || "Unknown User",
-          email: user?.email || "unknown@example.com",
+          fullName: user?.fullName || 'Unknown User',
+          email: user?.email || 'unknown@example.com',
         },
         exportDate: new Date(),
         environment,
@@ -4069,40 +4419,45 @@ export async function registerRoutes(
         ? generateWatermarkedCourtFilingPDF(exportData)
         : generateCourtFilingPDF(exportData);
 
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename="court-filing-${Date.now()}.pdf"`);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="court-filing-${Date.now()}.pdf"`);
 
       doc.pipe(res);
       doc.end();
     } catch (error) {
-      console.error("PDF export failed:", error);
-      res.status(500).json({ error: "Failed to generate PDF" });
+      console.error('PDF export failed:', error);
+      res.status(500).json({ error: 'Failed to generate PDF' });
     }
   });
 
   // Messages API for secure client-lawyer communication
-  app.get("/api/messages", async (req, res) => {
+  app.get('/api/messages', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const messagesList = await storage.getMessages(environment);
       res.json(messagesList);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch messages" });
+      res.status(500).json({ error: 'Failed to fetch messages' });
     }
   });
 
   // NOTE: In production, senderId/senderRole/senderName should be derived from authenticated session
   // Currently accepts client-supplied values for demo purposes
-  app.post("/api/messages", async (req, res) => {
+  app.post('/api/messages', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
 
       const parsed = createMessageSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid message data", details: parsed.error.flatten() });
+        return res
+          .status(400)
+          .json({ error: 'Invalid message data', details: parsed.error.flatten() });
       }
 
-      const { senderId, senderRole, senderName, content, attachmentUrl, attachmentName } = parsed.data;
+      const { senderId, senderRole, senderName, content, attachmentUrl, attachmentName } =
+        parsed.data;
 
       const message = await storage.createMessage({
         senderId,
@@ -4117,20 +4472,24 @@ export async function registerRoutes(
 
       res.json(message);
     } catch (error) {
-      res.status(500).json({ error: "Failed to send message" });
+      res.status(500).json({ error: 'Failed to send message' });
     }
   });
 
   // Smart suggestions based on case patterns
-  app.get("/api/suggestions", async (req, res) => {
+  app.get('/api/suggestions', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const violations = await storage.getViolations((req as any).session?.userId || "demo-client-user", environment);
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const violations = await storage.getViolations(
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
 
       const suggestions: Array<{ type: string; title: string; description: string }> = [];
 
       // Check for similar violations
-      const violationTypes = violations.filter(v => !v.isDraft).map(v => v.type);
+      const violationTypes = violations.filter((v) => !v.isDraft).map((v) => v.type);
       const typeCounts: Record<string, number> = {};
       for (const t of violationTypes) {
         typeCounts[t] = (typeCounts[t] || 0) + 1;
@@ -4138,9 +4497,9 @@ export async function registerRoutes(
 
       for (const [type, count] of Object.entries(typeCounts)) {
         if (count >= 2) {
-          const typeName = type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+          const typeName = type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
           suggestions.push({
-            type: "similar_violations",
+            type: 'similar_violations',
             title: `Similar violations: ${typeName}`,
             description: `You have ${count} documented ${typeName} incidents. Continue documenting to strengthen your case.`,
           });
@@ -4149,42 +4508,43 @@ export async function registerRoutes(
 
       // Check for evidence gaps
       const recentViolations = violations
-        .filter(v => !v.isDraft)
+        .filter((v) => !v.isDraft)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 3);
 
       for (const v of recentViolations) {
         if (!v.photoCount || v.photoCount === 0) {
           suggestions.push({
-            type: "evidence_missing",
-            title: "Evidence missing",
-            description: `Your recent ${v.type.replace(/_/g, " ")} violation could use photo/video evidence.`,
+            type: 'evidence_missing',
+            title: 'Evidence missing',
+            description: `Your recent ${v.type.replace(/_/g, ' ')} violation could use photo/video evidence.`,
           });
           break;
         }
       }
 
       // Next steps recommendations
-      const pendingCount = violations.filter(v => v.status === "pending" && !v.isDraft).length;
+      const pendingCount = violations.filter((v) => v.status === 'pending' && !v.isDraft).length;
       if (pendingCount >= 3) {
         suggestions.push({
-          type: "next_steps",
-          title: "Ready for attorney review",
+          type: 'next_steps',
+          title: 'Ready for attorney review',
           description: `${pendingCount} violations pending review. Schedule attorney meeting to discuss filing motion.`,
         });
       }
 
       res.json(suggestions);
     } catch (error) {
-      res.status(500).json({ error: "Failed to generate suggestions" });
+      res.status(500).json({ error: 'Failed to generate suggestions' });
     }
   });
 
   // Evidence file upload endpoint with metadata extraction and chain of custody
-  app.post("/api/evidence", async (req, res) => {
+  app.post('/api/evidence', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const userId = "demo-client-user";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const userId = 'demo-client-user';
       const {
         violationId,
         fileName,
@@ -4201,7 +4561,9 @@ export async function registerRoutes(
       } = req.body;
 
       if (!violationId || !fileName || !objectPath) {
-        return res.status(400).json({ error: "Missing required fields: violationId, fileName, objectPath" });
+        return res
+          .status(400)
+          .json({ error: 'Missing required fields: violationId, fileName, objectPath' });
       }
 
       // Create evidence file record
@@ -4209,7 +4571,7 @@ export async function registerRoutes(
         violationId,
         userId,
         fileName,
-        fileType: fileType || "application/octet-stream",
+        fileType: fileType || 'application/octet-stream',
         fileSize: fileSize || 0,
         objectPath,
         deviceId: deviceId || null,
@@ -4224,21 +4586,21 @@ export async function registerRoutes(
       });
 
       // Create chain of custody entry for initial upload
-      const crypto = await import("crypto");
+      const crypto = await import('crypto');
       const entryData = JSON.stringify({
         evidenceId: evidenceFile.id,
-        action: "UPLOADED",
+        action: 'UPLOADED',
         timestamp: new Date().toISOString(),
         userId,
       });
-      const entryHash = crypto.createHash("sha256").update(entryData).digest("hex").toUpperCase();
+      const entryHash = crypto.createHash('sha256').update(entryData).digest('hex').toUpperCase();
 
       await storage.addChainOfCustodyEntry({
         evidenceId: evidenceFile.id,
         userId,
-        action: "UPLOADED",
+        action: 'UPLOADED',
         ipAddress: req.ip || req.socket.remoteAddress || null,
-        userAgent: req.headers["user-agent"] || null,
+        userAgent: req.headers['user-agent'] || null,
         previousHash: null,
         entryHash,
         environment,
@@ -4256,83 +4618,89 @@ export async function registerRoutes(
         },
       });
     } catch (error) {
-      console.error("Evidence upload failed:", error);
-      res.status(500).json({ error: "Failed to save evidence" });
+      console.error('Evidence upload failed:', error);
+      res.status(500).json({ error: 'Failed to save evidence' });
     }
   });
 
   // Get evidence files for a violation
-  app.get("/api/violations/:id/evidence", async (req, res) => {
+  app.get('/api/violations/:id/evidence', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
-      const evidenceFiles = await storage.getEvidenceFiles(req.params.id, (req as any).session?.userId || "demo-client-user", environment);
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const evidenceFiles = await storage.getEvidenceFiles(
+        req.params.id,
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
       res.json(evidenceFiles);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch evidence files" });
+      res.status(500).json({ error: 'Failed to fetch evidence files' });
     }
   });
 
   // Get chain of custody for evidence
-  app.get("/api/evidence/:id/custody", async (req, res) => {
+  app.get('/api/evidence/:id/custody', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       const custody = await storage.getChainOfCustody(req.params.id, environment);
       res.json(custody);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch chain of custody" });
+      res.status(500).json({ error: 'Failed to fetch chain of custody' });
     }
   });
 
-  app.post("/api/admin/reset-demo", async (req, res) => {
+  app.post('/api/admin/reset-demo', async (req, res) => {
     try {
-      const adminSecret = req.headers["x-admin-secret"] as string;
+      const adminSecret = req.headers['x-admin-secret'] as string;
       const expectedSecret = process.env.ADMIN_SECRET;
 
       if (!expectedSecret) {
-        return res.status(500).json({ error: "Admin endpoint not configured" });
+        return res.status(500).json({ error: 'Admin endpoint not configured' });
       }
 
       if (!adminSecret || adminSecret !== expectedSecret) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({ error: 'Unauthorized' });
       }
 
       await eraseDemoData();
-      res.json({ success: true, message: "Demo data reset successfully" });
+      res.json({ success: true, message: 'Demo data reset successfully' });
     } catch (error) {
-      console.error("Manual demo reset failed:", error);
-      res.status(500).json({ error: "Failed to reset demo data" });
+      console.error('Manual demo reset failed:', error);
+      res.status(500).json({ error: 'Failed to reset demo data' });
     }
   });
 
   // User-accessible demo data reset (no admin secret required, but only works in demo mode)
-  app.post("/api/demo/reset", async (req, res) => {
+  app.post('/api/demo/reset', async (req, res) => {
     try {
-      const environment = (req.headers["x-environment"] as string) || "demo";
+      const environment = (req.headers['x-environment'] as string) || 'demo';
 
-      if (environment !== "demo") {
-        return res.status(403).json({ error: "Demo reset only available in demo mode" });
+      if (environment !== 'demo') {
+        return res.status(403).json({ error: 'Demo reset only available in demo mode' });
       }
 
       await eraseDemoData();
-      res.json({ success: true, message: "Demo data reset successfully" });
+      res.json({ success: true, message: 'Demo data reset successfully' });
     } catch (error) {
-      console.error("User demo reset failed:", error);
-      res.status(500).json({ error: "Failed to reset demo data" });
+      console.error('User demo reset failed:', error);
+      res.status(500).json({ error: 'Failed to reset demo data' });
     }
   });
 
   // User-accessible demo data erase - completely clears data WITHOUT regenerating sample data
   // Works for both main demo and test user environments
-  app.post("/api/demo/erase", async (req, res) => {
+  app.post('/api/demo/erase', async (req, res) => {
     try {
-      const environment = (req.headers["x-environment"] as string) || "demo";
+      const environment = (req.headers['x-environment'] as string) || 'demo';
 
       // Allow erase for main demo or any test environment
-      if (environment !== "demo" && !isTestEnvironment(environment)) {
-        return res.status(403).json({ error: "Erase only available in demo or test mode" });
+      if (environment !== 'demo' && !isTestEnvironment(environment)) {
+        return res.status(403).json({ error: 'Erase only available in demo or test mode' });
       }
 
-      if (environment === "demo") {
+      if (environment === 'demo') {
         await eraseDemoData();
       } else {
         // For test environments, keep user account but erase data
@@ -4341,15 +4709,15 @@ export async function registerRoutes(
 
       res.json({ success: true, message: `Data for ${environment} erased completely` });
     } catch (error) {
-      console.error("User demo/test erase failed:", error);
-      res.status(500).json({ error: "Failed to erase data" });
+      console.error('User demo/test erase failed:', error);
+      res.status(500).json({ error: 'Failed to erase data' });
     }
   });
 
   // Get list of available test user credentials (for admin/documentation purposes)
-  app.get("/api/test-users", async (_req, res) => {
+  app.get('/api/test-users', async (_req, res) => {
     // Return test user info with obscured passwords for security
-    const testUserInfo = TEST_USERS.map(u => ({
+    const testUserInfo = TEST_USERS.map((u) => ({
       email: u.email,
       password: u.password, // These are simple test passwords, safe to expose for testing
       environment: u.environment,
@@ -4362,11 +4730,11 @@ export async function registerRoutes(
   // ==========================================
 
   // Get user subscription info and limits
-  app.get("/api/subscription", async (req, res) => {
+  app.get('/api/subscription', async (req, res) => {
     try {
-      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
+      const user = await storage.getUser((req as any).session?.userId || 'demo-client-user');
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
 
       const tier = getUserTier(user);
@@ -4391,19 +4759,19 @@ export async function registerRoutes(
         },
         subscription: {
           status: user.subscriptionStatus,
-          stripeCustomerId: user.stripeCustomerId ? "connected" : null,
-          stripeSubscriptionId: user.stripeSubscriptionId ? "active" : null,
+          stripeCustomerId: user.stripeCustomerId ? 'connected' : null,
+          stripeSubscriptionId: user.stripeSubscriptionId ? 'active' : null,
         },
         allTiers: SUBSCRIPTION_TIERS,
       });
     } catch (error) {
-      console.error("Failed to fetch subscription:", error);
-      res.status(500).json({ error: "Failed to fetch subscription info" });
+      console.error('Failed to fetch subscription:', error);
+      res.status(500).json({ error: 'Failed to fetch subscription info' });
     }
   });
 
   // Get all pricing tiers (public endpoint)
-  app.get("/api/pricing", (_req, res) => {
+  app.get('/api/pricing', (_req, res) => {
     res.json({
       tiers: Object.entries(SUBSCRIPTION_TIERS).map(([key, value]) => ({
         id: key,
@@ -4417,72 +4785,79 @@ export async function registerRoutes(
   // ==========================================
 
   // Get all cases
-  app.get("/api/cases", async (req, res) => {
+  app.get('/api/cases', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || "demo";
-      const userCases = await storage.getCases((req as any).session?.userId || "demo-client-user", environment);
+      const environment = (req.query.environment as string) || 'demo';
+      const userCases = await storage.getCases(
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
       res.json(userCases);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch cases" });
+      res.status(500).json({ error: 'Failed to fetch cases' });
     }
   });
 
   // Create a new case (tier-gated)
-  app.post("/api/cases", async (req, res) => {
+  app.post('/api/cases', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || "demo";
-      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
+      const environment = (req.query.environment as string) || 'demo';
+      const user = await storage.getUser((req as any).session?.userId || 'demo-client-user');
 
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
 
       // Check tier limits
       const check = canCreateCase(user);
       if (!check.allowed) {
         return res.status(403).json({
-          error: "Upgrade required",
+          error: 'Upgrade required',
           reason: check.reason,
           upgradeRequired: true,
-          feature: "unlimited_cases",
+          feature: 'unlimited_cases',
         });
       }
 
       const { title, caseNumber, court, opposingParty } = req.body;
 
-      if (!title || typeof title !== "string") {
-        return res.status(400).json({ error: "Case title is required" });
+      if (!title || typeof title !== 'string') {
+        return res.status(400).json({ error: 'Case title is required' });
       }
 
       const newCase = await storage.createCase({
-        userId: (req as any).session?.userId || "demo-client-user",
+        userId: (req as any).session?.userId || 'demo-client-user',
         title,
         caseNumber: caseNumber || null,
         court: court || null,
         opposingParty: opposingParty || null,
-        status: "active",
+        status: 'active',
         environment,
       });
 
       // Increment user's case count
-      await storage.incrementCaseCount((req as any).session?.userId || "demo-client-user");
+      await storage.incrementCaseCount((req as any).session?.userId || 'demo-client-user');
 
       res.json(newCase);
     } catch (error) {
-      console.error("Failed to create case:", error);
-      res.status(500).json({ error: "Failed to create case" });
+      console.error('Failed to create case:', error);
+      res.status(500).json({ error: 'Failed to create case' });
     }
   });
 
   // Delete a case
-  app.delete("/api/cases/:id", async (req, res) => {
+  app.delete('/api/cases/:id', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || "demo";
-      await storage.deleteCase(req.params.id, (req as any).session?.userId || "demo-client-user", environment);
-      await storage.decrementCaseCount((req as any).session?.userId || "demo-client-user");
+      const environment = (req.query.environment as string) || 'demo';
+      await storage.deleteCase(
+        req.params.id,
+        (req as any).session?.userId || 'demo-client-user',
+        environment
+      );
+      await storage.decrementCaseCount((req as any).session?.userId || 'demo-client-user');
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: "Failed to delete case" });
+      res.status(500).json({ error: 'Failed to delete case' });
     }
   });
 
@@ -4491,33 +4866,33 @@ export async function registerRoutes(
   // ==========================================
 
   // Create checkout session for subscription upgrade
-  app.post("/api/stripe/create-checkout", async (req, res) => {
+  app.post('/api/stripe/create-checkout', async (req, res) => {
     try {
-      const { isStripeAvailable } = await import("./stripeClient");
+      const { isStripeAvailable } = await import('./stripeClient');
       if (!isStripeAvailable()) {
-        return res.status(503).json({ error: "Payment system not configured" });
+        return res.status(503).json({ error: 'Payment system not configured' });
       }
 
       const { priceId, tier } = req.body;
-      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
+      const user = await storage.getUser((req as any).session?.userId || 'demo-client-user');
 
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: 'User not found' });
       }
 
       if (!priceId || !tier) {
-        return res.status(400).json({ error: "Missing priceId or tier" });
+        return res.status(400).json({ error: 'Missing priceId or tier' });
       }
 
       // Validate tier is a valid subscription tier
-      const validTiers = ["individual", "pro", "team", "enterprise"];
+      const validTiers = ['individual', 'pro', 'team', 'enterprise'];
       if (!validTiers.includes(tier)) {
-        return res.status(400).json({ error: "Invalid tier" });
+        return res.status(400).json({ error: 'Invalid tier' });
       }
 
       // Validate priceId exists in Stripe and matches the tier (server-side validation)
-      const { db } = await import("./db");
-      const { sql } = await import("drizzle-orm");
+      const { db } = await import('./db');
+      const { sql } = await import('drizzle-orm');
 
       try {
         const priceResult = await db.execute(sql`
@@ -4528,7 +4903,7 @@ export async function registerRoutes(
         `);
 
         if (!priceResult.rows.length) {
-          return res.status(400).json({ error: "Invalid price ID" });
+          return res.status(400).json({ error: 'Invalid price ID' });
         }
 
         // Verify the price belongs to the claimed tier - MANDATORY validation
@@ -4538,20 +4913,20 @@ export async function registerRoutes(
         // Reject if tier metadata is missing or doesn't match claimed tier
         if (!priceTier) {
           console.error(`Price ${priceId} missing tier metadata - rejecting checkout`);
-          return res.status(400).json({ error: "Price configuration incomplete" });
+          return res.status(400).json({ error: 'Price configuration incomplete' });
         }
 
         if (priceTier !== tier) {
           console.error(`Price ${priceId} tier mismatch: expected ${tier}, got ${priceTier}`);
-          return res.status(400).json({ error: "Price does not match tier" });
+          return res.status(400).json({ error: 'Price does not match tier' });
         }
       } catch (dbError: any) {
         // If Stripe tables don't exist yet, reject the checkout - can't validate
-        console.error("Stripe price validation failed:", dbError.message);
-        return res.status(503).json({ error: "Payment system not ready. Please try again later." });
+        console.error('Stripe price validation failed:', dbError.message);
+        return res.status(503).json({ error: 'Payment system not ready. Please try again later.' });
       }
 
-      const { stripeService } = await import("./stripeService");
+      const { stripeService } = await import('./stripeService');
 
       // Create or get customer
       let customerId = user.stripeCustomerId;
@@ -4562,7 +4937,7 @@ export async function registerRoutes(
           user.fullName || undefined
         );
         await storage.updateUserStripeInfo(user.id.toString(), {
-          stripeCustomerId: customer.id
+          stripeCustomerId: customer.id,
         });
         customerId = customer.id;
       }
@@ -4580,26 +4955,26 @@ export async function registerRoutes(
 
       res.json({ url: session.url });
     } catch (error: any) {
-      console.error("Checkout session creation failed:", error);
-      res.status(500).json({ error: "Failed to create checkout session" });
+      console.error('Checkout session creation failed:', error);
+      res.status(500).json({ error: 'Failed to create checkout session' });
     }
   });
 
   // Create customer portal session for managing subscription
-  app.post("/api/stripe/create-portal", async (req, res) => {
+  app.post('/api/stripe/create-portal', async (req, res) => {
     try {
-      const { isStripeAvailable } = await import("./stripeClient");
+      const { isStripeAvailable } = await import('./stripeClient');
       if (!isStripeAvailable()) {
-        return res.status(503).json({ error: "Payment system not configured" });
+        return res.status(503).json({ error: 'Payment system not configured' });
       }
 
-      const user = await storage.getUser((req as any).session?.userId || "demo-client-user");
+      const user = await storage.getUser((req as any).session?.userId || 'demo-client-user');
 
       if (!user || !user.stripeCustomerId) {
-        return res.status(400).json({ error: "No active subscription" });
+        return res.status(400).json({ error: 'No active subscription' });
       }
 
-      const { stripeService } = await import("./stripeService");
+      const { stripeService } = await import('./stripeService');
       const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
 
       const session = await stripeService.createCustomerPortalSession(
@@ -4609,16 +4984,16 @@ export async function registerRoutes(
 
       res.json({ url: session.url });
     } catch (error: any) {
-      console.error("Portal session creation failed:", error);
-      res.status(500).json({ error: "Failed to create portal session" });
+      console.error('Portal session creation failed:', error);
+      res.status(500).json({ error: 'Failed to create portal session' });
     }
   });
 
   // Get Stripe products and prices from synced database
-  app.get("/api/stripe/products", async (req, res) => {
+  app.get('/api/stripe/products', async (req, res) => {
     try {
-      const { db } = await import("./db");
-      const { sql } = await import("drizzle-orm");
+      const { db } = await import('./db');
+      const { sql } = await import('drizzle-orm');
 
       const result = await db.execute(sql`
         SELECT 
@@ -4665,45 +5040,48 @@ export async function registerRoutes(
 
       res.json({ products: Object.values(products) });
     } catch (error: any) {
-      console.error("Failed to fetch Stripe products:", error);
+      console.error('Failed to fetch Stripe products:', error);
       res.json({ products: [] });
     }
   });
 
   // Get Stripe publishable key for frontend
-  app.get("/api/stripe/config", async (_req, res) => {
+  app.get('/api/stripe/config', async (_req, res) => {
     try {
-      const { getStripePublishableKey } = await import("./stripeClient");
+      const { getStripePublishableKey } = await import('./stripeClient');
       const publishableKey = await getStripePublishableKey();
       res.json({ publishableKey });
     } catch (error: any) {
-      console.error("Failed to get Stripe config:", error);
-      res.status(500).json({ error: "Stripe not configured" });
+      console.error('Failed to get Stripe config:', error);
+      res.status(500).json({ error: 'Stripe not configured' });
     }
   });
 
   // ============ Media Routes ============
 
   // Upload media to violation
-  app.post("/api/violations/:violationId/media", async (req, res) => {
+  app.post('/api/violations/:violationId/media', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(401).json({ error: "User not found" });
+        return res.status(401).json({ error: 'User not found' });
       }
 
       const { fileName, fileType, fileSizeBytes, mimeType, storageUrl, durationSeconds } = req.body;
 
       if (!['audio', 'video', 'image'].includes(fileType)) {
-        return res.status(400).json({ error: "Invalid file type. Must be audio, video, or image." });
+        return res
+          .status(400)
+          .json({ error: 'Invalid file type. Must be audio, video, or image.' });
       }
 
       // Check tier limits
       const uploadCheck = canUploadMedia(user);
       if (!uploadCheck.allowed) {
         return res.status(403).json({
-          error: uploadCheck.reason || "Media upload limit reached for your subscription tier",
+          error: uploadCheck.reason || 'Media upload limit reached for your subscription tier',
           remaining: getRemainingMediaUploads(user),
         });
       }
@@ -4721,7 +5099,7 @@ export async function registerRoutes(
 
       const media = await mediaService.uploadMedia(
         req.params.violationId,
-        userId,  // Pass userId for tier-based file size limits
+        userId, // Pass userId for tier-based file size limits
         fileName,
         fileType,
         fileSizeBytes,
@@ -4732,34 +5110,36 @@ export async function registerRoutes(
 
       res.status(201).json({
         success: true,
-        message: "Media uploaded successfully",
+        message: 'Media uploaded successfully',
         data: media,
       });
     } catch (error: any) {
-      console.error("Media upload failed:", error);
+      console.error('Media upload failed:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // Save transcript for violation
-  app.post("/api/violations/:violationId/transcript", async (req, res) => {
+  app.post('/api/violations/:violationId/transcript', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(401).json({ error: "User not found" });
+        return res.status(401).json({ error: 'User not found' });
       }
 
       const { transcript } = req.body;
       if (!transcript || typeof transcript !== 'string') {
-        return res.status(400).json({ error: "Transcript is required" });
+        return res.status(400).json({ error: 'Transcript is required' });
       }
 
       // Check voice transcription limits
       const voiceCheck = canUseVoiceTranscription(user);
       if (!voiceCheck.allowed) {
         return res.status(403).json({
-          error: voiceCheck.reason || "Voice transcription limit reached for your subscription tier",
+          error:
+            voiceCheck.reason || 'Voice transcription limit reached for your subscription tier',
           remaining: getRemainingVoiceTranscriptions(user),
         });
       }
@@ -4768,21 +5148,22 @@ export async function registerRoutes(
 
       res.json({
         success: true,
-        message: "Transcript saved successfully",
+        message: 'Transcript saved successfully',
       });
     } catch (error: any) {
-      console.error("Transcript save failed:", error);
+      console.error('Transcript save failed:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // AI classify violation from transcript
-  app.post("/api/violations/:violationId/classify", async (req, res) => {
+  app.post('/api/violations/:violationId/classify', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(401).json({ error: "User not found" });
+        return res.status(401).json({ error: 'User not found' });
       }
 
       // Check AI classification permission (Pro+ only)
@@ -4797,17 +5178,17 @@ export async function registerRoutes(
 
       res.json({
         success: true,
-        message: "Violation classified successfully",
+        message: 'Violation classified successfully',
         data: classification,
       });
     } catch (error: any) {
-      console.error("Classification failed:", error);
+      console.error('Classification failed:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // Get all media for violation
-  app.get("/api/violations/:violationId/media", async (req, res) => {
+  app.get('/api/violations/:violationId/media', async (req, res) => {
     try {
       const mediaData = await mediaService.getMediaForViolation(req.params.violationId);
 
@@ -4816,15 +5197,16 @@ export async function registerRoutes(
         data: mediaData,
       });
     } catch (error: any) {
-      console.error("Failed to get media:", error);
+      console.error('Failed to get media:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // Get user's violation count this month
-  app.get("/api/users/violations-this-month", async (req, res) => {
+  app.get('/api/users/violations-this-month', async (req, res) => {
     try {
-      const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const count = await mediaService.getViolationsThisMonth(userId);
 
       res.json({
@@ -4832,13 +5214,13 @@ export async function registerRoutes(
         data: { count },
       });
     } catch (error: any) {
-      console.error("Failed to get violation count:", error);
+      console.error('Failed to get violation count:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // Update user tier metrics (recalculate monthly usage)
-  app.post("/api/users/:userId/update-tier", async (req, res) => {
+  app.post('/api/users/:userId/update-tier', async (req, res) => {
     try {
       const { userId } = req.params;
 
@@ -4846,17 +5228,17 @@ export async function registerRoutes(
 
       res.json({
         success: true,
-        message: "User tier metrics updated",
+        message: 'User tier metrics updated',
         data: result,
       });
     } catch (error: any) {
-      console.error("Failed to update tier metrics:", error);
+      console.error('Failed to update tier metrics:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // Get violations count by case this month
-  app.get("/api/cases/:caseId/violations-count", async (req, res) => {
+  app.get('/api/cases/:caseId/violations-count', async (req, res) => {
     try {
       const count = await mediaService.getViolationsThisMonthByCase(req.params.caseId);
 
@@ -4868,31 +5250,32 @@ export async function registerRoutes(
         },
       });
     } catch (error: any) {
-      console.error("Failed to get case violations count:", error);
+      console.error('Failed to get case violations count:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // Get detailed tier and usage statistics for user
-  app.get("/api/users/:userId/tier-stats", async (req, res) => {
+  app.get('/api/users/:userId/tier-stats', async (req, res) => {
     try {
       const user = await storage.getUser(req.params.userId);
       if (!user) {
-        return res.status(404).json({ success: false, error: "User not found" });
+        return res.status(404).json({ success: false, error: 'User not found' });
       }
 
-      const tier = user.subscriptionTier || "free";
-      const tierConfig = SUBSCRIPTION_TIERS[tier as keyof typeof SUBSCRIPTION_TIERS] || SUBSCRIPTION_TIERS.free;
+      const tier = user.subscriptionTier || 'free';
+      const tierConfig =
+        SUBSCRIPTION_TIERS[tier as keyof typeof SUBSCRIPTION_TIERS] || SUBSCRIPTION_TIERS.free;
 
       const violationsThisMonth = user.violationsCountThisMonth || 0;
       const voiceThisMonth = user.voiceTranscriptionsThisMonth || 0;
       const mediaThisMonth = user.mediaUploadsThisMonth || 0;
 
       const getRecommendedTier = (count: number) => {
-        if (count >= 50) return "enterprise";
-        if (count > 20) return "pro";
-        if (count > 10) return "individual";
-        return "free";
+        if (count >= 50) return 'enterprise';
+        if (count > 20) return 'pro';
+        if (count > 10) return 'individual';
+        return 'free';
       };
 
       res.json({
@@ -4903,34 +5286,46 @@ export async function registerRoutes(
           recommendedTier: getRecommendedTier(violationsThisMonth),
           tierLimits: {
             maxFileSizeMb: mediaService.getMaxFileSizeForTier(tier) / (1024 * 1024),
-            maxViolationsPerMonth: tierConfig.maxViolationsPerMonth === -1 ? "Unlimited" : tierConfig.maxViolationsPerMonth,
-            maxVoicePerMonth: tierConfig.maxVoiceTranscriptionsPerMonth === -1 ? "Unlimited" : tierConfig.maxVoiceTranscriptionsPerMonth,
-            maxMediaPerMonth: tierConfig.maxMediaUploadsPerMonth === -1 ? "Unlimited" : tierConfig.maxMediaUploadsPerMonth,
+            maxViolationsPerMonth:
+              tierConfig.maxViolationsPerMonth === -1
+                ? 'Unlimited'
+                : tierConfig.maxViolationsPerMonth,
+            maxVoicePerMonth:
+              tierConfig.maxVoiceTranscriptionsPerMonth === -1
+                ? 'Unlimited'
+                : tierConfig.maxVoiceTranscriptionsPerMonth,
+            maxMediaPerMonth:
+              tierConfig.maxMediaUploadsPerMonth === -1
+                ? 'Unlimited'
+                : tierConfig.maxMediaUploadsPerMonth,
           },
           usage: {
             violationsThisMonth,
             voiceTranscriptionsThisMonth: voiceThisMonth,
             mediaUploadsThisMonth: mediaThisMonth,
-            violationsRemaining: tierConfig.maxViolationsPerMonth === -1
-              ? "Unlimited"
-              : Math.max(0, tierConfig.maxViolationsPerMonth - violationsThisMonth),
-            voiceRemaining: tierConfig.maxVoiceTranscriptionsPerMonth === -1
-              ? "Unlimited"
-              : Math.max(0, tierConfig.maxVoiceTranscriptionsPerMonth - voiceThisMonth),
-            mediaRemaining: tierConfig.maxMediaUploadsPerMonth === -1
-              ? "Unlimited"
-              : Math.max(0, tierConfig.maxMediaUploadsPerMonth - mediaThisMonth),
+            violationsRemaining:
+              tierConfig.maxViolationsPerMonth === -1
+                ? 'Unlimited'
+                : Math.max(0, tierConfig.maxViolationsPerMonth - violationsThisMonth),
+            voiceRemaining:
+              tierConfig.maxVoiceTranscriptionsPerMonth === -1
+                ? 'Unlimited'
+                : Math.max(0, tierConfig.maxVoiceTranscriptionsPerMonth - voiceThisMonth),
+            mediaRemaining:
+              tierConfig.maxMediaUploadsPerMonth === -1
+                ? 'Unlimited'
+                : Math.max(0, tierConfig.maxMediaUploadsPerMonth - mediaThisMonth),
           },
         },
       });
     } catch (error: any) {
-      console.error("Failed to get tier stats:", error);
+      console.error('Failed to get tier stats:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // GET /api/users/:userId/usage-metrics - Get detailed usage metrics with tier enforcement
-  app.get("/api/users/:userId/usage-metrics", async (req: Request, res: Response) => {
+  app.get('/api/users/:userId/usage-metrics', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const metrics = await tierEnforcementService.getUserUsageMetrics(userId);
@@ -4942,26 +5337,29 @@ export async function registerRoutes(
           metrics,
           tierLimits,
           usagePercentage: {
-            storage: tierLimits.maxStorageMB !== null
-              ? Math.round((metrics.storageUsedMB / tierLimits.maxStorageMB) * 100)
-              : 0,
-            violations: tierLimits.maxViolationsPerMonth !== null
-              ? Math.round((metrics.violationsThisMonth / tierLimits.maxViolationsPerMonth) * 100)
-              : 0,
-            cases: tierLimits.maxCases !== null
-              ? Math.round((metrics.casesActive / tierLimits.maxCases) * 100)
-              : 0,
+            storage:
+              tierLimits.maxStorageMB !== null
+                ? Math.round((metrics.storageUsedMB / tierLimits.maxStorageMB) * 100)
+                : 0,
+            violations:
+              tierLimits.maxViolationsPerMonth !== null
+                ? Math.round((metrics.violationsThisMonth / tierLimits.maxViolationsPerMonth) * 100)
+                : 0,
+            cases:
+              tierLimits.maxCases !== null
+                ? Math.round((metrics.casesActive / tierLimits.maxCases) * 100)
+                : 0,
           },
         },
       });
     } catch (error: any) {
-      console.error("Failed to get usage metrics:", error);
+      console.error('Failed to get usage metrics:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // POST /api/users/:userId/check-upload - Check if user can upload a file
-  app.post("/api/users/:userId/check-upload", async (req: Request, res: Response) => {
+  app.post('/api/users/:userId/check-upload', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const { fileSizeMB } = req.body;
@@ -4969,7 +5367,7 @@ export async function registerRoutes(
       if (!fileSizeMB || fileSizeMB <= 0) {
         return res.status(400).json({
           success: false,
-          error: "fileSizeMB must be a positive number",
+          error: 'fileSizeMB must be a positive number',
         });
       }
 
@@ -4977,34 +5375,34 @@ export async function registerRoutes(
 
       res.json({ success: true, data: result });
     } catch (error: any) {
-      console.error("Upload check failed:", error);
+      console.error('Upload check failed:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // GET /api/users/:userId/tier-recommendation - Get recommended tier upgrade
-  app.get("/api/users/:userId/tier-recommendation", async (req: Request, res: Response) => {
+  app.get('/api/users/:userId/tier-recommendation', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const recommendation = await tierEnforcementService.getRecommendedTierUpgrade(userId);
 
       res.json({ success: true, data: recommendation });
     } catch (error: any) {
-      console.error("Failed to get tier recommendation:", error);
+      console.error('Failed to get tier recommendation:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // POST /api/users/:userId/log-usage - Manually trigger usage logging
-  app.post("/api/users/:userId/log-usage", async (req: Request, res: Response) => {
+  app.post('/api/users/:userId/log-usage', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
-      const environment = req.body.environment || "demo";
+      const environment = req.body.environment || 'demo';
       await tierEnforcementService.logUsageMetrics(userId, environment);
 
-      res.json({ success: true, message: "Usage metrics logged successfully" });
+      res.json({ success: true, message: 'Usage metrics logged successfully' });
     } catch (error: any) {
-      console.error("Failed to log usage:", error);
+      console.error('Failed to log usage:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
@@ -5014,7 +5412,7 @@ export async function registerRoutes(
   // ==========================================
 
   // GET /api/users/:userId/billing - Calculate current month billing
-  app.get("/api/users/:userId/billing", async (req: Request, res: Response) => {
+  app.get('/api/users/:userId/billing', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const billing = await billingService.calculateMonthlyBilling(userId);
@@ -5027,13 +5425,13 @@ export async function registerRoutes(
         },
       });
     } catch (error: any) {
-      console.error("Failed to calculate billing:", error);
+      console.error('Failed to calculate billing:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // GET /api/users/:userId/billing/history - Get billing history
-  app.get("/api/users/:userId/billing/history", async (req: Request, res: Response) => {
+  app.get('/api/users/:userId/billing/history', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const limit = parseInt(req.query.limit as string) || 12;
@@ -5047,13 +5445,13 @@ export async function registerRoutes(
         })),
       });
     } catch (error: any) {
-      console.error("Failed to get billing history:", error);
+      console.error('Failed to get billing history:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // POST /api/users/:userId/billing/save - Save billing record
-  app.post("/api/users/:userId/billing/save", async (req: Request, res: Response) => {
+  app.post('/api/users/:userId/billing/save', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const billing = await billingService.calculateMonthlyBilling(userId);
@@ -5061,18 +5459,18 @@ export async function registerRoutes(
 
       res.json({
         success: true,
-        message: "Billing record saved",
+        message: 'Billing record saved',
         data: billing,
       });
     } catch (error: any) {
-      console.error("Failed to save billing:", error);
+      console.error('Failed to save billing:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // GET /api/pricing - Get tier pricing info
-  app.get("/api/tier-pricing", async (_req: Request, res: Response) => {
-    const tierNames = ["free", "individual", "pro", "team", "enterprise"];
+  app.get('/api/tier-pricing', async (_req: Request, res: Response) => {
+    const tierNames = ['free', 'individual', 'pro', 'team', 'enterprise'];
     const pricing = tierNames.map((tierName) => {
       const tierPricing = BillingService.getPricing(tierName);
       return {
@@ -5093,44 +5491,44 @@ export async function registerRoutes(
   // ==========================================
 
   // POST /api/users/:userId/migrate-tier - Migrate user to new tier
-  app.post("/api/users/:userId/migrate-tier", async (req: Request, res: Response) => {
+  app.post('/api/users/:userId/migrate-tier', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const { newTier, reason, gracePeriodDays } = req.body;
 
       if (!newTier) {
-        return res.status(400).json({ success: false, error: "newTier is required" });
+        return res.status(400).json({ success: false, error: 'newTier is required' });
       }
 
       const migration = await tierMigrationService.migrateTier(
         userId,
         newTier,
-        reason || "User requested",
+        reason || 'User requested',
         gracePeriodDays || 0
       );
 
       res.json({ success: true, data: migration });
     } catch (error: any) {
-      console.error("Tier migration failed:", error);
+      console.error('Tier migration failed:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // GET /api/users/:userId/migration - Get active migration
-  app.get("/api/users/:userId/migration", async (req: Request, res: Response) => {
+  app.get('/api/users/:userId/migration', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const migration = await tierMigrationService.getActiveMigration(userId);
 
       res.json({ success: true, data: migration });
     } catch (error: any) {
-      console.error("Failed to get migration:", error);
+      console.error('Failed to get migration:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // GET /api/users/:userId/migration/history - Get migration history
-  app.get("/api/users/:userId/migration/history", async (req: Request, res: Response) => {
+  app.get('/api/users/:userId/migration/history', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const limit = parseInt(req.query.limit as string) || 10;
@@ -5138,37 +5536,37 @@ export async function registerRoutes(
 
       res.json({ success: true, data: history });
     } catch (error: any) {
-      console.error("Failed to get migration history:", error);
+      console.error('Failed to get migration history:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // POST /api/migrations/:migrationId/cancel - Cancel pending migration
-  app.post("/api/migrations/:migrationId/cancel", async (req: Request, res: Response) => {
+  app.post('/api/migrations/:migrationId/cancel', async (req: Request, res: Response) => {
     try {
       const migrationId = req.params.migrationId;
       await tierMigrationService.cancelMigration(migrationId);
 
-      res.json({ success: true, message: "Migration cancelled" });
+      res.json({ success: true, message: 'Migration cancelled' });
     } catch (error: any) {
-      console.error("Failed to cancel migration:", error);
+      console.error('Failed to cancel migration:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // POST /api/admin/apply-pending-migrations - Apply all pending migrations
-  app.post("/api/admin/apply-pending-migrations", async (req: Request, res: Response) => {
+  app.post('/api/admin/apply-pending-migrations', async (req: Request, res: Response) => {
     try {
-      const adminSecret = req.headers["x-admin-secret"] as string;
+      const adminSecret = req.headers['x-admin-secret'] as string;
       if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
-        return res.status(401).json({ success: false, error: "Unauthorized" });
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
       }
 
       const result = await tierMigrationService.applyPendingMigrations();
 
       res.json({ success: true, data: result });
     } catch (error: any) {
-      console.error("Failed to apply migrations:", error);
+      console.error('Failed to apply migrations:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
@@ -5201,39 +5599,39 @@ export async function registerRoutes(
   // ==========================================
 
   // GET /api/users/:userId/quota-status - Get current quota status
-  app.get("/api/users/:userId/quota-status", async (req: Request, res: Response) => {
+  app.get('/api/users/:userId/quota-status', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const user = await storage.getUser(userId);
 
       if (!user) {
-        return res.status(404).json({ success: false, error: "User not found" });
+        return res.status(404).json({ success: false, error: 'User not found' });
       }
 
       const status = quotaResetService.getCurrentQuotaStatus(user);
 
       res.json({ success: true, data: status });
     } catch (error: any) {
-      console.error("Failed to get quota status:", error);
+      console.error('Failed to get quota status:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // POST /api/users/:userId/reset-quota - Manually reset user quota
-  app.post("/api/users/:userId/reset-quota", async (req: Request, res: Response) => {
+  app.post('/api/users/:userId/reset-quota', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const reset = await quotaResetService.resetUserQuota(userId);
 
       res.json({ success: true, data: reset });
     } catch (error: any) {
-      console.error("Failed to reset quota:", error);
+      console.error('Failed to reset quota:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // GET /api/users/:userId/quota-history - Get quota reset history
-  app.get("/api/users/:userId/quota-history", async (req: Request, res: Response) => {
+  app.get('/api/users/:userId/quota-history', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
       const limit = parseInt(req.query.limit as string) || 12;
@@ -5241,24 +5639,24 @@ export async function registerRoutes(
 
       res.json({ success: true, data: history });
     } catch (error: any) {
-      console.error("Failed to get quota history:", error);
+      console.error('Failed to get quota history:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
   // POST /api/admin/reset-all-quotas - Reset quotas for all users (admin)
-  app.post("/api/admin/reset-all-quotas", async (req: Request, res: Response) => {
+  app.post('/api/admin/reset-all-quotas', async (req: Request, res: Response) => {
     try {
-      const adminSecret = req.headers["x-admin-secret"] as string;
+      const adminSecret = req.headers['x-admin-secret'] as string;
       if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
-        return res.status(401).json({ success: false, error: "Unauthorized" });
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
       }
 
       const result = await quotaResetService.resetMonthlyQuotas();
 
       res.json({ success: true, data: result });
     } catch (error: any) {
-      console.error("Failed to reset all quotas:", error);
+      console.error('Failed to reset all quotas:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
@@ -5272,48 +5670,46 @@ export async function registerRoutes(
   // ANALYTICS ROUTES
   // ==========================================
   if (enableOptionalIntegrations) {
-
-
     // GET /api/admin/analytics/platform - Get platform-wide metrics
-    app.get("/api/admin/analytics/platform", async (req: Request, res: Response) => {
+    app.get('/api/admin/analytics/platform', async (req: Request, res: Response) => {
       try {
-        const adminSecret = req.headers["x-admin-secret"] as string;
+        const adminSecret = req.headers['x-admin-secret'] as string;
         if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
-          return res.status(401).json({ success: false, error: "Unauthorized" });
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
         const metrics = await analyticsService.getPlatformMetrics();
 
         res.json({ success: true, data: metrics });
       } catch (error: any) {
-        console.error("Failed to get platform metrics:", error);
+        console.error('Failed to get platform metrics:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
 
     // GET /api/admin/analytics/tiers - Get tier distribution
-    app.get("/api/admin/analytics/tiers", async (req: Request, res: Response) => {
+    app.get('/api/admin/analytics/tiers', async (req: Request, res: Response) => {
       try {
-        const adminSecret = req.headers["x-admin-secret"] as string;
+        const adminSecret = req.headers['x-admin-secret'] as string;
         if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
-          return res.status(401).json({ success: false, error: "Unauthorized" });
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
         const distribution = await analyticsService.getTierDistribution();
 
         res.json({ success: true, data: distribution });
       } catch (error: any) {
-        console.error("Failed to get tier distribution:", error);
+        console.error('Failed to get tier distribution:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
 
     // GET /api/admin/analytics/trends - Get usage trends
-    app.get("/api/admin/analytics/trends", async (req: Request, res: Response) => {
+    app.get('/api/admin/analytics/trends', async (req: Request, res: Response) => {
       try {
-        const adminSecret = req.headers["x-admin-secret"] as string;
+        const adminSecret = req.headers['x-admin-secret'] as string;
         if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
-          return res.status(401).json({ success: false, error: "Unauthorized" });
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
         const days = parseInt(req.query.days as string) || 30;
@@ -5321,17 +5717,17 @@ export async function registerRoutes(
 
         res.json({ success: true, data: trends });
       } catch (error: any) {
-        console.error("Failed to get usage trends:", error);
+        console.error('Failed to get usage trends:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
 
     // GET /api/admin/analytics/revenue - Get revenue by tier
-    app.get("/api/admin/analytics/revenue", async (req: Request, res: Response) => {
+    app.get('/api/admin/analytics/revenue', async (req: Request, res: Response) => {
       try {
-        const adminSecret = req.headers["x-admin-secret"] as string;
+        const adminSecret = req.headers['x-admin-secret'] as string;
         if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
-          return res.status(401).json({ success: false, error: "Unauthorized" });
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
         const revenue = await analyticsService.getRevenueByTier();
@@ -5346,17 +5742,17 @@ export async function registerRoutes(
           })),
         });
       } catch (error: any) {
-        console.error("Failed to get revenue:", error);
+        console.error('Failed to get revenue:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
 
     // GET /api/admin/analytics/top-users - Get top users
-    app.get("/api/admin/analytics/top-users", async (req: Request, res: Response) => {
+    app.get('/api/admin/analytics/top-users', async (req: Request, res: Response) => {
       try {
-        const adminSecret = req.headers["x-admin-secret"] as string;
+        const adminSecret = req.headers['x-admin-secret'] as string;
         if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
-          return res.status(401).json({ success: false, error: "Unauthorized" });
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
         const limit = parseInt(req.query.limit as string) || 10;
@@ -5364,17 +5760,17 @@ export async function registerRoutes(
 
         res.json({ success: true, data: topUsers });
       } catch (error: any) {
-        console.error("Failed to get top users:", error);
+        console.error('Failed to get top users:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
 
     // GET /api/admin/analytics/cohorts - Get cohort analysis
-    app.get("/api/admin/analytics/cohorts", async (req: Request, res: Response) => {
+    app.get('/api/admin/analytics/cohorts', async (req: Request, res: Response) => {
       try {
-        const adminSecret = req.headers["x-admin-secret"] as string;
+        const adminSecret = req.headers['x-admin-secret'] as string;
         if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
-          return res.status(401).json({ success: false, error: "Unauthorized" });
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
         const months = parseInt(req.query.months as string) || 12;
@@ -5382,17 +5778,17 @@ export async function registerRoutes(
 
         res.json({ success: true, data: cohorts });
       } catch (error: any) {
-        console.error("Failed to get cohort analysis:", error);
+        console.error('Failed to get cohort analysis:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
 
     // POST /api/admin/billing/process-monthly - Process monthly billings
-    app.post("/api/admin/billing/process-monthly", async (req: Request, res: Response) => {
+    app.post('/api/admin/billing/process-monthly', async (req: Request, res: Response) => {
       try {
-        const adminSecret = req.headers["x-admin-secret"] as string;
+        const adminSecret = req.headers['x-admin-secret'] as string;
         if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
-          return res.status(401).json({ success: false, error: "Unauthorized" });
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
         const result = await billingService.processMonthlyBillings();
@@ -5403,7 +5799,7 @@ export async function registerRoutes(
           message: `Processed ${result.processed} users, ${result.failed} failed`,
         });
       } catch (error: any) {
-        console.error("Monthly billing failed:", error);
+        console.error('Monthly billing failed:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
@@ -5427,44 +5823,51 @@ export async function registerRoutes(
     console.log('\n📱 Mobile App Endpoints:');
 
     // GET /api/mobile/documents - Get documents with AI analysis info
-    app.get("/api/mobile/documents", async (req: Request, res: Response) => {
+    app.get('/api/mobile/documents', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-        const environment = req.headers["x-environment"] as string || "demo";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         const documents = await storage.getDocuments(userId, environment);
 
         // Return array directly for consistency with other endpoints
         res.json(documents);
       } catch (error: any) {
-        console.error("Failed to get mobile documents:", error);
+        console.error('Failed to get mobile documents:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   GET  /api/mobile/documents');
 
     // POST /api/mobile/documents - Upload document with AI analysis
-    app.post("/api/mobile/documents", async (req: Request, res: Response) => {
+    app.post('/api/mobile/documents', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-        const environment = req.headers["x-environment"] as string || req.body.environment || "demo";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
+        const environment =
+          (req.headers['x-environment'] as string) || req.body.environment || 'demo';
         const workspaceId = resolveWorkspaceId(req);
         const { title, fileName, fileType, fileUrl, fileSize, description } = req.body;
 
         if (!title || !fileName) {
-          return res.status(400).json({ success: false, error: "Title and fileName are required" });
+          return res.status(400).json({ success: false, error: 'Title and fileName are required' });
         }
 
         // Perform AI analysis if not in demo mode, otherwise use mock
         let analysisResult;
-        const isDemoMode = environment === "demo";
+        const isDemoMode = environment === 'demo';
 
         if (isDemoMode) {
           analysisResult = getMockDocumentAnalysis(fileName);
         } else {
           analysisResult = await analyzeDocument(
             fileName,
-            fileType || "unknown",
+            fileType || 'unknown',
             description,
             workspaceId,
             userId
@@ -5486,7 +5889,7 @@ export async function registerRoutes(
           aiConfidence: analysisResult.confidence,
           aiSummary: analysisResult.summary,
           aiSuggestedTags: analysisResult.suggestedTags,
-          aiAnalysisStatus: "completed",
+          aiAnalysisStatus: 'completed',
           mobileUploaded: true,
         });
 
@@ -5498,107 +5901,117 @@ export async function registerRoutes(
           },
         });
       } catch (error: any) {
-        console.error("Failed to create mobile document:", error);
+        console.error('Failed to create mobile document:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   POST /api/mobile/documents');
 
     // POST /api/mobile/documents/:id/reanalyze - Re-run AI analysis
-    app.post("/api/mobile/documents/:id/reanalyze", async (req: Request, res: Response) => {
+    app.post('/api/mobile/documents/:id/reanalyze', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const { analyzeAndPersist } = await import("./services/analyzeAndPersist");
+        const { analyzeAndPersist } = await import('./services/analyzeAndPersist');
 
         console.log(`[Documents API] Manually triggering re-analysis for document: ${id}`);
         const result = await analyzeAndPersist(id, { createRecords: true });
 
         res.json({
           success: true,
-          data: result
+          data: result,
         });
       } catch (error: any) {
-        console.error("Failed to reanalyze document:", error);
+        console.error('Failed to reanalyze document:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   POST /api/mobile/documents/:id/reanalyze');
 
     // PATCH /api/mobile/documents/:id/category - Update document category (accept/reject AI suggestion)
-    app.patch("/api/mobile/documents/:id/category", async (req: Request, res: Response) => {
+    app.patch('/api/mobile/documents/:id/category', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const { category, acceptAiSuggestion } = req.body;
 
         if (!category && acceptAiSuggestion === undefined) {
-          return res.status(400).json({ success: false, error: "Category or acceptAiSuggestion required" });
+          return res
+            .status(400)
+            .json({ success: false, error: 'Category or acceptAiSuggestion required' });
         }
 
         const document = await storage.getDocument(id);
         if (!document) {
-          return res.status(404).json({ success: false, error: "Document not found" });
+          return res.status(404).json({ success: false, error: 'Document not found' });
         }
 
         const newCategory = acceptAiSuggestion ? document.aiCategory : category;
-        const updated = await storage.updateDocument(id, { category: newCategory || document.category });
+        const updated = await storage.updateDocument(id, {
+          category: newCategory || document.category,
+        });
 
         res.json({ success: true, data: updated });
       } catch (error: any) {
-        console.error("Failed to update document category:", error);
+        console.error('Failed to update document category:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   PATCH /api/mobile/documents/:id/category');
 
     // GET /api/mobile/violations - Get violation reports for mobile
-    app.get("/api/mobile/violations", async (req: Request, res: Response) => {
+    app.get('/api/mobile/violations', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-        const environment = req.headers["x-environment"] as string || "demo";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         const mobileReports = await storage.getMobileViolationReports(userId, environment);
 
         // Return array directly for consistency with other endpoints
         res.json(mobileReports);
       } catch (error: any) {
-        console.error("Failed to get mobile violations:", error);
+        console.error('Failed to get mobile violations:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   GET  /api/mobile/violations');
 
     // POST /api/mobile/violations - Create a new violation report from mobile
-    app.post("/api/mobile/violations", async (req: Request, res: Response) => {
+    app.post('/api/mobile/violations', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
         const {
           title,
           violationType,
           description,
-          severity = "medium",
+          severity = 'medium',
           location,
           occurredAt,
           relatedDocumentIds,
           witnesses,
-          environment = "demo",
+          environment = 'demo',
           useSuggestions = true,
         } = req.body;
         const workspaceId = resolveWorkspaceId(req);
 
         if (!description) {
-          return res.status(400).json({ success: false, error: "Description is required" });
+          return res.status(400).json({ success: false, error: 'Description is required' });
         }
 
         // Get AI classification for the violation
         let aiResult;
-        if (environment !== "demo" && useSuggestions) {
+        if (environment !== 'demo' && useSuggestions) {
           aiResult = await classifyViolation(description, relatedDocumentIds, workspaceId, userId);
         } else {
           aiResult = {
-            type: violationType || "other",
-            severity: severity as "low" | "medium" | "high" | "critical",
-            suggestedTitle: title || "Violation Report",
-            legalRelevance: "Manual review required",
+            type: violationType || 'other',
+            severity: severity as 'low' | 'medium' | 'high' | 'critical',
+            suggestedTitle: title || 'Violation Report',
+            legalRelevance: 'Manual review required',
           };
         }
 
@@ -5612,7 +6025,7 @@ export async function registerRoutes(
           occurredAt: occurredAt ? new Date(occurredAt) : new Date(),
           relatedDocumentIds,
           witnesses,
-          status: "draft",
+          status: 'draft',
           environment,
         });
 
@@ -5624,44 +6037,44 @@ export async function registerRoutes(
           },
         });
       } catch (error: any) {
-        console.error("Failed to create violation report:", error);
+        console.error('Failed to create violation report:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   POST /api/mobile/violations');
 
     // PATCH /api/mobile/violations/:id - Update violation report
-    app.patch("/api/mobile/violations/:id", async (req: Request, res: Response) => {
+    app.patch('/api/mobile/violations/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const updates = req.body;
 
         const report = await storage.getMobileViolationReport(id);
         if (!report) {
-          return res.status(404).json({ success: false, error: "Report not found" });
+          return res.status(404).json({ success: false, error: 'Report not found' });
         }
 
         const updated = await storage.updateMobileViolationReport(id, updates);
         res.json({ success: true, data: updated });
       } catch (error: any) {
-        console.error("Failed to update violation report:", error);
+        console.error('Failed to update violation report:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   PATCH /api/mobile/violations/:id');
 
     // POST /api/mobile/violations/:id/submit - Submit violation report (creates real violation)
-    app.post("/api/mobile/violations/:id/submit", async (req: Request, res: Response) => {
+    app.post('/api/mobile/violations/:id/submit', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
 
         const report = await storage.getMobileViolationReport(id);
         if (!report) {
-          return res.status(404).json({ success: false, error: "Report not found" });
+          return res.status(404).json({ success: false, error: 'Report not found' });
         }
 
-        if (report.status === "submitted") {
-          return res.status(400).json({ success: false, error: "Report already submitted" });
+        if (report.status === 'submitted') {
+          return res.status(400).json({ success: false, error: 'Report already submitted' });
         }
 
         // Create actual violation from the mobile report
@@ -5671,49 +6084,49 @@ export async function registerRoutes(
           description: report.description,
           location: report.location,
           witnesses: report.witnesses,
-          status: "pending",
+          status: 'pending',
           environment: report.environment,
           isDraft: false,
         });
 
         // Update mobile report with submission info
         await storage.updateMobileViolationReport(id, {
-          status: "submitted",
+          status: 'submitted',
           linkedViolationId: violation.id,
         });
 
         res.json({
           success: true,
           data: {
-            report: { ...report, status: "submitted", linkedViolationId: violation.id },
+            report: { ...report, status: 'submitted', linkedViolationId: violation.id },
             violation,
           },
         });
       } catch (error: any) {
-        console.error("Failed to submit violation report:", error);
+        console.error('Failed to submit violation report:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   POST /api/mobile/violations/:id/submit');
 
     // DELETE /api/mobile/violations/:id - Delete draft violation report
-    app.delete("/api/mobile/violations/:id", async (req: Request, res: Response) => {
+    app.delete('/api/mobile/violations/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
 
         const report = await storage.getMobileViolationReport(id);
         if (!report) {
-          return res.status(404).json({ success: false, error: "Report not found" });
+          return res.status(404).json({ success: false, error: 'Report not found' });
         }
 
-        if (report.status === "submitted") {
-          return res.status(400).json({ success: false, error: "Cannot delete submitted reports" });
+        if (report.status === 'submitted') {
+          return res.status(400).json({ success: false, error: 'Cannot delete submitted reports' });
         }
 
         await storage.deleteMobileViolationReport(id);
-        res.json({ success: true, message: "Report deleted" });
+        res.json({ success: true, message: 'Report deleted' });
       } catch (error: any) {
-        console.error("Failed to delete violation report:", error);
+        console.error('Failed to delete violation report:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
@@ -5725,29 +6138,47 @@ export async function registerRoutes(
     console.log('\n💰 Reimbursements Endpoints:');
 
     // GET /api/mobile/reimbursements - Get all reimbursements
-    app.get("/api/mobile/reimbursements", async (req: Request, res: Response) => {
+    app.get('/api/mobile/reimbursements', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-        const environment = req.headers["x-environment"] as string || "demo";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         const reimbursementsList = await storage.getReimbursements(userId, environment);
         res.json(reimbursementsList);
       } catch (error: any) {
-        console.error("Failed to get reimbursements:", error);
+        console.error('Failed to get reimbursements:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   GET  /api/mobile/reimbursements');
 
     // POST /api/mobile/reimbursements - Create a new reimbursement
-    app.post("/api/mobile/reimbursements", async (req: Request, res: Response) => {
+    app.post('/api/mobile/reimbursements', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-        const environment = req.headers["x-environment"] as string || "demo";
-        const { category, description, amount, owedBy, status = "pending", dueDate, notes, linkedDocumentIds } = req.body;
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
+        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const {
+          category,
+          description,
+          amount,
+          owedBy,
+          status = 'pending',
+          dueDate,
+          notes,
+          linkedDocumentIds,
+        } = req.body;
 
         if (!category || !description || !amount || !owedBy) {
-          return res.status(400).json({ success: false, error: "Category, description, amount, and owedBy are required" });
+          return res.status(400).json({
+            success: false,
+            error: 'Category, description, amount, and owedBy are required',
+          });
         }
 
         const reimbursement = await storage.createReimbursement({
@@ -5765,14 +6196,14 @@ export async function registerRoutes(
 
         res.status(201).json(reimbursement);
       } catch (error: any) {
-        console.error("Failed to create reimbursement:", error);
+        console.error('Failed to create reimbursement:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   POST /api/mobile/reimbursements');
 
     // PATCH /api/mobile/reimbursements/:id - Update a reimbursement
-    app.patch("/api/mobile/reimbursements/:id", async (req: Request, res: Response) => {
+    app.patch('/api/mobile/reimbursements/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const updates = req.body;
@@ -5784,32 +6215,32 @@ export async function registerRoutes(
 
         const reimbursement = await storage.getReimbursement(id);
         if (!reimbursement) {
-          return res.status(404).json({ success: false, error: "Reimbursement not found" });
+          return res.status(404).json({ success: false, error: 'Reimbursement not found' });
         }
 
         const updated = await storage.updateReimbursement(id, updates);
         res.json(updated);
       } catch (error: any) {
-        console.error("Failed to update reimbursement:", error);
+        console.error('Failed to update reimbursement:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   PATCH /api/mobile/reimbursements/:id');
 
     // DELETE /api/mobile/reimbursements/:id - Delete a reimbursement
-    app.delete("/api/mobile/reimbursements/:id", async (req: Request, res: Response) => {
+    app.delete('/api/mobile/reimbursements/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
 
         const reimbursement = await storage.getReimbursement(id);
         if (!reimbursement) {
-          return res.status(404).json({ success: false, error: "Reimbursement not found" });
+          return res.status(404).json({ success: false, error: 'Reimbursement not found' });
         }
 
         await storage.deleteReimbursement(id);
-        res.json({ success: true, message: "Reimbursement deleted" });
+        res.json({ success: true, message: 'Reimbursement deleted' });
       } catch (error: any) {
-        console.error("Failed to delete reimbursement:", error);
+        console.error('Failed to delete reimbursement:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
@@ -5820,42 +6251,56 @@ export async function registerRoutes(
     // ========================================
 
     // GET /api/mobile/w2-records - Get all W2 records for both parties
-    app.get("/api/mobile/w2-records", async (req: Request, res: Response) => {
+    app.get('/api/mobile/w2-records', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || "demo-client-user";
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId = (req as any).session?.userId || 'demo-client-user';
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         const records = await storage.getW2Records(userId, environment);
         res.json(records);
       } catch (error: any) {
-        console.error("Failed to get W2 records:", error);
+        console.error('Failed to get W2 records:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   GET  /api/mobile/w2-records');
 
     // POST /api/mobile/w2-records - Create a new W2 record
-    app.post("/api/mobile/w2-records", async (req: Request, res: Response) => {
+    app.post('/api/mobile/w2-records', async (req: Request, res: Response) => {
       try {
         const userId = (req as any).session?.userId;
         if (!userId) {
-          return res.status(401).json({ success: false, error: "Authentication required" });
+          return res.status(401).json({ success: false, error: 'Authentication required' });
         }
-        const environment = (req.headers["x-environment"] as string) || "live";
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         const parseResult = insertW2RecordSchema.safeParse({
           ...req.body,
           userId,
           environment,
           wagesAndTips: Math.round(req.body.wagesAndTips * 100),
-          federalWithheld: req.body.federalWithheld ? Math.round(req.body.federalWithheld * 100) : undefined,
-          socialSecurityWages: req.body.socialSecurityWages ? Math.round(req.body.socialSecurityWages * 100) : undefined,
-          socialSecurityWithheld: req.body.socialSecurityWithheld ? Math.round(req.body.socialSecurityWithheld * 100) : undefined,
-          medicareWages: req.body.medicareWages ? Math.round(req.body.medicareWages * 100) : undefined,
-          medicareWithheld: req.body.medicareWithheld ? Math.round(req.body.medicareWithheld * 100) : undefined,
+          federalWithheld: req.body.federalWithheld
+            ? Math.round(req.body.federalWithheld * 100)
+            : undefined,
+          socialSecurityWages: req.body.socialSecurityWages
+            ? Math.round(req.body.socialSecurityWages * 100)
+            : undefined,
+          socialSecurityWithheld: req.body.socialSecurityWithheld
+            ? Math.round(req.body.socialSecurityWithheld * 100)
+            : undefined,
+          medicareWages: req.body.medicareWages
+            ? Math.round(req.body.medicareWages * 100)
+            : undefined,
+          medicareWithheld: req.body.medicareWithheld
+            ? Math.round(req.body.medicareWithheld * 100)
+            : undefined,
           stateWages: req.body.stateWages ? Math.round(req.body.stateWages * 100) : undefined,
-          stateWithheld: req.body.stateWithheld ? Math.round(req.body.stateWithheld * 100) : undefined,
-          otherCompensation: req.body.otherCompensation ? Math.round(req.body.otherCompensation * 100) : 0,
+          stateWithheld: req.body.stateWithheld
+            ? Math.round(req.body.stateWithheld * 100)
+            : undefined,
+          otherCompensation: req.body.otherCompensation
+            ? Math.round(req.body.otherCompensation * 100)
+            : 0,
         });
 
         if (!parseResult.success) {
@@ -5865,65 +6310,74 @@ export async function registerRoutes(
         const record = await storage.createW2Record(parseResult.data);
         res.status(201).json(record);
       } catch (error: any) {
-        console.error("Failed to create W2 record:", error);
+        console.error('Failed to create W2 record:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   POST /api/mobile/w2-records');
 
     // PATCH /api/mobile/w2-records/:id - Update a W2 record
-    app.patch("/api/mobile/w2-records/:id", async (req: Request, res: Response) => {
+    app.patch('/api/mobile/w2-records/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const userId = (req as any).session?.userId;
         if (!userId) {
-          return res.status(401).json({ success: false, error: "Authentication required" });
+          return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
         const record = await storage.getW2Record(id);
         if (!record) {
-          return res.status(404).json({ success: false, error: "W2 record not found" });
+          return res.status(404).json({ success: false, error: 'W2 record not found' });
         }
 
         const updates: any = { ...req.body };
         // Convert dollar amounts to cents if provided
-        if (typeof req.body.wagesAndTips === 'number') updates.wagesAndTips = Math.round(req.body.wagesAndTips * 100);
-        if (typeof req.body.federalWithheld === 'number') updates.federalWithheld = Math.round(req.body.federalWithheld * 100);
-        if (typeof req.body.socialSecurityWages === 'number') updates.socialSecurityWages = Math.round(req.body.socialSecurityWages * 100);
-        if (typeof req.body.socialSecurityWithheld === 'number') updates.socialSecurityWithheld = Math.round(req.body.socialSecurityWithheld * 100);
-        if (typeof req.body.medicareWages === 'number') updates.medicareWages = Math.round(req.body.medicareWages * 100);
-        if (typeof req.body.medicareWithheld === 'number') updates.medicareWithheld = Math.round(req.body.medicareWithheld * 100);
-        if (typeof req.body.stateWages === 'number') updates.stateWages = Math.round(req.body.stateWages * 100);
-        if (typeof req.body.stateWithheld === 'number') updates.stateWithheld = Math.round(req.body.stateWithheld * 100);
-        if (typeof req.body.otherCompensation === 'number') updates.otherCompensation = Math.round(req.body.otherCompensation * 100);
+        if (typeof req.body.wagesAndTips === 'number')
+          updates.wagesAndTips = Math.round(req.body.wagesAndTips * 100);
+        if (typeof req.body.federalWithheld === 'number')
+          updates.federalWithheld = Math.round(req.body.federalWithheld * 100);
+        if (typeof req.body.socialSecurityWages === 'number')
+          updates.socialSecurityWages = Math.round(req.body.socialSecurityWages * 100);
+        if (typeof req.body.socialSecurityWithheld === 'number')
+          updates.socialSecurityWithheld = Math.round(req.body.socialSecurityWithheld * 100);
+        if (typeof req.body.medicareWages === 'number')
+          updates.medicareWages = Math.round(req.body.medicareWages * 100);
+        if (typeof req.body.medicareWithheld === 'number')
+          updates.medicareWithheld = Math.round(req.body.medicareWithheld * 100);
+        if (typeof req.body.stateWages === 'number')
+          updates.stateWages = Math.round(req.body.stateWages * 100);
+        if (typeof req.body.stateWithheld === 'number')
+          updates.stateWithheld = Math.round(req.body.stateWithheld * 100);
+        if (typeof req.body.otherCompensation === 'number')
+          updates.otherCompensation = Math.round(req.body.otherCompensation * 100);
 
         const updated = await storage.updateW2Record(id, updates);
         res.json(updated);
       } catch (error: any) {
-        console.error("Failed to update W2 record:", error);
+        console.error('Failed to update W2 record:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   PATCH /api/mobile/w2-records/:id');
 
     // DELETE /api/mobile/w2-records/:id - Delete a W2 record
-    app.delete("/api/mobile/w2-records/:id", async (req: Request, res: Response) => {
+    app.delete('/api/mobile/w2-records/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const userId = (req as any).session?.userId;
         if (!userId) {
-          return res.status(401).json({ success: false, error: "Authentication required" });
+          return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
         const record = await storage.getW2Record(id);
         if (!record) {
-          return res.status(404).json({ success: false, error: "W2 record not found" });
+          return res.status(404).json({ success: false, error: 'W2 record not found' });
         }
 
         await storage.deleteW2Record(id);
-        res.json({ success: true, message: "W2 record deleted" });
+        res.json({ success: true, message: 'W2 record deleted' });
       } catch (error: any) {
-        console.error("Failed to delete W2 record:", error);
+        console.error('Failed to delete W2 record:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
@@ -5934,124 +6388,127 @@ export async function registerRoutes(
     // ========================================
 
     // GET /api/mobile/financial-summary - Get summary of all financial metrics
-    app.get("/api/mobile/financial-summary", async (req: Request, res: Response) => {
+    app.get('/api/mobile/financial-summary', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string);
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string);
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         if (!userId) {
-          return res.status(401).json({ success: false, error: "Authentication required" });
+          return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
         const stats = await storage.getDashboardStats(userId, environment);
         res.json(stats);
       } catch (error: any) {
-        console.error("Failed to get financial summary:", error);
+        console.error('Failed to get financial summary:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   GET  /api/mobile/financial-summary');
 
     // GET /api/mobile/assets - Get all assets for drill-down
-    app.get("/api/mobile/assets", async (req: Request, res: Response) => {
+    app.get('/api/mobile/assets', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string);
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string);
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         if (!userId) {
-          return res.status(401).json({ success: false, error: "Authentication required" });
+          return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
         const assets = await storage.getAssets(userId, environment);
         res.json(assets);
       } catch (error: any) {
-        console.error("Failed to get assets:", error);
+        console.error('Failed to get assets:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   GET  /api/mobile/assets');
 
     // GET /api/mobile/debts - Get all debts for drill-down
-    app.get("/api/mobile/debts", async (req: Request, res: Response) => {
+    app.get('/api/mobile/debts', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string);
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string);
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         if (!userId) {
-          return res.status(401).json({ success: false, error: "Authentication required" });
+          return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
         const debts = await storage.getDebts(userId, environment);
         res.json(debts);
       } catch (error: any) {
-        console.error("Failed to get debts:", error);
+        console.error('Failed to get debts:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   GET  /api/mobile/debts');
 
     // GET /api/mobile/incomes - Get all incomes for drill-down
-    app.get("/api/mobile/incomes", async (req: Request, res: Response) => {
+    app.get('/api/mobile/incomes', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string);
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string);
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         if (!userId) {
-          return res.status(401).json({ success: false, error: "Authentication required" });
+          return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
         const incomes = await storage.getIncomes(userId, environment);
         res.json(incomes);
       } catch (error: any) {
-        console.error("Failed to get incomes:", error);
+        console.error('Failed to get incomes:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   GET  /api/mobile/incomes');
 
     // GET /api/mobile/expenses - Get all expenses for drill-down
-    app.get("/api/mobile/expenses", async (req: Request, res: Response) => {
+    app.get('/api/mobile/expenses', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string);
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string);
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         if (!userId) {
-          return res.status(401).json({ success: false, error: "Authentication required" });
+          return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
         const expenses = await storage.getExpenses(userId, environment);
         res.json(expenses);
       } catch (error: any) {
-        console.error("Failed to get expenses:", error);
+        console.error('Failed to get expenses:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   GET  /api/mobile/expenses');
 
     // GET /api/mobile/child-support - Get all child support payments for drill-down
-    app.get("/api/mobile/child-support", async (req: Request, res: Response) => {
+    app.get('/api/mobile/child-support', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string);
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string);
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         if (!userId) {
-          return res.status(401).json({ success: false, error: "Authentication required" });
+          return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
         const payments = await storage.getChildSupportPayments(userId, environment);
         res.json(payments);
       } catch (error: any) {
-        console.error("Failed to get child support payments:", error);
+        console.error('Failed to get child support payments:', error);
         res.status(500).json({ success: false, error: error.message });
       }
     });
     console.log('   GET  /api/mobile/child-support');
 
     // GET /api/mobile/document-categories - Get all available document categories
-    app.get("/api/mobile/document-categories", async (_req: Request, res: Response) => {
-      const categoryInfo = DOCUMENT_CATEGORIES.map(cat => ({
+    app.get('/api/mobile/document-categories', async (_req: Request, res: Response) => {
+      const categoryInfo = DOCUMENT_CATEGORIES.map((cat) => ({
         value: cat,
-        label: cat.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+        label: cat
+          .split('_')
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' '),
       }));
       res.json({ success: true, data: categoryInfo });
     });
@@ -6061,8 +6518,15 @@ export async function registerRoutes(
     // IMPROVEMENT RECOMMENDATIONS (User Feedback System)
     // ============================================
 
-    const SUPER_ADMIN_EMAIL = "nedpearson@gmail.com";
-    const VALID_STATUSES = ['submitted', 'reviewing', 'testing', 'approved', 'implemented', 'rejected'];
+    const SUPER_ADMIN_EMAIL = 'nedpearson@gmail.com';
+    const VALID_STATUSES = [
+      'submitted',
+      'reviewing',
+      'testing',
+      'approved',
+      'implemented',
+      'rejected',
+    ];
 
     const createRecommendationSchema = z.object({
       title: z.string().min(1).max(500),
@@ -6076,78 +6540,80 @@ export async function registerRoutes(
       editedTitle: z.string().optional(),
       editedBody: z.string().optional(),
       adminNotes: z.string().optional(),
-      status: z.enum(['submitted', 'reviewing', 'testing', 'approved', 'implemented', 'rejected']).optional(),
+      status: z
+        .enum(['submitted', 'reviewing', 'testing', 'approved', 'implemented', 'rejected'])
+        .optional(),
       testUserEmail: z.string().email().optional(),
       changelogEntry: z.string().optional(),
     });
 
     // Helper to check if user is super admin
     const isSuperAdmin = (req: Request): boolean => {
-      const userEmail = (req.headers["x-user-email"] as string) || ((req as any).user?.email);
+      const userEmail = (req.headers['x-user-email'] as string) || (req as any).user?.email;
       return userEmail?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
     };
 
     // GET /api/recommendations - Get user's own recommendations (with optional status filter)
-    app.get("/api/recommendations", async (req: Request, res: Response) => {
+    app.get('/api/recommendations', async (req: Request, res: Response) => {
       try {
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const environment = (req.headers['x-environment'] as string) || 'demo';
         const status = req.query.status as string | undefined;
 
         const recommendations = await storage.getImprovementRecommendations(environment, status);
         res.json(recommendations);
       } catch (error: any) {
-        console.error("Failed to get recommendations:", error);
+        console.error('Failed to get recommendations:', error);
         res.status(500).json({ error: error.message });
       }
     });
     console.log('   GET  /api/recommendations');
 
     // GET /api/admin/recommendations - Admin only: Get ALL recommendations across environments
-    app.get("/api/admin/recommendations", async (req: Request, res: Response) => {
+    app.get('/api/admin/recommendations', async (req: Request, res: Response) => {
       try {
         if (!isSuperAdmin(req)) {
-          return res.status(403).json({ error: "Access denied. Admin only." });
+          return res.status(403).json({ error: 'Access denied. Admin only.' });
         }
 
         const recommendations = await storage.getAllImprovementRecommendations();
         res.json(recommendations);
       } catch (error: any) {
-        console.error("Failed to get all recommendations:", error);
+        console.error('Failed to get all recommendations:', error);
         res.status(500).json({ error: error.message });
       }
     });
     console.log('   GET  /api/admin/recommendations');
 
     // GET /api/admin/recommendations/:id - Admin only: Get single recommendation
-    app.get("/api/admin/recommendations/:id", async (req: Request, res: Response) => {
+    app.get('/api/admin/recommendations/:id', async (req: Request, res: Response) => {
       try {
         if (!isSuperAdmin(req)) {
-          return res.status(403).json({ error: "Access denied. Admin only." });
+          return res.status(403).json({ error: 'Access denied. Admin only.' });
         }
 
         const { id } = req.params;
         const recommendation = await storage.getImprovementRecommendation(id);
         if (!recommendation) {
-          return res.status(404).json({ error: "Recommendation not found" });
+          return res.status(404).json({ error: 'Recommendation not found' });
         }
         res.json(recommendation);
       } catch (error: any) {
-        console.error("Failed to get recommendation:", error);
+        console.error('Failed to get recommendation:', error);
         res.status(500).json({ error: error.message });
       }
     });
     console.log('   GET  /api/admin/recommendations/:id');
 
     // POST /api/recommendations - Create a new recommendation (user-facing)
-    app.post("/api/recommendations", async (req: Request, res: Response) => {
+    app.post('/api/recommendations', async (req: Request, res: Response) => {
       try {
-        const userId = (req.headers["x-user-id"] as string) || ((req as any).user?.id) || "anonymous";
-        const userEmail = (req.headers["x-user-email"] as string) || ((req as any).user?.email);
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId = (req.headers['x-user-id'] as string) || (req as any).user?.id || 'anonymous';
+        const userEmail = (req.headers['x-user-email'] as string) || (req as any).user?.email;
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         const parsed = createRecommendationSchema.safeParse(req.body);
         if (!parsed.success) {
-          return res.status(400).json({ error: "Invalid input", details: parsed.error.errors });
+          return res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
         }
 
         const recommendation = await storage.createImprovementRecommendation({
@@ -6159,36 +6625,40 @@ export async function registerRoutes(
           inputType: parsed.data.inputType,
           transcription: parsed.data.transcription,
           mediaUrls: parsed.data.mediaUrls,
-          status: "submitted",
+          status: 'submitted',
         });
 
         res.status(201).json(recommendation);
       } catch (error: any) {
-        console.error("Failed to create recommendation:", error);
+        console.error('Failed to create recommendation:', error);
         res.status(500).json({ error: error.message });
       }
     });
     console.log('   POST /api/recommendations');
 
     // PATCH /api/admin/recommendations/:id - Admin only: Update recommendation (edit, status, test user, etc.)
-    app.patch("/api/admin/recommendations/:id", async (req: Request, res: Response) => {
+    app.patch('/api/admin/recommendations/:id', async (req: Request, res: Response) => {
       try {
         if (!isSuperAdmin(req)) {
-          return res.status(403).json({ error: "Access denied. Admin only." });
+          return res.status(403).json({ error: 'Access denied. Admin only.' });
         }
 
         const { id } = req.params;
-        const adminEmail = (req.headers["x-user-email"] as string) || ((req as any).user?.email);
+        const adminEmail = (req.headers['x-user-email'] as string) || (req as any).user?.email;
 
         const parsed = adminUpdateSchema.safeParse(req.body);
         if (!parsed.success) {
-          return res.status(400).json({ error: "Invalid input", details: parsed.error.errors });
+          return res.status(400).json({ error: 'Invalid input', details: parsed.error.errors });
         }
 
         const updates: any = { ...parsed.data };
 
         // Track who reviewed and when
-        if (parsed.data.status === 'reviewing' || parsed.data.editedTitle || parsed.data.editedBody) {
+        if (
+          parsed.data.status === 'reviewing' ||
+          parsed.data.editedTitle ||
+          parsed.data.editedBody
+        ) {
           updates.reviewedBy = adminEmail;
           updates.reviewedAt = new Date();
         }
@@ -6201,63 +6671,65 @@ export async function registerRoutes(
 
         const recommendation = await storage.updateImprovementRecommendation(id, updates);
         if (!recommendation) {
-          return res.status(404).json({ error: "Recommendation not found" });
+          return res.status(404).json({ error: 'Recommendation not found' });
         }
 
         res.json(recommendation);
       } catch (error: any) {
-        console.error("Failed to update recommendation:", error);
+        console.error('Failed to update recommendation:', error);
         res.status(500).json({ error: error.message });
       }
     });
     console.log('   PATCH /api/admin/recommendations/:id');
 
     // POST /api/admin/recommendations/:id/send-to-test - Admin only: Send to test user for approval
-    app.post("/api/admin/recommendations/:id/send-to-test", async (req: Request, res: Response) => {
+    app.post('/api/admin/recommendations/:id/send-to-test', async (req: Request, res: Response) => {
       try {
         if (!isSuperAdmin(req)) {
-          return res.status(403).json({ error: "Access denied. Admin only." });
+          return res.status(403).json({ error: 'Access denied. Admin only.' });
         }
 
         const { id } = req.params;
         const { testUserEmail } = req.body;
 
         if (!testUserEmail) {
-          return res.status(400).json({ error: "Test user email is required" });
+          return res.status(400).json({ error: 'Test user email is required' });
         }
 
         const recommendation = await storage.updateImprovementRecommendation(id, {
-          status: "testing",
+          status: 'testing',
           testUserEmail,
         });
 
         if (!recommendation) {
-          return res.status(404).json({ error: "Recommendation not found" });
+          return res.status(404).json({ error: 'Recommendation not found' });
         }
 
         res.json(recommendation);
       } catch (error: any) {
-        console.error("Failed to send to test:", error);
+        console.error('Failed to send to test:', error);
         res.status(500).json({ error: error.message });
       }
     });
     console.log('   POST /api/admin/recommendations/:id/send-to-test');
 
     // POST /api/recommendations/:id/test-feedback - Test user submits approval/feedback
-    app.post("/api/recommendations/:id/test-feedback", async (req: Request, res: Response) => {
+    app.post('/api/recommendations/:id/test-feedback', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const { approved, feedback } = req.body;
-        const userEmail = (req.headers["x-user-email"] as string) || ((req as any).user?.email);
+        const userEmail = (req.headers['x-user-email'] as string) || (req as any).user?.email;
 
         const recommendation = await storage.getImprovementRecommendation(id);
         if (!recommendation) {
-          return res.status(404).json({ error: "Recommendation not found" });
+          return res.status(404).json({ error: 'Recommendation not found' });
         }
 
         // Verify this is the assigned test user
         if (recommendation.testUserEmail?.toLowerCase() !== userEmail?.toLowerCase()) {
-          return res.status(403).json({ error: "You are not the assigned test user for this recommendation" });
+          return res
+            .status(403)
+            .json({ error: 'You are not the assigned test user for this recommendation' });
         }
 
         const updates: any = {
@@ -6268,61 +6740,61 @@ export async function registerRoutes(
 
         // If approved, move to approved status; otherwise back to reviewing
         if (approved) {
-          updates.status = "approved";
+          updates.status = 'approved';
         } else {
-          updates.status = "reviewing";
+          updates.status = 'reviewing';
         }
 
         const updated = await storage.updateImprovementRecommendation(id, updates);
         res.json(updated);
       } catch (error: any) {
-        console.error("Failed to submit test feedback:", error);
+        console.error('Failed to submit test feedback:', error);
         res.status(500).json({ error: error.message });
       }
     });
     console.log('   POST /api/recommendations/:id/test-feedback');
 
     // POST /api/admin/recommendations/:id/implement - Admin only: Mark as implemented with changelog
-    app.post("/api/admin/recommendations/:id/implement", async (req: Request, res: Response) => {
+    app.post('/api/admin/recommendations/:id/implement', async (req: Request, res: Response) => {
       try {
         if (!isSuperAdmin(req)) {
-          return res.status(403).json({ error: "Access denied. Admin only." });
+          return res.status(403).json({ error: 'Access denied. Admin only.' });
         }
 
         const { id } = req.params;
         const { changelogEntry } = req.body;
-        const adminEmail = (req.headers["x-user-email"] as string) || ((req as any).user?.email);
+        const adminEmail = (req.headers['x-user-email'] as string) || (req as any).user?.email;
 
         if (!changelogEntry) {
-          return res.status(400).json({ error: "Changelog entry is required" });
+          return res.status(400).json({ error: 'Changelog entry is required' });
         }
 
         const recommendation = await storage.updateImprovementRecommendation(id, {
-          status: "implemented",
+          status: 'implemented',
           implementedBy: adminEmail,
           implementedAt: new Date(),
           changelogEntry,
         });
 
         if (!recommendation) {
-          return res.status(404).json({ error: "Recommendation not found" });
+          return res.status(404).json({ error: 'Recommendation not found' });
         }
 
         res.json(recommendation);
       } catch (error: any) {
-        console.error("Failed to implement recommendation:", error);
+        console.error('Failed to implement recommendation:', error);
         res.status(500).json({ error: error.message });
       }
     });
     console.log('   POST /api/admin/recommendations/:id/implement');
 
     // GET /api/changelog - Public: Get implemented recommendations as changelog
-    app.get("/api/changelog", async (_req: Request, res: Response) => {
+    app.get('/api/changelog', async (_req: Request, res: Response) => {
       try {
         const implemented = await storage.getImplementedRecommendations();
 
         // Format for public changelog
-        const changelog = implemented.map(rec => ({
+        const changelog = implemented.map((rec) => ({
           id: rec.id,
           title: rec.editedTitle || rec.title,
           description: rec.changelogEntry || rec.editedBody || rec.body,
@@ -6332,24 +6804,24 @@ export async function registerRoutes(
 
         res.json(changelog);
       } catch (error: any) {
-        console.error("Failed to get changelog:", error);
+        console.error('Failed to get changelog:', error);
         res.status(500).json({ error: error.message });
       }
     });
     console.log('   GET  /api/changelog');
 
     // DELETE /api/recommendations/:id - Delete a recommendation (admin only)
-    app.delete("/api/recommendations/:id", async (req: Request, res: Response) => {
+    app.delete('/api/recommendations/:id', async (req: Request, res: Response) => {
       try {
         if (!isSuperAdmin(req)) {
-          return res.status(403).json({ error: "Access denied. Admin only." });
+          return res.status(403).json({ error: 'Access denied. Admin only.' });
         }
 
         const { id } = req.params;
         await storage.deleteImprovementRecommendation(id);
         res.status(204).send();
       } catch (error: any) {
-        console.error("Failed to delete recommendation:", error);
+        console.error('Failed to delete recommendation:', error);
         res.status(500).json({ error: error.message });
       }
     });
@@ -6360,45 +6832,54 @@ export async function registerRoutes(
     // ==========================================
 
     // GET /api/journal - Get all journal entries
-    app.get("/api/journal", async (req: Request, res: Response) => {
+    app.get('/api/journal', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         const entries = await storage.getJournalEntries(userId, environment);
         res.json(entries);
       } catch (error: any) {
-        console.error("Failed to get journal entries:", error);
+        console.error('Failed to get journal entries:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // GET /api/journal/:id - Get single journal entry
-    app.get("/api/journal/:id", async (req: Request, res: Response) => {
+    app.get('/api/journal/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
 
         const entry = await storage.getJournalEntry(id);
         if (!entry) {
-          return res.status(404).json({ error: "Journal entry not found" });
+          return res.status(404).json({ error: 'Journal entry not found' });
         }
         // Authorization check - user must own the entry
         if (entry.userId !== userId && !isSuperAdmin(req)) {
-          return res.status(403).json({ error: "Access denied" });
+          return res.status(403).json({ error: 'Access denied' });
         }
         res.json(entry);
       } catch (error: any) {
-        console.error("Failed to get journal entry:", error);
+        console.error('Failed to get journal entry:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // POST /api/journal - Create journal entry
-    app.post("/api/journal", async (req: Request, res: Response) => {
+    app.post('/api/journal', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         const entry = await storage.createJournalEntry({
           ...req.body,
@@ -6407,78 +6888,88 @@ export async function registerRoutes(
         });
         res.status(201).json(entry);
       } catch (error: any) {
-        console.error("Failed to create journal entry:", error);
+        console.error('Failed to create journal entry:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // PATCH /api/journal/:id - Update journal entry
-    app.patch("/api/journal/:id", async (req: Request, res: Response) => {
+    app.patch('/api/journal/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
 
         // Authorization check - verify ownership before update
         const existing = await storage.getJournalEntry(id);
         if (!existing) {
-          return res.status(404).json({ error: "Journal entry not found" });
+          return res.status(404).json({ error: 'Journal entry not found' });
         }
         if (existing.userId !== userId && !isSuperAdmin(req)) {
-          return res.status(403).json({ error: "Access denied" });
+          return res.status(403).json({ error: 'Access denied' });
         }
 
         const entry = await storage.updateJournalEntry(id, req.body);
         res.json(entry);
       } catch (error: any) {
-        console.error("Failed to update journal entry:", error);
+        console.error('Failed to update journal entry:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // DELETE /api/journal/:id - Delete journal entry
-    app.delete("/api/journal/:id", async (req: Request, res: Response) => {
+    app.delete('/api/journal/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
 
         // Authorization check - verify ownership before delete
         const existing = await storage.getJournalEntry(id);
         if (!existing) {
-          return res.status(404).json({ error: "Journal entry not found" });
+          return res.status(404).json({ error: 'Journal entry not found' });
         }
         if (existing.userId !== userId && !isSuperAdmin(req)) {
-          return res.status(403).json({ error: "Access denied" });
+          return res.status(403).json({ error: 'Access denied' });
         }
 
         await storage.deleteJournalEntry(id);
         res.status(204).send();
       } catch (error: any) {
-        console.error("Failed to delete journal entry:", error);
+        console.error('Failed to delete journal entry:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // POST /api/journal/transcribe - Voice to text transcription
-    app.post("/api/journal/transcribe", async (req: Request, res: Response) => {
+    app.post('/api/journal/transcribe', async (req: Request, res: Response) => {
       try {
         const { audioData, mimeType } = req.body;
-        const userId = (req as any).session?.userId || ((req as any).session?.userId) || (req.headers["x-user-id"] as string) || "demo-client-user";
+        const userId =
+          (req as any).session?.userId ||
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
         const workspaceId = resolveWorkspaceId(req);
 
         if (!audioData) {
-          return res.status(400).json({ error: "Audio data is required" });
+          return res.status(400).json({ error: 'Audio data is required' });
         }
 
         // Use Gemini for voice transcription
         const transcription = await transcribeVoiceWithGemini(
           audioData,
-          mimeType || "audio/webm",
+          mimeType || 'audio/webm',
           workspaceId,
           userId
         );
         res.json({ transcription });
       } catch (error: any) {
-        console.error("Failed to transcribe audio:", error);
+        console.error('Failed to transcribe audio:', error);
         res.status(500).json({ error: error.message });
       }
     });
@@ -6496,10 +6987,13 @@ export async function registerRoutes(
     // ==========================================
 
     // GET /api/conversations - Get all conversations for user
-    app.get("/api/conversations", async (req: Request, res: Response) => {
+    app.get('/api/conversations', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         const convos = await storage.getConversations(userId, environment);
 
@@ -6513,47 +7007,55 @@ export async function registerRoutes(
 
         res.json(conversationsWithParticipants);
       } catch (error: any) {
-        console.error("Failed to get conversations:", error);
+        console.error('Failed to get conversations:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // GET /api/conversations/:id - Get single conversation with messages
-    app.get("/api/conversations/:id", async (req: Request, res: Response) => {
+    app.get('/api/conversations/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
 
         const conversation = await storage.getConversation(id);
 
         if (!conversation) {
-          return res.status(404).json({ error: "Conversation not found" });
+          return res.status(404).json({ error: 'Conversation not found' });
         }
 
         const participants = await storage.getConversationParticipants(id);
 
         // Authorization check - user must be a participant in the conversation
-        const isParticipant = participants.some(p => p.userId === userId && p.status === "active");
+        const isParticipant = participants.some(
+          (p) => p.userId === userId && p.status === 'active'
+        );
         if (!isParticipant && !isSuperAdmin(req)) {
-          return res.status(403).json({ error: "Access denied - not a participant" });
+          return res.status(403).json({ error: 'Access denied - not a participant' });
         }
 
         const messages = await storage.getConversationMessages(id);
 
         res.json({ ...conversation, participants, messages });
       } catch (error: any) {
-        console.error("Failed to get conversation:", error);
+        console.error('Failed to get conversation:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // POST /api/conversations - Create new conversation
-    app.post("/api/conversations", async (req: Request, res: Response) => {
+    app.post('/api/conversations', async (req: Request, res: Response) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-        const userEmail = (req.headers["x-user-email"] as string) || "demo@divorceledger.live";
-        const userName = (req.headers["x-user-name"] as string) || "Demo User";
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
+        const userEmail = (req.headers['x-user-email'] as string) || 'demo@divorceledger.live';
+        const userName = (req.headers['x-user-name'] as string) || 'Demo User';
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         const { title, type, participants } = req.body;
 
@@ -6562,7 +7064,7 @@ export async function registerRoutes(
           creatorUserId: userId,
           environment,
           title,
-          type: type || "direct",
+          type: type || 'direct',
         });
 
         // Add creator as participant
@@ -6571,8 +7073,8 @@ export async function registerRoutes(
           userId,
           email: userEmail,
           displayName: userName,
-          role: "party",
-          status: "active",
+          role: 'party',
+          status: 'active',
         });
 
         // Add other participants
@@ -6583,8 +7085,8 @@ export async function registerRoutes(
               userId: p.userId || null,
               email: p.email,
               displayName: p.displayName,
-              role: p.role || "party",
-              status: p.userId ? "active" : "invited",
+              role: p.role || 'party',
+              status: p.userId ? 'active' : 'invited',
             });
           }
         }
@@ -6592,87 +7094,100 @@ export async function registerRoutes(
         const allParticipants = await storage.getConversationParticipants(conversation.id);
         res.status(201).json({ ...conversation, participants: allParticipants });
       } catch (error: any) {
-        console.error("Failed to create conversation:", error);
+        console.error('Failed to create conversation:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // POST /api/conversations/:id/participants - Add participant to conversation
-    app.post("/api/conversations/:id/participants", async (req: Request, res: Response) => {
+    app.post('/api/conversations/:id/participants', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const { email, displayName, role } = req.body;
 
         if (!email || !displayName) {
-          return res.status(400).json({ error: "Email and displayName are required" });
+          return res.status(400).json({ error: 'Email and displayName are required' });
         }
 
         const participant = await storage.addConversationParticipant({
           conversationId: id,
           email,
           displayName,
-          role: role || "party",
-          status: "invited",
+          role: role || 'party',
+          status: 'invited',
         });
 
         res.status(201).json(participant);
       } catch (error: any) {
-        console.error("Failed to add participant:", error);
+        console.error('Failed to add participant:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // DELETE /api/conversations/:id/participants/:participantId - Remove participant
-    app.delete("/api/conversations/:id/participants/:participantId", async (req: Request, res: Response) => {
-      try {
-        const { participantId } = req.params;
-        await storage.removeConversationParticipant(participantId);
-        res.status(204).send();
-      } catch (error: any) {
-        console.error("Failed to remove participant:", error);
-        res.status(500).json({ error: error.message });
+    app.delete(
+      '/api/conversations/:id/participants/:participantId',
+      async (req: Request, res: Response) => {
+        try {
+          const { participantId } = req.params;
+          await storage.removeConversationParticipant(participantId);
+          res.status(204).send();
+        } catch (error: any) {
+          console.error('Failed to remove participant:', error);
+          res.status(500).json({ error: error.message });
+        }
       }
-    });
+    );
 
     // GET /api/conversations/:id/messages - Get messages for conversation
-    app.get("/api/conversations/:id/messages", async (req: Request, res: Response) => {
+    app.get('/api/conversations/:id/messages', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const messages = await storage.getConversationMessages(id);
         res.json(messages);
       } catch (error: any) {
-        console.error("Failed to get messages:", error);
+        console.error('Failed to get messages:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // POST /api/conversations/:id/messages - Send message with sentiment analysis
-    app.post("/api/conversations/:id/messages", async (req: Request, res: Response) => {
+    app.post('/api/conversations/:id/messages', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const senderId = (req.headers["x-user-id"] as string) || "demo-client-user";
-        const senderEmail = (req.headers["x-user-email"] as string) || "demo@divorceledger.live";
-        const senderName = (req.headers["x-user-name"] as string) || "Demo User";
+        const senderId = (req.headers['x-user-id'] as string) || 'demo-client-user';
+        const senderEmail = (req.headers['x-user-email'] as string) || 'demo@divorceledger.live';
+        const senderName = (req.headers['x-user-name'] as string) || 'Demo User';
 
         // Authorization check - verify user is participant
         const participants = await storage.getConversationParticipants(id);
-        const isParticipant = participants.some(p => p.userId === senderId && p.status === "active");
-        if (!isParticipant && !isSuperAdmin({ headers: { "x-user-email": senderEmail } } as unknown as Request)) {
-          return res.status(403).json({ error: "Access denied - not a participant" });
+        const isParticipant = participants.some(
+          (p) => p.userId === senderId && p.status === 'active'
+        );
+        if (
+          !isParticipant &&
+          !isSuperAdmin({ headers: { 'x-user-email': senderEmail } } as unknown as Request)
+        ) {
+          return res.status(403).json({ error: 'Access denied - not a participant' });
         }
 
         const { content, inputType, voiceTranscription } = req.body;
 
         if (!content) {
-          return res.status(400).json({ error: "Message content is required" });
+          return res.status(400).json({ error: 'Message content is required' });
         }
 
         // Analyze sentiment using OpenAI
-        let sentimentAnalysis = { score: 0, label: "neutral", hasNegative: false, topics: [] as string[] };
+        let sentimentAnalysis = {
+          score: 0,
+          label: 'neutral',
+          hasNegative: false,
+          topics: [] as string[],
+        };
         try {
           sentimentAnalysis = await analyzeSentimentWithOpenAI(content);
         } catch (err) {
-          console.error("Sentiment analysis failed:", err);
+          console.error('Sentiment analysis failed:', err);
         }
 
         const message = await storage.createConversationMessage({
@@ -6681,7 +7196,7 @@ export async function registerRoutes(
           senderEmail,
           senderName,
           content,
-          inputType: inputType || "text",
+          inputType: inputType || 'text',
           voiceTranscription,
           sentimentScore: sentimentAnalysis.score,
           sentimentLabel: sentimentAnalysis.label,
@@ -6691,7 +7206,7 @@ export async function registerRoutes(
 
         res.status(201).json(message);
       } catch (error: any) {
-        console.error("Failed to send message:", error);
+        console.error('Failed to send message:', error);
         res.status(500).json({ error: error.message });
       }
     });
@@ -6701,29 +7216,34 @@ export async function registerRoutes(
     // ==========================================
 
     // GET /api/conversations/:id/reports - Get sentiment reports for conversation
-    app.get("/api/conversations/:id/reports", async (req: Request, res: Response) => {
+    app.get('/api/conversations/:id/reports', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const reports = await storage.getSentimentReports(id);
         res.json(reports);
       } catch (error: any) {
-        console.error("Failed to get sentiment reports:", error);
+        console.error('Failed to get sentiment reports:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // POST /api/conversations/:id/reports - Generate sentiment report
-    app.post("/api/conversations/:id/reports", async (req: Request, res: Response) => {
+    app.post('/api/conversations/:id/reports', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-        const environment = (req.headers["x-environment"] as string) || "demo";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
+        const environment = (req.headers['x-environment'] as string) || 'demo';
 
         // Authorization check - verify user is participant
         const participants = await storage.getConversationParticipants(id);
-        const isParticipant = participants.some(p => p.userId === userId && p.status === "active");
+        const isParticipant = participants.some(
+          (p) => p.userId === userId && p.status === 'active'
+        );
         if (!isParticipant && !isSuperAdmin(req)) {
-          return res.status(403).json({ error: "Access denied - not a participant" });
+          return res.status(403).json({ error: 'Access denied - not a participant' });
         }
 
         const { title, dateRangeStart, dateRangeEnd } = req.body;
@@ -6734,7 +7254,7 @@ export async function registerRoutes(
         // Filter by date range if provided
         let filteredMessages = messages;
         if (dateRangeStart || dateRangeEnd) {
-          filteredMessages = messages.filter(m => {
+          filteredMessages = messages.filter((m) => {
             const msgDate = new Date(m.createdAt);
             if (dateRangeStart && msgDate < new Date(dateRangeStart)) return false;
             if (dateRangeEnd && msgDate > new Date(dateRangeEnd)) return false;
@@ -6743,14 +7263,15 @@ export async function registerRoutes(
         }
 
         // Find negative messages
-        const negativeMessages = filteredMessages.filter(m => m.hasNegativeContent);
+        const negativeMessages = filteredMessages.filter((m) => m.hasNegativeContent);
 
         // Group by topic
         const topicBreakdown: Record<string, any[]> = {};
-        const participantBreakdown: Record<string, { negativeCount: number; topics: string[] }> = {};
+        const participantBreakdown: Record<string, { negativeCount: number; topics: string[] }> =
+          {};
 
         for (const msg of negativeMessages) {
-          const topics = msg.negativeTopics || ["general"];
+          const topics = msg.negativeTopics || ['general'];
           for (const topic of topics) {
             if (!topicBreakdown[topic]) {
               topicBreakdown[topic] = [];
@@ -6773,15 +7294,18 @@ export async function registerRoutes(
         }
 
         // Generate AI summary if there are negative messages
-        let summary = "No significant negative communication patterns detected.";
-        let recommendations = "";
+        let summary = 'No significant negative communication patterns detected.';
+        let recommendations = '';
         if (negativeMessages.length > 0) {
           try {
-            const aiAnalysis = await generateSentimentReportSummary(negativeMessages, topicBreakdown);
+            const aiAnalysis = await generateSentimentReportSummary(
+              negativeMessages,
+              topicBreakdown
+            );
             summary = aiAnalysis.summary;
             recommendations = aiAnalysis.recommendations;
           } catch (err) {
-            console.error("AI summary generation failed:", err);
+            console.error('AI summary generation failed:', err);
             summary = `Found ${negativeMessages.length} messages with negative content across ${Object.keys(topicBreakdown).length} topics.`;
           }
         }
@@ -6792,7 +7316,7 @@ export async function registerRoutes(
           generatedByUserId: userId,
           environment,
           title: title || `Sentiment Report - ${new Date().toLocaleDateString()}`,
-          reportType: "negative_communication",
+          reportType: 'negative_communication',
           dateRangeStart: dateRangeStart ? new Date(dateRangeStart) : null,
           dateRangeEnd: dateRangeEnd ? new Date(dateRangeEnd) : null,
           totalMessagesAnalyzed: filteredMessages.length,
@@ -6801,12 +7325,12 @@ export async function registerRoutes(
           participantBreakdown,
           summary,
           recommendations,
-          status: "generated",
+          status: 'generated',
         });
 
         // Create report items for each negative message
         for (const msg of negativeMessages) {
-          const primaryTopic = (msg.negativeTopics && msg.negativeTopics[0]) || "general";
+          const primaryTopic = (msg.negativeTopics && msg.negativeTopics[0]) || 'general';
           await storage.createSentimentReportItem({
             reportId: report.id,
             messageId: msg.id,
@@ -6822,25 +7346,25 @@ export async function registerRoutes(
 
         res.status(201).json(report);
       } catch (error: any) {
-        console.error("Failed to generate sentiment report:", error);
+        console.error('Failed to generate sentiment report:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
     // GET /api/reports/:id - Get single sentiment report with items
-    app.get("/api/reports/:id", async (req: Request, res: Response) => {
+    app.get('/api/reports/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const report = await storage.getSentimentReport(id);
 
         if (!report) {
-          return res.status(404).json({ error: "Report not found" });
+          return res.status(404).json({ error: 'Report not found' });
         }
 
         const items = await storage.getSentimentReportItems(id);
         res.json({ ...report, items });
       } catch (error: any) {
-        console.error("Failed to get sentiment report:", error);
+        console.error('Failed to get sentiment report:', error);
         res.status(500).json({ error: error.message });
       }
     });
@@ -6860,8 +7384,8 @@ export async function registerRoutes(
     // ==================== ADMIN PANEL ROUTES ====================
 
     // Admin credentials from environment variables (required, no fallback)
-    const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.SUPERADMIN_EMAIL || "";
-    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.SUPERADMIN_PASSWORD || "";
+    const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.SUPERADMIN_EMAIL || '';
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.SUPERADMIN_PASSWORD || '';
 
     if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
       console.warn('[WARN] ADMIN_EMAIL and ADMIN_PASSWORD env vars not set - admin panel disabled');
@@ -6871,22 +7395,22 @@ export async function registerRoutes(
     // Admin phone number (set via env var) - REQUIRED for 2FA
     const ADMIN_PHONE = process.env.ADMIN_PHONE || '';
 
-    app.post("/api/admin/login", loginRateLimiter, async (req, res) => {
+    app.post('/api/admin/login', loginRateLimiter, async (req, res) => {
       try {
         // Fail if admin credentials not configured
         if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
-          return res.status(503).json({ error: "Admin panel not configured" });
+          return res.status(503).json({ error: 'Admin panel not configured' });
         }
 
         const { email, password } = req.body;
 
         if (!email || !password) {
-          return res.status(400).json({ error: "Email and password are required" });
+          return res.status(400).json({ error: 'Email and password are required' });
         }
 
         // Check against admin credentials
         if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
-          return res.status(401).json({ error: "Invalid admin credentials" });
+          return res.status(401).json({ error: 'Invalid admin credentials' });
         }
 
         // 2FA requirement removed as requested
@@ -6895,48 +7419,51 @@ export async function registerRoutes(
         res.json({
           success: true,
           adminToken,
-          message: "Admin login successful"
+          message: 'Admin login successful',
         });
       } catch (error) {
-        console.error("Admin login error:", error);
-        res.status(500).json({ error: "Admin login failed" });
+        console.error('Admin login error:', error);
+        res.status(500).json({ error: 'Admin login failed' });
       }
     });
 
     // Admin 2FA verification - uses database storage
-    app.post("/api/admin/2fa/verify", loginRateLimiter, async (req, res) => {
+    app.post('/api/admin/2fa/verify', loginRateLimiter, async (req, res) => {
       try {
         const { challengeId, code } = req.body;
 
         if (!challengeId || !code) {
-          return res.status(400).json({ error: "Challenge ID and code are required" });
+          return res.status(400).json({ error: 'Challenge ID and code are required' });
         }
 
         // Get challenge from database
-        const [challenge] = await db.select().from(adminMfaChallenges)
+        const [challenge] = await db
+          .select()
+          .from(adminMfaChallenges)
           .where(eq(adminMfaChallenges.id, challengeId));
 
         if (!challenge) {
-          return res.status(400).json({ error: "Invalid or expired challenge" });
+          return res.status(400).json({ error: 'Invalid or expired challenge' });
         }
 
         if (new Date() > challenge.expiresAt) {
           await db.delete(adminMfaChallenges).where(eq(adminMfaChallenges.id, challengeId));
-          return res.status(400).json({ error: "Verification code expired" });
+          return res.status(400).json({ error: 'Verification code expired' });
         }
 
         if (challenge.attemptCount >= 5) {
           await db.delete(adminMfaChallenges).where(eq(adminMfaChallenges.id, challengeId));
-          return res.status(429).json({ error: "Too many attempts. Please try again." });
+          return res.status(429).json({ error: 'Too many attempts. Please try again.' });
         }
 
         const providedHash = hashCode(code);
         if (providedHash !== challenge.codeHash) {
           // Increment attempt count
-          await db.update(adminMfaChallenges)
+          await db
+            .update(adminMfaChallenges)
             .set({ attemptCount: challenge.attemptCount + 1 })
             .where(eq(adminMfaChallenges.id, challengeId));
-          return res.status(401).json({ error: "Invalid verification code" });
+          return res.status(401).json({ error: 'Invalid verification code' });
         }
 
         // Success - clean up and return token
@@ -6947,21 +7474,21 @@ export async function registerRoutes(
         res.json({
           success: true,
           adminToken,
-          message: "Admin 2FA verification successful"
+          message: 'Admin 2FA verification successful',
         });
       } catch (error) {
-        console.error("Admin 2FA verify error:", error);
-        res.status(500).json({ error: "Verification failed" });
+        console.error('Admin 2FA verify error:', error);
+        res.status(500).json({ error: 'Verification failed' });
       }
     });
 
     // Session restore disabled - always require fresh 2FA login
-    app.get("/api/admin/session", async (_req, res) => {
-      return res.status(401).json({ error: "Please log in with 2FA" });
+    app.get('/api/admin/session', async (_req, res) => {
+      return res.status(401).json({ error: 'Please log in with 2FA' });
     });
 
     // Admin logout - clears localStorage token on frontend
-    app.post("/api/admin/logout", (_req, res) => {
+    app.post('/api/admin/logout', (_req, res) => {
       res.json({ success: true });
     });
 
@@ -6969,25 +7496,25 @@ export async function registerRoutes(
     const verifyAdminToken = (req: Request, res: Response, next: NextFunction) => {
       const authHeader = req.headers['x-admin-token'] as string;
       if (!authHeader) {
-        return res.status(401).json({ error: "Admin authentication required" });
+        return res.status(401).json({ error: 'Admin authentication required' });
       }
       // Simple token verification - in production use JWT
       try {
         const decoded = Buffer.from(authHeader, 'base64').toString();
         if (!decoded.startsWith(ADMIN_EMAIL)) {
-          return res.status(401).json({ error: "Invalid admin token" });
+          return res.status(401).json({ error: 'Invalid admin token' });
         }
         next();
       } catch {
-        return res.status(401).json({ error: "Invalid admin token" });
+        return res.status(401).json({ error: 'Invalid admin token' });
       }
     };
 
     // Get all test users (for admin panel)
-    app.get("/api/admin/test-users", verifyAdminToken, async (req, res) => {
+    app.get('/api/admin/test-users', verifyAdminToken, async (req, res) => {
       try {
         // Return test users with their credentials (for admin display)
-        const testUsers = TEST_USERS.map(u => ({
+        const testUsers = TEST_USERS.map((u) => ({
           id: u.id,
           email: u.email,
           password: u.password, // Plain password for admin display
@@ -6996,20 +7523,20 @@ export async function registerRoutes(
         }));
         res.json(testUsers);
       } catch (error) {
-        console.error("Failed to get test users:", error);
-        res.status(500).json({ error: "Failed to get test users" });
+        console.error('Failed to get test users:', error);
+        res.status(500).json({ error: 'Failed to get test users' });
       }
     });
 
     // Update test user credentials
-    app.put("/api/admin/test-users/:id", verifyAdminToken, async (req, res) => {
+    app.put('/api/admin/test-users/:id', verifyAdminToken, async (req, res) => {
       try {
         const { id } = req.params;
         const { email, password, fullName } = req.body;
 
-        const testUserIndex = TEST_USERS.findIndex(u => u.id === id);
+        const testUserIndex = TEST_USERS.findIndex((u) => u.id === id);
         if (testUserIndex === -1) {
-          return res.status(404).json({ error: "Test user not found" });
+          return res.status(404).json({ error: 'Test user not found' });
         }
 
         // Update in database
@@ -7017,7 +7544,7 @@ export async function registerRoutes(
         if (email) updates.email = email;
         if (fullName) updates.fullName = fullName;
         if (password) {
-          const { hashPassword } = await import("./auth");
+          const { hashPassword } = await import('./auth');
           updates.password = await hashPassword(password);
         }
 
@@ -7030,60 +7557,62 @@ export async function registerRoutes(
         if (password) TEST_USERS[testUserIndex].password = password;
         if (fullName) TEST_USERS[testUserIndex].fullName = fullName;
 
-        res.json({ success: true, message: "Test user updated" });
+        res.json({ success: true, message: 'Test user updated' });
       } catch (error) {
-        console.error("Failed to update test user:", error);
-        res.status(500).json({ error: "Failed to update test user" });
+        console.error('Failed to update test user:', error);
+        res.status(500).json({ error: 'Failed to update test user' });
       }
     });
 
     // Quick login for test user (generates auto-login URL)
-    app.post("/api/admin/test-users/:id/quick-login", verifyAdminToken, async (req, res) => {
+    app.post('/api/admin/test-users/:id/quick-login', verifyAdminToken, async (req, res) => {
       try {
         const { id } = req.params;
 
-        const testUser = TEST_USERS.find(u => u.id === id);
+        const testUser = TEST_USERS.find((u) => u.id === id);
         if (!testUser) {
-          return res.status(404).json({ error: "Test user not found" });
+          return res.status(404).json({ error: 'Test user not found' });
         }
 
         // Generate a single-use login token (valid for 5 minutes)
-        const loginToken = Buffer.from(JSON.stringify({
-          userId: testUser.id,
-          email: testUser.email,
-          environment: testUser.environment,
-          expires: Date.now() + 5 * 60 * 1000
-        })).toString('base64');
+        const loginToken = Buffer.from(
+          JSON.stringify({
+            userId: testUser.id,
+            email: testUser.email,
+            environment: testUser.environment,
+            expires: Date.now() + 5 * 60 * 1000,
+          })
+        ).toString('base64');
 
         res.json({
           loginToken,
           email: testUser.email,
-          environment: testUser.environment
+          environment: testUser.environment,
         });
       } catch (error) {
-        console.error("Failed to generate quick login:", error);
-        res.status(500).json({ error: "Failed to generate quick login" });
+        console.error('Failed to generate quick login:', error);
+        res.status(500).json({ error: 'Failed to generate quick login' });
       }
     });
 
     // Verify quick login token
-    app.post("/api/auth/quick-login", async (req, res) => {
+    app.post('/api/auth/quick-login', async (req, res) => {
       try {
         const { token } = req.body;
 
         if (!token) {
-          return res.status(400).json({ error: "Token required" });
+          return res.status(400).json({ error: 'Token required' });
         }
 
         const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
 
         if (Date.now() > decoded.expires) {
-          return res.status(401).json({ error: "Token expired" });
+          return res.status(401).json({ error: 'Token expired' });
         }
 
         const user = await storage.getUser(decoded.userId);
         if (!user) {
-          return res.status(404).json({ error: "User not found" });
+          return res.status(404).json({ error: 'User not found' });
         }
 
         await storage.updateUserLastLogin(user.id);
@@ -7091,22 +7620,22 @@ export async function registerRoutes(
         const { password: _, ...userWithoutPassword } = user;
         res.json({
           user: userWithoutPassword,
-          environment: decoded.environment
+          environment: decoded.environment,
         });
       } catch (error) {
-        console.error("Quick login error:", error);
-        res.status(401).json({ error: "Invalid token" });
+        console.error('Quick login error:', error);
+        res.status(401).json({ error: 'Invalid token' });
       }
     });
 
     // Seed sample data for a test user (admin version with token)
-    app.post("/api/admin/test-users/:id/seed-data", verifyAdminToken, async (req, res) => {
+    app.post('/api/admin/test-users/:id/seed-data', verifyAdminToken, async (req, res) => {
       try {
         const { id } = req.params;
 
-        const testUser = TEST_USERS.find(u => u.id === id);
+        const testUser = TEST_USERS.find((u) => u.id === id);
         if (!testUser) {
-          return res.status(404).json({ error: "Test user not found" });
+          return res.status(404).json({ error: 'Test user not found' });
         }
 
         // First erase existing data for this environment
@@ -7116,45 +7645,85 @@ export async function registerRoutes(
         const environment = testUser.environment;
 
         // Create sample financial data
-        await storage.createAsset({ userId: id, name: "Family Home", value: 450000, category: "Real Estate", ownership: "Joint", verified: true, environment });
-        await storage.createAsset({ userId: id, name: "401k Account", value: 125000, category: "Retirement", ownership: "Self", verified: true, environment });
-        await storage.createDebt({ userId: id, name: "Mortgage", amount: 280000, category: "Real Estate", ownership: "Joint", monthlyPayment: 2100, environment });
-        await storage.createIncome({ userId: id, source: "Employment", amount: 850000, frequency: "monthly", owner: "Self", verified: true, environment });
-        await storage.createExpense({ userId: id, category: "Housing", description: "Mortgage Payment", amount: 210000, frequency: "monthly", owner: "Joint", environment });
+        await storage.createAsset({
+          userId: id,
+          name: 'Family Home',
+          value: 450000,
+          category: 'Real Estate',
+          ownership: 'Joint',
+          verified: true,
+          environment,
+        });
+        await storage.createAsset({
+          userId: id,
+          name: '401k Account',
+          value: 125000,
+          category: 'Retirement',
+          ownership: 'Self',
+          verified: true,
+          environment,
+        });
+        await storage.createDebt({
+          userId: id,
+          name: 'Mortgage',
+          amount: 280000,
+          category: 'Real Estate',
+          ownership: 'Joint',
+          monthlyPayment: 2100,
+          environment,
+        });
+        await storage.createIncome({
+          userId: id,
+          source: 'Employment',
+          amount: 850000,
+          frequency: 'monthly',
+          owner: 'Self',
+          verified: true,
+          environment,
+        });
+        await storage.createExpense({
+          userId: id,
+          category: 'Housing',
+          description: 'Mortgage Payment',
+          amount: 210000,
+          frequency: 'monthly',
+          owner: 'Joint',
+          environment,
+        });
 
-        res.json({ success: true, message: "Sample data seeded for test user" });
+        res.json({ success: true, message: 'Sample data seeded for test user' });
       } catch (error) {
-        console.error("Failed to seed test user data:", error);
-        res.status(500).json({ error: "Failed to seed sample data" });
+        console.error('Failed to seed test user data:', error);
+        res.status(500).json({ error: 'Failed to seed sample data' });
       }
     });
 
     // Seed sample data for self (test users can call this for themselves)
     // Protected: requires valid user to exist in database with matching environment
-    app.post("/api/test-user/seed-data", async (req, res) => {
+    app.post('/api/test-user/seed-data', async (req, res) => {
       try {
         const userId = req.headers['x-user-id'] as string;
         const environment = req.headers['x-environment'] as string;
 
         if (!userId || !environment) {
-          return res.status(400).json({ error: "User ID and environment required" });
+          return res.status(400).json({ error: 'User ID and environment required' });
         }
 
         // Verify this is a valid test user by checking the database
         const user = await storage.getUser(userId);
         if (!user) {
-          return res.status(401).json({ error: "Invalid user" });
+          return res.status(401).json({ error: 'Invalid user' });
         }
 
         // Verify the user's environment matches a test environment
-        const testUser = TEST_USERS.find(u => u.id === userId);
+        const testUser = TEST_USERS.find((u) => u.id === userId);
         if (!testUser || user.environment !== testUser.environment) {
-          return res.status(403).json({ error: "Only test users can seed sample data" });
+          return res.status(403).json({ error: 'Only test users can seed sample data' });
         }
 
         // Verify the environment header matches the user's stored environment
         if (environment !== testUser.environment) {
-          return res.status(403).json({ error: "Environment mismatch" });
+          return res.status(403).json({ error: 'Environment mismatch' });
         }
 
         // First erase existing data for this environment
@@ -7164,38 +7733,102 @@ export async function registerRoutes(
         const env = testUser.environment;
 
         // Create sample financial data
-        await storage.createAsset({ userId, name: "Family Home", value: 450000, category: "Real Estate", ownership: "Joint", verified: true, environment: env });
-        await storage.createAsset({ userId, name: "401k Account", value: 125000, category: "Retirement", ownership: "Self", verified: true, environment: env });
-        await storage.createAsset({ userId, name: "Savings Account", value: 35000, category: "Bank Account", ownership: "Self", verified: true, environment: env });
-        await storage.createDebt({ userId, name: "Mortgage", amount: 280000, category: "Real Estate", ownership: "Joint", monthlyPayment: 2100, environment: env });
-        await storage.createDebt({ userId, name: "Car Loan", amount: 18000, category: "Vehicle", ownership: "Self", monthlyPayment: 450, environment: env });
-        await storage.createIncome({ userId, source: "Employment", amount: 850000, frequency: "monthly", owner: "Self", verified: true, environment: env });
-        await storage.createExpense({ userId, category: "Housing", description: "Mortgage Payment", amount: 210000, frequency: "monthly", owner: "Joint", environment: env });
-        await storage.createExpense({ userId, category: "Utilities", description: "Electric & Gas", amount: 25000, frequency: "monthly", owner: "Joint", environment: env });
+        await storage.createAsset({
+          userId,
+          name: 'Family Home',
+          value: 450000,
+          category: 'Real Estate',
+          ownership: 'Joint',
+          verified: true,
+          environment: env,
+        });
+        await storage.createAsset({
+          userId,
+          name: '401k Account',
+          value: 125000,
+          category: 'Retirement',
+          ownership: 'Self',
+          verified: true,
+          environment: env,
+        });
+        await storage.createAsset({
+          userId,
+          name: 'Savings Account',
+          value: 35000,
+          category: 'Bank Account',
+          ownership: 'Self',
+          verified: true,
+          environment: env,
+        });
+        await storage.createDebt({
+          userId,
+          name: 'Mortgage',
+          amount: 280000,
+          category: 'Real Estate',
+          ownership: 'Joint',
+          monthlyPayment: 2100,
+          environment: env,
+        });
+        await storage.createDebt({
+          userId,
+          name: 'Car Loan',
+          amount: 18000,
+          category: 'Vehicle',
+          ownership: 'Self',
+          monthlyPayment: 450,
+          environment: env,
+        });
+        await storage.createIncome({
+          userId,
+          source: 'Employment',
+          amount: 850000,
+          frequency: 'monthly',
+          owner: 'Self',
+          verified: true,
+          environment: env,
+        });
+        await storage.createExpense({
+          userId,
+          category: 'Housing',
+          description: 'Mortgage Payment',
+          amount: 210000,
+          frequency: 'monthly',
+          owner: 'Joint',
+          environment: env,
+        });
+        await storage.createExpense({
+          userId,
+          category: 'Utilities',
+          description: 'Electric & Gas',
+          amount: 25000,
+          frequency: 'monthly',
+          owner: 'Joint',
+          environment: env,
+        });
 
-        res.json({ success: true, message: "Sample data seeded successfully" });
+        res.json({ success: true, message: 'Sample data seeded successfully' });
       } catch (error) {
-        console.error("Failed to seed test user data:", error);
-        res.status(500).json({ error: "Failed to seed sample data" });
+        console.error('Failed to seed test user data:', error);
+        res.status(500).json({ error: 'Failed to seed sample data' });
       }
     });
 
     // Erase data for specific test user
-    app.post("/api/admin/test-users/:id/erase", verifyAdminToken, async (req, res) => {
+    app.post('/api/admin/test-users/:id/erase', verifyAdminToken, async (req, res) => {
       try {
         const { id } = req.params;
 
-        const testUser = TEST_USERS.find(u => u.id === id);
+        const testUser = TEST_USERS.find((u) => u.id === id);
         if (!testUser) {
-          return res.status(404).json({ error: "Test user not found" });
+          return res.status(404).json({ error: 'Test user not found' });
         }
 
         await eraseEnvironmentData(testUser.environment);
 
-        res.json({ success: true, message: "Test user data erased" });
+        res.json({ success: true, message: 'Test user data erased' });
       } catch (error) {
-        console.error("Failed to erase test user data:", error);
-        res.status(500).json({ error: "Failed to erase data" });
+        console.error('Failed to erase test user data:', error);
+        res.status(500).json({ error: 'Failed to erase data' });
       }
     });
 
@@ -7211,80 +7844,82 @@ export async function registerRoutes(
     // ==================== LIVE USER MANAGEMENT ====================
 
     // Get all live users (environment starts with 'live-')
-    app.get("/api/admin/live-users", verifyAdminToken, async (req, res) => {
+    app.get('/api/admin/live-users', verifyAdminToken, async (req, res) => {
       try {
         console.log('Admin fetching live users...');
-        const liveUsers = await db.select({
-          id: users.id,
-          email: users.email,
-          fullName: users.fullName,
-          environment: users.environment,
-          subscriptionTier: users.subscriptionTier,
-          status: users.status,
-          createdAt: users.createdAt,
-          lastLoginAt: users.lastLoginAt,
-        }).from(users).where(or(
-          sql`${users.environment} LIKE 'live-%'`,
-          eq(users.email, 'nedpearson@gmail.com')
-        ));
+        const liveUsers = await db
+          .select({
+            id: users.id,
+            email: users.email,
+            fullName: users.fullName,
+            environment: users.environment,
+            subscriptionTier: users.subscriptionTier,
+            status: users.status,
+            createdAt: users.createdAt,
+            lastLoginAt: users.lastLoginAt,
+          })
+          .from(users)
+          .where(
+            or(sql`${users.environment} LIKE 'live-%'`, eq(users.email, 'nedpearson@gmail.com'))
+          );
 
         console.log(`Found ${liveUsers.length} live users`);
         res.json(liveUsers);
       } catch (error: any) {
-        console.error("Failed to get live users:", error);
-        res.status(500).json({ error: error.message || "Failed to get live users" });
+        console.error('Failed to get live users:', error);
+        res.status(500).json({ error: error.message || 'Failed to get live users' });
       }
     });
 
     // Create a new live user account
-    app.post("/api/admin/live-users", verifyAdminToken, async (req, res) => {
+    app.post('/api/admin/live-users', verifyAdminToken, async (req, res) => {
       try {
-        const { email, password, fullName, tier = "enterprise" } = req.body;
+        const { email, password, fullName, tier = 'enterprise' } = req.body;
 
         if (!email || !password || !fullName) {
-          return res.status(400).json({ error: "Email, password, and full name are required" });
+          return res.status(400).json({ error: 'Email, password, and full name are required' });
         }
 
         // Check if email already exists
         const existing = await storage.getUserByEmail(email);
         if (existing) {
-          return res.status(409).json({ error: "Email already registered" });
+          return res.status(409).json({ error: 'Email already registered' });
         }
 
         // Generate unique environment for isolation
         const envId = `live-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
-        const { hashPassword } = await import("./auth");
+        const { hashPassword } = await import('./auth');
         const hashedPwd = await hashPassword(password);
 
         const newUser = await storage.createUser({
           email,
           password: hashedPwd,
           fullName,
-          role: "client",
+          role: 'client',
           isAdmin: false,
           environment: envId,
-          status: "active",
+          status: 'active',
         });
         // Note: subscriptionTier is managed via subscriptions table, not users table
 
         const { password: _, ...userWithoutPassword } = newUser;
         res.json({ success: true, user: userWithoutPassword });
       } catch (error) {
-        console.error("Failed to create live user:", error);
-        res.status(500).json({ error: "Failed to create live user" });
+        console.error('Failed to create live user:', error);
+        res.status(500).json({ error: 'Failed to create live user' });
       }
     });
 
     // Update a live user
-    app.put("/api/admin/live-users/:id", verifyAdminToken, async (req, res) => {
+    app.put('/api/admin/live-users/:id', verifyAdminToken, async (req, res) => {
       try {
         const { id } = req.params;
         const { email, password, fullName, tier, status } = req.body;
 
         const user = await storage.getUser(id);
         if (!user || !user.environment.startsWith('live-')) {
-          return res.status(404).json({ error: "Live user not found" });
+          return res.status(404).json({ error: 'Live user not found' });
         }
 
         const updates: any = {};
@@ -7293,7 +7928,7 @@ export async function registerRoutes(
         if (tier) updates.subscriptionTier = tier;
         if (status) updates.status = status;
         if (password) {
-          const { hashPassword } = await import("./auth");
+          const { hashPassword } = await import('./auth');
           updates.password = await hashPassword(password);
         }
 
@@ -7301,21 +7936,21 @@ export async function registerRoutes(
           await db.update(users).set(updates).where(eq(users.id, id));
         }
 
-        res.json({ success: true, message: "Live user updated" });
+        res.json({ success: true, message: 'Live user updated' });
       } catch (error) {
-        console.error("Failed to update live user:", error);
-        res.status(500).json({ error: "Failed to update live user" });
+        console.error('Failed to update live user:', error);
+        res.status(500).json({ error: 'Failed to update live user' });
       }
     });
 
     // Delete a live user
-    app.delete("/api/admin/live-users/:id", verifyAdminToken, async (req, res) => {
+    app.delete('/api/admin/live-users/:id', verifyAdminToken, async (req, res) => {
       try {
         const { id } = req.params;
 
         const user = await storage.getUser(id);
         if (!user || !user.environment.startsWith('live-')) {
-          return res.status(404).json({ error: "Live user not found" });
+          return res.status(404).json({ error: 'Live user not found' });
         }
 
         // Erase all user data first
@@ -7324,39 +7959,41 @@ export async function registerRoutes(
         // Delete the user record
         await db.delete(users).where(eq(users.id, id));
 
-        res.json({ success: true, message: "Live user deleted" });
+        res.json({ success: true, message: 'Live user deleted' });
       } catch (error) {
-        console.error("Failed to delete live user:", error);
-        res.status(500).json({ error: "Failed to delete live user" });
+        console.error('Failed to delete live user:', error);
+        res.status(500).json({ error: 'Failed to delete live user' });
       }
     });
 
     // Quick login for live user
-    app.post("/api/admin/live-users/:id/quick-login", verifyAdminToken, async (req, res) => {
+    app.post('/api/admin/live-users/:id/quick-login', verifyAdminToken, async (req, res) => {
       try {
         const { id } = req.params;
 
         const user = await storage.getUser(id);
         if (!user || !user.environment.startsWith('live-')) {
-          return res.status(404).json({ error: "Live user not found" });
+          return res.status(404).json({ error: 'Live user not found' });
         }
 
         // Generate a single-use login token (valid for 5 minutes)
-        const loginToken = Buffer.from(JSON.stringify({
-          userId: user.id,
-          email: user.email,
-          environment: user.environment,
-          expires: Date.now() + 5 * 60 * 1000
-        })).toString('base64');
+        const loginToken = Buffer.from(
+          JSON.stringify({
+            userId: user.id,
+            email: user.email,
+            environment: user.environment,
+            expires: Date.now() + 5 * 60 * 1000,
+          })
+        ).toString('base64');
 
         res.json({
           loginToken,
           email: user.email,
-          environment: user.environment
+          environment: user.environment,
         });
       } catch (error) {
-        console.error("Failed to generate quick login:", error);
-        res.status(500).json({ error: "Failed to generate quick login" });
+        console.error('Failed to generate quick login:', error);
+        res.status(500).json({ error: 'Failed to generate quick login' });
       }
     });
 
@@ -7372,37 +8009,41 @@ export async function registerRoutes(
     // ============================================
 
     // Admin: Get all security events
-    app.get("/api/admin/security/events", verifyAdminToken, async (req, res) => {
+    app.get('/api/admin/security/events', verifyAdminToken, async (req, res) => {
       try {
         const limit = parseInt(req.query.limit as string) || 200;
         const events = await storage.getAllSecurityEvents(limit);
         res.json({ events });
       } catch (error) {
-        console.error("Admin get security events error:", error);
-        res.status(500).json({ error: "Failed to get security events" });
+        console.error('Admin get security events error:', error);
+        res.status(500).json({ error: 'Failed to get security events' });
       }
     });
 
     // Admin: Force revoke user sessions
-    app.post("/api/admin/security/users/:userId/revoke-sessions", verifyAdminToken, async (req, res) => {
-      try {
-        const { userId } = req.params;
-        await storage.revokeAllUserSessions(userId, 'admin_revoke');
+    app.post(
+      '/api/admin/security/users/:userId/revoke-sessions',
+      verifyAdminToken,
+      async (req, res) => {
+        try {
+          const { userId } = req.params;
+          await storage.revokeAllUserSessions(userId, 'admin_revoke');
 
-        await storage.logSecurityEvent({
-          userId,
-          eventType: 'sessions_revoked_by_admin',
-          eventStatus: 'success',
-          ipAddress: req.ip || req.socket.remoteAddress,
-          userAgent: req.headers['user-agent'],
-        });
+          await storage.logSecurityEvent({
+            userId,
+            eventType: 'sessions_revoked_by_admin',
+            eventStatus: 'success',
+            ipAddress: req.ip || req.socket.remoteAddress,
+            userAgent: req.headers['user-agent'],
+          });
 
-        res.json({ success: true, message: "All user sessions revoked" });
-      } catch (error) {
-        console.error("Admin revoke sessions error:", error);
-        res.status(500).json({ error: "Failed to revoke sessions" });
+          res.json({ success: true, message: 'All user sessions revoked' });
+        } catch (error) {
+          console.error('Admin revoke sessions error:', error);
+          res.status(500).json({ error: 'Failed to revoke sessions' });
+        }
       }
-    });
+    );
 
     console.log('🔐 Admin Security Endpoints:');
     console.log('   GET  /api/admin/security/events');
@@ -7412,10 +8053,14 @@ export async function registerRoutes(
     // DEBUG ENDPOINTS (for troubleshooting)
     // ============================================
 
-    app.get("/api/debug/finances", async (req, res) => {
+    app.get('/api/debug/finances', async (req, res) => {
       try {
-        const userId = (req as any).session?.userId || (req.headers["x-user-id"] as string) || "demo-client-user";
-        const environment = (req.query.environment as string) || (req.headers["x-environment"] as string) || "demo";
+        const userId =
+          (req as any).session?.userId ||
+          (req.headers['x-user-id'] as string) ||
+          'demo-client-user';
+        const environment =
+          (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
 
         const allExpenses = await storage.getExpenses(userId, environment);
         const allIncomes = await storage.getIncomes(userId, environment);
@@ -7439,7 +8084,7 @@ export async function registerRoutes(
             totalDebtsCents: totalDebts,
             totalDebtsDollars: (totalDebts / 100).toFixed(2),
           },
-          recentExpenses: allExpenses.slice(0, 5).map(e => ({
+          recentExpenses: allExpenses.slice(0, 5).map((e) => ({
             id: e.id,
             documentId: e.documentId,
             category: e.category,
@@ -7448,14 +8093,14 @@ export async function registerRoutes(
             amountDollars: (e.amount / 100).toFixed(2),
             vendor: e.vendor,
           })),
-          recentIncomes: allIncomes.slice(0, 5).map(i => ({
+          recentIncomes: allIncomes.slice(0, 5).map((i) => ({
             id: i.id,
             documentId: i.documentId,
             source: i.source,
             amountCents: i.amount,
             amountDollars: (i.amount / 100).toFixed(2),
           })),
-          recentDebts: allDebts.slice(0, 5).map(d => ({
+          recentDebts: allDebts.slice(0, 5).map((d) => ({
             id: d.id,
             documentId: d.documentId,
             name: d.name,
@@ -7464,86 +8109,105 @@ export async function registerRoutes(
           })),
         });
       } catch (error) {
-        console.error("[Debug Finances] Error:", error);
-        res.status(500).json({ error: "Failed to fetch debug finances" });
+        console.error('[Debug Finances] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch debug finances' });
       }
     });
 
     // Debug endpoint to check users in database
-    app.get("/api/debug/users", async (req, res) => {
+    app.get('/api/debug/users', async (req, res) => {
       try {
-        const allUsers = await db.select({
-          email: users.email,
-          fullName: users.fullName,
-          environment: users.environment,
-          status: users.status,
-          platformRole: users.platformRole,
-          passwordLength: sql`LENGTH(${users.password})`,
-        }).from(users);
+        const allUsers = await db
+          .select({
+            email: users.email,
+            fullName: users.fullName,
+            environment: users.environment,
+            status: users.status,
+            platformRole: users.platformRole,
+            passwordLength: sql`LENGTH(${users.password})`,
+          })
+          .from(users);
 
         res.json({
           count: allUsers.length,
           users: allUsers,
         });
       } catch (error) {
-        console.error("[Debug Users] Error:", error);
-        res.status(500).json({ error: "Failed to fetch users", message: error instanceof Error ? error.message : String(error) });
+        console.error('[Debug Users] Error:', error);
+        res.status(500).json({
+          error: 'Failed to fetch users',
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
     });
 
     // Protected bootstrap endpoint for one-off manual provisioning
-    app.post("/api/bootstrap/run", async (req, res) => {
+    app.post('/api/bootstrap/run', async (req, res) => {
       try {
         const configuredSecret = process.env.BOOTSTRAP_SECRET;
         if (!configuredSecret) {
-          return res.status(500).json({ error: "BOOTSTRAP_SECRET is not configured on the server" });
+          return res
+            .status(500)
+            .json({ error: 'BOOTSTRAP_SECRET is not configured on the server' });
         }
 
-        const providedSecret = (req.headers["x-bootstrap-secret"] as string | undefined) || req.body?.secret;
+        const providedSecret =
+          (req.headers['x-bootstrap-secret'] as string | undefined) || req.body?.secret;
         if (!providedSecret || providedSecret !== configuredSecret) {
-          return res.status(403).json({ error: "Invalid bootstrap secret" });
+          return res.status(403).json({ error: 'Invalid bootstrap secret' });
         }
 
         const forcePasswordReset = req.body?.forcePasswordReset === true;
-        const { bootstrapUsers } = await import("./services/bootstrap.service");
+        const { bootstrapUsers } = await import('./services/bootstrap.service');
         const result = await bootstrapUsers({ forcePasswordReset });
 
         return res.status(200).json({ ok: true, result });
       } catch (error) {
-        console.error("[Bootstrap Run] Error:", error);
-        return res.status(500).json({ error: "Failed to run bootstrap", message: error instanceof Error ? error.message : String(error) });
+        console.error('[Bootstrap Run] Error:', error);
+        return res.status(500).json({
+          error: 'Failed to run bootstrap',
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
     });
 
     // Debug endpoint to check auth configuration
-    app.get("/api/debug/auth", async (req, res) => {
+    app.get('/api/debug/auth', async (req, res) => {
       try {
         const { isSuperAdminConfigured } = await import('./services/bootstrap.service');
         const { eq } = await import('drizzle-orm');
 
-        const superAdminEmail = (process.env.SUPERADMIN_EMAIL || 'nedpearson@gmail.com').trim().toLowerCase();
+        const superAdminEmail = (process.env.SUPERADMIN_EMAIL || 'nedpearson@gmail.com')
+          .trim()
+          .toLowerCase();
         const demoEmail = (process.env.DEMO_EMAIL || 'demo@example.com').trim().toLowerCase();
 
-        const superAdminUser = await db.select({
-          id: users.id,
-          email: users.email,
-          fullName: users.fullName,
-          environment: users.environment,
-          status: users.status,
-          platformRole: users.platformRole,
-          passwordLength: sql`LENGTH(${users.password})`,
-          passwordStartsWith: sql`SUBSTRING(${users.password}, 1, 4)`,
-        }).from(users).where(eq(users.email, superAdminEmail));
+        const superAdminUser = await db
+          .select({
+            id: users.id,
+            email: users.email,
+            fullName: users.fullName,
+            environment: users.environment,
+            status: users.status,
+            platformRole: users.platformRole,
+            passwordLength: sql`LENGTH(${users.password})`,
+            passwordStartsWith: sql`SUBSTRING(${users.password}, 1, 4)`,
+          })
+          .from(users)
+          .where(eq(users.email, superAdminEmail));
 
-        const demoUser = await db.select({
-          id: users.id,
-          email: users.email,
-          fullName: users.fullName,
-          environment: users.environment,
-          status: users.status,
-          platformRole: users.platformRole,
-          passwordLength: sql`LENGTH(${users.password})`,
-        }).from(users).where(eq(users.email, demoEmail));
+        const demoUser = await db
+          .select({
+            id: users.id,
+            email: users.email,
+            fullName: users.fullName,
+            environment: users.environment,
+            status: users.status,
+            platformRole: users.platformRole,
+            passwordLength: sql`LENGTH(${users.password})`,
+          })
+          .from(users)
+          .where(eq(users.email, demoEmail));
 
         const superAdminConfigured = await isSuperAdminConfigured();
 
@@ -7570,10 +8234,10 @@ export async function registerRoutes(
           },
         });
       } catch (error) {
-        console.error("[Debug Auth] Error:", error);
+        console.error('[Debug Auth] Error:', error);
         res.status(500).json({
-          error: "Failed to check auth status",
-          message: error instanceof Error ? error.message : String(error)
+          error: 'Failed to check auth status',
+          message: error instanceof Error ? error.message : String(error),
         });
       }
     });
@@ -7582,7 +8246,6 @@ export async function registerRoutes(
     console.log('   GET  /api/debug/finances');
     console.log('   GET  /api/debug/users');
     console.log('   GET  /api/debug/auth');
-
   } // End of optional integrations check
 
   // ============================================
@@ -7594,15 +8257,24 @@ export async function registerRoutes(
   const BUILD_TIME = new Date().toISOString();
 
   // Get current app version and recent features
-  app.get("/api/version", (req, res) => {
+  app.get('/api/version', (req, res) => {
     res.json({
       version: APP_VERSION,
       buildTime: BUILD_TIME,
       features: [
-        { title: "AI Document Analysis", description: "Automatic OCR and categorization for uploaded documents" },
-        { title: "Batch Re-analysis", description: "Re-analyze all your historical documents with AI" },
-        { title: "Smart Categorization", description: "AI suggests document categories for faster organization" },
-      ]
+        {
+          title: 'AI Document Analysis',
+          description: 'Automatic OCR and categorization for uploaded documents',
+        },
+        {
+          title: 'Batch Re-analysis',
+          description: 'Re-analyze all your historical documents with AI',
+        },
+        {
+          title: 'Smart Categorization',
+          description: 'AI suggests document categories for faster organization',
+        },
+      ],
     });
   });
 
@@ -7610,22 +8282,22 @@ export async function registerRoutes(
   console.log('   GET  /api/version');
 
   const frontendErrorSchema = z.object({
-    type: z.literal("frontend-error"),
-    level: z.enum(["error", "warn", "info"]),
+    type: z.literal('frontend-error'),
+    level: z.enum(['error', 'warn', 'info']),
     route: z.string(),
     message: z.string(),
     stack: z.string().optional(),
     userId: z.string().optional(),
-    environment: z.enum(["demo", "live", "unknown"]),
+    environment: z.enum(['demo', 'live', 'unknown']),
     timestamp: z.string(),
     componentStack: z.string().optional(),
   });
 
-  app.post("/api/log/frontend-error", (req, res) => {
+  app.post('/api/log/frontend-error', (req, res) => {
     try {
       const parsed = frontendErrorSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid error report format" });
+        return res.status(400).json({ error: 'Invalid error report format' });
       }
       const report = parsed.data;
       console.error(`[Frontend ${report.level.toUpperCase()}] ${report.route}: ${report.message}`, {
@@ -7635,7 +8307,7 @@ export async function registerRoutes(
       });
       res.status(200).json({ received: true });
     } catch {
-      res.status(500).json({ error: "Failed to log error" });
+      res.status(500).json({ error: 'Failed to log error' });
     }
   });
 

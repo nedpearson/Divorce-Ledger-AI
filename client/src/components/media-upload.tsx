@@ -1,13 +1,13 @@
-import { useState, useRef, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Camera, ImagePlus, Video, X, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useState, useRef, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Camera, ImagePlus, Video, X, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface MediaFile {
   id: string;
   file: File;
   preview: string;
-  type: "image" | "video";
+  type: 'image' | 'video';
 }
 
 interface MediaUploadProps {
@@ -39,53 +39,62 @@ export function MediaUpload({
   const videoChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const addFile = useCallback((file: File, type: "image" | "video") => {
-    const id = Math.random().toString(36).substring(2, 9);
-    const preview = URL.createObjectURL(file);
-    
-    setFiles((prev) => {
-      if (prev.length >= maxFiles) {
-        setError(`Maximum ${maxFiles} files allowed`);
-        return prev;
+  const addFile = useCallback(
+    (file: File, type: 'image' | 'video') => {
+      const id = Math.random().toString(36).substring(2, 9);
+      const preview = URL.createObjectURL(file);
+
+      setFiles((prev) => {
+        if (prev.length >= maxFiles) {
+          setError(`Maximum ${maxFiles} files allowed`);
+          return prev;
+        }
+        const newFiles = [...prev, { id, file, preview, type }];
+        onFilesChange(newFiles.map((f) => f.file));
+        return newFiles;
+      });
+      setError(null);
+    },
+    [maxFiles, onFilesChange]
+  );
+
+  const removeFile = useCallback(
+    (id: string) => {
+      setFiles((prev) => {
+        const file = prev.find((f) => f.id === id);
+        if (file) {
+          URL.revokeObjectURL(file.preview);
+        }
+        const newFiles = prev.filter((f) => f.id !== id);
+        onFilesChange(newFiles.map((f) => f.file));
+        return newFiles;
+      });
+    },
+    [onFilesChange]
+  );
+
+  const handleFileSelect = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const selectedFiles = event.target.files;
+      if (!selectedFiles) return;
+
+      Array.from(selectedFiles).forEach((file) => {
+        const type = file.type.startsWith('video/') ? 'video' : 'image';
+        addFile(file, type);
+      });
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
-      const newFiles = [...prev, { id, file, preview, type }];
-      onFilesChange(newFiles.map(f => f.file));
-      return newFiles;
-    });
-    setError(null);
-  }, [maxFiles, onFilesChange]);
-
-  const removeFile = useCallback((id: string) => {
-    setFiles((prev) => {
-      const file = prev.find(f => f.id === id);
-      if (file) {
-        URL.revokeObjectURL(file.preview);
-      }
-      const newFiles = prev.filter(f => f.id !== id);
-      onFilesChange(newFiles.map(f => f.file));
-      return newFiles;
-    });
-  }, [onFilesChange]);
-
-  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = event.target.files;
-    if (!selectedFiles) return;
-
-    Array.from(selectedFiles).forEach((file) => {
-      const type = file.type.startsWith("video/") ? "video" : "image";
-      addFile(file, type);
-    });
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }, [addFile]);
+    },
+    [addFile]
+  );
 
   const startCamera = useCallback(async () => {
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        video: { facingMode: 'environment' },
         audio: false,
       });
       streamRef.current = stream;
@@ -95,25 +104,29 @@ export function MediaUpload({
       }
       setIsCapturing(true);
     } catch (err) {
-      setError("Camera access denied");
+      setError('Camera access denied');
     }
   }, []);
 
   const capturePhoto = useCallback(() => {
     if (!videoRef.current || !streamRef.current) return;
 
-    const canvas = document.createElement("canvas");
+    const canvas = document.createElement('canvas');
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(videoRef.current, 0, 0);
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const file = new File([blob], `photo-${Date.now()}.jpg`, { type: "image/jpeg" });
-          addFile(file, "image");
-        }
-      }, "image/jpeg", 0.9);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+            addFile(file, 'image');
+          }
+        },
+        'image/jpeg',
+        0.9
+      );
     }
 
     stopCamera();
@@ -121,7 +134,7 @@ export function MediaUpload({
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
     setIsCapturing(false);
@@ -133,7 +146,7 @@ export function MediaUpload({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        video: { facingMode: 'environment' },
         audio: true,
       });
       streamRef.current = stream;
@@ -153,9 +166,9 @@ export function MediaUpload({
       };
 
       mediaRecorder.onstop = () => {
-        const videoBlob = new Blob(videoChunksRef.current, { type: "video/webm" });
-        const file = new File([videoBlob], `video-${Date.now()}.webm`, { type: "video/webm" });
-        addFile(file, "video");
+        const videoBlob = new Blob(videoChunksRef.current, { type: 'video/webm' });
+        const file = new File([videoBlob], `video-${Date.now()}.webm`, { type: 'video/webm' });
+        addFile(file, 'video');
         stopCamera();
       };
 
@@ -168,7 +181,7 @@ export function MediaUpload({
         }, maxVideoLength * 1000);
       }
     } catch (err) {
-      setError("Camera/microphone access denied");
+      setError('Camera/microphone access denied');
     }
   }, [addFile, maxVideoLength]);
 
@@ -178,14 +191,14 @@ export function MediaUpload({
       recordingTimerRef.current = null;
     }
 
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
     setIsRecordingVideo(false);
   }, []);
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn('space-y-3', className)}>
       <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
@@ -222,7 +235,7 @@ export function MediaUpload({
 
         <Button
           type="button"
-          variant={isRecordingVideo ? "destructive" : "outline"}
+          variant={isRecordingVideo ? 'destructive' : 'outline'}
           size="sm"
           onClick={isRecordingVideo ? stopVideoRecording : startVideoRecording}
           disabled={disabled || files.length >= maxFiles || isCapturing}
@@ -238,9 +251,7 @@ export function MediaUpload({
               <Video className="h-4 w-4 mr-2" />
               Video
               {maxVideoLength > 0 && (
-                <span className="text-xs ml-1 text-muted-foreground">
-                  ({maxVideoLength}s max)
-                </span>
+                <span className="text-xs ml-1 text-muted-foreground">({maxVideoLength}s max)</span>
               )}
             </>
           )}
@@ -291,7 +302,9 @@ export function MediaUpload({
       )}
 
       {error && (
-        <p className="text-sm text-destructive" data-testid="text-media-error">{error}</p>
+        <p className="text-sm text-destructive" data-testid="text-media-error">
+          {error}
+        </p>
       )}
 
       {files.length > 0 && (
@@ -302,7 +315,7 @@ export function MediaUpload({
               className="relative aspect-square rounded-md overflow-hidden bg-muted group"
               data-testid={`media-preview-${file.id}`}
             >
-              {file.type === "image" ? (
+              {file.type === 'image' ? (
                 <img
                   src={file.preview}
                   alt="Preview"
@@ -333,7 +346,7 @@ export function MediaUpload({
                 <X className="h-3 w-3" />
               </button>
 
-              {file.type === "video" && (
+              {file.type === 'video' && (
                 <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1 rounded">
                   Video
                 </div>
@@ -345,7 +358,7 @@ export function MediaUpload({
 
       <p className="text-xs text-muted-foreground">
         {files.length}/{maxFiles} files
-        {showWatermarkBadge && " (Free tier: images will be watermarked)"}
+        {showWatermarkBadge && ' (Free tier: images will be watermarked)'}
       </p>
     </div>
   );

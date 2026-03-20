@@ -135,12 +135,7 @@ export class TierEnforcementService {
       const violationsResult = await db
         .select({ count: sql<number>`count(*)` })
         .from(violations)
-        .where(
-          and(
-            eq(violations.userId, userId),
-            gte(violations.timestamp, startOfMonth)
-          )
-        );
+        .where(and(eq(violations.userId, userId), gte(violations.timestamp, startOfMonth)));
 
       const storageResult = await db
         .select({
@@ -148,22 +143,12 @@ export class TierEnforcementService {
           mediaCount: sql<number>`COUNT(*)`,
         })
         .from(evidenceFiles)
-        .where(
-          and(
-            eq(evidenceFiles.userId, userId),
-            gte(evidenceFiles.timestamp, startOfMonth)
-          )
-        );
+        .where(and(eq(evidenceFiles.userId, userId), gte(evidenceFiles.timestamp, startOfMonth)));
 
       const casesResult = await db
         .select({ count: sql<number>`count(*)` })
         .from(cases)
-        .where(
-          and(
-            eq(cases.userId, userId),
-            eq(cases.status, 'active')
-          )
-        );
+        .where(and(eq(cases.userId, userId), eq(cases.status, 'active')));
 
       const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       const userTier = user[0]?.subscriptionTier || 'free';
@@ -248,10 +233,7 @@ export class TierEnforcementService {
         }
       }
 
-      if (
-        currentLimits.maxCases !== null &&
-        usage.casesActive >= currentLimits.maxCases * 0.8
-      ) {
+      if (currentLimits.maxCases !== null && usage.casesActive >= currentLimits.maxCases * 0.8) {
         const tierForCases = this.getTierForCases(usage.casesActive);
         if (this.tierHierarchy(tierForCases) > this.tierHierarchy(recommendedTier)) {
           recommendedTier = tierForCases;

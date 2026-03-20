@@ -20,12 +20,16 @@ function validateStripeConfig(): boolean {
 // Validate that the key prefix matches the declared mode
 function validateKeyPrefix(secretKey: string): boolean {
   if (STRIPE_MODE === 'production' && !secretKey.startsWith('sk_live_')) {
-    console.error('CRITICAL: STRIPE_MODE is "production" but STRIPE_SECRET_KEY is not a live key (must start with "sk_live_")');
+    console.error(
+      'CRITICAL: STRIPE_MODE is "production" but STRIPE_SECRET_KEY is not a live key (must start with "sk_live_")'
+    );
     throw new Error('Production mode requires a live Stripe key (sk_live_...)');
   }
 
   if (STRIPE_MODE === 'test' && !secretKey.startsWith('sk_test_')) {
-    console.warn('Stripe is in "test" mode but STRIPE_SECRET_KEY is not a test key. Proceeding but please verify your configuration.');
+    console.warn(
+      'Stripe is in "test" mode but STRIPE_SECRET_KEY is not a test key. Proceeding but please verify your configuration.'
+    );
   }
 
   return true;
@@ -122,16 +126,20 @@ async function initializeStripeCredentials(): Promise<boolean> {
 
     const response = await fetch(url.toString(), {
       headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
+        Accept: 'application/json',
+        X_REPLIT_TOKEN: xReplitToken,
+      },
     });
 
     const data = await response.json();
 
     connectionSettings = data.items?.[0];
 
-    if (!connectionSettings || (!connectionSettings.settings?.publishable || !connectionSettings.settings?.secret)) {
+    if (
+      !connectionSettings ||
+      !connectionSettings.settings?.publishable ||
+      !connectionSettings.settings?.secret
+    ) {
       // Silently try manual credentials as fallback
       if (await tryManualCredentials()) {
         return true;
@@ -162,7 +170,10 @@ async function initializeStripeCredentials(): Promise<boolean> {
     console.log(`Stripe ${targetEnvironment} initialized successfully (validated)`);
     return true;
   } catch (error) {
-    console.log('Stripe connector failed, trying manual keys:', error instanceof Error ? error.message : 'Unknown error');
+    console.log(
+      'Stripe connector failed, trying manual keys:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
     // Try manual credentials as fallback
     if (await tryManualCredentials()) {
       return true;

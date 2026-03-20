@@ -10,8 +10,17 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
   const router = useRouter();
-  const { user, loading: authLoading, initialized: authInitialized, initialize: initializeAuth } = useAuthStore();
-  const { initialize: initializeWorkspace, initialized: workspaceInitialized, loading: workspaceLoading } = useWorkspaceStore();
+  const {
+    user,
+    loading: authLoading,
+    initialized: authInitialized,
+    initialize: initializeAuth,
+  } = useAuthStore();
+  const {
+    initialize: initializeWorkspace,
+    initialized: workspaceInitialized,
+    loading: workspaceLoading,
+  } = useWorkspaceStore();
 
   useEffect(() => {
     if (!authInitialized) {
@@ -21,7 +30,7 @@ export default function AuthGuard({ children, requireAuth = true }: AuthGuardPro
 
   useEffect(() => {
     if (authInitialized && user && !workspaceInitialized) {
-      initializeWorkspace(user.id).catch(error => {
+      initializeWorkspace(user.id).catch((error) => {
         console.error('Failed to initialize workspace:', error);
       });
     }

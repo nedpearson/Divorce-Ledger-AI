@@ -72,7 +72,10 @@ export class UploadService {
       .list(filePath.split('/').slice(0, -1).join('/'));
 
     if (fileError || !fileData || fileData.length === 0) {
-      logger.error({ userId, filePath, error: fileError }, 'File not found in storage after upload');
+      logger.error(
+        { userId, filePath, error: fileError },
+        'File not found in storage after upload'
+      );
       throw new ValidationError('File not found in storage');
     }
 
@@ -116,11 +119,7 @@ export class UploadService {
   /**
    * Upload file directly from server (alternative to signed URL)
    */
-  async uploadFile(
-    userId: string,
-    file: Buffer,
-    metadata: UploadMetadata
-  ): Promise<any> {
+  async uploadFile(userId: string, file: Buffer, metadata: UploadMetadata): Promise<any> {
     const { filename, mimeType, fileSize, documentType } = metadata;
 
     // Validate file type and size

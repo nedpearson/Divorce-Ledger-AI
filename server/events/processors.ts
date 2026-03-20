@@ -137,14 +137,26 @@ export async function startAnalyticsProcessor(): Promise<void> {
   analyticsConsumer = createConsumer({
     consumerGroup: 'analytics-processor',
     batchSize: 50,
-    pollIntervalMs: 2000
+    pollIntervalMs: 2000,
   });
 
-  analyticsConsumer.subscribe(EventTopics.USER_TIER_CHANGED, processTierChange, 'processTierChange');
+  analyticsConsumer.subscribe(
+    EventTopics.USER_TIER_CHANGED,
+    processTierChange,
+    'processTierChange'
+  );
   analyticsConsumer.subscribe(EventTopics.BILLING_PAYMENT, processPayment, 'processPayment');
   analyticsConsumer.subscribe(EventTopics.VIOLATION_CREATED, processViolation, 'processViolation');
-  analyticsConsumer.subscribe(EventTopics.EVIDENCE_UPLOADED, processEvidenceUpload, 'processEvidenceUpload');
-  analyticsConsumer.subscribe(EventTopics.AI_CLASSIFICATION, processAIClassification, 'processAIClassification');
+  analyticsConsumer.subscribe(
+    EventTopics.EVIDENCE_UPLOADED,
+    processEvidenceUpload,
+    'processEvidenceUpload'
+  );
+  analyticsConsumer.subscribe(
+    EventTopics.AI_CLASSIFICATION,
+    processAIClassification,
+    'processAIClassification'
+  );
 
   await analyticsConsumer.start();
   console.log('[Analytics] Processor started');
@@ -159,7 +171,7 @@ export async function startAuditProcessor(): Promise<void> {
   auditConsumer = createConsumer({
     consumerGroup: 'audit-logger',
     batchSize: 100,
-    pollIntervalMs: 5000
+    pollIntervalMs: 5000,
   });
 
   auditConsumer.subscribe(EventTopics.USER_TIER_CHANGED, auditLog, 'auditTierChange');
@@ -191,11 +203,11 @@ export async function getProcessorStatus(): Promise<{
   return {
     analytics: {
       running: analyticsConsumer !== null,
-      lag: analyticsConsumer ? await analyticsConsumer.getConsumerLag() : {}
+      lag: analyticsConsumer ? await analyticsConsumer.getConsumerLag() : {},
     },
     audit: {
       running: auditConsumer !== null,
-      lag: auditConsumer ? await auditConsumer.getConsumerLag() : {}
-    }
+      lag: auditConsumer ? await auditConsumer.getConsumerLag() : {},
+    },
   };
 }

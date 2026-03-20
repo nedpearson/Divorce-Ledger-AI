@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from 'bcrypt';
 
 const SALT_ROUNDS = 12;
 
@@ -11,5 +11,5 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 export function isPasswordHashed(password: string): boolean {
-  return password.startsWith("$2b$") || password.startsWith("$2a$");
+  return password.startsWith('$2b$') || password.startsWith('$2a$');
 }

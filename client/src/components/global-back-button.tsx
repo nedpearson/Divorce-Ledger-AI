@@ -1,7 +1,7 @@
-import { ArrowLeft } from "lucide-react";
-import { useLocation } from "wouter";
-import { useAuth } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft } from 'lucide-react';
+import { useLocation } from 'wouter';
+import { useAuth } from '@/lib/auth';
+import { Button } from '@/components/ui/button';
 
 export function GlobalBackButton() {
   const [location, setLocation] = useLocation();
@@ -15,9 +15,9 @@ export function GlobalBackButton() {
     }
     // Fallback: send authed users to home, others to landing
     if (isAuthenticated) {
-      if (location !== "/home") setLocation("/home");
+      if (location !== '/home') setLocation('/home');
     } else {
-      if (location !== "/") setLocation("/");
+      if (location !== '/') setLocation('/');
     }
   };
 

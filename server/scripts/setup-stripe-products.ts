@@ -1,10 +1,10 @@
 #!/usr/bin/env ts-node
 /**
  * Stripe Products Setup Script
- * 
+ *
  * Creates Stripe Products and Prices for workspace billing
  * Run once in test mode, then once in production mode
- * 
+ *
  * Usage:
  *   STRIPE_SECRET_KEY=sk_test_... npm run setup-stripe-products
  *   STRIPE_SECRET_KEY=sk_live_... npm run setup-stripe-products
@@ -91,7 +91,7 @@ async function setupProducts() {
         limit: 100,
       });
 
-      let product = existingProducts.data.find(p => p.metadata?.plan_id === plan.id);
+      let product = existingProducts.data.find((p) => p.metadata?.plan_id === plan.id);
 
       if (product) {
         console.log(`   ✓ Product already exists: ${product.id}`);

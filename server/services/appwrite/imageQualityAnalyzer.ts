@@ -14,7 +14,7 @@ export interface ImageQualityScore {
 const THRESHOLDS = {
   BLUR_VARIANCE: 300,
   GLARE_PERCENTAGE: 0.15,
-  LOW_LIGHT_PERCENTAGE: 0.40,
+  LOW_LIGHT_PERCENTAGE: 0.4,
   EDGE_DENSITY_MIN: 0.02,
   MIN_DIMENSION: 200,
 };
@@ -48,7 +48,7 @@ export async function analyzeImageQuality(imageBuffer: Buffer): Promise<ImageQua
     suggestions.push('Fill frame with document, flatten paper');
   }
 
-  const overall = (blurScore * 0.4) + (glareScore * 0.25) + (lowLightScore * 0.2) + (cropScore * 0.15);
+  const overall = blurScore * 0.4 + glareScore * 0.25 + lowLightScore * 0.2 + cropScore * 0.15;
   const isPoorQuality = overall < 0.5 || issues.length >= 2;
 
   return {
@@ -79,7 +79,8 @@ async function detectBlur(imageBuffer: Buffer): Promise<number> {
       .toBuffer({ resolveWithObject: true });
 
     const mean = data.reduce((a: number, b: number) => a + b, 0) / data.length;
-    const variance = data.reduce((sum: number, val: number) => sum + Math.pow(val - mean, 2), 0) / data.length;
+    const variance =
+      data.reduce((sum: number, val: number) => sum + Math.pow(val - mean, 2), 0) / data.length;
 
     const score = Math.min(1, variance / THRESHOLDS.BLUR_VARIANCE);
     return score;
@@ -107,7 +108,7 @@ async function detectGlare(imageBuffer: Buffer): Promise<number> {
         brightness += data[i + c];
       }
       brightness /= Math.min(channels, 3);
-      
+
       if (brightness > threshold) {
         overexposedPixels++;
       }
@@ -140,7 +141,7 @@ async function detectLowLight(imageBuffer: Buffer): Promise<number> {
         brightness += data[i + c];
       }
       brightness /= Math.min(channels, 3);
-      
+
       if (brightness < threshold) {
         underexposedPixels++;
       }
@@ -192,12 +193,12 @@ async function analyzeFraming(imageBuffer: Buffer): Promise<number> {
     }
 
     const edgeDensity = edgePixels / data.length;
-    
+
     if (edgeDensity < THRESHOLDS.EDGE_DENSITY_MIN) {
       return 0.4;
     }
 
-    return Math.min(1, 0.6 + (edgeDensity * 10));
+    return Math.min(1, 0.6 + edgeDensity * 10);
   } catch (error) {
     console.error('[ImageQuality] Framing analysis failed:', error);
     return 0.7;
@@ -211,16 +212,18 @@ export function formatQualityFeedback(quality: ImageQualityScore): string {
 
   const feedback: string[] = [
     'Image quality issues detected:',
-    ...quality.issues.map(i => `- ${i}`),
+    ...quality.issues.map((i) => `- ${i}`),
     '',
     'Suggestions:',
-    ...quality.suggestions.map(s => `- ${s}`),
+    ...quality.suggestions.map((s) => `- ${s}`),
   ];
 
   return feedback.join('\n');
 }
 
-export async function analyzeImageQualityFromBase64(base64Data: string): Promise<ImageQualityScore> {
+export async function analyzeImageQualityFromBase64(
+  base64Data: string
+): Promise<ImageQualityScore> {
   const buffer = Buffer.from(base64Data, 'base64');
   return analyzeImageQuality(buffer);
 }

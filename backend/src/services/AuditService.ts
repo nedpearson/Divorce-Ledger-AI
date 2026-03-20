@@ -37,7 +37,16 @@ export class AuditService {
    * Log an audit event
    */
   async log(entry: AuditLogEntry): Promise<any> {
-    const { user_id, action, resource_type, resource_id, severity, ip_address, user_agent, metadata } = entry;
+    const {
+      user_id,
+      action,
+      resource_type,
+      resource_id,
+      severity,
+      ip_address,
+      user_agent,
+      metadata,
+    } = entry;
 
     const { data, error } = await supabaseServiceRole
       .from('audit_logs')
@@ -163,7 +172,17 @@ export class AuditService {
       offset?: number;
     } = {}
   ): Promise<any[]> {
-    const { userId, action, resourceType, resourceId, severity, startDate, endDate, limit = 100, offset = 0 } = searchParams;
+    const {
+      userId,
+      action,
+      resourceType,
+      resourceId,
+      severity,
+      startDate,
+      endDate,
+      limit = 100,
+      offset = 0,
+    } = searchParams;
 
     let query = supabaseServiceRole
       .from('audit_logs')

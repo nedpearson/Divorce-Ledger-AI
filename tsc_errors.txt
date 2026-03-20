@@ -1,0 +1,20 @@
+server/routes/analytics.routes.ts(2,34): error TS2307: Cannot find module '../analytics-service' or its corresponding type declarations.
+server/routes/analytics.routes.ts(3,32): error TS2307: Cannot find module '../billing-service' or its corresponding type declarations.
+server/routes/analytics.routes.ts(4,38): error TS2307: Cannot find module '../tier-migration-service' or its corresponding type declarations.
+server/routes/analytics.routes.ts(5,35): error TS2307: Cannot find module '../quota-reset-service' or its corresponding type declarations.
+server/routes/analytics.routes.ts(202,37): error TS7006: Parameter 'u' implicitly has an 'any' type.
+server/routes/analytics.routes.ts(203,39): error TS7006: Parameter 'u' implicitly has an 'any' type.
+server/services/analytics-service.ts(1,20): error TS2307: Cannot find module './db' or its corresponding type declarations.
+server/services/billing-service.ts(1,20): error TS2307: Cannot find module './db' or its corresponding type declarations.
+server/services/billing-service.ts(4,28): error TS2307: Cannot find module './config' or its corresponding type declarations.
+server/services/dashboard-service.ts(3,42): error TS2307: Cannot find module './lib/safeQuery' or its corresponding type declarations.
+server/services/dashboard-service.ts(173,32): error TS7006: Parameter 'row' implicitly has an 'any' type.
+server/services/dashboard-service.ts(269,32): error TS7006: Parameter 'row' implicitly has an 'any' type.
+server/services/media-service.ts(1,20): error TS2307: Cannot find module './db' or its corresponding type declarations.
+server/services/media-service.ts(4,40): error TS2307: Cannot find module './tier-enforcement' or its corresponding type declarations.
+server/services/quota-reset-service.ts(1,20): error TS2307: Cannot find module './db' or its corresponding type declarations.
+server/services/quota-reset-service.ts(14,40): error TS2307: Cannot find module './config' or its corresponding type declarations.
+server/services/tier-migration-service.ts(1,20): error TS2307: Cannot find module './db' or its corresponding type declarations.
+server/services/tier-migration-service.ts(17,40): error TS2307: Cannot find module './config' or its corresponding type declarations.
+server/services/websocket-service.ts(4,31): error TS2307: Cannot find module './lib/baseUrl' or its corresponding type declarations.
+server/services/websocket-service.ts(5,30): error TS2307: Cannot find module './lib/logger' or its corresponding type declarations.

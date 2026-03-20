@@ -1,15 +1,15 @@
-import { useAuth } from "@/lib/auth";
-import { Badge } from "@/components/ui/badge";
-import { Globe, TestTube2 } from "lucide-react";
+import { useAuth } from '@/lib/auth';
+import { Badge } from '@/components/ui/badge';
+import { Globe, TestTube2 } from 'lucide-react';
 
-export function EnvironmentBadge({ className = "" }: { className?: string }) {
+export function EnvironmentBadge({ className = '' }: { className?: string }) {
   const { environment } = useAuth();
 
   if (!environment) return null;
 
-  const isLive = environment.startsWith("live");
-  const isDemo = environment === "demo";
-  const isTest = environment.startsWith("demo-test");
+  const isLive = environment.startsWith('live');
+  const isDemo = environment === 'demo';
+  const isTest = environment.startsWith('demo-test');
 
   if (isLive) {
     return (

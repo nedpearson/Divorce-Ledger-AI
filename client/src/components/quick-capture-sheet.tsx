@@ -1,16 +1,16 @@
-import { useState } from "react";
+import { useState } from 'react';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Camera, FileText, AlertTriangle, Upload, Mic, MapPin } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useLocation } from "wouter";
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Camera, FileText, AlertTriangle, Upload, Mic, MapPin } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useLocation } from 'wouter';
 
 interface QuickCaptureSheetProps {
   open: boolean;
@@ -22,37 +22,37 @@ export function QuickCaptureSheet({ open, onOpenChange }: QuickCaptureSheetProps
 
   const handleScanDocument = () => {
     onOpenChange(false);
-    setLocation("/documents?action=scan");
+    setLocation('/documents?action=scan');
   };
 
   const handleReportViolation = () => {
     onOpenChange(false);
-    setLocation("/violations?action=report");
+    setLocation('/violations?action=report');
   };
 
   const captureOptions = [
     {
-      id: "scan-document",
+      id: 'scan-document',
       icon: Camera,
-      label: "Scan Document",
-      description: "Take a photo of any document for AI analysis",
-      gradient: "from-blue-500 to-cyan-400",
+      label: 'Scan Document',
+      description: 'Take a photo of any document for AI analysis',
+      gradient: 'from-blue-500 to-cyan-400',
       onClick: handleScanDocument,
     },
     {
-      id: "report-violation",
+      id: 'report-violation',
       icon: AlertTriangle,
-      label: "Report Violation",
-      description: "Quick capture with photo, voice & location",
-      gradient: "from-orange-500 to-red-400",
+      label: 'Report Violation',
+      description: 'Quick capture with photo, voice & location',
+      gradient: 'from-orange-500 to-red-400',
       onClick: handleReportViolation,
     },
     {
-      id: "upload-file",
+      id: 'upload-file',
       icon: Upload,
-      label: "Upload Files",
-      description: "Upload documents from your device",
-      gradient: "from-purple-500 to-pink-400",
+      label: 'Upload Files',
+      description: 'Upload documents from your device',
+      gradient: 'from-purple-500 to-pink-400',
       onClick: handleScanDocument,
     },
   ];
@@ -63,11 +63,9 @@ export function QuickCaptureSheet({ open, onOpenChange }: QuickCaptureSheetProps
         <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
         <SheetHeader className="text-left">
           <SheetTitle className="text-xl">Quick Capture</SheetTitle>
-          <SheetDescription>
-            Choose how you want to add evidence to your case
-          </SheetDescription>
+          <SheetDescription>Choose how you want to add evidence to your case</SheetDescription>
         </SheetHeader>
-        
+
         <div className="grid gap-3 mt-6 pb-6">
           {captureOptions.map((option) => (
             <button
@@ -78,10 +76,12 @@ export function QuickCaptureSheet({ open, onOpenChange }: QuickCaptureSheetProps
             >
               <Card className="hover-elevate overflow-visible border-0 bg-gradient-to-r p-[1px] from-border to-border hover:from-primary/50 hover:to-primary/20 transition-all duration-300">
                 <CardContent className="flex items-center gap-4 p-4 bg-card rounded-[calc(var(--radius)-1px)]">
-                  <div className={cn(
-                    "w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br shadow-lg",
-                    option.gradient
-                  )}>
+                  <div
+                    className={cn(
+                      'w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br shadow-lg',
+                      option.gradient
+                    )}
+                  >
                     <option.icon className="w-7 h-7 text-white" />
                   </div>
                   <div className="flex-1">

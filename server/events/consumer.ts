@@ -53,7 +53,9 @@ class EventConsumer {
     const subs = this.subscriptions.get(topic) || [];
     subs.push({ topic, handler, handlerName });
     this.subscriptions.set(topic, subs);
-    console.log(`[EventConsumer:${this.consumerGroup}] Subscribed to ${topic} with handler ${handlerName}`);
+    console.log(
+      `[EventConsumer:${this.consumerGroup}] Subscribed to ${topic} with handler ${handlerName}`
+    );
   }
 
   async start(): Promise<void> {
@@ -67,7 +69,7 @@ class EventConsumer {
 
     await this.ensureConsumerGroup();
     await this.registerSubscriptions();
-    
+
     this.poll();
   }
 
@@ -117,9 +119,14 @@ class EventConsumer {
       }
     } catch (error) {
       if (error instanceof DatabaseError) {
-        logger.error('Poll error', error, { consumerGroup: this.consumerGroup, traceId: error.traceId });
+        logger.error('Poll error', error, {
+          consumerGroup: this.consumerGroup,
+          traceId: error.traceId,
+        });
       } else {
-        logger.error('Poll error', error instanceof Error ? error : new Error(String(error)), { consumerGroup: this.consumerGroup });
+        logger.error('Poll error', error instanceof Error ? error : new Error(String(error)), {
+          consumerGroup: this.consumerGroup,
+        });
       }
     }
 
@@ -128,10 +135,12 @@ class EventConsumer {
 
   private async processTopicEvents(topic: EventTopic): Promise<void> {
     const events = await this.fetchPendingEvents(topic);
-    
+
     if (events.length === 0) return;
 
-    console.log(`[EventConsumer:${this.consumerGroup}] Processing ${events.length} events from ${topic}`);
+    console.log(
+      `[EventConsumer:${this.consumerGroup}] Processing ${events.length} events from ${topic}`
+    );
 
     for (const event of events) {
       if (this.processedEventIds.has(event.eventId)) {
@@ -153,10 +162,10 @@ class EventConsumer {
       if (allSucceeded) {
         await this.commitOffset(topic, event.eventId);
         this.processedEventIds.add(event.eventId);
-        
+
         if (this.processedEventIds.size > 10000) {
           const oldIds = Array.from(this.processedEventIds).slice(0, 5000);
-          oldIds.forEach(id => this.processedEventIds.delete(id));
+          oldIds.forEach((id) => this.processedEventIds.delete(id));
         }
       }
     }
@@ -170,7 +179,7 @@ class EventConsumer {
       [this.consumerGroup, topic, this.batchSize]
     );
 
-    return result.rows.map(row => ({
+    return result.rows.map((row) => ({
       eventId: row.event_id,
       eventType: row.event_type,
       topic: row.topic,
@@ -179,7 +188,7 @@ class EventConsumer {
       metadata: row.metadata,
       sequenceNumber: row.sequence_number,
       correlationId: row.correlation_id,
-      createdAt: row.created_at
+      createdAt: row.created_at,
     }));
   }
 
@@ -200,7 +209,7 @@ class EventConsumer {
           `[EventConsumer:${this.consumerGroup}] Handler ${handlerName} failed attempt ${attempt + 1}/${this.maxRetries}:`,
           error.message
         );
-        
+
         if (attempt < this.maxRetries - 1) {
           await this.delay(Math.pow(2, attempt) * 100);
         }
@@ -211,12 +220,11 @@ class EventConsumer {
   }
 
   private async commitOffset(topic: EventTopic, eventId: number): Promise<void> {
-    await safeQuery(
-      getPool(),
-      'events.commitOffset',
-      `SELECT commit_offset($1, $2, $3)`,
-      [this.consumerGroup, topic, eventId]
-    );
+    await safeQuery(getPool(), 'events.commitOffset', `SELECT commit_offset($1, $2, $3)`, [
+      this.consumerGroup,
+      topic,
+      eventId,
+    ]);
   }
 
   private async sendToDeadLetter(
@@ -239,13 +247,13 @@ class EventConsumer {
         JSON.stringify(event.payload),
         error.message,
         error.stack,
-        this.maxRetries
+        this.maxRetries,
       ]
     );
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async getConsumerLag(topic?: EventTopic): Promise<Record<string, number>> {

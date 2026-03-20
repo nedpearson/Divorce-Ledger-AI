@@ -11,13 +11,14 @@ The Divorce Ledger now includes a fully offline-capable Progressive Web App (PWA
 ✅ **Quick Capture**: Opens directly to document capture page  
 ✅ **Installable**: Installs as a standalone app on your phone  
 ✅ **Background Sync**: Syncs in the background when connection is restored  
-✅ **Local Storage**: All data stored securely on your device until synced  
+✅ **Local Storage**: All data stored securely on your device until synced
 
 ## Installation
 
 ### Desktop Setup
 
 1. **Start the Application**:
+
    ```bash
    npm run dev
    ```
@@ -136,12 +137,14 @@ startAutoSync(60000);
 ### Storage
 
 **IndexedDB Schema**:
+
 - `documents`: Offline documents with file Blobs
 - `violations`: Offline violations with media files
 - `syncQueue`: Pending PATCH/DELETE operations
 - `syncMetadata`: Last sync time, server URL, pending count
 
 **Storage Limits**:
+
 - Chrome/Android: ~6% of free disk space
 - Safari/iOS: 50MB initially, requests more as needed
 
@@ -164,11 +167,13 @@ startAutoSync(60000);
 ### Service Worker
 
 **Caching Strategy**:
+
 - Navigation: Never cached (always fresh HTML)
 - API calls: Network-first, cache fallback
 - Static assets: Network-first, cache fallback
 
 **Background Sync**:
+
 - Registers for 'sync-offline-data' tag
 - Triggered when device comes online
 - Notifies app to run sync
@@ -178,11 +183,13 @@ startAutoSync(60000);
 ### App Won't Install
 
 **iOS**:
+
 - Must use Safari (not Chrome or Firefox)
 - Check if already installed
 - Try refreshing the page
 
 **Android**:
+
 - Must use Chrome or Edge
 - Check "Unknown sources" permission if needed
 - Clear browser cache and retry
@@ -214,6 +221,7 @@ startAutoSync(60000);
 ### Storage Full
 
 **Check Usage**:
+
 ```javascript
 import { getStorageInfo } from '@/lib/offline-db';
 const info = await getStorageInfo();
@@ -221,6 +229,7 @@ console.log('Usage:', info.usage, 'Quota:', info.quota);
 ```
 
 **Clear Old Data**:
+
 - Manually delete old documents/violations
 - Sync regularly to upload and clear local storage
 - Browser may automatically prompt to increase quota
@@ -301,16 +310,19 @@ clearAllOfflineData(): Promise<void>
 ## Performance
 
 ### App Size
+
 - Initial load: ~2-3 MB (JS/CSS/fonts)
 - Service worker: ~5 KB
 - Cached after first load
 
 ### Storage Usage
+
 - Document (1 MB photo): ~1.1 MB (includes metadata)
 - Violation with 3 photos: ~3-4 MB
 - Typical user: 50-100 MB over time
 
 ### Sync Speed
+
 - 1 document: ~500ms - 2s (depends on file size)
 - 10 documents: ~5-20s
 - Network bandwidth limited

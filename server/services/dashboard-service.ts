@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { Pool } from 'pg';
-import { safeQuery, DatabaseError } from './lib/safeQuery';
+import { safeQuery, DatabaseError } from '../lib/safeQuery';
 
 export interface DashboardMetrics {
   timestamp: string;
@@ -87,12 +87,12 @@ export class DashboardService extends EventEmitter {
 
   async start(): Promise<void> {
     console.log('Dashboard Service starting...');
-    
+
     await this.refreshMetrics();
-    
+
     // Refresh every 30 seconds instead of 5 to reduce database load
     this.refreshInterval = setInterval(() => {
-      this.refreshMetrics().catch(err => {
+      this.refreshMetrics().catch((err) => {
         // Only log non-connection errors to avoid noise
         if (err?.code !== 'ECONNRESET' && err?.code !== 'ETIMEDOUT') {
           console.error('Dashboard refresh error:', err?.message || err);
@@ -113,11 +113,7 @@ export class DashboardService extends EventEmitter {
     const startTime = Date.now();
 
     try {
-      const [
-        usersData,
-        billingData,
-        violationsData,
-      ] = await Promise.all([
+      const [usersData, billingData, violationsData] = await Promise.all([
         this.getUserMetrics(),
         this.getBillingMetrics(),
         this.getViolationMetrics(),
@@ -174,7 +170,7 @@ export class DashboardService extends EventEmitter {
         enterprise: 0,
       };
 
-      tierResult.rows.forEach(row => {
+      tierResult.rows.forEach((row) => {
         if (row.tier) {
           byTier[row.tier] = parseInt(row.count);
         }
@@ -197,11 +193,13 @@ export class DashboardService extends EventEmitter {
       };
     } catch (error: any) {
       // Return cached or default values on error
-      return this.metrics.users || {
-        total: 0,
-        active_7d: 0,
-        by_tier: { free: 0, individual: 0, pro: 0, team: 0, enterprise: 0 },
-      };
+      return (
+        this.metrics.users || {
+          total: 0,
+          active_7d: 0,
+          by_tier: { free: 0, individual: 0, pro: 0, team: 0, enterprise: 0 },
+        }
+      );
     }
   }
 
@@ -236,12 +234,14 @@ export class DashboardService extends EventEmitter {
       };
     } catch (error: any) {
       // Return cached or default values on error
-      return this.metrics.billing || {
-        pending_count: 0,
-        pending_amount_usd: 0,
-        charged_this_month_usd: 0,
-        failed_count: 0,
-      };
+      return (
+        this.metrics.billing || {
+          pending_count: 0,
+          pending_amount_usd: 0,
+          charged_this_month_usd: 0,
+          failed_count: 0,
+        }
+      );
     }
   }
 
@@ -266,7 +266,7 @@ export class DashboardService extends EventEmitter {
       );
 
       const byType: Record<string, number> = {};
-      typeResult.rows.forEach(row => {
+      typeResult.rows.forEach((row) => {
         if (row.type) {
           byType[row.type] = parseInt(row.type_count);
         }
@@ -289,7 +289,7 @@ export class DashboardService extends EventEmitter {
 
   private getNextScheduleTime(job: string): string {
     const now = new Date();
-    
+
     if (job === 'tier_migration') {
       const next = new Date(now);
       next.setUTCHours(0, 15, 0, 0);

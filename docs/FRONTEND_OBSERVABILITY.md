@@ -7,6 +7,7 @@ This document describes the frontend error handling and observability infrastruc
 **Location**: `client/src/components/error-boundary.tsx`
 
 The global ErrorBoundary wraps the entire application in `App.tsx`. It:
+
 - Catches React rendering errors
 - Logs errors with structured data to the backend
 - Shows a user-friendly error UI with:
@@ -28,6 +29,7 @@ logFrontendError(new Error('Something failed'), { level: 'error' });
 ```
 
 ### Error Report Structure
+
 ```json
 {
   "type": "frontend-error",
@@ -47,6 +49,7 @@ logFrontendError(new Error('Something failed'), { level: 'error' });
 **Location**: `client/src/main.tsx`
 
 `setupGlobalErrorHandlers()` installs:
+
 - `window.onerror` - catches uncaught exceptions
 - `window.unhandledrejection` - catches unhandled promise rejections
 
@@ -71,17 +74,20 @@ Basic smoke tests verify that main pages and components export correctly.
 ## Network Error Handling
 
 All pages use TanStack Query which provides built-in:
+
 - `isLoading` states for loading spinners
-- `isError` states for error messages  
+- `isError` states for error messages
 - Automatic retries on network failures (3 retries by default)
 - Stale-while-revalidate for cached data
 
 **Verified patterns in the codebase:**
+
 - Dashboard: Shows `Loader2` spinner during data fetch (line 288)
 - Documents: Shows loading skeleton while fetching (line 1067)
 - All query hooks use proper loading/error handling
 
 Example pattern used throughout:
+
 ```tsx
 const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['/api/data'] });
 
@@ -93,6 +99,7 @@ return <DataView data={data} />;
 ## Manual Testing Checklist
 
 Before releases, verify:
+
 1. **Dashboard**: Loading spinner visible, data loads without blank screen
 2. **Documents**: Empty state shows when no docs, error toast on failed upload
 3. **Violations**: Form validation messages appear, loading states work
