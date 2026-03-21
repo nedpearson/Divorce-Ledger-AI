@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
-import { Briefcase, Eye, EyeOff, Loader2, ArrowLeft, Smartphone, RefreshCw } from 'lucide-react';
+import { Briefcase, Eye, EyeOff, Loader2, ArrowLeft, Smartphone, RefreshCw, User, Building2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -391,46 +391,68 @@ export default function Login() {
                   )}
 
                   {isDemoEnv && (
-                    <div className="mt-2 rounded-md border bg-muted/50 px-3 py-3 text-sm flex flex-col gap-2">
-                      <p className="font-medium text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Demo Account Profiles
-                      </p>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="w-full justify-start font-mono text-xs"
-                        onClick={() => {
-                          setEmail('client.demo@example.com');
-                          setPassword('demo123');
-                        }}
-                      >
-                        [Client] client.demo@example.com
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="w-full justify-start font-mono text-xs"
-                        onClick={() => {
-                          setEmail('firm.admin.demo@example.com');
-                          setPassword('demo123');
-                        }}
-                      >
-                        [Firm] firm.admin.demo@example.com
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start font-mono text-xs opacity-70"
-                        onClick={() => {
-                          setEmail('demo@example.com');
-                          setPassword('demo123');
-                        }}
-                      >
-                        [Staff] demo@example.com
-                      </Button>
+                    <div className="space-y-3 pt-2">
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-muted" />
+                        </div>
+                        <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                          <span className="bg-card px-2">Quick Access (Demo)</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-auto py-2.5 px-3 justify-start flex items-center gap-3 hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-all"
+                          onClick={() => {
+                            setEmail('client.demo@example.com');
+                            setPassword('demo123');
+                          }}
+                        >
+                          <div className="h-8 w-8 rounded-md bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
+                            <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div className="flex flex-col items-start gap-0 text-left overflow-hidden">
+                            <span className="font-semibold text-sm leading-tight text-foreground">Client</span>
+                            <span className="text-[10px] text-muted-foreground font-medium truncate w-full">client.demo@...</span>
+                          </div>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-auto py-2.5 px-3 justify-start flex items-center gap-3 hover:border-purple-500/50 hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-all"
+                          onClick={() => {
+                            setEmail('firm.admin.demo@example.com');
+                            setPassword('demo123');
+                          }}
+                        >
+                          <div className="h-8 w-8 rounded-md bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0">
+                            <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                          </div>
+                          <div className="flex flex-col items-start gap-0 text-left overflow-hidden">
+                            <span className="font-semibold text-sm leading-tight text-foreground">Firm Admin</span>
+                            <span className="text-[10px] text-muted-foreground font-medium truncate w-full">firm.admin...</span>
+                          </div>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-auto py-2.5 px-3 justify-start flex items-center gap-3 hover:border-green-500/50 hover:bg-green-50/50 dark:hover:bg-green-950/20 transition-all sm:col-span-2"
+                          onClick={() => {
+                            setEmail('demo@example.com');
+                            setPassword('demo123');
+                          }}
+                        >
+                          <div className="h-8 w-8 rounded-md bg-green-100 dark:bg-green-900/40 flex items-center justify-center shrink-0">
+                            <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          </div>
+                          <div className="flex flex-col items-start gap-0 text-left overflow-hidden">
+                            <span className="font-semibold text-sm leading-tight text-foreground">Staff Member</span>
+                            <span className="text-[10px] text-muted-foreground font-medium truncate w-full">demo@example.com</span>
+                          </div>
+                        </Button>
+                      </div>
                     </div>
                   )}
 
