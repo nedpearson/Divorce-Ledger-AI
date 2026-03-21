@@ -25,8 +25,8 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { login, completeLogin, setEnvironment, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [email, setEmail] = useState('demo@example.com');
-  const [password, setPassword] = useState('demo123');
+  const [email, setEmail] = useState('client.demo@example.com');
+  const [password, setPassword] = useState('demo1234');
   const [showPassword, setShowPassword] = useState(false);
   const [environment, setEnv] = useState<Environment>('demo');
   const [isLoading, setIsLoading] = useState(false);
@@ -62,7 +62,7 @@ export default function Login() {
     setTwoFactorState(null);
     if (env === 'demo') {
       setEmail('client.demo@example.com');
-      setPassword('demo123');
+      setPassword('demo1234');
     } else {
       setEmail('');
       setPassword('');
@@ -390,71 +390,7 @@ export default function Login() {
                     </div>
                   )}
 
-                  {isDemoEnv && (
-                    <div className="space-y-3 pt-2">
-                      <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t border-muted" />
-                        </div>
-                        <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                          <span className="bg-card px-2">Quick Access (Demo)</span>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-auto py-2.5 px-3 justify-start flex items-center gap-3 hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-all"
-                          onClick={() => {
-                            setEmail('client.demo@example.com');
-                            setPassword('demo123');
-                          }}
-                        >
-                          <div className="h-8 w-8 rounded-md bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
-                            <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <div className="flex flex-col items-start gap-0 text-left overflow-hidden">
-                            <span className="font-semibold text-sm leading-tight text-foreground">Client</span>
-                            <span className="text-[10px] text-muted-foreground font-medium truncate w-full">client.demo@...</span>
-                          </div>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-auto py-2.5 px-3 justify-start flex items-center gap-3 hover:border-purple-500/50 hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-all"
-                          onClick={() => {
-                            setEmail('firm.admin.demo@example.com');
-                            setPassword('demo123');
-                          }}
-                        >
-                          <div className="h-8 w-8 rounded-md bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0">
-                            <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                          </div>
-                          <div className="flex flex-col items-start gap-0 text-left overflow-hidden">
-                            <span className="font-semibold text-sm leading-tight text-foreground">Firm Admin</span>
-                            <span className="text-[10px] text-muted-foreground font-medium truncate w-full">firm.admin...</span>
-                          </div>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-auto py-2.5 px-3 justify-start flex items-center gap-3 hover:border-green-500/50 hover:bg-green-50/50 dark:hover:bg-green-950/20 transition-all sm:col-span-2"
-                          onClick={() => {
-                            setEmail('demo@example.com');
-                            setPassword('demo123');
-                          }}
-                        >
-                          <div className="h-8 w-8 rounded-md bg-green-100 dark:bg-green-900/40 flex items-center justify-center shrink-0">
-                            <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
-                          </div>
-                          <div className="flex flex-col items-start gap-0 text-left overflow-hidden">
-                            <span className="font-semibold text-sm leading-tight text-foreground">Staff Member</span>
-                            <span className="text-[10px] text-muted-foreground font-medium truncate w-full">demo@example.com</span>
-                          </div>
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+
 
                   <Button
                     type="submit"
