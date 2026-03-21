@@ -30,6 +30,7 @@ import { FeedbackCTA } from '@/components/feedback-cta';
 import { DrillDownValue } from '@/components/ui/drilldown-value';
 import { type DrilldownType } from '@/components/financial-drilldown-drawer';
 import { useDrilldown } from '@/lib/drilldown-context';
+import { RecordDetailDrawer } from '@/components/record-detail-drawer';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -130,13 +131,20 @@ const StatCard = memo(function StatCard({
   );
 });
 
-const TransactionRow = memo(function TransactionRow({ transaction }: { transaction: Transaction }) {
+const TransactionRow = memo(function TransactionRow({ 
+  transaction,
+  onClick
+}: { 
+  transaction: Transaction;
+  onClick: (t: Transaction) => void;
+}) {
   const isPositive = transaction.amount > 0;
 
   return (
     <button
       className="flex items-center gap-3 w-full p-3 hover-elevate rounded-md transition-colors text-left"
       data-testid={`row-transaction-${transaction.id}`}
+      onClick={() => onClick(transaction)}
     >
       <div
         className={`p-2 rounded-lg ${
@@ -323,6 +331,7 @@ export default function Dashboard() {
   const defaultMode =
     user?.role === 'admin' || user?.role === 'staff' || user?.isAdmin ? 'firm' : 'client';
   const [viewMode, setViewMode] = useState<'client' | 'firm'>(defaultMode);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/dashboard/stats'],
@@ -395,7 +404,6 @@ export default function Dashboard() {
               subtitle="Pending Court Dates"
               subtitleValue="3"
               icon={Briefcase}
-              drilldownType="assets"
             />
             <StatCard
               title="Recent Uploads"
@@ -405,7 +413,6 @@ export default function Dashboard() {
               trend="up"
               trendValue="8%"
               icon={FileText}
-              drilldownType="debts"
             />
             <StatCard
               title="Unbilled Time"
@@ -413,7 +420,6 @@ export default function Dashboard() {
               subtitle="WIP Hours"
               subtitleValue="32.5"
               icon={Clock}
-              drilldownType="income"
             />
             <StatCard
               title="Trust Balance"
@@ -423,7 +429,6 @@ export default function Dashboard() {
               trend="down"
               trendValue="1%"
               icon={Landmark}
-              drilldownType="assets"
             />
           </div>
 
@@ -609,7 +614,11 @@ export default function Dashboard() {
                     transactions
                       .slice(0, 5)
                       .map((transaction) => (
-                        <TransactionRow key={transaction.id} transaction={transaction} />
+                        <TransactionRow 
+                          key={transaction.id} 
+                          transaction={transaction}
+                          onClick={setSelectedTransaction} 
+                        />
                       ))
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-8">
@@ -657,6 +666,13 @@ export default function Dashboard() {
       <div className="flex justify-center pt-4">
         <FeedbackCTA />
       </div>
+
+      <RecordDetailDrawer
+        open={!!selectedTransaction}
+        onOpenChange={(open) => !open && setSelectedTransaction(null)}
+        recordType={selectedTransaction && selectedTransaction.amount > 0 ? 'income' : 'expense'}
+        record={selectedTransaction as any}
+      />
     </div>
   );
 }

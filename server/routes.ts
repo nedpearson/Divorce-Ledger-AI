@@ -59,6 +59,7 @@ import {
   type DocumentCategory,
   insertW2RecordSchema,
   adminMfaChallenges,
+  securityAlerts,
 } from '@shared/schema';
 import {
   analyzeDocument,
@@ -423,6 +424,37 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Workspace billing & multi-tenant workspace routes
   app.use('/api', workspaceBillingRoutes);
+
+  // Security Alerts API
+  app.get('/api/alerts', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+      const activeAlerts = await db
+        .select()
+        .from(securityAlerts)
+        .where(eq(securityAlerts.userId, req.user.id));
+      // filter out resolved ones
+      res.json(activeAlerts.filter(a => !a.isResolved));
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'Failed' });
+    }
+  });
+
+  app.post('/api/alerts/:id/resolve', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+      const [alert] = await db
+        .update(securityAlerts)
+        .set({ isResolved: true, resolvedAt: new Date() })
+        .where(eq(securityAlerts.id, req.params.id))
+        .returning();
+      res.json(alert);
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'Failed' });
+    }
+  });
 
   // Platform Super Admin routes — gated by requirePlatformAdmin middleware
   app.use('/api/superadmin', platformAdminRoutes);

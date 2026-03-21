@@ -25,6 +25,7 @@ import { liveScheduler } from './live-scheduler';
 import { Pool } from 'pg';
 import { DashboardService } from './services/dashboard-service';
 import { WebSocketService } from './services/websocket-service';
+import { complianceService } from './services/compliance.service';
 import { logFireflyConfigStatus } from './config/firefly.config';
 import { isAppwriteConfigured, initializeAppwrite } from './services/appwrite/client';
 import { startQueueProcessor } from './services/appwrite/analysisService';
@@ -367,6 +368,9 @@ app.use((req, res, next) => {
       console.log('[STARTUP] Live mode detected - initializing live scheduler...');
       liveScheduler.start();
     }
+
+    // COMPLIANCE AGENT: Start security monitoring
+    complianceService.start();
 
     // DEMO MODE: Start demo-specific schedulers
     if (isDemoMode()) {

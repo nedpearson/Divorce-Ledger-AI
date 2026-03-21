@@ -15,6 +15,7 @@ import { DrilldownProvider } from '@/lib/drilldown-context';
 import { Bell, Loader2, RefreshCw, TestTube2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { GlobalSecurityBanner } from '@/components/security-banner';
 
 function GlobalDemoBanner() {
   const { environment, isAuthenticated } = useAuth();
@@ -453,6 +454,7 @@ function App() {
               <TooltipProvider>
                 <div className="flex flex-col h-[100dvh] w-full overflow-hidden">
                   <GlobalDemoBanner />
+                  <GlobalSecurityBanner />
                   <div className="flex-1 w-full min-h-0 relative overflow-y-auto">
                     <Toaster />
                     <GlobalBackButton />

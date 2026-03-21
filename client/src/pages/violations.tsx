@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Violation } from '@shared/schema';
 import { VoiceInputButton } from '@/components/voice-recorder';
 import { FeedbackCTA } from '@/components/feedback-cta';
+import { ViolationDetailDrawer } from '@/components/violation-detail-drawer';
 
 interface UploadedFile {
   name: string;
@@ -95,6 +96,7 @@ export default function Violations() {
   const [isUploading, setIsUploading] = useState(false);
   const [witnessInputs, setWitnessInputs] = useState<string[]>(['']);
   const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [selectedViolation, setSelectedViolation] = useState<Violation | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-open report dialog if action=report query param is present
@@ -770,8 +772,9 @@ export default function Violations() {
               {filteredViolations.map((violation) => (
                 <div
                   key={violation.id}
-                  className="border rounded-md p-3 space-y-2"
+                  className="border rounded-md p-3 space-y-2 hover-elevate cursor-pointer hover:bg-muted/10 transition-colors"
                   data-testid={`violation-card-${violation.id}`}
+                  onClick={() => setSelectedViolation(violation)}
                 >
                   <div className="flex items-start justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -827,7 +830,10 @@ export default function Violations() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => deleteMutation.mutate(violation.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteMutation.mutate(violation.id);
+                        }}
                         data-testid={`button-delete-${violation.id}`}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
@@ -882,6 +888,12 @@ export default function Violations() {
       <div className="flex justify-center pt-4">
         <FeedbackCTA />
       </div>
+
+      <ViolationDetailDrawer
+        violation={selectedViolation}
+        open={!!selectedViolation}
+        onOpenChange={(open) => !open && setSelectedViolation(null)}
+      />
     </div>
   );
 }

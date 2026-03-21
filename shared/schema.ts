@@ -2020,3 +2020,26 @@ export * from './workspace-schema';
 // ============================================
 
 export * from './platform-admin-schema';
+
+// ============================================
+// SECURITY ALERTS
+// ============================================
+
+export const securityAlerts = pgTable('security_alerts', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  type: text('type').notNull(), // '2FA_MISSING', 'DATA_ISOLATION', 'ABNORMAL_TRAFFIC'
+  severity: text('severity').notNull().default('medium'), // 'low', 'medium', 'high', 'critical'
+  message: text('message').notNull(),
+  isResolved: boolean('is_resolved').default(false),
+  resolvedAt: timestamp('resolved_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const insertSecurityAlertSchema = createInsertSchema(securityAlerts).omit({
+  id: true,
+  createdAt: true,
+  resolvedAt: true,
+});
+export type InsertSecurityAlert = z.infer<typeof insertSecurityAlertSchema>;
+export type SecurityAlert = typeof securityAlerts.$inferSelect;

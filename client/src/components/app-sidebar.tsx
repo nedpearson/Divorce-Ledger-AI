@@ -297,7 +297,7 @@ export function AppSidebar() {
                 </div>
                 <DropdownMenuItem
                   onClick={async () => {
-                    const pass = 'demo1234';
+                    const pass = 'demo123';
                     const email = 'client.demo@example.com';
                     const res = await fetch('/api/auth/login', {
                       method: 'POST',
@@ -318,7 +318,7 @@ export function AppSidebar() {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async () => {
-                    const pass = 'demo1234';
+                    const pass = 'demo123';
                     const email = 'firm.admin.demo@example.com';
                     const res = await fetch('/api/auth/login', {
                       method: 'POST',
