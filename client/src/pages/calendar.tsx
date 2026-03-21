@@ -430,7 +430,10 @@ export default function CalendarPage() {
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
-          <AddEventDialog onSuccess={() => refetch()} selectedDate={selectedDate} />
+          <AddEventDialog 
+            onSuccess={() => queryClient.invalidateQueries({ queryKey: ['/api/calendar-events'] })} 
+            selectedDate={selectedDate} 
+          />
         </div>
       </div>
 

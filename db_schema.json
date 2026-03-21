@@ -1,0 +1,79 @@
+{
+  "command": "SELECT",
+  "rowCount": 6,
+  "oid": null,
+  "rows": [
+    {
+      "table_name": "demo_meta",
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "matter_members",
+      "column_name": "user_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "workspace_members",
+      "column_name": "user_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "ai_credit_transactions",
+      "column_name": "user_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "profiles",
+      "column_name": "app_user_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "_migrations",
+      "column_name": "id",
+      "data_type": "integer"
+    }
+  ],
+  "fields": [
+    {
+      "name": "table_name",
+      "tableID": 13307,
+      "columnID": 3,
+      "dataTypeID": 19,
+      "dataTypeSize": 64,
+      "dataTypeModifier": -1,
+      "format": "text"
+    },
+    {
+      "name": "column_name",
+      "tableID": 13307,
+      "columnID": 4,
+      "dataTypeID": 19,
+      "dataTypeSize": 64,
+      "dataTypeModifier": -1,
+      "format": "text"
+    },
+    {
+      "name": "data_type",
+      "tableID": 13307,
+      "columnID": 8,
+      "dataTypeID": 1043,
+      "dataTypeSize": -1,
+      "dataTypeModifier": -1,
+      "format": "text"
+    }
+  ],
+  "_parsers": [
+    null,
+    null,
+    null
+  ],
+  "_types": {},
+  "RowCtor": null,
+  "rowAsArray": false,
+  "_prebuiltEmptyResultObject": {
+    "table_name": null,
+    "column_name": null,
+    "data_type": null
+  }
+}

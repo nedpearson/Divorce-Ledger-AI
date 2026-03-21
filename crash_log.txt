@@ -1,0 +1,39 @@
+[Document Analysis] Using claude (claude-3-5-sonnet-20241022)
+≡ƒöì [Config] Mode: DEMO, NodeEnv: DEVELOPMENT
+Γ£à [Config] Environment sanity check passed.
+
+=== Startup Health Check ===
+[OK] Database: PostgreSQL connection successful
+[OK] Stripe: Disabled by feature flag (ENABLE_OPTIONAL_INTEGRATIONS)
+============================
+
+[Firefly Config] Startup validation:
+  Γä╣ Global config: Not set (per-user connections will be used)
+  ΓÜá Global Firefly III environment variables not configured. Users can connect their own Firefly III instances via Settings > Integrations.
+  Γ£ù FIREFLY_ACCESS_TOKEN is set but FIREFLY_BASE_URL is missing
+[Firefly Config] Configuration errors detected. Please fix before using global Firefly integration.
+[STARTUP] Running database migrations...
+[STARTUP] Using DIRECT_URL for migrations
+Γ¥î [STARTUP] CRITICAL: Database migration failed while applying 0000_parched_captain_flint.sql: error: relation "admin_mfa_challenges" already exists
+    at C:\dev\github\business\Divorce-Ledger-AI_RESTORED\node_modules\pg\lib\client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async <anonymous> (C:\dev\github\business\Divorce-Ledger-AI_RESTORED\server\index.ts:317:13) {
+  length: 114,
+  severity: 'ERROR',
+  code: '42P07',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'heap.c',
+  line: '1160',
+  routine: 'heap_create_with_catalog'
+}
+Γ¥î [STARTUP] Halting application. Resolve schema issues before running.

@@ -114,6 +114,253 @@ const passwordFormSchema = z
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
+interface GoogleConnection {
+  id: string;
+  providerEmail: string;
+  createdAt: string;
+}
+
+function GoogleIntegrations() {
+  const { toast } = useToast();
+  
+  const { data: routeConfig } = useQuery<{ googleAuthEnabled: boolean, googleDriveEnabled: boolean }>({
+    queryKey: ['/api/config/integrations'],
+  });
+
+  const { data: connections, isLoading } = useQuery<GoogleConnection[]>({
+    queryKey: ['/api/auth/google/connections'],
+  });
+
+  const disconnectMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/auth/google/disconnect'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/google/connections'] });
+      toast({
+        title: 'Disconnected',
+        description: 'Your Google account has been unlinked successfully.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to disconnect Google account.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const { data: driveStatus, isLoading: isDriveLoading } = useQuery<{ isConnected: boolean; externalAccountId?: string }>({
+    queryKey: ['/api/integrations/google-drive/status'],
+  });
+
+  const disconnectDriveMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/integrations/google-drive/disconnect'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/integrations/google-drive/status'] });
+      toast({
+        title: 'Disconnected',
+        description: 'Google Drive integration has been revoked successfully.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to disconnect Google Drive.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const connectDrive = async () => {
+    try {
+      const res = await fetch('/api/integrations/google-drive/auth');
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No redirect URL provided');
+      }
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to initiate Drive connection', variant: 'destructive' });
+    }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'drive_connected') {
+      toast({ title: 'Drive Connected', description: 'Google Drive has been successfully linked for document exports.' });
+      window.history.replaceState({}, '', '/settings');
+    } else if (params.get('error')) {
+      const errorMsg = params.get('error') === 'drive_denied' ? 'Authorization denied by user.' : 'Drive connection failed.';
+      toast({ title: 'Connection Failed', description: errorMsg, variant: 'destructive' });
+      window.history.replaceState({}, '', '/settings');
+    }
+  }, [toast]);
+
+  const googleConnected = connections && connections.length > 0;
+  const connectedEmail = connections?.[0]?.providerEmail;
+
+  if (isLoading) {
+    return (
+      <Card data-testid="card-google-integration">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Globe className="h-8 w-8 text-muted-foreground" />
+            <div>
+              <CardTitle>Google Workspace</CardTitle>
+              <CardDescription>Loading connection status...</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse h-20 bg-muted rounded" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card data-testid="card-google-integration">
+      <CardHeader>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <Globe className="h-8 w-8 text-primary" />
+            <div>
+              <CardTitle>Google Account & Workspace</CardTitle>
+              <CardDescription>
+                Manage your Google authentication and integrations
+              </CardDescription>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        
+        {/* Core Auth Panel */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium">Authentication</h4>
+          {googleConnected ? (
+            <div className="rounded-lg border p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm font-medium">Connected</span>
+                </div>
+                <Badge variant="secondary">Active</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Linked Account</span>
+                <span className="text-sm">{connectedEmail}</span>
+              </div>
+              <div className="pt-2 flex justify-end">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => disconnectMutation.mutate()}
+                  disabled={disconnectMutation.isPending}
+                >
+                  <Link2Off className="h-4 w-4 mr-2" />
+                  Disconnect Google Auth
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium">Link Google Identity</p>
+                <p className="text-[13px] text-muted-foreground mt-1">
+                  Connect your Google account to enable secure Single Sign-On (SSO). We never request Calendar or Drive access during sign-in.
+                </p>
+              </div>
+              <Button 
+                onClick={() => window.location.href = '/api/auth/google'}
+                disabled={routeConfig && !routeConfig.googleAuthEnabled}
+              >
+                <Link2 className="h-4 w-4 mr-2" />
+                {routeConfig && !routeConfig.googleAuthEnabled ? 'Not Configured' : 'Connect'}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <Separator />
+
+        {/* Integrations Panels (View only/Future) */}
+        <div className="space-y-4 pt-2">
+          <h4 className="text-sm font-medium flex items-center gap-2">
+            Optional Workspace Integrations 
+            <Badge variant="outline" className="text-[10px]">Coming Soon</Badge>
+          </h4>
+          
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-lg border p-4 opacity-70">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-muted rounded">
+                  <Globe className="h-4 w-4" />
+                </div>
+                <p className="text-sm font-medium">Google Calendar</p>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Sync critical dates and mediation sessions. Requires explicit separate authorization scope.
+              </p>
+              <Button variant="secondary" size="sm" disabled className="w-full">
+                Locked
+              </Button>
+            </div>
+
+            <div className={`rounded-lg border p-4 ${!driveStatus?.isConnected ? '' : 'bg-muted/10'}`}>
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-green-500/10 text-green-600 rounded">
+                    <Database className="h-4 w-4" />
+                  </div>
+                  <p className="text-sm font-medium">Google Drive</p>
+                </div>
+                {driveStatus?.isConnected && (
+                    <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">Active</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Export reports and import discovery documents directly. Uses a strictly limited file-level scope.
+              </p>
+              
+              {driveStatus?.isConnected ? (
+                  <div className="space-y-4 mt-2">
+                      <div className="text-sm">
+                          <span className="text-muted-foreground mr-2">Linked:</span>
+                          <span className="font-medium truncate block sm:inline">{driveStatus.externalAccountId}</span>
+                      </div>
+                      <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          className="w-full" 
+                          onClick={() => disconnectDriveMutation.mutate()}
+                          disabled={disconnectDriveMutation.isPending}
+                      >
+                          <Link2Off className="h-4 w-4 mr-2" /> Revoke Access
+                      </Button>
+                  </div>
+              ) : (
+                  <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full" 
+                      onClick={connectDrive}
+                      disabled={routeConfig && !routeConfig.googleDriveEnabled}
+                  >
+                    <Link2 className="h-4 w-4 mr-2" />
+                    {routeConfig && !routeConfig.googleDriveEnabled ? 'Drive Not Configured' : 'Connect Drive'}
+                  </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+      </CardContent>
+    </Card>
+  );
+}
+
 function QuickBooksIntegration() {
   const { toast } = useToast();
   const [location] = useLocation();
@@ -1702,6 +1949,7 @@ export default function Settings() {
 
         <TabsContent value="integrations" className="mt-6 space-y-6">
           <div className="grid gap-6">
+            <GoogleIntegrations />
             <QuickBooksIntegration />
             <FireflyIntegration />
           </div>

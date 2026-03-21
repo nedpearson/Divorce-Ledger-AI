@@ -2043,3 +2043,114 @@ export const insertSecurityAlertSchema = createInsertSchema(securityAlerts).omit
 });
 export type InsertSecurityAlert = z.infer<typeof insertSecurityAlertSchema>;
 export type SecurityAlert = typeof securityAlerts.$inferSelect;
+
+// ============================================
+// OAUTH & EXTERNAL INTEGRATIONS
+// ============================================
+
+export const userOauthConnections = pgTable('user_oauth_connections', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  provider: text('provider').notNull(), // 'google'
+  providerAccountId: text('provider_account_id').notNull(),
+  providerEmail: text('provider_email'),
+  grantedScopes: text('granted_scopes').array(),
+  accessTokenEncrypted: text('access_token_encrypted'),
+  refreshTokenEncrypted: text('refresh_token_encrypted'),
+  tokenExpiryAt: timestamp('token_expiry_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  disconnectedAt: timestamp('disconnected_at'),
+});
+
+export const insertUserOauthConnectionSchema = createInsertSchema(userOauthConnections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertUserOauthConnection = z.infer<typeof insertUserOauthConnectionSchema>;
+export type UserOauthConnection = typeof userOauthConnections.$inferSelect;
+
+export const integrationConnections = pgTable('integration_connections', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  provider: text('provider').notNull(), // 'google'
+  integrationType: text('integration_type').notNull(), // 'calendar', 'drive'
+  externalAccountId: text('external_account_id'),
+  displayName: text('display_name'),
+  grantedScopes: text('granted_scopes').array(),
+  accessTokenEncrypted: text('access_token_encrypted'),
+  refreshTokenEncrypted: text('refresh_token_encrypted'),
+  tokenExpiryAt: timestamp('token_expiry_at'),
+  metadataJson: jsonb('metadata_json'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  disconnectedAt: timestamp('disconnected_at'),
+});
+
+export const insertIntegrationConnectionSchema = createInsertSchema(integrationConnections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertIntegrationConnection = z.infer<typeof insertIntegrationConnectionSchema>;
+export type IntegrationConnection = typeof integrationConnections.$inferSelect;
+
+export const authAuditLogs = pgTable('auth_audit_logs', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar('user_id'),
+  provider: text('provider').notNull(),
+  action: text('action').notNull(), // 'login', 'link', 'disconnect', 'error'
+  status: text('status').notNull(), // 'success', 'failure'
+  redactedErrorMessage: text('redacted_error_message'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const insertAuthAuditLogSchema = createInsertSchema(authAuditLogs).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertAuthAuditLog = z.infer<typeof insertAuthAuditLogSchema>;
+export type AuthAuditLog = typeof authAuditLogs.$inferSelect;
+
+export const driveFolderBindings = pgTable('drive_folder_bindings', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  integrationConnectionId: varchar('integration_connection_id').notNull(),
+  externalFolderId: text('external_folder_id').notNull(),
+  folderName: text('folder_name').notNull(),
+  purpose: text('purpose').notNull(), // 'case_files', 'reports', 'general'
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const insertDriveFolderBindingSchema = createInsertSchema(driveFolderBindings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDriveFolderBinding = z.infer<typeof insertDriveFolderBindingSchema>;
+export type DriveFolderBinding = typeof driveFolderBindings.$inferSelect;
+
+export const driveTransferAudits = pgTable('drive_transfer_audits', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  caseId: varchar('case_id'),
+  integrationConnectionId: varchar('integration_connection_id').notNull(),
+  direction: text('direction').notNull(), // 'export', 'import'
+  localFileId: varchar('local_file_id'),
+  externalFileId: text('external_file_id'),
+  fileName: text('file_name').notNull(),
+  mimeType: text('mime_type'),
+  action: text('action').notNull(), // 'started', 'completed', 'failed'
+  status: text('status').notNull(), // 'success', 'error'
+  redactedErrorMessage: text('redacted_error_message'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const insertDriveTransferAuditSchema = createInsertSchema(driveTransferAudits).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertDriveTransferAudit = z.infer<typeof insertDriveTransferAuditSchema>;
+export type DriveTransferAudit = typeof driveTransferAudits.$inferSelect;

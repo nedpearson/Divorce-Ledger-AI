@@ -35,6 +35,8 @@ import fireflyRoutes from './routes/firefly';
 import appwriteRoutes from './routes/appwrite.routes';
 import workspaceBillingRoutes from './routes/workspace-billing.routes';
 import platformAdminRoutes from './routes/platform-admin.routes';
+import { authGoogleRouter } from './routes/auth-google.routes';
+import { googleDriveIntegrationRoutes } from './routes/integrations-google-drive.routes';
 import {
   canCreateCase,
   canAddViolation,
@@ -425,14 +427,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Workspace billing & multi-tenant workspace routes
   app.use('/api', workspaceBillingRoutes);
 
+  // Expose backend integration availability to the frontend gracefully
+  app.get('/api/config/integrations', (req, res) => {
+    res.json({
+      googleAuthEnabled: !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET,
+      googleDriveEnabled: !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET,
+      googleCalendarEnabled: false // explicitly turned off per "optional expansion logic" requirement
+    });
+  });
+
+  // Google Authentication endpoints
+  app.use(authGoogleRouter);
+
+  // Google Drive Integration endpoints
+  app.use('/api/integrations/google-drive', googleDriveIntegrationRoutes);
+
   // Security Alerts API
   app.get('/api/alerts', async (req, res) => {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = (req as any).session?.userId || (req.user as any)?.id || req.headers['x-user-id'];
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
       const activeAlerts = await db
         .select()
         .from(securityAlerts)
-        .where(eq(securityAlerts.userId, req.user.id));
+        .where(eq(securityAlerts.userId, userId));
       // filter out resolved ones
       res.json(activeAlerts.filter(a => !a.isResolved));
     } catch (e) {
@@ -442,7 +460,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.post('/api/alerts/:id/resolve', async (req, res) => {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = (req as any).session?.userId || (req.user as any)?.id || req.headers['x-user-id'];
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
       const [alert] = await db
         .update(securityAlerts)

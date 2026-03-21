@@ -1,0 +1,32 @@
+[dotenv@17.2.3] injecting env (46) from .env -- tip: ≡ƒöÉ encrypt with Dotenvx: https://dotenvx.com
+
+[1m[46m RUN [49m[22m [36mv4.0.17 [39m[90mC:/dev/github/business/Divorce-Ledger-AI_RESTORED[39m
+
+ [31mΓ¥»[39m server/__tests__/auth-google.test.ts [2m([22m[2m2 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 5[2mms[22m[39m
+     [32mΓ£ô[39m should explicitly fail isConfigured() if environment tokens are absent[32m 1[2mms[22m[39m
+[31m     [31m├ù[31m should dynamically inject the Anti-CSRF state nonce into the OAuth authorization URL[39m[32m 4[2mms[22m[39m
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Tests 1 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  server/__tests__/auth-google.test.ts > Google Authentication Service > should dynamically inject the Anti-CSRF state nonce into the OAuth authorization URL
+AssertionError: expected 'https://accounts.google.com/o/oauth2/ΓÇª' to contain 'scope=openid%20email%20profile'
+
+Expected: "scope=openid%20email%20profile"
+Received: "https://accounts.google.com/o/oauth2/v2/auth?client_id=mock-id&redirect_uri=http%3A%2F%2Flocalhost%2Fcallback&response_type=code&scope=openid+email+profile&state=random-cryptographic-nonce&access_type=online&prompt=select_account"
+
+ Γ¥» server/__tests__/auth-google.test.ts:28:21
+
+     26|     expect(authUrl).toContain('https://accounts.google.com/o/oauth2/v2ΓÇª
+     27|     expect(authUrl).toContain(`state=${mockState}`);
+     28|     expect(authUrl).toContain('scope=openid%20email%20profile'); // VeΓÇª
+       |                     ^
+     29|     expect(authUrl).toContain(`client_id=mock-id`);
+     30|   });
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/1]ΓÄ»
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (2)[39m
+[2m   Start at [22m 23:00:30
+[2m   Duration [22m 1.05s[2m (transform 145ms, setup 77ms, import 400ms, tests 5ms, environment 445ms)[22m
+

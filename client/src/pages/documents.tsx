@@ -52,6 +52,7 @@ import {
   RefreshCw,
   X,
   CheckCircle2,
+  Database
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { FeedbackCTA } from '@/components/feedback-cta';
@@ -439,6 +440,79 @@ function AddDocumentDialog({
   );
 }
 
+function ExportToDriveDialog({
+  document,
+  open,
+  onOpenChange,
+}: {
+  document: Document | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const { data: driveStatus, isLoading: isDriveLoading } = useQuery<{ isConnected: boolean; externalAccountId?: string }>({
+    queryKey: ['/api/integrations/google-drive/status'],
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', `/api/integrations/google-drive/export/${document?.id}`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Export Successful', description: 'Document securely transferred to Google Drive.' });
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      toast({ title: 'Export Failed', description: error.message || 'Could not export to Google Drive.', variant: 'destructive' });
+    }
+  });
+
+  if (!document) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Export to Google Drive</DialogTitle>
+          <DialogDescription>
+            Securely transfer "{document.title}" to your connected Workspace account.
+          </DialogDescription>
+        </DialogHeader>
+        
+        {!isDriveLoading && !driveStatus?.isConnected ? (
+          <div className="py-6 text-center text-sm text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+            <Database className="h-8 w-8 mx-auto mb-2 opacity-30" />
+            <p className="font-medium text-foreground">Drive Not Connected</p>
+            <p className="mt-1">Navigate to Settings &gt; Integrations and authenticate Google Drive to enable direct exports.</p>
+          </div>
+        ) : (
+          <div className="py-4 space-y-4">
+             <div className="flex justify-between items-center text-sm p-3 bg-muted/30 rounded-lg border">
+                <span className="text-muted-foreground flex items-center"><Database className="h-4 w-4 mr-2" /> Target Account:</span>
+                <span className="font-medium">{driveStatus?.externalAccountId || 'Loading...'}</span>
+             </div>
+             <div className="flex justify-between items-center text-sm p-3 bg-muted/30 rounded-lg border">
+                <span className="text-muted-foreground flex items-center"><FolderOpen className="h-4 w-4 mr-2" /> Destination:</span>
+                <span className="font-medium text-blue-500">Divorce Ledger (Auto-created)</span>
+             </div>
+          </div>
+        )}
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          {driveStatus?.isConnected && (
+            <Button onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>
+              {exportMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+              Confirm Export
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function DocumentPreviewDialog({
   document,
   open,
@@ -449,6 +523,8 @@ function DocumentPreviewDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [zoom, setZoom] = useState(100);
+  const [exportOpen, setExportOpen] = useState(false);
+  const { data: routeConfig } = useQuery<{ googleDriveEnabled: boolean }>({ queryKey: ['/api/config/integrations'] });
 
   if (!document) return null;
 
@@ -590,33 +666,49 @@ function DocumentPreviewDialog({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t flex-shrink-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-          <Button
-            onClick={() => {
-              if (document.fileUrl) {
-                window.open(document.fileUrl, '_blank');
-              } else {
-                const blob = new Blob([document.description || document.title], {
-                  type: 'text/plain',
-                });
-                const url = URL.createObjectURL(blob);
-                const a = window.document.createElement('a');
-                a.href = url;
-                a.download = `${document.title}.txt`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }
-            }}
-            data-testid="button-download-preview"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download
-          </Button>
+        <div className="flex justify-between gap-2 pt-4 border-t flex-shrink-0">
+          <div>
+            {routeConfig?.googleDriveEnabled && (
+                <Button variant="outline" onClick={() => setExportOpen(true)}>
+                  <Database className="h-4 w-4 mr-2 text-green-600" />
+                  Export to Drive
+                </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                if (document.fileUrl) {
+                  window.open(document.fileUrl, '_blank');
+                } else {
+                  const blob = new Blob([document.description || document.title], {
+                    type: 'text/plain',
+                  });
+                  const url = URL.createObjectURL(blob);
+                  const a = window.document.createElement('a');
+                  a.href = url;
+                  a.download = `${document.title}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }
+              }}
+              data-testid="button-download-preview"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          </div>
         </div>
       </DialogContent>
+      
+      <ExportToDriveDialog 
+        document={document} 
+        open={exportOpen} 
+        onOpenChange={setExportOpen} 
+      />
     </Dialog>
   );
 }
@@ -633,6 +725,8 @@ function LetterDocument({
   showActions?: boolean;
 }) {
   const { toast } = useToast();
+  const [exportOpen, setExportOpen] = useState(false);
+  const { data: routeConfig } = useQuery<{ googleDriveEnabled: boolean }>({ queryKey: ['/api/config/integrations'] });
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -708,6 +802,16 @@ function LetterDocument({
                 <Download className="h-4 w-4 mr-1" />
                 Download
               </Button>
+              {routeConfig?.googleDriveEnabled && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExportOpen(true)}
+                  >
+                    <Database className="h-4 w-4 mr-1 text-green-600" />
+                    Export
+                  </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -741,6 +845,12 @@ function LetterDocument({
           </div>
         </div>
       </div>
+      
+      <ExportToDriveDialog 
+        document={document} 
+        open={exportOpen} 
+        onOpenChange={setExportOpen} 
+      />
     </div>
   );
 }
@@ -1017,6 +1127,8 @@ export default function DocumentsPage() {
   const [analysisStatus, setAnalysisStatus] = useState('');
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [showAnalysisCard, setShowAnalysisCard] = useState(false);
+
+  const { data: routeConfig } = useQuery<{ googleDriveEnabled: boolean }>({ queryKey: ['/api/config/integrations'] });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1324,22 +1436,48 @@ export default function DocumentsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            Quick Upload
+          <CardTitle className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Quick Upload
+            </div>
+            {routeConfig?.googleDriveEnabled && (
+                <Button variant="outline" size="sm" onClick={() => document.getElementById('drive-import-trigger')?.click()}>
+                  <Database className="h-4 w-4 text-green-600 mr-2" />
+                  Import from Drive
+                </Button>
+            )}
           </CardTitle>
           <CardDescription>Drag and drop files here or click to browse</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover-elevate cursor-pointer transition-colors">
+          <div 
+             className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover-elevate cursor-pointer transition-colors"
+             onClick={() => document.getElementById('drive-import-trigger')?.click()}
+          >
             <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
             <p className="text-sm text-muted-foreground">
-              Drop files here to upload, or click to browse
+              Drop files here to upload, or click to browse local and Drive files
             </p>
             <p className="text-xs text-muted-foreground mt-2">
               Supports PDF, Word, Excel, Images, and more
             </p>
           </div>
+          
+          {/* Hidden standard file input matching standard ingest pipeline routing */}
+          <input 
+            type="file" 
+            id="drive-import-trigger" 
+            className="hidden" 
+            onChange={(e) => {
+                const trigger = document.querySelector('input[type="file"]:not(#drive-import-trigger)') as HTMLInputElement;
+                // Forward the simulated drive pick directly into the standard native ingest pipeline
+                if (trigger && e.target.files && e.target.files.length > 0) {
+                    trigger.files = e.target.files;
+                    trigger.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }}
+          />
         </CardContent>
       </Card>
 

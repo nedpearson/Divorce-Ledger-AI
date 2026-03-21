@@ -468,6 +468,24 @@ export async function seedDemoData() {
   // ------------------------------------------------------------------------
   // 0) Ensure legacy fallback demo user exists for structural links
   // ------------------------------------------------------------------------
+  
+  try {
+    // Dynamic patch: Local migration 000+ files may leave some columns as integer, whereas schema.ts uses varchar.
+    // Alter on the fly to prevent crashes on seed payload:
+    await db.execute(sql`ALTER TABLE IF EXISTS workspace_members ALTER COLUMN user_id TYPE varchar(100) USING user_id::varchar`);
+    await db.execute(sql`ALTER TABLE IF EXISTS matter_members ALTER COLUMN user_id TYPE varchar(100) USING user_id::varchar`);
+    await db.execute(sql`ALTER TABLE IF EXISTS workspaces ALTER COLUMN owner_id TYPE varchar(100) USING owner_id::varchar`);
+    await db.execute(sql`ALTER TABLE IF EXISTS matters ALTER COLUMN lead_attorney_id TYPE varchar(100) USING lead_attorney_id::varchar`);
+    await db.execute(sql`ALTER TABLE IF EXISTS legal_documents ALTER COLUMN user_id TYPE varchar(100) USING user_id::varchar`);
+    await db.execute(sql`ALTER TABLE IF EXISTS security_alerts ALTER COLUMN user_id TYPE varchar(100) USING user_id::varchar`);
+    await db.execute(sql`ALTER TABLE IF EXISTS active_sessions ALTER COLUMN user_id TYPE varchar(100) USING user_id::varchar`);
+    await db.execute(sql`ALTER TABLE IF EXISTS trusted_devices ALTER COLUMN user_id TYPE varchar(100) USING user_id::varchar`);
+    await db.execute(sql`ALTER TABLE IF EXISTS user_oauth_connections ALTER COLUMN user_id TYPE varchar(100) USING user_id::varchar`);
+    await db.execute(sql`ALTER TABLE IF EXISTS auth_audit_logs ALTER COLUMN user_id TYPE varchar(100) USING user_id::varchar`);
+  } catch (err) {
+    console.warn("[DEMO] Non-fatal: Dynamic schema patching skipped. Schema may already be synchronous.", err);
+  }
+
   const demoPasswordOriginal = process.env.DEMO_PASSWORD || 'demo1234';
   const hashedDemoPasswordOriginal = await hashPassword(demoPasswordOriginal);
 

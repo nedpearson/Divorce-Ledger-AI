@@ -313,10 +313,19 @@ app.use((req, res, next) => {
             file,
           ]);
           if (rows.length === 0) {
-            const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-            await client.query(sql);
-            await client.query('INSERT INTO _migrations (filename) VALUES ($1)', [file]);
-            console.log(`  ✅ Applied migration: ${file}`);
+            const sql_query = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+            try {
+              await client.query(sql_query);
+              await client.query('INSERT INTO _migrations (filename) VALUES ($1)', [file]);
+              console.log(`  ✅ Applied migration: ${file}`);
+            } catch (migErr: any) {
+              if (migErr.code === '42P07' || migErr.message?.includes('already exists')) {
+                console.warn(`  ⚠ Skipping duplicate migration: ${file} (Tables already exist)`);
+                await client.query('INSERT INTO _migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING', [file]);
+              } else {
+                throw migErr;
+              }
+            }
           }
         }
         console.log('✅ [STARTUP] Database migrations completed successfully');

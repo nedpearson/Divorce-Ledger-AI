@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { EnvironmentBadge } from '@/components/environment-badge';
 import type { Environment } from '@shared/schema';
+import { useQuery } from '@tanstack/react-query';
 
 interface TwoFactorState {
   userId: string;
@@ -32,6 +33,10 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('rememberMe') === 'true');
+
+  const { data: routeConfig } = useQuery<{ googleAuthEnabled: boolean, googleDriveEnabled: boolean }>({
+    queryKey: ['/api/config/integrations'],
+  });
 
   // 2FA state
   const [twoFactorState, setTwoFactorState] = useState<TwoFactorState | null>(null);
@@ -421,8 +426,9 @@ export default function Login() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
-                  disabled={environment === 'demo'}
+                  className="w-full relative"
+                  disabled={environment === 'demo' || (routeConfig && !routeConfig.googleAuthEnabled)}
+                  onClick={() => window.location.href = '/api/auth/google'}
                   data-testid="button-google-signin"
                 >
                   <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -443,8 +449,15 @@ export default function Login() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  Google
+                  {routeConfig && !routeConfig.googleAuthEnabled ? 'Google Log In (Not Configured)' : 'Continue with Google'}
                 </Button>
+                
+                <p className="text-center text-[10px] text-muted-foreground mt-2">
+                  {routeConfig && !routeConfig.googleAuthEnabled 
+                    ? 'Google sign-in is securely suspended awaiting administrator APIs.'
+                    : 'Google sign-in is optional and used only to authenticate your account.'
+                  }
+                </p>
 
                 <p className="text-center text-xs text-muted-foreground">
                   Don't have an account?{' '}
