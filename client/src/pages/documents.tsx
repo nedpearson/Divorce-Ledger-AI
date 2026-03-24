@@ -21,6 +21,8 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -56,6 +58,7 @@ import {
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { FeedbackCTA } from '@/components/feedback-cta';
+import { useDrilldown } from '@/lib/drilldown-context';
 import type { Document } from '@shared/schema';
 
 const categoryOptions = [
@@ -135,8 +138,8 @@ function AddDocumentDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Upload file to Python backend for text extraction & storage (replaces Appwrite / Node upload)
-  const uploadToAppwrite = async (
+  // Upload file to Python backend for text extraction & storage (replaces legacy external Node upload)
+  const uploadToStorage = async (
     file: File,
     metadata?: { title?: string; category?: string }
   ): Promise<{ fileUrl: string; storageFileId: string; extractedText?: string } | null> => {
@@ -149,7 +152,7 @@ function AddDocumentDialog({
     }
 
     try {
-      // Changed from /api/appwrite/files/upload to /api/documents/upload to hit Python via safeRouterFetch
+      // Changed from /api/storage/files/upload to hit Python via safeRouterFetch
       const response = await safeRouterFetch('/api/documents/upload', {
         method: 'POST',
         body: formData,
@@ -227,10 +230,10 @@ function AddDocumentDialog({
       const result = await res.json();
       setUploadProgress(50);
 
-      // Upload to Appwrite instead of Replit Object Storage
+      // Upload to Storage directly
       const suggestedCategory = result.data?.category || 'other';
       const suggestedTitle = result.data?.title || file.name.replace(/\.[^/.]+$/, '');
-      const uploadRes = await uploadToAppwrite(file, {
+      const uploadRes = await uploadToStorage(file, {
         title: suggestedTitle,
         category: suggestedCategory,
       });
@@ -856,6 +859,7 @@ function LetterDocument({
 }
 
 function SummaryView({ documents }: { documents: Document[] }) {
+  const { openDrilldown } = useDrilldown();
   const categoryCounts = documents.reduce(
     (acc, doc) => {
       const cat = doc.category || 'other';
@@ -871,13 +875,13 @@ function SummaryView({ documents }: { documents: Document[] }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="cursor-pointer hover-elevate transition-all" onClick={() => openDrilldown({ layer: 1, sourceEntity: 'kpi_metric', identifier: 'total_documents' })}>
           <CardContent className="p-4 text-center">
             <div className="text-3xl font-bold text-primary">{documents.length}</div>
             <div className="text-sm text-muted-foreground">Total Documents</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover-elevate transition-all" onClick={() => openDrilldown({ layer: 1, sourceEntity: 'kpi_metric', identifier: 'document_categories' })}>
           <CardContent className="p-4 text-center">
             <div className="text-3xl font-bold text-blue-500">
               {Object.keys(categoryCounts).length}
@@ -940,7 +944,8 @@ function SummaryView({ documents }: { documents: Document[] }) {
             {documents.slice(0, 5).map((doc) => (
               <div
                 key={doc.id}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
+                onClick={() => openDrilldown({ layer: 5, sourceEntity: 'document', identifier: doc.id.toString() })}
               >
                 {getFileIcon(doc.fileType)}
                 <div className="flex-1 min-w-0">
@@ -968,6 +973,7 @@ function PDFView({
   documents: Document[];
   onPreview: (doc: Document) => void;
 }) {
+  const { openDrilldown } = useDrilldown();
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(documents[0] || null);
 
   useEffect(() => {
@@ -1043,14 +1049,25 @@ function PDFView({
             </div>
           </div>
           {selectedDoc && (
-            <Button
-              variant="outline"
-              onClick={() => onPreview(selectedDoc)}
-              data-testid="button-fullscreen-preview"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Full View
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openDrilldown({ layer: 5, sourceEntity: 'document', identifier: selectedDoc.id.toString() })}
+              >
+                <Database className="h-4 w-4 mr-2" />
+                View Lineage
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPreview(selectedDoc)}
+                data-testid="button-fullscreen-preview"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Full View
+              </Button>
+            </div>
           )}
         </CardHeader>
         <CardContent>
@@ -1115,6 +1132,7 @@ function PDFView({
 export default function DocumentsPage() {
   const { environment, user } = useAuth();
   const { toast } = useToast();
+  const { openDrilldown } = useDrilldown();
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -1398,28 +1416,35 @@ export default function DocumentsPage() {
               ))}
             </div>
           ) : filteredDocuments.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <div className="p-4 bg-muted rounded-full mb-4">
-                  <FolderOpen className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">No Documents Found</h3>
-                <p className="text-sm text-muted-foreground text-center max-w-md mb-4">
-                  {searchQuery || categoryFilter !== 'all'
-                    ? 'No documents match your search criteria. Try adjusting your filters.'
-                    : 'Get started by uploading your first document.'}
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={FolderOpen}
+              title="No Documents Found"
+              description={
+                searchQuery || categoryFilter !== 'all'
+                  ? 'No documents match your search criteria. Try adjusting your filters.'
+                  : 'Get started by uploading your first document.'
+              }
+              className="py-16"
+            />
           ) : (
             <div className="space-y-8">
               {filteredDocuments.map((doc) => (
-                <LetterDocument
+                <div 
                   key={doc.id}
-                  document={doc}
-                  onDelete={() => refetch()}
-                  onPreview={() => setPreviewDocument(doc)}
-                />
+                  onClick={() => openDrilldown({
+                     layer: 4,
+                     sourceEntity: 'document',
+                     identifier: String(doc.id),
+                     context: { filters: { category: doc.category, title: doc.title } }
+                  })}
+                  className="cursor-pointer"
+                >
+                  <LetterDocument
+                    document={doc}
+                    onDelete={() => refetch()}
+                    onPreview={() => setPreviewDocument(doc)}
+                  />
+                </div>
               ))}
             </div>
           )}

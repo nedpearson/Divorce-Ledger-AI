@@ -127,8 +127,7 @@ export class GoogleAuthService {
         password: secureRandomPassword,
         fullName: name,
         profilePhoto: picture,
-        authProvider: 'google',
-        role: 'user',
+        role: 'client',
         status: 'active',
         subscriptionTier: 'free'
       }).returning();

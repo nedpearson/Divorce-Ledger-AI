@@ -68,7 +68,7 @@ const AdminRecommendations = lazy(() => import('@/pages/admin-recommendations'))
 const Changelog = lazy(() => import('@/pages/changelog'));
 const AdminPanel = lazy(() => import('@/pages/admin'));
 const SuperAdmin = lazy(() => import('@/pages/superadmin'));
-const AppwriteDocuments = lazy(() => import('@/pages/appwrite-documents'));
+const DocumentManager = lazy(() => import('@/pages/document-manager'));
 import { MobileBottomNav } from '@/components/mobile-bottom-nav';
 import { QuickCaptureSheet } from '@/components/quick-capture-sheet';
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
@@ -226,7 +226,7 @@ function Router() {
       <Route path="/documents">
         <RequireAuth>
           <AuthLayout>
-            <AppwriteDocuments />
+            <DocumentManager />
           </AuthLayout>
         </RequireAuth>
       </Route>

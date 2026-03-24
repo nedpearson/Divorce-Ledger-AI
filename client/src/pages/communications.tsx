@@ -129,8 +129,11 @@ const roleColors: Record<string, string> = {
   therapist: 'bg-pink-500/10 text-pink-600',
 };
 
+import { useDrilldown } from '@/lib/drilldown-context';
+
 export default function CommunicationsPage() {
   const { toast } = useToast();
+  const { openDrilldown } = useDrilldown();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [isNewConvoOpen, setIsNewConvoOpen] = useState(false);
   const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
@@ -607,7 +610,7 @@ export default function CommunicationsPage() {
                     {selectedReport && (
                       <div className="mt-6 space-y-6">
                         <div className="grid grid-cols-2 gap-4">
-                          <Card>
+                          <Card className="cursor-pointer hover-elevate transition-all" onClick={() => openDrilldown({ layer: 1, sourceEntity: 'kpi_metric', identifier: `report_total_msgs_${selectedReport.id}` })}>
                             <CardContent className="pt-4">
                               <p className="text-2xl font-bold">
                                 {selectedReport.totalMessagesAnalyzed}
@@ -615,7 +618,7 @@ export default function CommunicationsPage() {
                               <p className="text-sm text-muted-foreground">Messages Analyzed</p>
                             </CardContent>
                           </Card>
-                          <Card>
+                          <Card className="cursor-pointer hover-elevate transition-all" onClick={() => openDrilldown({ layer: 1, sourceEntity: 'kpi_metric', identifier: `report_neg_msgs_${selectedReport.id}` })}>
                             <CardContent className="pt-4">
                               <p className="text-2xl font-bold text-destructive">
                                 {selectedReport.negativeMessageCount}

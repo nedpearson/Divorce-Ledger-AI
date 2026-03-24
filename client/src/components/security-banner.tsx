@@ -2,7 +2,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { AlertTriangle, XCircle, ShieldCheck, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
-import { queryClient } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import type { SecurityAlert } from '@shared/schema';
 
@@ -11,21 +11,18 @@ export function GlobalSecurityBanner() {
   const { toast } = useToast();
 
   const { data: alerts, isLoading } = useQuery<SecurityAlert[]>({
-    queryKey: ['/api/alerts'],
+    queryKey: ['/api/security-alerts'],
     enabled: isAuthenticated,
     refetchInterval: 30000, 
   });
 
   const resolveMutation = useMutation({
     mutationFn: async (alertId: string) => {
-      const res = await fetch(`/api/alerts/${alertId}/resolve`, {
-        method: 'POST',
-      });
-      if (!res.ok) throw new Error('Failed to resolve alert');
+      const res = await apiRequest('POST', `/api/alerts/${alertId}/resolve`);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/alerts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/security-alerts'] });
       toast({ title: 'Security issue resolved' });
     },
     onError: () => {

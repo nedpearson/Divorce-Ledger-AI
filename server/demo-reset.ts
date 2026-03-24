@@ -31,7 +31,8 @@ import {
   teams,
   demoMeta,
 } from '@shared/schema';
-import { seedDemoData, TEST_USERS } from './storage';
+import { TEST_USERS } from './storage';
+import { runSeeder as seedDemoData } from './scripts/seed-forensic-demo';
 
 const DEMO_RESET_INTERVAL_HOURS = 24;
 let resetInProgress = false;

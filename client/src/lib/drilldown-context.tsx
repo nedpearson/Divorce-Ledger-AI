@@ -1,15 +1,20 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { type DrilldownType } from '@/components/financial-drilldown-drawer';
 import { FinancialDrilldownDrawer } from '@/components/financial-drilldown-drawer';
+import { UniversalDrilldownDrawer } from '@/components/ui/universal-drilldown-drawer';
+import { DrilldownRequest } from '@shared/schema';
 import { useAuth } from '@/lib/auth';
 
-interface DrilldownPayload {
-  type: DrilldownType;
-  title: string;
+type LegacyPayload = { type: DrilldownType; title: string };
+type UnifiedDrilldownPayload = DrilldownRequest | LegacyPayload;
+
+function isLegacy(payload: UnifiedDrilldownPayload): payload is LegacyPayload {
+  return 'type' in payload && 'title' in payload;
 }
 
 interface DrilldownContextValue {
-  openDrilldown: (payload: DrilldownPayload) => void;
+  openDrilldown: (payload: UnifiedDrilldownPayload) => void;
+  popDrilldown: () => void;
   closeDrilldown: () => void;
 }
 
@@ -17,30 +22,71 @@ const DrilldownContext = createContext<DrilldownContextValue | null>(null);
 
 export function DrilldownProvider({ children }: { children: React.ReactNode }) {
   const { environment } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [payload, setPayload] = useState<DrilldownPayload | null>(null);
+  const [legacyOpen, setLegacyOpen] = useState(false);
+  const [legacyPayload, setLegacyPayload] = useState<LegacyPayload | null>(null);
+  
+  const [stack, setStack] = useState<DrilldownRequest[]>([]);
 
-  const openDrilldown = (newPayload: DrilldownPayload) => {
-    setPayload(newPayload);
-    setOpen(true);
-  };
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#drilldown=')) {
+      try {
+        const payload = JSON.parse(atob(hash.replace('#drilldown=', '')));
+        if (Array.isArray(payload)) setStack(payload);
+      } catch (e) {
+        console.error('Failed to parse drilldown hash', e);
+      }
+    }
+  }, []);
 
-  const closeDrilldown = () => {
-    setOpen(false);
-  };
+  useEffect(() => {
+    if (stack.length > 0) {
+      window.history.replaceState(null, '', `#drilldown=${btoa(JSON.stringify(stack))}`);
+    } else if (window.location.hash.startsWith('#drilldown=')) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, [stack]);
+
+  const openDrilldown = useCallback((payload: UnifiedDrilldownPayload) => {
+    if (isLegacy(payload)) {
+      setLegacyPayload(payload);
+      setLegacyOpen(true);
+    } else {
+      setStack(prev => [...prev, payload]);
+    }
+  }, []);
+
+  const popDrilldown = useCallback(() => {
+    setStack(prev => prev.slice(0, -1));
+  }, []);
+
+  const closeDrilldown = useCallback(() => {
+    setLegacyOpen(false);
+    setStack([]);
+  }, []);
 
   return (
-    <DrilldownContext.Provider value={{ openDrilldown, closeDrilldown }}>
+    <DrilldownContext.Provider value={{ openDrilldown, popDrilldown, closeDrilldown }}>
       {children}
-      {payload && (
+      
+      {/* Legacy Fallback Drawer */}
+      {legacyPayload && (
         <FinancialDrilldownDrawer
-          open={open}
-          onOpenChange={(isOpen) => setOpen(isOpen)}
-          type={payload.type}
-          title={payload.title}
+          open={legacyOpen}
+          onOpenChange={(isOpen) => !isOpen && closeDrilldown()}
+          type={legacyPayload.type}
+          title={legacyPayload.title}
           environment={environment}
         />
       )}
+
+      {/* New Universal 8-Layer Drawer */}
+      <UniversalDrilldownDrawer
+        stack={stack}
+        onPop={popDrilldown}
+        onClose={closeDrilldown}
+        onPush={openDrilldown}
+      />
     </DrilldownContext.Provider>
   );
 }

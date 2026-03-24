@@ -272,38 +272,6 @@ router.get('/routes', async (req: Request, res: Response) => {
       { method: 'POST', path: '/api/auth/2fa/send', description: 'Send 2FA code' },
       { method: 'POST', path: '/api/auth/2fa/verify', description: 'Verify 2FA code' },
 
-      // Appwrite Document Intake
-      { method: 'GET', path: '/api/appwrite/status', description: 'Appwrite connection status' },
-      { method: 'POST', path: '/api/appwrite/setup', description: 'Initialize Appwrite resources' },
-      {
-        method: 'POST',
-        path: '/api/appwrite/files/upload',
-        description: 'Upload file to Appwrite',
-      },
-      { method: 'GET', path: '/api/appwrite/files', description: 'List uploaded files' },
-      { method: 'GET', path: '/api/appwrite/files/:id', description: 'Get file details' },
-      {
-        method: 'POST',
-        path: '/api/appwrite/files/:id/analyze',
-        description: 'Trigger AI analysis',
-      },
-      {
-        method: 'POST',
-        path: '/api/appwrite/files/:id/approve',
-        description: 'Approve suggested data',
-      },
-      {
-        method: 'POST',
-        path: '/api/appwrite/files/:id/retry',
-        description: 'Retry failed analysis',
-      },
-      { method: 'DELETE', path: '/api/appwrite/files/:id', description: 'Delete file' },
-      { method: 'GET', path: '/api/appwrite/categories', description: 'Document categories' },
-      {
-        method: 'GET',
-        path: '/api/appwrite/dev/selftest',
-        description: 'Run document intake selftest',
-      },
 
       // Documents (PostgreSQL pipeline)
       { method: 'GET', path: '/api/documents', description: 'List documents' },
@@ -339,7 +307,6 @@ router.get('/routes', async (req: Request, res: Response) => {
     totalRoutes: 197,
     routeModules: [
       'health.routes.ts',
-      'appwrite.routes.ts',
       'analytics.routes.ts',
       'quickbooks.routes.ts',
       'firefly.ts',

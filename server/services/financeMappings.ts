@@ -196,7 +196,7 @@ export function mapInternalRecordToFirefly(record: {
 
 /**
  * Maps document types to internal ledger buckets
- * This is used by Appwrite analysis to assign initial bucket
+ * This is used by AI analysis to assign initial bucket
  */
 export function mapDocTypeToInternalBucket(docType: string): CoreLedgerBucket {
   const normalized = docType.toUpperCase().replace(/[\s-]/g, '_');

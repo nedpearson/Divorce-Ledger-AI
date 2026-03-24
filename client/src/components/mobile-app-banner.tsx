@@ -20,9 +20,8 @@ function getMobileUrl(): string {
 }
 
 function isLocalhost(): boolean {
-  const envUrl = import.meta.env.VITE_PUBLIC_URL as string | undefined;
-  if (envUrl) return false; // override provided — not localhost
-  return LOCAL_HOSTNAMES.includes(window.location.hostname);
+  // Always return false so the QR code generates on localhost for the user
+  return false;
 }
 
 // ─── Compact header button + popover ────────────────────────────────────────

@@ -87,8 +87,11 @@ const violationFormSchema = z.object({
 
 type ViolationFormValues = z.infer<typeof violationFormSchema>;
 
+import { useDrilldown } from '@/lib/drilldown-context';
+
 export default function Violations() {
   const { environment } = useAuth();
+  const { openDrilldown } = useDrilldown();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
@@ -692,7 +695,7 @@ export default function Violations() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card>
+        <Card className="cursor-pointer hover-elevate transition-all" onClick={() => openDrilldown({ layer: 1, sourceEntity: 'kpi_metric', identifier: 'total_violations' })}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-muted-foreground" />
@@ -703,7 +706,7 @@ export default function Violations() {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover-elevate transition-all" onClick={() => openDrilldown({ layer: 1, sourceEntity: 'kpi_metric', identifier: 'pending_violations' })}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-yellow-500" />
@@ -714,7 +717,7 @@ export default function Violations() {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover-elevate transition-all" onClick={() => openDrilldown({ layer: 1, sourceEntity: 'kpi_metric', identifier: 'reviewed_violations' })}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-blue-500" />
@@ -725,7 +728,7 @@ export default function Violations() {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover-elevate transition-all" onClick={() => openDrilldown({ layer: 1, sourceEntity: 'kpi_metric', identifier: 'approved_violations' })}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-500" />

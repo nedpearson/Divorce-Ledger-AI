@@ -1436,64 +1436,105 @@ export class DatabaseStorage implements IStorage {
   async getDashboardStats(userId: string, environment: string): Promise<DashboardStats> {
     const currentDb = getDb(environment);
 
-    // Optimized: Execute counting queries in parallel
-    const [assetsRes, debtsRes, incomeRes, expenseRes, violationsRes, casesRes, childSupportRes] =
-      await Promise.all([
-        currentDb
-          .select()
-          .from(assets)
-          .where(and(eq(assets.userId, userId), eq(assets.environment, environment))),
-        currentDb
-          .select()
-          .from(debts)
-          .where(and(eq(debts.userId, userId), eq(debts.environment, environment))),
-        currentDb
-          .select()
-          .from(incomes)
-          .where(and(eq(incomes.userId, userId), eq(incomes.environment, environment))),
-        currentDb
-          .select()
-          .from(expenses)
-          .where(and(eq(expenses.userId, userId), eq(expenses.environment, environment))),
-        currentDb
-          .select()
-          .from(violations)
-          .where(and(eq(violations.userId, userId), eq(violations.environment, environment))),
-        currentDb
-          .select()
-          .from(cases)
-          .where(and(eq(cases.userId, userId), eq(cases.environment, environment))),
-        currentDb
-          .select()
-          .from(childSupportPayments)
-          .where(
-            and(
-              eq(childSupportPayments.userId, userId),
-              eq(childSupportPayments.environment, environment)
-            )
-          ),
-      ]);
+    // Optimized: Execute counting/summation queries natively in PostgreSQL / Drizzle
+    const [
+      [assetsRes],
+      [maritalAssetsRes],
+      [debtsRes],
+      incomesRes,
+      [expenseRes],
+      [violationsRes],
+      [casesRes],
+      childSupportPendingRes,
+      alimonyPendingRes
+    ] = await Promise.all([
+      currentDb
+        .select({ total: sql<number>`COALESCE(SUM(${assets.value}), 0)` })
+        .from(assets)
+        .where(and(eq(assets.userId, userId), eq(assets.environment, environment))),
+      currentDb
+        .select({ total: sql<number>`COALESCE(SUM(${assets.value}), 0)` })
+        .from(assets)
+        .where(and(eq(assets.userId, userId), eq(assets.environment, environment), eq(assets.ownership, 'marital'))),
+      currentDb
+        .select({ total: sql<number>`COALESCE(SUM(${debts.amount}), 0)`, monthly: sql<number>`COALESCE(SUM(${debts.monthlyPayment}), 0)` })
+        .from(debts)
+        .where(and(eq(debts.userId, userId), eq(debts.environment, environment))),
+      currentDb
+        .select({ amount: incomes.amount, frequency: incomes.frequency, owner: incomes.owner })
+        .from(incomes)
+        .where(and(eq(incomes.userId, userId), eq(incomes.environment, environment))),
+      currentDb
+        .select({ total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)` })
+        .from(expenses)
+        .where(and(eq(expenses.userId, userId), eq(expenses.environment, environment))),
+      currentDb
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(violations)
+        .where(and(eq(violations.userId, userId), eq(violations.environment, environment))),
+      currentDb
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(cases)
+        .where(and(eq(cases.userId, userId), eq(cases.environment, environment))),
+      currentDb
+        .select({ total: sql<number>`COALESCE(SUM(${childSupportPayments.amount}), 0)`, nextDate: sql<string>`MIN(${childSupportPayments.dueDate})` })
+        .from(childSupportPayments)
+        .where(
+          and(
+            eq(childSupportPayments.userId, userId),
+            eq(childSupportPayments.environment, environment),
+            eq(childSupportPayments.paymentType, 'child_support'),
+            eq(childSupportPayments.status, 'pending')
+          )
+        ),
+      currentDb
+        .select({ total: sql<number>`COALESCE(SUM(${childSupportPayments.amount}), 0)`, nextDate: sql<string>`MIN(${childSupportPayments.dueDate})` })
+        .from(childSupportPayments)
+        .where(
+          and(
+            eq(childSupportPayments.userId, userId),
+            eq(childSupportPayments.environment, environment),
+            eq(childSupportPayments.paymentType, 'alimony'),
+            eq(childSupportPayments.status, 'pending')
+          )
+        ),
+    ]);
 
-    const totalAssets = assetsRes.reduce((sum, a) => sum + (a.value || 0), 0);
-    const maritalAssets = assetsRes
-      .filter((a) => a.ownership === 'marital')
-      .reduce((sum, a) => sum + (a.value || 0), 0);
-    const totalDebts = debtsRes.reduce((sum, d) => sum + (d.amount || 0), 0);
-    const monthlyIncome = incomeRes.reduce((sum, i) => {
-      const amount = i.amount || 0;
-      if (i.frequency === 'weekly') return sum + (amount * 52) / 12;
-      if (i.frequency === 'bi-weekly') return sum + (amount * 26) / 12;
-      return sum + amount;
-    }, 0);
-    const monthlyExpenses = expenseRes.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const totalAssets = Number(assetsRes?.total) || 0;
+    const maritalAssets = Number(maritalAssetsRes?.total) || 0;
+    const totalDebts = Number(debtsRes?.total) || 0;
+    const monthlyDebtPayments = Number(debtsRes?.monthly) || 0;
 
-    // Calculate child support and alimony from actual payment records
-    const childSupportOwed = childSupportRes
-      .filter((p) => p.paymentType === 'child_support' && p.status === 'pending')
-      .reduce((sum, p) => sum + (p.amount || 0), 0);
-    const alimonyOwed = childSupportRes
-      .filter((p) => p.paymentType === 'alimony' && p.status === 'pending')
-      .reduce((sum, p) => sum + (p.amount || 0), 0);
+    let monthlyIncome = 0;
+    let yourIncome = 0;
+    
+    incomesRes.forEach(i => {
+      const amt = Number(i.amount) || 0;
+      let normalized = amt;
+      if (i.frequency === 'weekly') normalized = (amt * 52) / 12;
+      else if (i.frequency === 'bi-weekly') normalized = (amt * 26) / 12;
+      else if (i.frequency === 'annual') normalized = amt / 12;
+      
+      monthlyIncome += normalized;
+      if (i.owner === 'you') yourIncome += normalized;
+    });
+
+    const monthlyExpenses = Number(expenseRes?.total) || 0;
+    
+    // Unaccounted defaults to remaining positive cashflow after debts and tracking
+    const trackedOutflow = monthlyExpenses + monthlyDebtPayments;
+    const unaccountedExpenses = Math.max(0, monthlyIncome - trackedOutflow);
+
+    const violationsCount = Number(violationsRes?.count) || 0;
+    const casesCount = Number(casesRes?.count) || 0;
+    const childSupportOwed = Number(childSupportPendingRes[0]?.total) || 0;
+    const alimonyOwed = Number(alimonyPendingRes[0]?.total) || 0;
+
+    const formatDateStr = (d: any) => {
+      if (!d) return undefined;
+      const date = new Date(d);
+      return `${date.toLocaleString('en-US', { month: 'short' })} ${date.getDate()}`;
+    };
 
     return {
       totalAssets,
@@ -1501,8 +1542,13 @@ export class DatabaseStorage implements IStorage {
       totalDebts,
       monthlyIncome,
       monthlyExpenses,
-      violationsCount: violationsRes.length,
-      casesCount: casesRes.length,
+      yourIncome,
+      monthlyDebtPayments,
+      unaccountedExpenses,
+      childSupportDate: formatDateStr(childSupportPendingRes[0]?.nextDate),
+      alimonyDate: formatDateStr(alimonyPendingRes[0]?.nextDate),
+      violationsCount,
+      casesCount,
       childSupportOwed,
       alimonyOwed,
       netPosition: totalAssets - totalDebts,

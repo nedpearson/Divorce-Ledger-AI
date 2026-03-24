@@ -43,6 +43,8 @@ import {
   Loader2,
   Square,
   Play,
+  Calculator,
+  Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FeedbackCTA } from '@/components/feedback-cta';
@@ -124,9 +126,9 @@ export default function Home() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const { data: recentDocs = [] } = useQuery<Document[]>({
-    queryKey: ['/api', 'documents', { environment, userId: user?.id }],
+    queryKey: ['/api/documents', environment],
     queryFn: async () => {
-      const res = await fetch('/api/documents', {
+      const res = await fetch(`/api/documents?environment=${environment || 'demo'}`, {
         credentials: 'include',
         headers: {
           'X-Environment': environment || 'demo',
@@ -136,14 +138,13 @@ export default function Home() {
       if (!res.ok) throw new Error('Failed to fetch documents');
       return res.json();
     },
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 1000 * 60, // 1 minute stale time
   });
 
   const { data: violations = [] } = useQuery<Violation[]>({
-    queryKey: ['/api', 'violations', { environment, userId: user?.id }],
+    queryKey: ['/api/violations', environment],
     queryFn: async () => {
-      const res = await fetch('/api/violations', {
+      const res = await fetch(`/api/violations?environment=${environment || 'demo'}`, {
         credentials: 'include',
         headers: {
           'X-Environment': environment || 'demo',
@@ -153,8 +154,7 @@ export default function Home() {
       if (!res.ok) throw new Error('Failed to fetch violations');
       return res.json();
     },
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 1000 * 60, // 1 minute stale time to prevent dupe requests
   });
 
   const createDocumentMutation = useMutation({
@@ -414,17 +414,17 @@ export default function Home() {
     }
   };
 
-  const { data: appwriteDocuments } = useQuery<any[]>({
-    queryKey: ['/api/appwrite/files'],
+  const { data: documentStats } = useQuery<any[]>({
+    queryKey: ['/api/storage/files'],
   });
 
   const violationsCount = violations?.length || 0;
 
   const quickStats = [
     {
-      label: 'Documents',
-      value: appwriteDocuments?.length || 0,
-      icon: FileText,
+      label: 'Document Library',
+      value: documentStats?.length || 0,
+      icon: Layers,
       color: 'text-blue-400',
       bg: 'bg-blue-500/20',
     },

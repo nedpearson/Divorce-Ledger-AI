@@ -23,6 +23,7 @@ import {
   Wand2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useDrilldown } from '@/lib/drilldown-context';
 import type { Violation } from '@shared/schema';
 
 interface PatternAnalysis {
@@ -45,6 +46,7 @@ interface CaseSummary {
     location?: string;
     witnesses?: string[];
     photoCount: number;
+    id: string | number;
   }>;
   patterns: PatternAnalysis[];
   impact: string;
@@ -72,6 +74,7 @@ const VIOLATION_DEFINITIONS: Record<string, string> = {
 export default function CaseBuilder() {
   const { environment } = useAuth();
   const { toast } = useToast();
+  const { openDrilldown } = useDrilldown();
   const [narrative, setNarrative] = useState('');
   const [generatedFiling, setGeneratedFiling] = useState<string | null>(null);
 
@@ -127,6 +130,7 @@ export default function CaseBuilder() {
         location: v.location || undefined,
         witnesses: v.witnesses || undefined,
         photoCount: v.photoCount || 0,
+        id: v.id,
       }));
 
     return {
@@ -509,7 +513,15 @@ ${caseSummary.reliefSought}`;
                 {caseSummary.incidents.map((incident, idx) => (
                   <div
                     key={idx}
-                    className="flex gap-4 p-3 bg-muted/50 rounded-lg"
+                    className="flex gap-4 p-3 bg-muted/50 rounded-lg cursor-pointer hover-elevate transition-all"
+                    onClick={() => {
+                      openDrilldown({
+                        layer: 4,
+                        sourceEntity: 'workflow_state',
+                        identifier: String(incident.id),
+                        context: { filters: { title: incident.type, description: incident.description } }
+                      });
+                    }}
                     data-testid={`incident-${idx}`}
                   >
                     <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full shrink-0">
@@ -562,7 +574,19 @@ ${caseSummary.reliefSought}`;
               <CardContent>
                 <div className="space-y-3">
                   {caseSummary.patterns.map((pattern, idx) => (
-                    <div key={idx} className="p-3 border rounded-lg" data-testid={`pattern-${idx}`}>
+                    <div 
+                      key={idx} 
+                      className="p-3 border rounded-lg cursor-pointer hover-elevate transition-all" 
+                      onClick={() => {
+                        openDrilldown({
+                          layer: 2,
+                          sourceEntity: 'workflow_state',
+                          identifier: 'violation_pattern',
+                          context: { filters: { category: pattern.displayType } }
+                        });
+                      }}
+                      data-testid={`pattern-${idx}`}
+                    >
                       <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
                         <span className="font-medium text-sm">{pattern.displayType}</span>
                         {getSeverityBadge(pattern.severity)}

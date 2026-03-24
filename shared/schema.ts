@@ -1,3 +1,4 @@
+export * from './drilldown-schema';
 import { sql } from 'drizzle-orm';
 import {
   pgTable,
@@ -560,6 +561,11 @@ export type DashboardStats = {
   alimonyOwed: number;
   maritalAssets: number;
   netPosition: number;
+  yourIncome: number;
+  monthlyDebtPayments: number;
+  unaccountedExpenses: number;
+  childSupportDate?: string;
+  alimonyDate?: string;
   violationsCount?: number;
   casesCount?: number;
 };
@@ -2131,6 +2137,32 @@ export const insertDriveFolderBindingSchema = createInsertSchema(driveFolderBind
 });
 export type InsertDriveFolderBinding = z.infer<typeof insertDriveFolderBindingSchema>;
 export type DriveFolderBinding = typeof driveFolderBindings.$inferSelect;
+
+// Phase 6: Canonical AI Review Queue
+export const dataSyncProposals = pgTable('data_sync_proposals', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar('document_id').notNull(),
+  userId: varchar('user_id').notNull(),
+  caseId: varchar('case_id'),
+  targetTable: text('target_table').notNull(), // e.g. 'transactions', 'violations'
+  proposedData: jsonb('proposed_data').notNull(),
+  confidenceScore: real('confidence_score').notNull(),
+  rationale: text('rationale'),
+  sourceLineage: jsonb('source_lineage'), // bounding boxes, raw snippet references
+  status: text('status').notNull().default('pending_review'), // pending_review, approved, rejected, edited, deferred, merged
+  resolvedAt: timestamp('resolved_at'),
+  downstreamEffects: text('downstream_effects'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  environment: text('environment').notNull().default('demo'),
+});
+
+export const insertDataSyncProposalSchema = createInsertSchema(dataSyncProposals).omit({
+  id: true,
+  createdAt: true,
+  resolvedAt: true,
+});
+export type InsertDataSyncProposal = z.infer<typeof insertDataSyncProposalSchema>;
+export type DataSyncProposal = typeof dataSyncProposals.$inferSelect;
 
 export const driveTransferAudits = pgTable('drive_transfer_audits', {
   id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),

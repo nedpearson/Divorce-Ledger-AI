@@ -22,6 +22,7 @@ import {
   TrendingUp,
   Info,
 } from 'lucide-react';
+import { useDrilldown } from '@/lib/drilldown-context';
 
 type TimelineEvent = {
   id: string;
@@ -52,6 +53,7 @@ type PatternResponse = {
 export default function Timeline() {
   const { environment } = useAuth();
   const { toast } = useToast();
+  const { openDrilldown } = useDrilldown();
   const [isExporting, setIsExporting] = useState(false);
 
   const { data: violations, isLoading: violationsLoading } = useQuery<Violation[]>({
@@ -259,7 +261,15 @@ export default function Timeline() {
             {patterns.map((pattern, index) => (
               <div
                 key={index}
-                className="border rounded-md p-3 space-y-2"
+                className="border rounded-md p-3 space-y-2 cursor-pointer hover:bg-muted/30 transition-colors"
+                onClick={() => {
+                  openDrilldown({
+                    layer: 2,
+                    sourceEntity: 'workflow_state',
+                    identifier: 'violation_pattern',
+                    context: { filters: { category: pattern.type } }
+                  });
+                }}
                 data-testid={`pattern-alert-${index}`}
               >
                 <div className="flex items-start justify-between gap-2 flex-wrap">
@@ -310,13 +320,23 @@ export default function Timeline() {
                 {events.map((event) => (
                   <div
                     key={event.id}
-                    className="relative pl-8"
+                    className="relative pl-8 cursor-pointer hover:bg-muted/10 transition-colors rounded-md p-1 -ml-1"
+                    onClick={() => {
+                       const actualId = event.id.split('-')[1];
+                       openDrilldown({
+                         layer: 4,
+                         sourceEntity: event.type === 'violation' ? 'workflow_state' : 
+                                       event.type === 'transaction' ? 'financial_record' : 'document',
+                         identifier: actualId,
+                         context: { filters: { title: event.title, description: event.description } }
+                       });
+                    }}
                     data-testid={`timeline-event-${event.id}`}
                   >
                     <div className="absolute left-0 top-1 p-1.5 rounded-full bg-background border">
                       {getEventIcon(event.type)}
                     </div>
-                    <div className="border rounded-md p-3 space-y-1">
+                    <div className="border rounded-md p-3 space-y-1 hover-elevate bg-card">
                       <div className="flex items-start justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-sm">{event.title}</span>

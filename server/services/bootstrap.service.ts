@@ -192,10 +192,6 @@ export async function bootstrapUsers(
   logger.info(`Super Admin (${superAdminEmail}):`, {
     action: superAdminResult,
     passwordSet: true,
-    warning:
-      process.env.NODE_ENV === 'production'
-        ? '⚠️  CHANGE THIS PASSWORD IMMEDIATELY'
-        : 'Development password',
   });
 
   // 2. Demo User (if DEMO_MODE enabled)

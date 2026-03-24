@@ -39,9 +39,11 @@ import {
   RefreshCw,
   Play,
 } from 'lucide-react';
+import { useDrilldown } from '@/lib/drilldown-context';
 
 export default function GovernanceDashboard() {
   const { toast } = useToast();
+  const { openDrilldown } = useDrilldown();
   const [activeTab, setActiveTab] = useState('overview');
 
   const { data: summaryData, isLoading: summaryLoading } = useQuery<{ summary: any }>({
@@ -641,7 +643,16 @@ export default function GovernanceDashboard() {
                     </TableHeader>
                     <TableBody>
                       {(auditData?.entries || []).slice(0, 20).map((entry: any) => (
-                        <TableRow key={entry.id}>
+                        <TableRow 
+                          key={entry.id}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => openDrilldown({
+                            layer: 4,
+                            sourceEntity: 'audit_log',
+                            identifier: String(entry.id),
+                            context: { filters: { action: entry.action, resource: entry.resourceType } }
+                          })}
+                        >
                           <TableCell className="font-mono text-xs">
                             {new Date(entry.createdAt).toLocaleString()}
                           </TableCell>

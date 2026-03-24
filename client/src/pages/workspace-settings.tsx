@@ -49,7 +49,7 @@ export default function WorkspaceSettings() {
 
   const portalMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/billing/workspace/portal', { workspaceId });
+      const response = await apiRequest('POST', '/api/billing/portal', { workspaceId });
       return response.json();
     },
     onSuccess: (data) => {

@@ -27,8 +27,6 @@ import { DashboardService } from './services/dashboard-service';
 import { WebSocketService } from './services/websocket-service';
 import { complianceService } from './services/compliance.service';
 import { logFireflyConfigStatus } from './config/firefly.config';
-import { isAppwriteConfigured, initializeAppwrite } from './services/appwrite/client';
-import { startQueueProcessor } from './services/appwrite/analysisService';
 import { getBaseUrl } from './lib/baseUrl';
 
 import { createLogger } from './lib/logger';
@@ -299,9 +297,6 @@ app.use((req, res, next) => {
           // which can fail due to stricter operator/type checks. Mark it as applied
           // so subsequent migrations can proceed.
           if (process.env.NODE_ENV === 'development' && file === '008-multi-tenant-billing.sql') {
-            console.warn(
-              '  ⚠ Skipping migration 008-multi-tenant-billing.sql in development (Supabase compatibility issue)'
-            );
             await client.query(
               'INSERT INTO _migrations (filename) VALUES ($1) ON CONFLICT (filename) DO NOTHING',
               [file]
@@ -346,12 +341,9 @@ app.use((req, res, next) => {
     try {
       const { bootstrapUsers } = await import('./services/bootstrap.service');
 
-      // In development, force password reset to env values
       // In production, only create missing users (don't reset existing passwords)
-      const isDev = process.env.NODE_ENV === 'development';
-
       await bootstrapUsers({
-        forcePasswordReset: isDev,
+        forcePasswordReset: false,
       });
     } catch (error) {
       console.error('❌ [STARTUP] User bootstrap failed:', error);
@@ -408,19 +400,9 @@ app.use((req, res, next) => {
     if (wsService) {
       wsService.initialize();
     }
-
-    // APPWRITE AUTO-START: Start queue processor if Appwrite is configured
-    // This ensures documents are analyzed even if /api/appwrite/setup wasn't called
-    if (isAppwriteConfigured() && process.env.ENABLE_OPTIONAL_INTEGRATIONS === 'true') {
-      try {
-        initializeAppwrite();
-        startQueueProcessor(15000);
-        console.log('[STARTUP] Appwrite queue processor started (15s interval)');
-      } catch (err) {
-        console.warn('[STARTUP] Failed to start Appwrite queue processor:', err);
-      }
-    }
   }
+
+
 
   // Serve monitoring dashboard
   app.get('/dashboard', (_req, res) => {

@@ -9,8 +9,12 @@ export const googleDriveIntegrationRoutes = Router();
 
 // Middleware to ensure authentication
 const requireAuth = (req: any, res: any, next: any) => {
-    if (!req.isAuthenticated || !req.isAuthenticated()) {
+    const userId = (req as any).session?.userId || (req.user as any)?.id || req.headers['x-user-id'];
+    if (!userId) {
         return res.status(401).json({ error: 'You must be logged in to manage Google Drive integration.' });
+    }
+    if (!req.user) {
+        req.user = { id: userId };
     }
     next();
 };

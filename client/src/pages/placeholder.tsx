@@ -11,9 +11,9 @@ import {
   Settings,
   Construction,
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
+import { EmptyState } from '@/components/ui/empty-state';
 
 const pageConfigs: Record<string, { title: string; description: string; icon: React.ElementType }> =
   {
@@ -76,7 +76,7 @@ export default function PlaceholderPage({ page }: { page: string }) {
     description: 'This feature is under development.',
     icon: Construction,
   };
-  const Icon = config.icon;
+  const Icon = config.icon as any;
 
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6">
@@ -87,20 +87,13 @@ export default function PlaceholderPage({ page }: { page: string }) {
         <p className="text-sm text-muted-foreground">{config.description}</p>
       </div>
 
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-16">
-          <div className="p-4 bg-primary/10 rounded-full mb-4">
-            <Icon className="h-8 w-8 text-primary" />
-          </div>
-          <h2 className="text-lg font-medium mb-2">Coming Soon</h2>
-          <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-            This module is currently under development. Check back soon for full functionality.
-          </p>
-          <Button variant="outline" data-testid="button-notify-me">
-            Notify me when ready
-          </Button>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Icon}
+        title="Coming Soon"
+        description="This module is currently under development. Check back soon for full functionality."
+        actionProps={{ label: 'Notify me when ready', onClick: () => console.log('Notify specific user') }}
+        className="py-24"
+      />
     </div>
   );
 }

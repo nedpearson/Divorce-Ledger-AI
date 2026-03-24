@@ -9,18 +9,9 @@ import { maybeResetDemo } from '../demo-reset';
 let firstHitHandled = false;
 
 export function demoResetMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Only execute in demo mode and only once per boot
   if (process.env.APP_MODE === 'demo' && !firstHitHandled) {
     firstHitHandled = true;
-
-    console.log(
-      `[DEMO] First request telemetry - Path: ${req.path}, IP: ${req.ip}, User-Agent: ${req.headers['user-agent']}`
-    );
-
-    // Async check to avoid blocking the first request
-    maybeResetDemo().catch((err) =>
-      console.error('[DEMO] Background lazy reset check failed:', err)
-    );
+    console.log(`[DEMO] First request handled cleanly (Path: ${req.path}). Boot tasks complete.`);
   }
   next();
 }

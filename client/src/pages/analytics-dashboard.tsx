@@ -28,6 +28,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from 'lucide-react';
+import { useDrilldown } from '@/lib/drilldown-context';
 
 interface RevenueSummary {
   currentMrr: number;
@@ -131,8 +132,22 @@ function MetricCard({
   trend?: number;
   icon: any;
 }) {
+  const { openDrilldown } = useDrilldown();
+
+  const handleDrilldown = () => {
+    openDrilldown({
+      layer: 1,
+      sourceEntity: 'kpi_metric',
+      identifier: title.toLowerCase().replace(/\s+/g, '_')
+    });
+  };
+
   return (
-    <Card data-testid={`card-metric-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+    <Card 
+      data-testid={`card-metric-${title.toLowerCase().replace(/\s+/g, '-')}`}
+      onClick={handleDrilldown}
+      className="cursor-pointer hover-elevate transition-all"
+    >
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" />
@@ -162,6 +177,7 @@ function MetricCard({
 }
 
 function RevenueTab() {
+  const { openDrilldown } = useDrilldown();
   const { data, isLoading } = useQuery<{ summary: RevenueSummary; monthlyData: MRRData[] }>({
     queryKey: ['/api/analytics/dashboard/revenue'],
   });
@@ -227,6 +243,18 @@ function RevenueTab() {
                 stroke="hsl(var(--chart-1))"
                 fill="hsl(var(--chart-1))"
                 fillOpacity={0.3}
+                activeDot={{
+                  onClick: (event: any, payload: any) => {
+                    if (payload && payload.payload) {
+                      openDrilldown({
+                        layer: 2,
+                        sourceEntity: 'chart_segment',
+                        identifier: 'mrr_trend',
+                        context: { filters: { month: payload.payload.month } }
+                      });
+                    }
+                  }
+                }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -244,7 +272,20 @@ function RevenueTab() {
               <XAxis dataKey="month" className="text-xs" />
               <YAxis tickFormatter={(v) => `${v}%`} className="text-xs" />
               <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
-              <Bar dataKey="growth" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+              <Bar 
+                dataKey="growth" 
+                fill="hsl(var(--chart-2))" 
+                radius={[4, 4, 0, 0]} 
+                onClick={(data) => {
+                  openDrilldown({
+                    layer: 2,
+                    sourceEntity: 'chart_segment',
+                    identifier: 'revenue_growth',
+                    context: { filters: { month: data.month } }
+                  });
+                }}
+                className="cursor-pointer"
+              />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -254,6 +295,7 @@ function RevenueTab() {
 }
 
 function ChurnLTVTab() {
+  const { openDrilldown } = useDrilldown();
   const { data: churnData, isLoading: churnLoading } = useQuery<{
     summary: ChurnSummary;
     monthlyData: ChurnData[];
@@ -417,6 +459,7 @@ function ChurnLTVTab() {
 }
 
 function ViolationsTab() {
+  const { openDrilldown } = useDrilldown();
   const { data, isLoading } = useQuery<{
     patterns: ViolationPattern[];
     severityDistribution: { level: string; count: number }[];
@@ -471,7 +514,20 @@ function ViolationsTab() {
                 <XAxis type="number" className="text-xs" />
                 <YAxis dataKey="category" type="category" width={120} className="text-xs" />
                 <Tooltip />
-                <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} />
+                <Bar 
+                  dataKey="count" 
+                  fill="hsl(var(--chart-1))" 
+                  radius={[0, 4, 4, 0]}
+                  onClick={(data) => {
+                    openDrilldown({
+                      layer: 2,
+                      sourceEntity: 'workflow_state',
+                      identifier: 'violation_pattern',
+                      context: { filters: { category: data.category } }
+                    });
+                  }}
+                  className="cursor-pointer"
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -492,6 +548,15 @@ function ViolationsTab() {
                   cy="50%"
                   outerRadius={100}
                   label={({ level, count }) => `${level}: ${count}`}
+                  onClick={(data) => {
+                    openDrilldown({
+                      layer: 2,
+                      sourceEntity: 'workflow_state',
+                      identifier: 'severity_distribution',
+                      context: { filters: { level: data.level } }
+                    });
+                  }}
+                  className="cursor-pointer focus:outline-none"
                 >
                   {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -545,6 +610,7 @@ function ViolationsTab() {
 }
 
 function TierMigrationsTab() {
+  const { openDrilldown } = useDrilldown();
   const { data, isLoading } = useQuery<{
     summary: {
       totalUpgrades: number;

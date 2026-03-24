@@ -26,8 +26,8 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { login, completeLogin, setEnvironment, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [email, setEmail] = useState('client.demo@example.com');
-  const [password, setPassword] = useState('demo1234');
+  const [email, setEmail] = useState('demo.client@demo.com');
+  const [password, setPassword] = useState('password123');
   const [showPassword, setShowPassword] = useState(false);
   const [environment, setEnv] = useState<Environment>('demo');
   const [isLoading, setIsLoading] = useState(false);
@@ -66,8 +66,8 @@ export default function Login() {
     setError('');
     setTwoFactorState(null);
     if (env === 'demo') {
-      setEmail('client.demo@example.com');
-      setPassword('demo1234');
+      setEmail('demo.client@demo.com');
+      setPassword('password123');
     } else {
       setEmail('');
       setPassword('');
@@ -395,7 +395,35 @@ export default function Login() {
                     </div>
                   )}
 
-
+                  {environment === 'demo' && (
+                    <div className="space-y-2 pt-2 border-t text-sm">
+                      <p className="text-muted-foreground text-xs uppercase font-medium">Quick Select Demo Profile:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { label: 'Messy Case', email: 'demo.client@demo.com' },
+                          { label: 'Clean Case', email: 'clean@demo.com' },
+                          { label: 'High-Conflict', email: 'conflict@demo.com' },
+                          { label: 'High-Asset', email: 'asset@demo.com' },
+                          { label: 'Custody-Heavy', email: 'custody@demo.com' },
+                          { label: 'Business Asset', email: 'business@demo.com' },
+                        ].map((profile) => (
+                          <Button
+                            key={profile.email}
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="text-xs h-7 px-2"
+                            onClick={() => {
+                              setEmail(profile.email);
+                              setPassword('password123'); // Password aligns with process.env.DEMO_PASSWORD bootstrap
+                            }}
+                          >
+                            {profile.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <Button
                     type="submit"

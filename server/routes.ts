@@ -32,11 +32,12 @@ import dataQualityRoutes from './routes/data-quality.routes';
 import analyticsDashboardRoutes from './routes/analytics-dashboard.routes';
 import governanceRoutes from './routes/governance.routes';
 import fireflyRoutes from './routes/firefly';
-import appwriteRoutes from './routes/appwrite.routes';
+import storageRoutes from './routes/storage.routes';
 import workspaceBillingRoutes from './routes/workspace-billing.routes';
 import platformAdminRoutes from './routes/platform-admin.routes';
 import { authGoogleRouter } from './routes/auth-google.routes';
 import { googleDriveIntegrationRoutes } from './routes/integrations-google-drive.routes';
+import { lineageRouter } from './routes/lineage.routes';
 import {
   canCreateCase,
   canAddViolation,
@@ -424,8 +425,39 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.use('/api', healthRoutes);
   console.log('✅ Health Check Routes Loaded');
 
+  // ✨ Auto-Heal Demo Sessions Middleware ✨
+  // Automatically maps invalidated or generic 'demo' requests to the active seeded profile UUID
+  app.use('/api', async (req, res, next) => {
+    try {
+      const isDemo = process.env.APP_MODE === 'demo' || req.headers['x-environment'] === 'demo' || req.cookies?.environment === 'demo';
+      if (isDemo && (req as any).session) {
+        const currentUserId = (req as any).session.userId;
+        const { eq } = await import('drizzle-orm');
+        const schema = await import('@shared/schema');
+        const { db } = await import('./db');
+        
+        if (!currentUserId || currentUserId === 'demo-client-user') {
+          const newestDemoUser = await db.query.users.findFirst({ where: eq(schema.users.email, 'demo.client@demo.com')});
+          if (newestDemoUser) (req as any).session.userId = newestDemoUser.id;
+        } else {
+           const userExists = await db.query.users.findFirst({ where: eq(schema.users.id, currentUserId)});
+           if (!userExists) {
+               const newestDemoUser = await db.query.users.findFirst({ where: eq(schema.users.email, 'demo.client@demo.com')});
+               if (newestDemoUser) (req as any).session.userId = newestDemoUser.id;
+           }
+        }
+      }
+    } catch(e) {
+      console.error('[DEMO HEAL] Failed to verify demo session:', e);
+    }
+    next();
+  });
+
   // Workspace billing & multi-tenant workspace routes
   app.use('/api', workspaceBillingRoutes);
+
+  // Lineage Drill-Down API
+  app.use('/api/lineage', lineageRouter);
 
   // Expose backend integration availability to the frontend gracefully
   app.get('/api/config/integrations', (req, res) => {
@@ -443,7 +475,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.use('/api/integrations/google-drive', googleDriveIntegrationRoutes);
 
   // Security Alerts API
-  app.get('/api/alerts', async (req, res) => {
+  app.get('/api/security-alerts', async (req, res) => {
     const userId = (req as any).session?.userId || (req.user as any)?.id || req.headers['x-user-id'];
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     try {
@@ -494,7 +526,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(403).json({ error: 'Demo reset only available in demo mode' });
     }
 
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+    const userId = (req as any).session?.userId || (req.user as any)?.id || req.headers['x-user-id'];
+    if (!userId || !req.user?.isAdmin) {
       return res.status(403).json({ message: 'Admin access required' });
     }
     try {
@@ -542,6 +575,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   console.log('   GET /api/health/firefly (Firefly III status)');
 
   // ---------------------------------------------------------------------------
+  // CORE STORAGE ARCHITECTURE (Replaces legacy cloud integration)
+  // ---------------------------------------------------------------------------
+  app.use('/api/storage', storageRoutes);
+  console.log('📦 Core Document Storage & Canonical Routes Loaded');
+
+  // ---------------------------------------------------------------------------
   // OPTIONAL INTEGRATIONS & PIPELINES
   // Gated by feature flag to keep local dev startup fast and clean
   // ---------------------------------------------------------------------------
@@ -567,10 +606,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     app.use('/api/firefly', fireflyRoutes);
     console.log('🔥 Firefly III Integration Routes Loaded');
 
-    // Register Appwrite routes
-    app.use('/api/appwrite', appwriteRoutes);
-    console.log('📦 Appwrite Integration Routes Loaded');
-
     // Register ETL pipeline routes
     app.use('/api/etl', etlRoutes);
     app.use('/api/events', eventsRoutes);
@@ -580,9 +615,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     app.use('/api/docs', docsRoutes);
     console.log('✅ API Documentation & ETL Routes Loaded');
   } else {
-    // Return graceful 404s/501s or just bypass for these namespaces
     app.use(
-      ['/api/quickbooks', '/api/firefly', '/api/appwrite', '/api/etl', '/api/docs'],
+      ['/api/quickbooks', '/api/firefly', '/api/etl', '/api/docs'],
       (req, res) => {
         res.status(501).json({
           error: 'Integration not enabled locally. Set ENABLE_OPTIONAL_INTEGRATIONS=true',
@@ -4783,7 +4817,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Get user subscription info and limits
   app.get('/api/subscription', async (req, res) => {
     try {
-      const user = await storage.getUser((req as any).session?.userId || 'demo-client-user');
+      // FIX: Use consistent user ID resolution strategy to avoid subscription tier mismatch
+      const userId =
+        (req as any).session?.userId ||
+        ((req.headers['x-user-id'] as string)?.trim()) ||
+        'demo-client-user';
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }

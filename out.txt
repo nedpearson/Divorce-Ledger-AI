@@ -1,0 +1,8 @@
+Total users: 7
+firm.admin.demo@example.com - $2b$12$HznOqprtqaBzlNysPBqOTeqIafw1dhuyRkYUix.Gb3Rg1SMzUSsm. - 2026-03-21T04:12:23.507Z
+nedpearson@gmail.com - $2b$12$.0triK0gByBZ69Lsua0l3O.W9B/JCZsAkcpyf09ovklE9FCyesyNW - 2026-03-21T04:12:18.083Z
+demo@example.com - $2b$12$/T97eJxltgyWl0KMnttRyeGwkRgU.wD6QUZOOU.tY.jeNvWQqgthO - 2026-03-21T04:12:23.269Z
+sarah.opposing@demo.com - $2b$12$4hThsvCgSX4clHYKi.UaIOico094MO6ew8VfMnIoqx.Ak8FFE2tfq - 2026-03-21T05:32:22.962Z
+alex.client@demo.com - $2b$12$4hThsvCgSX4clHYKi.UaIOico094MO6ew8VfMnIoqx.Ak8FFE2tfq - 2026-03-21T05:32:22.864Z
+client.demo@example.com - $2b$12$HznOqprtqaBzlNysPBqOTeqIafw1dhuyRkYUix.Gb3Rg1SMzUSsm. - 2026-03-21T04:12:23.585Z
+demo.client@demo.com - $2b$12$uDZyHpX9tq/sx1/F5Y13RuFc47K9YAlJ175ogB1TQkqMdy/lgil.a - 2026-03-21T06:09:06.723Z

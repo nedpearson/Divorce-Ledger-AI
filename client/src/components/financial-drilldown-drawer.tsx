@@ -31,6 +31,7 @@ import {
   Loader2,
   ExternalLink,
 } from 'lucide-react';
+import { useDrilldown } from '@/lib/drilldown-context';
 
 export type DrilldownType = 'assets' | 'debts' | 'income' | 'expenses' | 'transactions';
 
@@ -92,6 +93,7 @@ export function FinancialDrilldownDrawer({
   environment,
 }: FinancialDrilldownDrawerProps) {
   const [activeTab, setActiveTab] = useState('records');
+  const { openDrilldown } = useDrilldown();
 
   const { data, isLoading } = useQuery<{ records: FinancialRecord[] }>({
     queryKey: [`/api/finances/${type}?env=${environment}`],
@@ -207,7 +209,8 @@ export function FinancialDrilldownDrawer({
                     {records.map((record) => (
                       <div
                         key={record.id}
-                        className="rounded-lg border p-3 space-y-2 hover-elevate cursor-pointer"
+                        onClick={() => openDrilldown({ layer: 4, sourceEntity: 'financial_record', identifier: record.id })}
+                        className="rounded-lg border p-3 space-y-2 hover-elevate cursor-pointer border-zinc-800 hover:border-blue-500/50 transition-colors"
                         data-testid={`record-${record.id}`}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -269,6 +272,10 @@ export function FinancialDrilldownDrawer({
                               size="sm"
                               className="h-7 gap-1"
                               data-testid={`download-doc-${record.id}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openDrilldown({ layer: 5, sourceEntity: 'document', identifier: record.documentId!.toString() });
+                              }}
                             >
                               <FileText className="h-3.5 w-3.5" />
                               View PDF
@@ -307,7 +314,7 @@ export function FinancialDrilldownDrawer({
                           {records
                             .filter((r) => r.documentId)
                             .map((record) => (
-                              <TableRow key={record.id}>
+                              <TableRow key={record.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => openDrilldown({ layer: 5, sourceEntity: 'document', identifier: record.documentId!.toString() })}>
                                 <TableCell className="font-medium">
                                   {getRecordName(record)}
                                 </TableCell>
@@ -316,8 +323,12 @@ export function FinancialDrilldownDrawer({
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="gap-1"
+                                    className="gap-1 z-10"
                                     data-testid={`download-${record.id}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openDrilldown({ layer: 5, sourceEntity: 'document', identifier: record.documentId!.toString() });
+                                    }}
                                   >
                                     <Download className="h-3.5 w-3.5" />
                                     PDF

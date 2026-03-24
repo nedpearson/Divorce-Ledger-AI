@@ -121,7 +121,7 @@ export default function PricingPage() {
 
   const checkoutMutation = useMutation({
     mutationFn: async ({ planId, workspaceType }: { planId: string; workspaceType: string }) => {
-      const response = await apiRequest('POST', '/api/billing/workspace/checkout', {
+      const response = await apiRequest('POST', '/api/billing/checkout', {
         planId,
         workspaceType,
       });

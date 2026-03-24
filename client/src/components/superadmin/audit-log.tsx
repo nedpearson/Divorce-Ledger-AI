@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Download } from 'lucide-react';
+import { useDrilldown } from '@/lib/drilldown-context';
 
 export default function SuperAdminAuditLog() {
+  const { openDrilldown } = useDrilldown();
   const [actionFilter, setActionFilter] = useState('');
   const [userFilter, setUserFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -120,7 +122,16 @@ export default function SuperAdminAuditLog() {
           </thead>
           <tbody>
             {data?.entries?.map((entry: any) => (
-              <tr key={entry.id} className="border-b hover:bg-muted/20 transition-colors">
+              <tr 
+                key={entry.id} 
+                className="border-b hover:bg-muted/20 transition-colors cursor-pointer"
+                onClick={() => openDrilldown({
+                  layer: 4,
+                  sourceEntity: 'audit_log',
+                  identifier: String(entry.id),
+                  context: { filters: { action: entry.actionType, target: entry.targetType } }
+                })}
+              >
                 <td className="p-2">
                   <span
                     className={`px-1.5 py-0.5 rounded text-xs font-medium ${colorForAction(entry.actionType)}`}

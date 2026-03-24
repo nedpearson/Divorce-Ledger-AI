@@ -57,7 +57,7 @@ import type { Income, Expense, Asset, Debt } from '@shared/schema';
 import { useAuth } from '@/lib/auth';
 import { DrillDownValue } from '@/components/ui/drilldown-value';
 import { type DrilldownType } from '@/components/financial-drilldown-drawer';
-import { RecordDetailDrawer } from '@/components/record-detail-drawer';
+import { useDrilldown } from '@/lib/drilldown-context';
 
 type RecordType = 'income' | 'expense' | 'asset' | 'debt';
 type FinancialRecord = Income | Expense | Asset | Debt;
@@ -224,7 +224,8 @@ function IncomeTab({ onRecordClick }: TabProps) {
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold tabular-nums">
-                        {formatCurrency(income.amount)}/mo
+                        {formatCurrency(income.amount)}
+                        {income.frequency === 'monthly' ? '/mo' : income.frequency === 'annual' ? '/yr' : income.frequency === 'weekly' ? '/wk' : income.frequency === 'bi-weekly' ? '/bi-wk' : ''}
                       </span>
                       {income.verified ? (
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -234,14 +235,18 @@ function IncomeTab({ onRecordClick }: TabProps) {
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2 flex-wrap">
-                    <div className="flex items-center gap-1">
-                      <Building2 className="h-3 w-3" />
-                      <span>{income.vendor || 'Not specified'}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>{income.startDate || 'No date'}</span>
-                    </div>
+                    {income.vendor && (
+                      <div className="flex items-center gap-1">
+                        <Building2 className="h-3 w-3" />
+                        <span>{income.vendor}</span>
+                      </div>
+                    )}
+                    {income.startDate && (
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{income.startDate}</span>
+                      </div>
+                    )}
                     {income.documentId && (
                       <div className="flex items-center gap-1 text-primary">
                         <FileText className="h-3 w-3" />
@@ -597,19 +602,24 @@ function ExpensesTab({ onRecordClick }: TabProps) {
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="text-sm font-medium">{expense.category}</span>
                     <span className="text-sm font-semibold tabular-nums">
-                      {formatCurrency(expense.amount)}/mo
+                      {formatCurrency(expense.amount)}
+                      {expense.frequency === 'monthly' ? '/mo' : expense.frequency === 'annual' ? '/yr' : expense.frequency === 'weekly' ? '/wk' : expense.frequency === 'quarterly' ? '/qtr' : ''}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mb-2">{expense.description}</p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2 flex-wrap">
-                    <div className="flex items-center gap-1">
-                      <Building2 className="h-3 w-3" />
-                      <span>{expense.vendor || 'Not specified'}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>{expense.startDate || 'No date'}</span>
-                    </div>
+                    {expense.vendor && (
+                      <div className="flex items-center gap-1">
+                        <Building2 className="h-3 w-3" />
+                        <span>{expense.vendor}</span>
+                      </div>
+                    )}
+                    {expense.startDate && (
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{expense.startDate}</span>
+                      </div>
+                    )}
                     {expense.documentId && (
                       <div className="flex items-center gap-1 text-primary">
                         <FileText className="h-3 w-3" />
@@ -1371,15 +1381,16 @@ function DebtsTab({ onRecordClick }: TabProps) {
 
 export default function Finances() {
   const { environment } = useAuth();
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<FinancialRecord | null>(null);
-  const [selectedRecordType, setSelectedRecordType] = useState<RecordType>('income');
+  const { openDrilldown } = useDrilldown();
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
 
   const handleRecordClick = (record: FinancialRecord, type: RecordType) => {
-    setSelectedRecord(record);
-    setSelectedRecordType(type);
-    setDetailOpen(true);
+    openDrilldown({
+      layer: 4,
+      sourceEntity: 'financial_record',
+      identifier: String(record.id),
+      context: { filters: { type, category: 'category' in record ? record.category : '' } }
+    });
   };
 
   const exportAllFinances = async () => {
@@ -1516,13 +1527,6 @@ export default function Finances() {
           <DebtsTab onRecordClick={(record) => handleRecordClick(record, 'debt')} />
         </TabsContent>
       </Tabs>
-
-      <RecordDetailDrawer
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        recordType={selectedRecordType}
-        record={selectedRecord}
-      />
 
       <FinancialExtractionDialog open={scanDialogOpen} onOpenChange={setScanDialogOpen} />
 

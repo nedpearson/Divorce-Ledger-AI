@@ -28,9 +28,10 @@ import type { DashboardStats, Transaction, Alert as AlertType } from '@shared/sc
 import { useAuth } from '@/lib/auth';
 import { FeedbackCTA } from '@/components/feedback-cta';
 import { DrillDownValue } from '@/components/ui/drilldown-value';
-import { type DrilldownType } from '@/components/financial-drilldown-drawer';
+import { DrilldownType } from '@/components/financial-drilldown-drawer';
 import { useDrilldown } from '@/lib/drilldown-context';
 import { RecordDetailDrawer } from '@/components/record-detail-drawer';
+import { EmptyState } from '@/components/ui/empty-state';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -535,10 +536,7 @@ export default function Dashboard() {
             <StatCard
               title="Total Assets"
               value={formatCurrency(totalAssets)}
-              subtitle="Marital Assets"
               subtitleValue={formatCurrency(maritalAssets)}
-              trend="up"
-              trendValue="3%"
               icon={Wallet}
               drilldownType="assets"
             />
@@ -546,9 +544,7 @@ export default function Dashboard() {
               title="Total Debts"
               value={formatCurrency(totalDebts)}
               subtitle="Monthly Payment"
-              subtitleValue={formatCurrency(3200)}
-              trend="down"
-              trendValue="2%"
+              subtitleValue={formatCurrency(stats?.monthlyDebtPayments ?? 0)}
               icon={CreditCard}
               drilldownType="debts"
             />
@@ -556,7 +552,7 @@ export default function Dashboard() {
               title="Monthly Income"
               value={formatCurrency(monthlyIncome)}
               subtitle="Your Portion"
-              subtitleValue={formatCurrency(monthlyIncome * 0.55)}
+              subtitleValue={formatCurrency(stats?.yourIncome ?? 0)}
               icon={DollarSign}
               drilldownType="income"
             />
@@ -564,7 +560,7 @@ export default function Dashboard() {
               title="Monthly Expenses"
               value={formatCurrency(monthlyExpenses)}
               subtitle="Unaccounted"
-              subtitleValue={formatCurrency(2100)}
+              subtitleValue={formatCurrency(stats?.unaccountedExpenses ?? 0)}
               icon={Home}
               drilldownType="expenses"
             />
@@ -574,16 +570,16 @@ export default function Dashboard() {
             <PaymentCard
               title="Child Support"
               amount={stats?.childSupportOwed ?? 0}
-              dueDate="Jan 5"
-              isPaid={false}
+              dueDate={stats?.childSupportDate || 'No pending'}
+              isPaid={stats?.childSupportOwed === 0}
               icon={Users}
               drilldownType="transactions"
             />
             <PaymentCard
               title="Alimony"
               amount={stats?.alimonyOwed ?? 0}
-              dueDate="Jan 3"
-              isPaid={true}
+              dueDate={stats?.alimonyDate || 'No pending'}
+              isPaid={stats?.alimonyOwed === 0}
               icon={Heart}
               drilldownType="expenses"
             />
@@ -621,9 +617,11 @@ export default function Dashboard() {
                         />
                       ))
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No recent transactions
-                    </p>
+                    <EmptyState 
+                      title="No recent transactions" 
+                      description="Your latest financial actions will appear here." 
+                      className="py-10 border-none bg-transparent"
+                    />
                   )}
                 </div>
               </CardContent>
@@ -652,9 +650,11 @@ export default function Dashboard() {
                   {alerts && alerts.length > 0 ? (
                     alerts.slice(0, 4).map((alert) => <AlertRow key={alert.id} alert={alert} />)
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No active alerts
-                    </p>
+                    <EmptyState 
+                      title="No active alerts" 
+                      description="Your account is completely up to date." 
+                      className="py-10 border-none bg-transparent"
+                    />
                   )}
                 </div>
               </CardContent>

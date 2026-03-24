@@ -90,6 +90,8 @@ export function validateFireflyEnv(): {
 }
 
 export function logFireflyConfigStatus(): void {
+  if (process.env.ENABLE_OPTIONAL_INTEGRATIONS !== 'true') return;
+
   const validation = validateFireflyEnv();
   const config = getFireflyEnvConfig();
 

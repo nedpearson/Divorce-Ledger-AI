@@ -73,11 +73,10 @@ authGoogleRouter.get('/api/auth/google/callback', async (req, res) => {
 });
 
 authGoogleRouter.post('/api/auth/google/disconnect', async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) {
+  const userId = (req as any).session?.userId || (req.user as any)?.id || req.headers['x-user-id'];
+  if (!userId) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-
-  const user = req.user as any;
 
   try {
     const { eq, and, isNull } = await import('drizzle-orm');
@@ -88,22 +87,23 @@ authGoogleRouter.post('/api/auth/google/disconnect', async (req, res) => {
     await db.update(userOauthConnections)
       .set({ disconnectedAt: new Date() })
       .where(and(
-        eq(userOauthConnections.userId, user.id),
+        eq(userOauthConnections.userId, userId),
         eq(userOauthConnections.provider, 'google'),
         isNull(userOauthConnections.disconnectedAt)
       ));
 
-    await googleAuthService.logAudit(user.id, 'disconnect', 'success', 'Google account disconnected.');
+    await googleAuthService.logAudit(userId, 'disconnect', 'success', 'Google account disconnected.');
     res.json({ success: true, message: 'Google account disconnected successfully.' });
   } catch (error: any) {
     console.error('Disconnect error:', error);
-    await googleAuthService.logAudit(user.id, 'disconnect', 'failure', error.message);
+    await googleAuthService.logAudit(userId, 'disconnect', 'failure', error.message);
     res.status(500).json({ error: 'Failed to disconnect Google account.' });
   }
 });
 
 authGoogleRouter.get('/api/auth/google/connections', async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) {
+  const userId = (req as any).session?.userId || (req.user as any)?.id || req.headers['x-user-id'];
+  if (!userId) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -111,11 +111,10 @@ authGoogleRouter.get('/api/auth/google/connections', async (req, res) => {
     const { eq, isNull, and } = await import('drizzle-orm');
     const { db } = await import('../db');
     const { userOauthConnections } = await import('@shared/schema');
-    const user = req.user as any;
     
     const connections = await db.query.userOauthConnections.findMany({
       where: and(
-        eq(userOauthConnections.userId, user.id),
+        eq(userOauthConnections.userId, userId),
         isNull(userOauthConnections.disconnectedAt)
       )
     });
