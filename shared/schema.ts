@@ -767,6 +767,23 @@ export const insertDemoMetaSchema = createInsertSchema(demoMeta);
 export type InsertDemoMeta = z.infer<typeof insertDemoMetaSchema>;
 export type DemoMeta = typeof demoMeta.$inferSelect;
 
+// Mobile Pairing Tokens for QR Code Login
+export const mobilePairingTokens = pgTable('mobile_pairing_tokens', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  environment: text('environment').notNull(),
+  token: varchar('token', { length: 128 }).notNull().unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const insertMobilePairingTokenSchema = createInsertSchema(mobilePairingTokens).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertMobilePairingToken = z.infer<typeof insertMobilePairingTokenSchema>;
+export type MobilePairingToken = typeof mobilePairingTokens.$inferSelect;
+
 // Calendar events table
 export const calendarEvents = pgTable('calendar_events', {
   id: varchar('id')

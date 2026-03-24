@@ -121,6 +121,9 @@ import {
   type InsertFireflyConnection,
   type FireflySyncLog,
   type InsertFireflySyncLog,
+  type MobilePairingToken,
+  type InsertMobilePairingToken,
+  mobilePairingTokens,
 } from '@shared/schema';
 
 export interface IStorage {
@@ -394,6 +397,10 @@ export interface IStorage {
 
   // Demo reset
   resetDemoEnvironment(): Promise<void>;
+
+  // Mobile Pairing Tokens
+  createMobilePairingToken(token: InsertMobilePairingToken): Promise<MobilePairingToken>;
+  consumeMobilePairingToken(tokenStr: string): Promise<MobilePairingToken | undefined>;
 
   // ============================================
   // FIREFLY III INTEGRATION
@@ -2475,6 +2482,19 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(eq(fireflySyncLogs.sourceType, sourceType), eq(fireflySyncLogs.sourceId, sourceId))
       );
+    return result[0];
+  }
+
+  async createMobilePairingToken(token: InsertMobilePairingToken): Promise<MobilePairingToken> {
+    const result = await db.insert(mobilePairingTokens).values(token).returning();
+    return result[0];
+  }
+
+  async consumeMobilePairingToken(tokenStr: string): Promise<MobilePairingToken | undefined> {
+    const result = await db
+      .delete(mobilePairingTokens)
+      .where(eq(mobilePairingTokens.token, tokenStr))
+      .returning();
     return result[0];
   }
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Smartphone, X, ExternalLink, QrCode, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -16,7 +17,7 @@ function getMobileUrl(): string {
 
   const { protocol, hostname, port } = window.location;
   const portPart = port ? `:${port}` : '';
-  return `${protocol}//${hostname}${portPart}/mobile`;
+  return `${protocol}//${hostname}${portPart}/api/mobile/pair`; // Change from /mobile directly, logic appends token later
 }
 
 function isLocalhost(): boolean {
@@ -28,8 +29,21 @@ function isLocalhost(): boolean {
 
 export function MobileAppHeaderButton() {
   const [open, setOpen] = useState(false);
-  const mobileUrl = getMobileUrl();
+  const baseUrl = getMobileUrl();
   const local = isLocalhost();
+
+  const { data: pairingData, isLoading } = useQuery({
+    queryKey: ['mobile-pairing-token'],
+    queryFn: async () => {
+      const res = await fetch('/api/mobile/pairing-token', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to generate pairing token');
+      return res.json();
+    },
+    enabled: open && !local,
+    refetchInterval: 4 * 60 * 1000, // Refresh every 4m to ensure unexpired token
+  });
+
+  const mobileUrl = pairingData?.token ? `${baseUrl}?token=${pairingData.token}` : baseUrl;
 
   return (
     <Popover
@@ -95,8 +109,12 @@ export function MobileAppHeaderButton() {
         ) : (
           <>
             {/* QR Code */}
-            <div className="flex justify-center bg-white rounded-lg p-3 mb-2 border">
-              <QRCodeSVG value={mobileUrl} size={160} level="M" includeMargin={false} />
+            <div className="flex justify-center bg-white rounded-lg p-3 mb-2 border min-h-[160px] items-center">
+              {isLoading ? (
+                <div className="text-xs text-muted-foreground animate-pulse">Generating Secure Link...</div>
+              ) : (
+                <QRCodeSVG value={mobileUrl} size={160} level="M" includeMargin={false} />
+              )}
             </div>
 
             {/* Direct link */}
@@ -124,8 +142,21 @@ export function MobileAppHeaderButton() {
 // ─── Full card variant for signup / onboarding ───────────────────────────────
 
 export function MobileAppSignupCard({ onDismiss }: { onDismiss?: () => void }) {
-  const mobileUrl = getMobileUrl();
+  const baseUrl = getMobileUrl();
   const local = isLocalhost();
+
+  const { data: pairingData, isLoading } = useQuery({
+    queryKey: ['mobile-pairing-token', 'signup-card'],
+    queryFn: async () => {
+      const res = await fetch('/api/mobile/pairing-token', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to generate pairing token');
+      return res.json();
+    },
+    enabled: !local,
+    refetchInterval: 4 * 60 * 1000, 
+  });
+
+  const mobileUrl = pairingData?.token ? `${baseUrl}?token=${pairingData.token}` : baseUrl;
 
   return (
     <Card className="border-primary/30 bg-primary/5 mt-4">
@@ -177,8 +208,12 @@ export function MobileAppSignupCard({ onDismiss }: { onDismiss?: () => void }) {
         ) : (
           <div className="flex gap-4 items-center">
             {/* QR Code */}
-            <div className="bg-white rounded-lg p-2 border shrink-0">
-              <QRCodeSVG value={mobileUrl} size={96} level="M" includeMargin={false} />
+            <div className="bg-white rounded-lg p-2 border shrink-0 min-h-[96px] min-w-[96px] flex items-center justify-center">
+              {isLoading ? (
+                <div className="text-[10px] text-muted-foreground text-center">Loading...</div>
+              ) : (
+                <QRCodeSVG value={mobileUrl} size={96} level="M" includeMargin={false} />
+              )}
             </div>
 
             {/* Instructions + link */}

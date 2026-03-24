@@ -735,6 +735,70 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   }
 
+  // Mobile Device Secure Pairing endpoints
+  app.post('/api/mobile/pairing-token', requireAuth, async (req, res) => {
+    try {
+      const userId = (req as any).session?.userId || (req.user as any)?.id || req.headers['x-user-id'];
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+      const environment = req.headers['x-environment'] as string || req.cookies?.environment || 'demo';
+      
+      const tokenStr = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes magic link
+
+      const tokenRecord = await storage.createMobilePairingToken({
+        userId,
+        environment,
+        token: tokenStr,
+        expiresAt
+      });
+
+      res.json({ token: tokenRecord.token, expiresAt: tokenRecord.expiresAt });
+    } catch (error) {
+      console.error('Pairing token generation error:', error);
+      res.status(500).json({ error: 'Failed to generate token' });
+    }
+  });
+
+  app.get('/api/mobile/pair', async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) return res.redirect('/login?error=Invalid pairing token');
+      
+      const pairing = await storage.consumeMobilePairingToken(token);
+      if (!pairing || pairing.expiresAt < new Date()) {
+        return res.redirect('/login?error=Pairing link expired or invalid');
+      }
+
+      const user = await storage.getUser(pairing.userId);
+      if (!user) return res.redirect('/login?error=User not found');
+
+      const refreshTokenHash = crypto.randomBytes(32).toString('hex');
+      const session = await storage.createSession({
+        userId: user.id,
+        deviceId: null,
+        refreshTokenHash,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        mfaVerified: false,
+      });
+
+      res.clearCookie('session_id', { path: '/' });
+      res.cookie('session_id', session.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+      res.cookie('environment', pairing.environment, { path: '/' });
+
+      res.redirect('/mobile');
+    } catch (error) {
+      console.error('Mobile pair error:', error);
+      res.redirect('/login?error=Pairing failed');
+    }
+  });
+
   app.get('/api/auth/demo-auto-login', async (req, res) => {
     try {
       if (process.env.DEMO_MODE !== 'true') return res.redirect('/login');

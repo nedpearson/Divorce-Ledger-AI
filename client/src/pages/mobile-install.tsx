@@ -5,16 +5,31 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Smartphone, Wifi, Download, CheckCircle2, Copy } from 'lucide-react';
 
+import { useQuery } from '@tanstack/react-query';
+
 /**
  * Mobile Install Page
  *
- * Displays QR code for mobile app installation
+ * Displays QR code for mobile app installation with secure pairing
  * Shows instructions for installing PWA and syncing offline data
  */
 export default function MobileInstallPage() {
-  const [installUrl, setInstallUrl] = useState('');
+  const [baseUrl, setBaseUrl] = useState('');
   const [copied, setCopied] = useState(false);
   const [localIp, setLocalIp] = useState<string | null>(null);
+
+  const { data: pairingData, isLoading } = useQuery({
+    queryKey: ['mobile-pairing-token', 'full-page'],
+    queryFn: async () => {
+      const res = await fetch('/api/mobile/pairing-token', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to generate pairing token');
+      return res.json();
+    },
+    // Keep it fresh so the QR code doesn't magically expire before they scan it
+    refetchInterval: 4 * 60 * 1000, 
+  });
+
+  const installUrl = pairingData?.token && baseUrl ? `${baseUrl}?token=${pairingData.token}` : baseUrl;
 
   useEffect(() => {
     // Try to get local IP first
@@ -29,8 +44,9 @@ export default function MobileInstallPage() {
         if (data.localIp) {
           // Use local IP address for mobile access
           const port = data.port || '5000';
-          const url = `http://${data.localIp}:${port}/home?source=pwa`;
-          setInstallUrl(url);
+          // Change to /api/mobile/pair endpoint
+          const url = `http://${data.localIp}:${port}/api/mobile/pair`;
+          setBaseUrl(url);
           setLocalIp(data.localIp);
           return;
         }
@@ -39,9 +55,9 @@ export default function MobileInstallPage() {
       console.error('Failed to get network info:', error);
     }
 
-    // Fallback: use current origin (might be localhost)
-    const url = `${window.location.origin}/home?source=pwa`;
-    setInstallUrl(url);
+    // Fallback: use current origin
+    const url = `${window.location.origin}/api/mobile/pair`;
+    setBaseUrl(url);
 
     // Check if we're already on a local IP
     if (
@@ -83,9 +99,13 @@ export default function MobileInstallPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center space-y-4">
-            {installUrl && (
-              <div className="bg-white p-8 rounded-lg shadow-inner">
-                <QRCodeSVG value={installUrl} size={256} level="H" includeMargin={true} />
+            {installUrl && baseUrl && (
+              <div className="bg-white p-8 rounded-lg shadow-inner min-h-[256px] flex items-center justify-center">
+                {isLoading ? (
+                  <div className="text-sm text-muted-foreground animate-pulse">Generating Secure Profile Link...</div>
+                ) : (
+                  <QRCodeSVG value={installUrl} size={256} level="H" includeMargin={true} />
+                )}
               </div>
             )}
 

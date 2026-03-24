@@ -8,6 +8,13 @@
       "when": 1774044848450,
       "tag": "0000_parched_captain_flint",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774384996216,
+      "tag": "0001_pale_mauler",
+      "breakpoints": true
     }
   ]
 }
