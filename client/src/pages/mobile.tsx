@@ -111,6 +111,9 @@ const MobileAppBanner = lazy(() =>
   import('@/components/mobile-app-banner').then((m) => ({ default: m.MobileAppHeaderButton }))
 );
 
+import DesktopHome from './home';
+
+
 // Build auth headers (X-User-Id + X-Environment) for inline fetch() calls on the mobile page.
 // Mirrors getAuthHeaders() in queryClient.ts so that API routes requiring X-User-Id work
 // when accessed from a phone (which has its own session cookie but stores userId in localStorage).
@@ -3284,7 +3287,6 @@ export default function MobileView() {
   const [, setLocation] = useLocation();
   const { environment } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('documents');
 
   const { isOnline, pendingCount, isSyncing, sync, isInstallable, installApp } = useOfflineSync();
 
@@ -3327,39 +3329,9 @@ export default function MobileView() {
 
       <OfflineBanner isOnline={isOnline} pendingCount={pendingCount} />
 
-      <FinancialSummaryBar isDemoMode={isDemoMode} environment={environment} />
-      <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
-        <MobileAppBanner />
-      </Suspense>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid grid-cols-2 mx-4 mt-2" data-testid="tabs-mobile-navigation">
-          <TabsTrigger
-            value="documents"
-            className="flex items-center gap-2"
-            data-testid="tab-documents"
-          >
-            <FileText className="h-4 w-4" />
-            Documents
-          </TabsTrigger>
-          <TabsTrigger
-            value="violations"
-            className="flex items-center gap-2"
-            data-testid="tab-violations"
-          >
-            <AlertTriangle className="h-4 w-4" />
-            Violations
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="documents" className="flex-1 mt-0 data-[state=active]:flex flex-col">
-          <DocumentsTab isDemoMode={isDemoMode} />
-        </TabsContent>
-
-        <TabsContent value="violations" className="flex-1 mt-0 data-[state=active]:flex flex-col">
-          <ViolationsAndReimbursementsTab isDemoMode={isDemoMode} />
-        </TabsContent>
-      </Tabs>
+      <div className="flex-1 overflow-auto bg-background">
+        <DesktopHome />
+      </div>
     </div>
   );
 }

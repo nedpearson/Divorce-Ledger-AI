@@ -18,6 +18,7 @@ export class WebSocketService {
       'http://localhost:5000',
       'https://divorceledger.replit.app',
       'https://divorceledger.live',
+      'https://www.divorceledger.live',
     ];
 
     const baseOrigin = getBaseOrigin();

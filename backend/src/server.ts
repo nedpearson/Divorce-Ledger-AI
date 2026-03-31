@@ -38,6 +38,7 @@ export async function createServer(): Promise<FastifyInstance> {
       'http://localhost:3000',
       'http://localhost:5000',
       'https://divorceledger.live',
+      'https://www.divorceledger.live',
       'https://divorceledger.replit.app',
     ];
     // Patch: Add Supabase public URL to allowedOrigins
