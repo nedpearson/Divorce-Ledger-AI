@@ -13,6 +13,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { SubscriptionBadge } from '@/components/upgrade-prompt';
 import { DrilldownProvider } from '@/lib/drilldown-context';
 import { Bell, Loader2, RefreshCw, TestTube2 } from 'lucide-react';
+import { NotificationsBell } from '@/components/notifications-bell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { GlobalSecurityBanner } from '@/components/security-banner';
@@ -132,7 +133,6 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
                   size="icon"
                   onClick={() => {
                     queryClient.invalidateQueries();
-                    // Avoid direct window.location.reload() in a tight loop
                     const now = Date.now();
                     const lastReload = parseInt(sessionStorage.getItem('lastManualReload') || '0');
                     if (now - lastReload > 5000) {
@@ -145,9 +145,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
                 >
                   <RefreshCw className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" data-testid="button-notifications">
-                  <Bell className="h-4 w-4" />
-                </Button>
+                <NotificationsBell />
                 <SyncStatusIndicator />
                 <MobileAppHeaderButton />
                 <ThemeToggle />

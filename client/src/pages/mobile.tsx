@@ -112,6 +112,7 @@ const MobileAppBanner = lazy(() =>
 );
 
 import DesktopHome from './home';
+import { NotificationsBell } from '@/components/notifications-bell';
 
 
 // Build auth headers (X-User-Id + X-Environment) for inline fetch() calls on the mobile page.
@@ -947,9 +948,7 @@ function MobileHeader({
           </Button>
         )}
 
-        <Button size="icon" variant="ghost" data-testid="button-mobile-notifications">
-          <Bell className="h-5 w-5" />
-        </Button>
+        <NotificationsBell isMobile />
       </div>
     </header>
   );
