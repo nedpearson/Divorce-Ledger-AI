@@ -245,6 +245,7 @@ export default function DocumentManager() {
     },
     onSuccess: () => {
       toast({ title: 'Analysis Started', description: 'Document is being analyzed.' });
+      setProcessingFilesDetected(true); // kick off fast polling immediately
       queryClient.invalidateQueries({ queryKey: ['/api/storage/files'] });
     },
     onError: (error: Error) => {
@@ -403,8 +404,8 @@ export default function DocumentManager() {
               <div className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap mt-1">
                 <span>{formatFileSize(file.fileSize)}</span>
                 <span>-</span>
-                <span title={new Date(file.$updatedAt).toLocaleString()}>
-                  {formatRelativeTime(file.$updatedAt)}
+                <span title={new Date(file.$createdAt || (file as any).createdAt || Date.now()).toLocaleString()}>
+                  {formatRelativeTime(file.$createdAt || (file as any).createdAt || new Date().toISOString())}
                 </span>
                 {file.category && (
                   <>

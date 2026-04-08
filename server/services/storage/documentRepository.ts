@@ -88,22 +88,32 @@ export class DocumentRepository {
   async updateDocument(documentId: string, updates: Partial<DocumentMetadata>): Promise<DocumentMetadata> {
     const table = this.getTable();
     
-    // Convert abstract status back to DB status
+    // Convert abstract status back to DB column names
     const dbUpdates: any = {};
-    if (updates.status) {
+    if (updates.status !== undefined) {
       if ('aiAnalysisStatus' in table) dbUpdates.aiAnalysisStatus = this.mapStatusDB(updates.status);
       if ('status' in table) dbUpdates.status = this.mapStatusDB(updates.status);
     }
-    if (updates.category) dbUpdates.category = updates.category;
-    if (updates.suggestedCategory) dbUpdates.category = updates.suggestedCategory;
-    if (updates.extractedText) dbUpdates.aiExtractedText = updates.extractedText; // Map to correct DB column if required
-    if (updates.aiSummary) dbUpdates.aiSummary = updates.aiSummary;
+    if (updates.category !== undefined) dbUpdates.category = updates.category;
+    if (updates.suggestedCategory !== undefined) dbUpdates.aiCategory = updates.suggestedCategory;
+    if (updates.extractedText !== undefined) dbUpdates.aiExtractedText = updates.extractedText;
+    if (updates.aiSummary !== undefined) dbUpdates.aiSummary = updates.aiSummary;
+    if (updates.aiConfidence !== undefined) dbUpdates.aiConfidence = updates.aiConfidence;
+    if (updates.description !== undefined) dbUpdates.description = updates.description;
+    if (updates.title !== undefined) dbUpdates.title = updates.title;
+    // errorMessage: persisted into description as a note when no dedicated column exists
+    if (updates.errorMessage !== undefined) {
+      dbUpdates.description = updates.errorMessage;
+    }
+    // Always stamp updatedAt
+    dbUpdates.updatedAt = new Date();
 
     const [updated] = await db.update(table)
       .set(dbUpdates)
       .where(eq(table.id, documentId))
       .returning();
-      
+    
+    if (!updated) throw new Error(`Document ${documentId} not found during update`);
     return this.mapToClientShape(updated);
   }
 
