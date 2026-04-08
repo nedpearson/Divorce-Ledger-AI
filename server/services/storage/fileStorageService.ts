@@ -78,7 +78,12 @@ export class FileStorageService {
     }
 
     // 2. Fallback to Canonical Object Storage (requires public bucket via env)
-    const publicPaths = objectStorageService.getPublicObjectSearchPaths();
+    let publicPaths: string[] = [];
+    try {
+      publicPaths = objectStorageService.getPublicObjectSearchPaths();
+    } catch {
+      // env var not set — handled below
+    }
     if (publicPaths.length === 0) {
       console.warn('[Storage] No cloud storage configured. Falling back to mock URL for local development.');
       return {
@@ -127,7 +132,12 @@ export class FileStorageService {
       return buffer;
     }
 
-    const publicPaths = objectStorageService.getPublicObjectSearchPaths();
+    let publicPaths: string[] = [];
+    try {
+      publicPaths = objectStorageService.getPublicObjectSearchPaths();
+    } catch {
+      // env var not set — handled below
+    }
     if (publicPaths.length === 0) {
       console.warn('[Storage] Mock environment reading empty buffer.');
       return Buffer.from('Mock content', 'utf8');

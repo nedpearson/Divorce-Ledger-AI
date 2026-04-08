@@ -52,9 +52,9 @@ export class DocumentRepository {
       fileName: data.fileName || data.title || 'Untitled Document',
       fileType: data.fileType,
       fileSize: data.fileSize,
-      title: data.title || data.fileName,
+      title: data.title || data.fileName || 'Untitled Document',
       description: data.description,
-      category: data.category,
+      category: data.category || 'other',
       environment: process.env.APP_MODE || 'demo',
       // Store the hash or storage ID based on available columns
       // (This safely bridges the schema.ts differences)
