@@ -164,20 +164,36 @@ router.post('/files/:id/analyze', async (req: MulterRequest, res: Response) => {
     const { userId, error: authError } = getUserIdOrThrow(req);
     if (authError) return res.status(401).json({ error: authError });
 
+    const doc = await documentRepository.getDocument(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+
     const canAccess = await fileAccessService.canAccessDocument(userId, req.params.id);
     if (!canAccess) return res.status(403).json({ error: 'Unauthorized' });
+
+    // Update status to queued so the UI shows progress
+    await documentRepository.updateDocument(req.params.id, { status: 'queued' });
 
     // Explicit Azure Orchestrator triggering for Retry/Analyze 
     setImmediate(() => analysisOrchestrator.processDocument(req.params.id));
 
     res.json({ success: true, message: 'Reanalysis requested' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed' });
+    console.error('[Storage Routes] Analyze error:', error);
+    res.status(500).json({ error: 'Failed to trigger analysis' });
   }
 });
 
 router.post('/files/:id/retry', async (req: MulterRequest, res: Response) => {
   try {
+    const { userId, error: authError } = getUserIdOrThrow(req);
+    if (authError) return res.status(401).json({ error: authError });
+
+    const doc = await documentRepository.getDocument(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+    const canAccess = await fileAccessService.canAccessDocument(userId, req.params.id);
+    if (!canAccess) return res.status(403).json({ error: 'Unauthorized' });
+
     await documentRepository.updateDocument(req.params.id, { status: 'queued' });
     setImmediate(() => analysisOrchestrator.processDocument(req.params.id));
     res.json({ success: true, message: 'File queued for retry' });

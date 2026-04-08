@@ -133,10 +133,17 @@ export class DocumentRepository {
       status = dbRow.status || 'uploaded';
     }
 
+    const docId = dbRow.id.toString();
+    const createdAt = dbRow.createdAt ? new Date(dbRow.createdAt).toISOString() : new Date().toISOString();
+    const updatedAt = dbRow.updatedAt ? new Date(dbRow.updatedAt).toISOString() : createdAt;
+
     return {
-      id: dbRow.id.toString(), // Map native $id
+      id: docId,
+      $id: docId,          // Appwrite-style alias — frontend StoredFile uses file.$id
+      $createdAt: createdAt,
+      $updatedAt: updatedAt,
       userId: dbRow.userId,
-      storageFileId: dbRow.id.toString(),
+      storageFileId: docId,
       fileName: dbRow.fileName || dbRow.title || 'Unknown',
       fileType: dbRow.fileType || 'application/pdf',
       fileSize: dbRow.fileSize || 0,
@@ -150,7 +157,7 @@ export class DocumentRepository {
       aiConfidence: dbRow.aiConfidence || 0.9,
       title: dbRow.title,
       description: dbRow.description,
-      createdAt: dbRow.createdAt || new Date().toISOString()
+      createdAt,
     };
   }
 
