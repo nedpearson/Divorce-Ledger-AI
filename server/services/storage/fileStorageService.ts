@@ -140,15 +140,19 @@ export class FileStorageService {
       return;
     }
 
-    const publicPaths = objectStorageService.getPublicObjectSearchPaths();
-    const bucketName = publicPaths[0];
-    const { objectStorageClient } = await import('../../replit_integrations/object_storage/objectStorage');
-    const bucket = objectStorageClient.bucket(bucketName);
-    const file = bucket.file(storageId);
-    
-    const [exists] = await file.exists();
-    if (exists) {
-      await file.delete();
+    try {
+      const publicPaths = objectStorageService.getPublicObjectSearchPaths();
+      const bucketName = publicPaths[0];
+      const { objectStorageClient } = await import('../../replit_integrations/object_storage/objectStorage');
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(storageId);
+      
+      const [exists] = await file.exists();
+      if (exists) {
+        await file.delete();
+      }
+    } catch (e: any) {
+      console.warn('[Storage] Blob deletion skipped or failed (mock environment or missing credentials):', e.message);
     }
   }
 

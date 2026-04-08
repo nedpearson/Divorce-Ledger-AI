@@ -204,6 +204,7 @@ router.delete('/files/:id', async (req: MulterRequest, res: Response) => {
 
     res.json({ success: true, message: 'Recursively deleted' });
   } catch (error) {
+    console.error('[Storage Routes] DELETE Error:', error);
     res.status(500).json({ error: 'Failed to delete' });
   }
 });
