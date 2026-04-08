@@ -20,6 +20,9 @@ export class FileAccessService {
     
     // Simplest tenant validation: document strictly belongs to this user ID
     // Later, this can expand to teamId or attorney sharing grants
+    if (doc.userId !== userId) {
+      console.log(`[Access Denied] doc.userId: ${doc.userId} !== userId: ${userId} for doc: ${documentId}`);
+    }
     return doc.userId === userId;
   }
 

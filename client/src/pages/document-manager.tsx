@@ -256,6 +256,10 @@ export default function DocumentManager() {
     mutationFn: async (fileId: string) => {
       const res = await apiRequest('DELETE', `/api/storage/files/${fileId}`);
       if (!res.ok) {
+        if (res.status === 404) {
+          // Document already deleted or doesn't exist, treat as success
+          return { success: true };
+        }
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || `Delete failed with status ${res.status}`);
       }
