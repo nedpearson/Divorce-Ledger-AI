@@ -24,11 +24,11 @@ export class AzureDocumentIntelligenceProvider {
     const endpoint = process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT;
     const key = process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY;
 
-    if (endpoint && key) {
+    if (endpoint && key && !endpoint.includes('YOUR-')) {
       this.client = new DocumentAnalysisClient(endpoint, new AzureKeyCredential(key));
       logger.info('Azure Document Intelligence natively initialized');
     } else {
-      logger.warn('Azure Document Intelligence credentials missing. Fallback mock OCR enabled.');
+      logger.warn('Azure Document Intelligence credentials missing or placeholder. Fallback mock OCR enabled.');
     }
   }
 

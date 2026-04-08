@@ -578,6 +578,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // CORE STORAGE ARCHITECTURE (Replaces legacy cloud integration)
   // ---------------------------------------------------------------------------
   app.use('/api/storage', storageRoutes);
+  
+  // ALIAS: Route legacy frontend calls that still use /api/appwrite to the new storage endpoints
+  app.use('/api/appwrite', storageRoutes);
+  
   console.log('📦 Core Document Storage & Canonical Routes Loaded');
 
   // ---------------------------------------------------------------------------

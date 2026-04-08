@@ -127,7 +127,7 @@ export class DocumentRepository {
       status = 'suggested';
     } else if (dbRow.aiAnalysisStatus === 'analyzing' || dbRow.status === 'analyzing') {
       status = 'analyzing';
-    } else if (dbRow.aiAnalysisStatus === 'failed' || dbRow.status === 'error') {
+    } else if (dbRow.aiAnalysisStatus === 'failed' || dbRow.aiAnalysisStatus === 'error' || dbRow.status === 'error') {
       status = 'error';
     } else {
       status = dbRow.status || 'uploaded';

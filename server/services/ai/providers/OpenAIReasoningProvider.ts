@@ -23,7 +23,7 @@ export class OpenAIReasoningProvider {
     
     const standardKey = process.env.OPENAI_API_KEY;
 
-    if (azureEndpoint && azureKey) {
+    if (azureEndpoint && azureKey && !azureEndpoint.includes('YOUR-')) {
       this.isAzure = true;
       this.defaultModel = azureDeployment;
       this.openai = new OpenAI({
