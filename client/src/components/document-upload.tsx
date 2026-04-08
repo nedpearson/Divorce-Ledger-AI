@@ -112,6 +112,19 @@ export function DocumentUpload({ onUploadComplete, className }: FileUploadProps)
         });
 
         xhr.open('POST', '/api/storage/files/upload');
+        xhr.withCredentials = true;
+
+        // Attach auth headers — XHR can't use apiRequest so we read from localStorage directly
+        try {
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            const u = JSON.parse(userStr);
+            if (u?.id) xhr.setRequestHeader('X-User-Id', u.id);
+          }
+          const env = localStorage.getItem('environment');
+          if (env) xhr.setRequestHeader('X-Environment', env);
+        } catch { /* ignore */ }
+
         xhr.send(formData);
       });
     },

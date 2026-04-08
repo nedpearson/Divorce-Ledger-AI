@@ -165,12 +165,29 @@ export default function Home() {
         formData.append('category', data.category);
         formData.append('description', data.description);
         formData.append('file', data.file);
-        
+
+        // Must include auth headers manually — FormData fetch can't use apiRequest
+        const authHeaders: Record<string, string> = {};
+        try {
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            const u = JSON.parse(userStr);
+            if (u?.id) authHeaders['X-User-Id'] = u.id;
+          }
+          const env = localStorage.getItem('environment');
+          if (env) authHeaders['X-Environment'] = env;
+        } catch { /* ignore */ }
+
         const res = await fetch('/api/storage/files/upload', {
           method: 'POST',
+          headers: authHeaders,
           body: formData,
+          credentials: 'include',
         });
-        if (!res.ok) throw new Error('Failed to upload file');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to upload file');
+        }
         return res.json();
       } else {
         const res = await apiRequest('POST', '/api/documents', data);
@@ -178,11 +195,13 @@ export default function Home() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api', 'documents'] });
-      toast({ title: 'Document Saved', description: 'Your document has been saved to your case.' });
+      // Invalidate both queries so Documents page and Home page refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/storage/files'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      toast({ title: 'Document Uploaded', description: 'Your document has been saved and is being analyzed.' });
     },
-    onError: () => {
-      toast({ title: 'Error', description: 'Failed to save document.', variant: 'destructive' });
+    onError: (err: Error) => {
+      toast({ title: 'Error', description: err.message || 'Failed to save document.', variant: 'destructive' });
     },
   });
 
