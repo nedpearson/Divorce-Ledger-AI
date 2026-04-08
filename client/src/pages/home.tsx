@@ -158,9 +158,24 @@ export default function Home() {
   });
 
   const createDocumentMutation = useMutation({
-    mutationFn: async (data: { title: string; category: string; description: string }) => {
-      const res = await apiRequest('POST', '/api/documents', data);
-      return res.json();
+    mutationFn: async (data: { title: string; category: string; description: string; file?: File }) => {
+      if (data.file) {
+        const formData = new FormData();
+        formData.append('title', data.title);
+        formData.append('category', data.category);
+        formData.append('description', data.description);
+        formData.append('file', data.file);
+        
+        const res = await fetch('/api/storage/files/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        if (!res.ok) throw new Error('Failed to upload file');
+        return res.json();
+      } else {
+        const res = await apiRequest('POST', '/api/documents', data);
+        return res.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api', 'documents'] });
@@ -377,6 +392,7 @@ export default function Home() {
         title: editedTitle,
         category: editedCategory,
         description: editedTranscription ? `${editedTranscription}\n\n${linkInfo}` : linkInfo,
+        file: capturedData.file,
       });
     } else {
       await createViolationMutation.mutateAsync({

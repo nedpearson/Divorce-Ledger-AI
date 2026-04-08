@@ -147,7 +147,7 @@ function getStatusLabel(status: string): string {
 }
 
 function isProcessingStatus(status: string): boolean {
-  return ['uploaded', 'queued', 'extracting', 'analyzing'].includes(status);
+  return ['queued', 'extracting', 'analyzing'].includes(status);
 }
 
 function getStatusBadge(status: string) {

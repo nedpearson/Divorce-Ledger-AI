@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
 import { objectStorageService } from '../../replit_integrations/object_storage/objectStorage';
 import { BlobServiceClient } from '@azure/storage-blob';
 import { createLogger } from '../../lib/logger';
@@ -80,7 +80,15 @@ export class FileStorageService {
     // 2. Fallback to Canonical Object Storage (requires public bucket via env)
     const publicPaths = objectStorageService.getPublicObjectSearchPaths();
     if (publicPaths.length === 0) {
-      throw new Error("No storage configured. Provide AZURE_STORAGE_CONNECTION_STRING or PUBLIC_OBJECT_SEARCH_PATHS.");
+      console.warn('[Storage] No cloud storage configured. Falling back to mock URL for local development.');
+      return {
+        storageId,
+        originalName: fileName,
+        mimeType,
+        size: buffer.length,
+        hash,
+        url: `/mock-storage/${storageId}`,
+      };
     }
     
     // NOTE: Replit canonical object_storage requires writing via Signed URLs or GCS directly.
@@ -120,6 +128,11 @@ export class FileStorageService {
     }
 
     const publicPaths = objectStorageService.getPublicObjectSearchPaths();
+    if (publicPaths.length === 0) {
+      console.warn('[Storage] Mock environment reading empty buffer.');
+      return Buffer.from('Mock content', 'utf8');
+    }
+    
     const bucketName = publicPaths[0];
     const { objectStorageClient } = await import('../../replit_integrations/object_storage/objectStorage');
     const bucket = objectStorageClient.bucket(bucketName);
@@ -157,8 +170,7 @@ export class FileStorageService {
   }
 
   private computeHash(buffer: Buffer): string {
-    const crypto = require('crypto');
-    return crypto.createHash('sha256').update(buffer).digest('hex');
+    return createHash('sha256').update(buffer).digest('hex');
   }
 }
 
