@@ -3,7 +3,7 @@ import { assets, debts, incomes } from './shared/schema';
 import { eq, and } from 'drizzle-orm';
 
 const USER_ID = 'd21c3b35-2a34-49cd-9016-8b7d9f1a331f';
-const ENV = 'demo';
+const ENV = 'live-prod';
 
 (async () => {
   console.log('\n=== Seeding financial data for nedpearson@gmail.com ===\n');
