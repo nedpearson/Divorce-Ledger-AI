@@ -2478,7 +2478,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         (req as any).session?.userId || 'demo-client-user',
         environment
       );
-      res.json(stats);
+      // Never cache — financial data must always be fresh
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.status(200).json(stats);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch stats' });
     }
@@ -2612,11 +2615,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
       console.log(`[API] /transactions/recent -> userId: ${userId}, environment: ${environment}`);
       const transactions = await storage.getRecentTransactions(userId, environment, 7);
-      res.json(transactions);
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.status(200).json(transactions);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch transactions' });
     }
   });
+
 
   app.get('/api/transactions', async (req, res) => {
     try {
