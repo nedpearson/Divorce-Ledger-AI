@@ -208,7 +208,7 @@ router.delete('/files/:id', async (req: MulterRequest, res: Response) => {
     if (authError) return res.status(401).json({ error: authError });
 
     const doc = await documentRepository.getDocument(req.params.id);
-    if (!doc) return res.status(404).json({ error: 'Document not found or already deleted' });
+    if (!doc) return res.json({ success: true, message: 'Document already deleted' });
 
     const hasAccess = await fileAccessService.canAccessDocument(userId, req.params.id);
     if (!hasAccess) return res.status(403).json({ error: 'Unauthorized to delete' });
