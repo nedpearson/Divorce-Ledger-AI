@@ -1,12 +1,12 @@
 import type { Express, Request, Response, NextFunction } from 'express';
 import { createServer, type Server } from 'http';
 import { z } from 'zod';
-import { eq, or, lt, sql } from 'drizzle-orm';
+import { eq, and, or, lt, sql } from 'drizzle-orm';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import { db } from './db';
 import { normalizeEnv } from './lib/normalizeEnv';
-import { users } from '@shared/schema';
+import { users, documents } from '@shared/schema';
 import { storage, seedDemoData, seedTestUsers, TEST_USERS } from './storage';
 import {
   resetDemoEnvironment,

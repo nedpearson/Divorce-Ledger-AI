@@ -7,6 +7,10 @@ import * as schema from '@shared/schema';
 
 export interface DocumentMetadata {
   id: string;
+  /** Appwrite-style alias for id — used by StoredFile on the frontend */
+  $id?: string;
+  $createdAt?: string;
+  $updatedAt?: string;
   userId: string;
   storageFileId: string;
   fileName: string;
