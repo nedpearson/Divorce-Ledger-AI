@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { expect, test, describe } from 'vitest';
 import { canAddViolation } from '../../../shared/tier-utils';
 import { type User } from '../../../shared/schema';
