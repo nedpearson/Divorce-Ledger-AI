@@ -10,6 +10,21 @@ import { createLogger } from '../../lib/logger';
 
 const logger = createLogger('AnalysisOrchestrator');
 
+// Categories that should trigger financial record creation via analyzeAndPersist
+const FINANCIAL_CATEGORIES = new Set([
+  'utility_bill',
+  'bank_statement',
+  'financial_statement',
+  'debt_statement',
+  'financial_document',
+  'paystub',
+  'receipt',
+  'insurance',
+  'tax_return',
+  'mortgage',
+  'loan',
+]);
+
 // ─── Local fallback classifier (no AI keys needed) ──────────────────────────
 function localFallbackClassify(doc: {
   fileName: string;
@@ -17,21 +32,20 @@ function localFallbackClassify(doc: {
   title?: string | null;
   description?: string | null;
   category?: string | null;
-}): { category: string; summary: string; confidence: number; extractedAmount?: number } {
+}): { category: string; summary: string; confidence: number } {
   const name = (doc.fileName || doc.title || '').toLowerCase();
   const type = (doc.fileType || '').toLowerCase();
   const desc = (doc.description || '').toLowerCase();
   const combined = `${name} ${desc}`;
 
-  // ─── Utility / Energy Bills (check BEFORE generic 'bill' pattern) ────────
+  // ─── Utility / Energy Bills ───────────────────────────────────────────────
   if (/entergy|utility|electric|gas bill|water bill|power bill|duke energy|pg&e|con.?ed|nv energy|xcel|dominion|centerpoint|south?ern company/.test(combined)) {
-    // Try to extract a dollar amount from the filename e.g. "Entergy_Sep_2025"
     const monthMatch = name.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[_\s-]?(\d{4})/i);
     const monthLabel = monthMatch ? `${monthMatch[1]} ${monthMatch[2]}` : '';
     return { category: 'utility_bill', summary: `Utility bill${monthLabel ? ' — ' + monthLabel : ''}: ${doc.fileName}`, confidence: 0.90 };
   }
 
-  // ─── Financial ──────────────────────────────────────────────────────────
+  // ─── Financial ────────────────────────────────────────────────────────────
   if (/bank|statement|account|transaction|checking|savings/.test(combined)) {
     return { category: 'bank_statement', summary: `Bank statement: ${doc.fileName}`, confidence: 0.82 };
   }
@@ -51,7 +65,7 @@ function localFallbackClassify(doc: {
     return { category: 'insurance', summary: `Insurance document: ${doc.fileName}`, confidence: 0.79 };
   }
 
-  // ─── Legal ──────────────────────────────────────────────────────────────
+  // ─── Legal ────────────────────────────────────────────────────────────────
   if (/consent|judgment|order|court|decree|petition|motion|affidavit/.test(combined)) {
     return { category: 'legal_document', summary: `Legal court document: ${doc.fileName}`, confidence: 0.87 };
   }
@@ -62,12 +76,11 @@ function localFallbackClassify(doc: {
     return { category: 'property_document', summary: `Property document: ${doc.fileName}`, confidence: 0.84 };
   }
 
-  // ─── Media type fallbacks ─────────────────────────────────────────────
+  // ─── Media type fallbacks ─────────────────────────────────────────────────
   if (type.includes('image')) {
     return { category: 'evidence', summary: `Image evidence: ${doc.fileName}`, confidence: 0.60 };
   }
   if (type.includes('pdf')) {
-    // Generic PDF — don't assume legal, use category hint or 'other'
     return { category: doc.category && doc.category !== 'other' ? doc.category : 'financial_document', summary: `Document: ${doc.fileName}`, confidence: 0.50 };
   }
 
@@ -77,8 +90,11 @@ function localFallbackClassify(doc: {
 /**
  * AnalysisOrchestrator
  *
- * Pipeline utilizing AI microservices with graceful degradation to a local
- * fallback classifier when AI credentials are unavailable.
+ * Pipeline with graceful degradation to a local fallback classifier when AI
+ * credentials are unavailable.
+ *
+ * Step 6 (new): After classification, automatically calls analyzeAndPersist()
+ * for financial documents so expenses/incomes/debts are created in the DB.
  */
 export class AnalysisOrchestrator {
 
@@ -86,23 +102,24 @@ export class AnalysisOrchestrator {
     logger.info(`Orchestration starting for document: ${documentId}`);
 
     try {
-      // 1. Queue Lock
+      // 1. Lock
       await documentRepository.updateDocument(documentId, { status: 'analyzing' });
 
-      // 2. Metadata Fetch
+      // 2. Fetch metadata
       const doc = await documentRepository.getDocument(documentId);
       if (!doc) throw new Error(`Document ${documentId} not found`);
 
       logger.info(`Initiating extraction phase: ${doc.fileType}`);
 
       let analysisSucceeded = false;
+      let classifiedCategory = doc.category || 'other';
 
       // 3. Fast path: text-only captures (no real file binary)
-      // These come from the Home quick-capture form — no file attached, just title/description
       const isTextOnlyDoc = !doc.fileSize || doc.fileSize === 0 || doc.fileHash === 'unknown-hash';
       if (isTextOnlyDoc) {
-        logger.info(`Text-only document detected for ${documentId} — using local classifier directly`);
+        logger.info(`Text-only document detected for ${documentId} — using local classifier`);
         const local = localFallbackClassify(doc);
+        classifiedCategory = local.category;
         await documentRepository.updateDocument(documentId, {
           status: 'suggested',
           category: local.category,
@@ -112,6 +129,7 @@ export class AnalysisOrchestrator {
           description: doc.description || `Auto-classified: ${local.category}`,
         });
         logger.info(`Local classification complete for ${documentId}: ${local.category}`);
+        // Text-only docs have no file to extract amounts from — skip analyzeAndPersist
         return true;
       }
 
@@ -126,7 +144,6 @@ export class AnalysisOrchestrator {
           extractionRaw = await azureDocumentIntelligenceProvider.analyzeDocumentBuffer(buffer, doc.fileType || 'application/pdf');
         }
 
-        // Check if extraction returned real content (not mock placeholder)
         const isMockResult = extractionRaw.text.startsWith('MOCK_EXTRACTION');
         if (isMockResult) {
           logger.warn(`Mock extraction detected for ${documentId} — falling back to local classifier`);
@@ -135,6 +152,7 @@ export class AnalysisOrchestrator {
           const mappedFields = await fieldMappingService.extractFields(documentId, extractionRaw);
           const confidence = confidenceScoringService.assessConfidence(extractionRaw, mappedFields);
           await approvalWorkflowService.routeDocument(documentId, mappedFields, confidence);
+          classifiedCategory = mappedFields.category || classifiedCategory;
           logger.info(`Full AI pipeline resolved for ${documentId} (confidence: ${confidence.score})`);
           analysisSucceeded = true;
         }
@@ -142,19 +160,39 @@ export class AnalysisOrchestrator {
         logger.warn(`AI pipeline unavailable for ${documentId}: ${aiError.message} — using local classifier`);
       }
 
-      // 4. Local fallback when AI is unavailable / returns mock
+      // 5. Local fallback when AI is unavailable / returns mock
       if (!analysisSucceeded) {
         const local = localFallbackClassify(doc);
+        classifiedCategory = local.category;
         await documentRepository.updateDocument(documentId, {
           status: 'suggested',
           category: local.category,
           suggestedCategory: local.category,
           aiSummary: local.summary,
           aiConfidence: local.confidence,
-          description: `Auto-classified locally (no AI credentials configured). Category: ${local.category}`,
+          description: `Auto-classified locally (no AI credentials). Category: ${local.category}`,
         });
         logger.info(`Local fallback classification complete for ${documentId}: ${local.category} (${local.confidence})`);
       }
+
+      // 6. ── Financial Record Creation ────────────────────────────────────────
+      // For financial document types, run analyzeAndPersist to extract dollar
+      // amounts and create expense / income / debt records in the DB.
+      if (FINANCIAL_CATEGORIES.has(classifiedCategory)) {
+        logger.info(`Financial category detected (${classifiedCategory}) — running analyzeAndPersist for ${documentId}`);
+        try {
+          const { analyzeAndPersist } = await import('../analyzeAndPersist');
+          const result = await analyzeAndPersist(documentId, { createRecords: true });
+          if (result.financialRecordsCreated.length > 0) {
+            logger.info(`[Orchestrator] Created ${result.financialRecordsCreated.length} financial records for ${documentId}`);
+          } else {
+            logger.warn(`[Orchestrator] No financial records created for ${documentId} — parseStatus=${result.parseStatus} error=${result.error || 'none'}`);
+          }
+        } catch (persistErr: any) {
+          logger.error(`[Orchestrator] analyzeAndPersist failed for ${documentId}: ${persistErr.message}`);
+        }
+      }
+      // ─────────────────────────────────────────────────────────────────────────
 
       return true;
 
@@ -162,7 +200,7 @@ export class AnalysisOrchestrator {
       logger.error(`Orchestration pipeline failed for ${documentId}`, { error });
       await documentRepository.updateDocument(documentId, {
         status: 'error',
-        errorMessage: error.message || 'Unknown pipeline failure'
+        errorMessage: error.message || 'Unknown pipeline failure',
       });
       return false;
     }
