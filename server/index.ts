@@ -404,10 +404,11 @@ app.use((req, res, next) => {
 
 
 
-  // Serve monitoring dashboard
-  app.get('/dashboard', (_req, res) => {
+  // Serve monitoring dashboard at /admin/monitor (moved from /dashboard to not conflict with React app)
+  app.get('/admin/monitor', (_req, res) => {
     res.sendFile('dashboard.html', { root: 'public' });
   });
+
 
   app.use(globalErrorHandler);
 
