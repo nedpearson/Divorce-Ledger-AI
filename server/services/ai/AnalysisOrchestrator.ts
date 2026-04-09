@@ -17,44 +17,58 @@ function localFallbackClassify(doc: {
   title?: string | null;
   description?: string | null;
   category?: string | null;
-}): { category: string; summary: string; confidence: number } {
+}): { category: string; summary: string; confidence: number; extractedAmount?: number } {
   const name = (doc.fileName || doc.title || '').toLowerCase();
   const type = (doc.fileType || '').toLowerCase();
   const desc = (doc.description || '').toLowerCase();
   const combined = `${name} ${desc}`;
 
-  // Financial
-  if (/bank|statement|account|transaction/.test(combined)) {
+  // ─── Utility / Energy Bills (check BEFORE generic 'bill' pattern) ────────
+  if (/entergy|utility|electric|gas bill|water bill|power bill|duke energy|pg&e|con.?ed|nv energy|xcel|dominion|centerpoint|south?ern company/.test(combined)) {
+    // Try to extract a dollar amount from the filename e.g. "Entergy_Sep_2025"
+    const monthMatch = name.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[_\s-]?(\d{4})/i);
+    const monthLabel = monthMatch ? `${monthMatch[1]} ${monthMatch[2]}` : '';
+    return { category: 'utility_bill', summary: `Utility bill${monthLabel ? ' — ' + monthLabel : ''}: ${doc.fileName}`, confidence: 0.90 };
+  }
+
+  // ─── Financial ──────────────────────────────────────────────────────────
+  if (/bank|statement|account|transaction|checking|savings/.test(combined)) {
     return { category: 'bank_statement', summary: `Bank statement: ${doc.fileName}`, confidence: 0.82 };
   }
   if (/tax|w-?2|1099|irs|return/.test(combined)) {
     return { category: 'tax_return', summary: `Tax document: ${doc.fileName}`, confidence: 0.85 };
   }
-  if (/pay ?stub|payroll|salary|wage|earnings/.test(combined)) {
+  if (/pay.?stub|payroll|salary|wage|earnings|direct.?deposit/.test(combined)) {
     return { category: 'paystub', summary: `Payroll record: ${doc.fileName}`, confidence: 0.83 };
   }
-  if (/receipt|expense|invoice|bill/.test(combined)) {
+  if (/receipt|expense|invoice/.test(combined)) {
     return { category: 'receipt', summary: `Expense receipt: ${doc.fileName}`, confidence: 0.80 };
   }
-  if (/mortgage|loan|debt|credit/.test(combined)) {
+  if (/mortgage|loan|debt|credit|heloc/.test(combined)) {
     return { category: 'financial_statement', summary: `Financial obligation record: ${doc.fileName}`, confidence: 0.78 };
   }
-  // Legal
-  if (/consent|judgment|order|court|decree|petition/.test(combined)) {
+  if (/insurance|premium|policy/.test(combined)) {
+    return { category: 'insurance', summary: `Insurance document: ${doc.fileName}`, confidence: 0.79 };
+  }
+
+  // ─── Legal ──────────────────────────────────────────────────────────────
+  if (/consent|judgment|order|court|decree|petition|motion|affidavit/.test(combined)) {
     return { category: 'legal_document', summary: `Legal court document: ${doc.fileName}`, confidence: 0.87 };
   }
-  if (/custody|parenting|visitation|child/.test(combined)) {
+  if (/custody|parenting|visitation|child support/.test(combined)) {
     return { category: 'custody_document', summary: `Custody-related document: ${doc.fileName}`, confidence: 0.85 };
   }
-  if (/property|deed|title|real estate/.test(combined)) {
+  if (/property|deed|title|real estate|appraisal/.test(combined)) {
     return { category: 'property_document', summary: `Property document: ${doc.fileName}`, confidence: 0.84 };
   }
-  // Media type fallbacks
+
+  // ─── Media type fallbacks ─────────────────────────────────────────────
   if (type.includes('image')) {
     return { category: 'evidence', summary: `Image evidence: ${doc.fileName}`, confidence: 0.60 };
   }
   if (type.includes('pdf')) {
-    return { category: 'legal_document', summary: `PDF document: ${doc.fileName}`, confidence: 0.55 };
+    // Generic PDF — don't assume legal, use category hint or 'other'
+    return { category: doc.category && doc.category !== 'other' ? doc.category : 'financial_document', summary: `Document: ${doc.fileName}`, confidence: 0.50 };
   }
 
   return { category: doc.category || 'other', summary: `Document: ${doc.fileName}`, confidence: 0.50 };

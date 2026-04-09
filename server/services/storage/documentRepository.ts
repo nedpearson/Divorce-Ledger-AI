@@ -131,15 +131,19 @@ export class DocumentRepository {
   private mapToClientShape(dbRow: any): DocumentMetadata {
     // Determine status logic similarly to how the mock route did it
     let status = 'uploaded';
-    if (dbRow.aiAnalysisStatus === 'complete' || dbRow.aiAnalysisStatus === 'completed' || dbRow.status === 'finalized') {
+    if (dbRow.aiAnalysisStatus === 'complete' || dbRow.aiAnalysisStatus === 'completed'
+        || dbRow.aiAnalysisStatus === 'finalized' || dbRow.status === 'finalized') {
       status = 'finalized';
     } else if (dbRow.aiAnalysisStatus === 'review' || dbRow.aiAnalysisStatus === 'suggested' || dbRow.status === 'suggested') {
       status = 'suggested';
     } else if (dbRow.aiAnalysisStatus === 'analyzing' || dbRow.status === 'analyzing') {
       status = 'analyzing';
+    } else if (dbRow.aiAnalysisStatus === 'queued' || dbRow.status === 'queued') {
+      status = 'queued';
     } else if (dbRow.aiAnalysisStatus === 'failed' || dbRow.aiAnalysisStatus === 'error' || dbRow.status === 'error') {
       status = 'error';
     } else {
+      // pending / uploaded / anything else → show as uploaded (Analyze Now button)
       status = dbRow.status || 'uploaded';
     }
 
