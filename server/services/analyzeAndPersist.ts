@@ -139,6 +139,19 @@ export async function analyzeAndPersist(
             imageMimeType = doc.fileType;
             console.log(`[analyzeAndPersist] Successfully fetched from URL`);
           }
+        } else if (doc.fileUrl.startsWith('/uploads/')) {
+          // Fetch from Local Filesystem (Pipeline Fallback)
+          const fs = await import('fs');
+          const path = await import('path');
+          const localPath = path.join(process.cwd(), doc.fileUrl.startsWith('/') ? doc.fileUrl.slice(1) : doc.fileUrl);
+          if (fs.existsSync(localPath)) {
+            const buffer = await fs.promises.readFile(localPath);
+            imageBase64 = buffer.toString('base64');
+            imageMimeType = doc.fileType;
+            console.log(`[analyzeAndPersist] Successfully fetched ${buffer.length} bytes from local filesystem`);
+          } else {
+            console.warn(`[analyzeAndPersist] Local file missing: ${localPath}`);
+          }
         }
 
         // Run OCR/text extraction based on file type
@@ -159,22 +172,20 @@ export async function analyzeAndPersist(
                 `[analyzeAndPersist] OCR extracted ${ocrExtractedText.length} characters`
               );
             } else if (isPdfType) {
-              // For PDFs, use the vision API which can handle PDFs in some providers
-              // Many vision models can process PDFs directly
-              console.log(`[analyzeAndPersist] Attempting text extraction from PDF...`);
+              console.log(`[analyzeAndPersist] Attempting text extraction from PDF using pdf-parse...`);
               try {
-                const ocrResult = await analyzeDocumentImage(
-                  imageBase64,
-                  imageMimeType,
-                  doc.fileName || 'document.pdf'
-                );
-                ocrExtractedText = ocrResult.extractedText || '';
+                const { PDFParse } = await import('pdf-parse');
+                const pdfBuffer = new Uint8Array(Buffer.from(imageBase64, 'base64'));
+                const p = new PDFParse(pdfBuffer);
+                await p.load();
+                const pdfData = await p.getText();
+                ocrExtractedText = pdfData.text || '';
                 console.log(
                   `[analyzeAndPersist] PDF extraction got ${ocrExtractedText.length} characters`
                 );
               } catch (pdfErr) {
                 console.warn(
-                  `[analyzeAndPersist] PDF extraction not supported, will rely on parsing: ${pdfErr}`
+                  `[analyzeAndPersist] PDF extraction failed, will rely on parsing: ${pdfErr}`
                 );
               }
             }
@@ -194,8 +205,7 @@ export async function analyzeAndPersist(
 
     const parseResult = await parseFinancialDocument(extractedText, doc.fileName || 'document', {
       provider,
-      imageBase64,
-      imageMimeType,
+      ...(imageMimeType && imageMimeType.startsWith('image/') ? { imageBase64, imageMimeType } : {})
     });
 
     const validation = validateParseResult(parseResult.document);

@@ -299,6 +299,62 @@ export default function DocumentManager() {
     },
   });
 
+  const [isReanalyzing, setIsReanalyzing] = useState(false);
+  const handleReanalyzeAll = async () => {
+    try {
+      setIsReanalyzing(true);
+      const scanRes = await apiRequest('POST', '/api/documents/reanalyze?force=true');
+      const scanResult = await scanRes.json();
+      
+      if (!scanResult.documentIds || scanResult.documentIds.length === 0) {
+        toast({ title: 'No Documents', description: 'No documents with files found to analyze.' });
+        return;
+      }
+
+      toast({ 
+        title: 'Analysis Started', 
+        description: `Processing ${scanResult.documentIds.length} documents...` 
+      });
+
+      let completed = 0;
+      let financialRecordsCreated = 0;
+
+      for (const docId of scanResult.documentIds) {
+        try {
+          const analyzeRes = await apiRequest('POST', `/api/mobile/documents/${docId}/reanalyze`);
+          const result = await analyzeRes.json();
+          if (result.success) {
+            completed++;
+            if (result.data?.financialRecordsCreated?.length > 0) {
+              financialRecordsCreated += result.data.financialRecordsCreated.length;
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to analyze doc ${docId}`, err);
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['/api/storage/files'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      
+      toast({
+        title: 'Batch Analysis Complete',
+        description: financialRecordsCreated > 0 
+          ? `Analyzed ${completed} documents. Created ${financialRecordsCreated} financial records.`
+          : `Successfully analyzed ${completed} documents.`,
+      });
+    } catch (error) {
+      console.error('Reanalyze error:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to analyze documents.', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsReanalyzing(false);
+    }
+  };
+
   const approveMutation = useMutation({
     mutationFn: async ({
       fileId,
@@ -599,6 +655,19 @@ export default function DocumentManager() {
               <Wifi className="h-3 w-3 text-green-500" />
               Live Sync
             </Badge>
+          <Button
+            variant="outline"
+            onClick={handleReanalyzeAll}
+            disabled={isReanalyzing || isLoading}
+            className="flex items-center gap-2"
+          >
+            {isReanalyzing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {isReanalyzing ? 'Analyzing...' : 'Re-Analyze All'}
+          </Button>
           <Button
             variant="outline"
             onClick={() => refetch()}

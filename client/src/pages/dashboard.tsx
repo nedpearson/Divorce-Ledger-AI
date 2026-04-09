@@ -39,7 +39,7 @@ function formatCurrency(amount: number): string {
     currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(amount / 100);
 }
 
 const StatCard = memo(function StatCard({

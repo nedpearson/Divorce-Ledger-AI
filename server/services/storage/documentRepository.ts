@@ -50,6 +50,13 @@ export class DocumentRepository {
   async createDocumentMetadata(data: Omit<DocumentMetadata, 'id' | 'createdAt'>): Promise<DocumentMetadata> {
     const table = this.getTable();
     
+    // Look up the user's actual environment to prevent silo leakage
+    let env = 'demo';
+    try {
+      const [user] = await db.select({ environment: (schema as any).users.environment }).from((schema as any).users).where(eq((schema as any).users.id, data.userId)).limit(1);
+      if (user && user.environment) env = user.environment;
+    } catch(e) {}
+
     // We map the legacy interface back to the schema natively
     const record: any = {
       userId: data.userId,
@@ -59,7 +66,8 @@ export class DocumentRepository {
       title: data.title || data.fileName || 'Untitled Document',
       description: data.description,
       category: data.category || 'other',
-      environment: process.env.APP_MODE || 'demo',
+      environment: env,
+      fileUrl: (data as any).fileUrl || null
       // Store the hash or storage ID based on available columns
       // (This safely bridges the schema.ts differences)
     };

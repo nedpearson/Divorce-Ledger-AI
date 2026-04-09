@@ -115,7 +115,7 @@ export class AnalysisOrchestrator {
       let classifiedCategory = doc.category || 'other';
 
       // 3. Fast path: text-only captures (no real file binary)
-      const isTextOnlyDoc = !doc.fileSize || doc.fileSize === 0 || doc.fileHash === 'unknown-hash';
+      const isTextOnlyDoc = !doc.fileSize || doc.fileSize === 0 || (!doc.storageFileId && !doc.fileUrl);
       if (isTextOnlyDoc) {
         logger.info(`Text-only document detected for ${documentId} — using local classifier`);
         const local = localFallbackClassify(doc);

@@ -47,8 +47,9 @@ export class FileUploadService {
       status: 'uploaded',
       category: params.category,
       title: params.title,
-      description: params.description
-    });
+      description: params.description,
+      fileUrl: storageRef.url
+    } as any);
 
     return docMeta;
   }
