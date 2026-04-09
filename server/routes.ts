@@ -3014,57 +3014,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         );
       }
 
-      // Background AI analysis if file info is present or if it's a financial document
-      const hasFileInfo = doc.fileUrl && (doc.fileName || doc.fileType);
-      if (doc.category === 'financial' || hasFileInfo) {
-        console.log(
-          `[Documents API] Triggering analysis for document: ${doc.id}, fileUrl: ${doc.fileUrl}, fileName: ${doc.fileName}`
-        );
-        const { analyzeAndPersist, isFinancialDocumentType } =
-          await import('./services/analyzeAndPersist');
-
-        // Use a separate async block to not block the response
-        (async () => {
-          try {
-            // If it has file info, do preliminary analysis first
-            if (doc.fileUrl && (doc.fileName || doc.fileType)) {
-              // Always trigger analyzeAndPersist for documents with files
-              console.log(
-                `[Documents API] Document has file: ${doc.id} - running analysis pipeline`
-              );
-
-              // Try preliminary analysis if we have fileName and fileType
-              if (doc.fileName && doc.fileType) {
-                const analysis = await analyzeDocument(
-                  doc.fileName,
-                  doc.fileType,
-                  doc.description || '',
-                  workspaceId,
-                  userId
-                );
-                if (analysis && analysis.confidence > 0.6) {
-                  await storage.updateDocument(doc.id, {
-                    category: analysis.category,
-                    description: `${doc.description || ''}\n\n[AI Analysis]\nSummary: ${analysis.summary}\nTags: ${analysis.suggestedTags.join(', ')}`,
-                  });
-                }
-              }
-
-              // Always run full analysis pipeline for documents with files
-              console.log(`[Documents API] Running forensic analysis for document: ${doc.id}`);
-              await analyzeAndPersist(doc.id, { createRecords: true });
-            } else if (doc.category === 'financial') {
-              // Even without file info, if user explicitly marked as financial, try to analyze if description contains text
-              console.log(
-                `[Documents API] Document marked as financial: ${doc.id} - triggering forensic analysis`
-              );
-              await analyzeAndPersist(doc.id, { createRecords: true });
-            }
-          } catch (err) {
-            console.error('[Documents API] Analysis background error:', err);
-          }
-        })();
-      }
+      // Always trigger AI analysis pipeline asynchronously.
+      // AnalysisOrchestrator handles both real file uploads (via Azure OCR) and
+      // text-only captures (via local fallback classifier on title/description/category).
+      setImmediate(async () => {
+        try {
+          const { analysisOrchestrator } = await import('./services/ai/AnalysisOrchestrator');
+          await analysisOrchestrator.processDocument(doc.id);
+        } catch (err) {
+          console.error('[Documents API] Analysis background error:', err);
+        }
+      });
 
       res.json(doc);
     } catch (error) {

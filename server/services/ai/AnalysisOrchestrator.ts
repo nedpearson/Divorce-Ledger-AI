@@ -83,15 +83,33 @@ export class AnalysisOrchestrator {
 
       let analysisSucceeded = false;
 
-      // 3. Try full AI pipeline first
+      // 3. Fast path: text-only captures (no real file binary)
+      // These come from the Home quick-capture form — no file attached, just title/description
+      const isTextOnlyDoc = !doc.fileSize || doc.fileSize === 0 || doc.fileHash === 'unknown-hash';
+      if (isTextOnlyDoc) {
+        logger.info(`Text-only document detected for ${documentId} — using local classifier directly`);
+        const local = localFallbackClassify(doc);
+        await documentRepository.updateDocument(documentId, {
+          status: 'suggested',
+          category: local.category,
+          suggestedCategory: local.category,
+          aiSummary: local.summary,
+          aiConfidence: local.confidence,
+          description: doc.description || `Auto-classified: ${local.category}`,
+        });
+        logger.info(`Local classification complete for ${documentId}: ${local.category}`);
+        return true;
+      }
+
+      // 4. Try full AI pipeline for real file uploads
       try {
         let extractionRaw;
-        if (doc.fileType.includes('image') && !doc.fileType.includes('pdf')) {
+        if (doc.fileType && doc.fileType.includes('image') && !doc.fileType.includes('pdf')) {
           const visionText = await visionReasoningProvider.processVisualEvidence(doc.storageFileId, doc.fileType);
           extractionRaw = { text: visionText, pages: 1, tables: [], kvPairs: {}, isHandwritten: false };
         } else {
           const buffer = await fileStorageService.getFileBuffer(doc.storageFileId);
-          extractionRaw = await azureDocumentIntelligenceProvider.analyzeDocumentBuffer(buffer, doc.fileType);
+          extractionRaw = await azureDocumentIntelligenceProvider.analyzeDocumentBuffer(buffer, doc.fileType || 'application/pdf');
         }
 
         // Check if extraction returned real content (not mock placeholder)
