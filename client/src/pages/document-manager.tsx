@@ -151,18 +151,41 @@ function isProcessingStatus(status: string): boolean {
 }
 
 function getStatusBadge(status: string) {
+  // Green states: document has been AI-analyzed (suggested = needs review, finalized = complete)
+  if (status === 'suggested') {
+    return (
+      <Badge className="flex items-center gap-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-600/30">
+        <Sparkles className="h-3 w-3" />
+        AI reviewed
+      </Badge>
+    );
+  }
+  if (status === 'finalized') {
+    return (
+      <Badge className="flex items-center gap-1 bg-green-600/25 text-green-400 border border-green-500/50 hover:bg-green-600/35">
+        <CheckCircle2 className="h-3 w-3" />
+        complete
+      </Badge>
+    );
+  }
+  if (status === 'awaiting_user') {
+    return (
+      <Badge className="flex items-center gap-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/40">
+        <Eye className="h-3 w-3" />
+        awaiting review
+      </Badge>
+    );
+  }
+
   const statusConfig: Record<
     string,
     { variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: React.ReactNode }
   > = {
-    uploaded: { variant: 'secondary', icon: <Clock className="h-3 w-3" /> },
-    queued: { variant: 'secondary', icon: <Clock className="h-3 w-3" /> },
-    extracting: { variant: 'default', icon: <Loader2 className="h-3 w-3 animate-spin" /> },
-    analyzing: { variant: 'default', icon: <Sparkles className="h-3 w-3" /> },
-    suggested: { variant: 'outline', icon: <Eye className="h-3 w-3" /> },
-    awaiting_user: { variant: 'outline', icon: <Eye className="h-3 w-3" /> },
-    finalized: { variant: 'default', icon: <CheckCircle2 className="h-3 w-3" /> },
-    error: { variant: 'destructive', icon: <AlertTriangle className="h-3 w-3" /> },
+    uploaded:   { variant: 'secondary',    icon: <Clock className="h-3 w-3" /> },
+    queued:     { variant: 'secondary',    icon: <Clock className="h-3 w-3" /> },
+    extracting: { variant: 'default',      icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+    analyzing:  { variant: 'default',      icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+    error:      { variant: 'destructive',  icon: <AlertTriangle className="h-3 w-3" /> },
   };
 
   const config = statusConfig[status] || { variant: 'secondary' as const, icon: null };
@@ -174,6 +197,7 @@ function getStatusBadge(status: string) {
     </Badge>
   );
 }
+
 
 const CATEGORIES = [
   { value: 'financial', label: 'Financial' },
@@ -381,16 +405,24 @@ export default function DocumentManager() {
 
   const renderFileCard = (file: StoredFile) => {
     const isSuggested = file.status === 'suggested' || file.status === 'awaiting_user';
+    const isFinalized = file.status === 'finalized';
+    const isAnalyzed = isSuggested || isFinalized;
     const isError = file.status === 'error';
     const isProcessing = isProcessingStatus(file.status);
     const confidencePercent = file.aiConfidence ? Math.round(file.aiConfidence * 100) : 0;
     const progress = getStatusProgress(file.status);
 
     return (
-      <Card key={file.$id} className="hover-elevate">
+      <Card key={file.$id} className={`hover-elevate transition-all duration-300 ${
+        isFinalized ? 'border-green-500/50 shadow-green-500/10 shadow-lg' :
+        isSuggested ? 'border-emerald-500/40 shadow-emerald-500/10 shadow-md' :
+        isError     ? 'border-destructive/40' : ''
+      }`}>
         <CardContent className="p-4">
           <div className="flex items-start gap-4">
-            {getFileIcon(file.fileType, 'lg')}
+            <div className={isAnalyzed ? 'text-emerald-400 [&_svg]:text-emerald-400' : ''}>
+              {getFileIcon(file.fileType, 'lg')}
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium truncate">{file.title || file.fileName}</span>
@@ -406,7 +438,7 @@ export default function DocumentManager() {
                 {file.category && (
                   <>
                     <span>-</span>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className={`text-xs ${isAnalyzed ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' : ''}`}>
                       {file.category}
                     </Badge>
                   </>
