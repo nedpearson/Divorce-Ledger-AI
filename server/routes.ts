@@ -3000,13 +3000,65 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         (req as any).session?.userId ||
         (req.headers['x-user-id'] as string) ||
         'demo-client-user';
-      const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const environment = normalizeEnv(
+        (req.query.environment as string) || (req.headers['x-environment'] as string)
+      );
       const workspaceId = resolveWorkspaceId(req);
       const parsed = createDocumentSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
       }
+
+      // ─── Duplicate Detection ─────────────────────────────────────────────────
+      // Strategy 1: exact match on fileName + fileSize (reliable for file uploads)
+      // Strategy 2: exact match on title alone (fallback for text/voice captures)
+      const { fileName, fileSize, title } = parsed.data;
+
+      let existingDoc: typeof documents.$inferSelect | undefined;
+
+      if (fileName && fileSize) {
+        // Primary: filename + filesize is a strong fingerprint
+        const results = await db
+          .select()
+          .from(documents)
+          .where(
+            and(
+              eq(documents.userId, userId),
+              eq(documents.environment, environment),
+              eq(documents.fileName, fileName),
+              eq(documents.fileSize, fileSize)
+            )
+          )
+          .limit(1);
+        existingDoc = results[0];
+      }
+
+      if (!existingDoc && title) {
+        // Fallback: exact title match within the last 60 seconds (prevents rapid double-submit)
+        const sixtySecondsAgo = new Date(Date.now() - 60_000);
+        const results = await db
+          .select()
+          .from(documents)
+          .where(
+            and(
+              eq(documents.userId, userId),
+              eq(documents.environment, environment),
+              eq(documents.title, title),
+              sql`${documents.createdAt} > ${sixtySecondsAgo.toISOString()}`
+            )
+          )
+          .limit(1);
+        existingDoc = results[0];
+      }
+
+      if (existingDoc) {
+        console.log(
+          `[Documents API] Duplicate detected — returning existing doc ${existingDoc.id} (${existingDoc.title})`
+        );
+        return res.status(200).json({ ...existingDoc, duplicate: true });
+      }
+      // ─────────────────────────────────────────────────────────────────────────
+
       const doc = await storage.createDocument({
         ...parsed.data,
         userId,
