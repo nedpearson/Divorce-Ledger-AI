@@ -8,6 +8,8 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
+    "build": "vite build",
+    "start": "cross-env NODE_ENV=production tsx server/index.ts",
     "dev": "npx kill-port 5000 && cross-env NODE_ENV=development tsx --import dotenv/config server/index.ts",
     "dev:python": "cd python_api && .\\venv\\Scripts\\python main.py",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:python\"",
