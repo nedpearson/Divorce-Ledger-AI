@@ -125,6 +125,8 @@ import {
   type MobilePairingToken,
   type InsertMobilePairingToken,
   mobilePairingTokens,
+  documentLineItems,
+  documentParseResults,
 } from '@shared/schema';
 
 export interface IStorage {
@@ -1712,13 +1714,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteDocument(id: string, userId: string, environment: string): Promise<void> {
+    // Cascade-delete all records derived FROM this document.
+    // Records with documentId = null are manually entered (seeded) and must NOT be removed.
+    const env = normalizeEnv(environment);
+
+    await Promise.all([
+      // Financial records created by the AI analysis pipeline
+      db.delete(expenses).where(and(eq(expenses.documentId, id), eq(expenses.userId, userId))),
+      db.delete(incomes).where(and(eq(incomes.documentId, id), eq(incomes.userId, userId))),
+      db.delete(assets).where(and(eq(assets.documentId, id), eq(assets.userId, userId))),
+      db.delete(debts).where(and(eq(debts.documentId, id), eq(debts.userId, userId))),
+      db.delete(transactions).where(and(eq(transactions.documentId, id), eq(transactions.userId, userId))),
+      // Parse artifacts
+      db.delete(documentLineItems).where(eq(documentLineItems.documentId, id)),
+      db.delete(documentParseResults).where(eq(documentParseResults.documentId, id)),
+    ]);
+
+    // Finally delete the document itself
     await db
       .delete(documents)
       .where(
         and(
           eq(documents.id, id),
           eq(documents.userId, userId),
-          eq(documents.environment, environment)
+          eq(documents.environment, env)
         )
       );
   }

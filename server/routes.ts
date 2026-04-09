@@ -2958,20 +2958,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       (req as any).session?.userId ||
       (req.headers['x-user-id'] as string) ||
       'demo-client-user';
-    const environment =
-      (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+    const environment = normalizeEnv(
+      (req.query.environment as string) || (req.headers['x-environment'] as string)
+    );
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
-      const id = req.params.id; // UUID string, not integer
+      const id = req.params.id;
       const doc = await storage.getDocument(id);
       if (!doc || doc.userId !== userId) {
         return res.status(404).json({ error: 'Document not found' });
       }
       await storage.deleteDocument(id, userId, environment);
+      console.log(`[Documents API] Deleted document ${id} and all derived financial records`);
       res.json({ success: true });
     } catch (error: any) {
+      console.error('[Documents API] Delete error:', error);
       res.status(500).json({ error: error.message });
     }
   });
