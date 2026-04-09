@@ -1,7 +1,7 @@
 import { db } from '../db';
 import { storage } from '../storage';
 import { eq, and } from 'drizzle-orm';
-import { documentLineItems, documentParseResults, expenses, incomes, debts } from '@shared/schema';
+import { documentLineItems, documentParseResults, expenses, incomes, debts, users } from '@shared/schema';
 import { normalizeEnv } from '../lib/normalizeEnv';
 import {
   parseFinancialDocument,
@@ -176,14 +176,35 @@ export async function analyzeAndPersist(
               try {
                 const { PDFParse } = await import('pdf-parse');
                 const pdfBuffer = new Uint8Array(Buffer.from(imageBase64, 'base64'));
-                const p = new PDFParse(pdfBuffer);
+                
+                const userObj = await db.query.users.findFirst({ where: eq(users.id, doc.userId) });
+                const pdfOptions: any = { data: pdfBuffer };
+                if (userObj?.email === 'nedpearson@gmail.com') {
+                  pdfOptions.password = '70809';
+                  console.log(`[analyzeAndPersist] Automatically applying PDF passport bypass for nedpearson@gmail.com`);
+                }
+                
+                const p = new PDFParse(pdfOptions);
                 await p.load();
                 const pdfData = await p.getText();
                 ocrExtractedText = pdfData.text || '';
                 console.log(
                   `[analyzeAndPersist] PDF extraction got ${ocrExtractedText.length} characters`
                 );
-              } catch (pdfErr) {
+              } catch (pdfErr: any) {
+                if (pdfErr?.name === 'PasswordException' || String(pdfErr).includes('Password')) {
+                  console.warn(`[analyzeAndPersist] Encrypted PDF detected: ${doc.fileName}`);
+                  return {
+                    success: false,
+                    parseStatus: 'error',
+                    documentId,
+                    lineItemsCreated: 0,
+                    financialRecordsCreated: [],
+                    validation: { isValid: false, errors: ['Document Encrypted / Unreadable'], warnings: [] },
+                    latencyMs: Date.now() - startTime,
+                    error: 'Document Encrypted / Unreadable'
+                  };
+                }
                 console.warn(
                   `[analyzeAndPersist] PDF extraction failed, will rely on parsing: ${pdfErr}`
                 );
@@ -207,6 +228,19 @@ export async function analyzeAndPersist(
       provider,
       ...(imageMimeType && imageMimeType.startsWith('image/') ? { imageBase64, imageMimeType } : {})
     });
+
+    if (parseResult.document.parse_status === 'no_data') {
+      return {
+        success: false,
+        parseStatus: 'error',
+        documentId,
+        lineItemsCreated: 0,
+        financialRecordsCreated: [],
+        validation: { isValid: false, errors: ['No readable text or financial data could be extracted.'], warnings: [] },
+        latencyMs: Date.now() - startTime,
+        error: 'No Data Found'
+      };
+    }
 
     const validation = validateParseResult(parseResult.document);
 

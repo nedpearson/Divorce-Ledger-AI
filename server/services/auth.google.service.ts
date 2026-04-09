@@ -31,10 +31,14 @@ export class GoogleAuthService {
   }
 
   isConfigured(): boolean {
-    return !!this.clientId && !!this.clientSecret;
+    return !!(this.clientId && this.clientSecret);
   }
 
   generateAuthUrl(state: string): string {
+    if (!this.clientId || !this.clientSecret) {
+      throw new Error('Google OAuth credentials missing.');
+    }
+
     const params = new URLSearchParams({
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
@@ -48,6 +52,7 @@ export class GoogleAuthService {
   }
 
   async exchangeCodeForToken(code: string): Promise<GoogleTokenResponse> {
+
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {

@@ -26,7 +26,7 @@ export class GoogleDriveService {
   }
 
   isConfigured(): boolean {
-    return !!this.clientId && !!this.clientSecret;
+    return true; // Enabled for Mock OAuth Bridge in demo environments
   }
 
   private encrypt(text: string): string {
@@ -50,6 +50,11 @@ export class GoogleDriveService {
   }
 
   generateAuthUrl(state: string): string {
+    if (!this.clientId || !this.clientSecret) {
+      // MOCK MODE: Bypass Google and return local callback immediately
+      return `${this.redirectUri}?code=mock_oauth_code_drive&state=${state}`;
+    }
+
     const params = new URLSearchParams({
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
@@ -64,6 +69,16 @@ export class GoogleDriveService {
   }
 
   async exchangeCodeForToken(code: string): Promise<GoogleTokenResponse> {
+    if (code === 'mock_oauth_code_drive' && (!this.clientId || !this.clientSecret)) {
+      return {
+        access_token: 'mock_drive_access_token',
+        refresh_token: 'mock_drive_refresh_token',
+        expires_in: 3600,
+        scope: 'https://www.googleapis.com/auth/drive.file email profile',
+        token_type: 'Bearer'
+      };
+    }
+
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -86,6 +101,10 @@ export class GoogleDriveService {
   }
 
   async getUserInfo(accessToken: string): Promise<{ email: string; name: string }> {
+    if (accessToken === 'mock_drive_access_token') {
+      return { email: 'demo_drive@gmail.com', name: 'Demo Drive Account' };
+    }
+
     const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });

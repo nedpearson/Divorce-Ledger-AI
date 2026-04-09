@@ -183,13 +183,27 @@ export class AnalysisOrchestrator {
         try {
           const { analyzeAndPersist } = await import('../analyzeAndPersist');
           const result = await analyzeAndPersist(documentId, { createRecords: true });
-          if (result.financialRecordsCreated.length > 0) {
+          if (!result.success || result.parseStatus === 'error') {
+            logger.warn(`[Orchestrator] parse failed for ${documentId} — error=${result.error}`);
+            await documentRepository.updateDocument(documentId, {
+              status: 'error',
+              errorMessage: result.error || 'Failed to extract financial data',
+              aiAnalysisStatus: 'error'
+            });
+            return false;
+          } else if (result.financialRecordsCreated.length > 0) {
             logger.info(`[Orchestrator] Created ${result.financialRecordsCreated.length} financial records for ${documentId}`);
           } else {
             logger.warn(`[Orchestrator] No financial records created for ${documentId} — parseStatus=${result.parseStatus} error=${result.error || 'none'}`);
           }
         } catch (persistErr: any) {
           logger.error(`[Orchestrator] analyzeAndPersist failed for ${documentId}: ${persistErr.message}`);
+          await documentRepository.updateDocument(documentId, {
+            status: 'error',
+            errorMessage: persistErr.message || 'Analysis pipeline failure',
+            aiAnalysisStatus: 'error'
+          });
+          return false;
         }
       }
       // ─────────────────────────────────────────────────────────────────────────

@@ -190,6 +190,9 @@ function AddDocumentDialog({
       setOpen(false);
       onSuccess();
       queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/incomes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/debts'] });
     },
     onError: (error: Error) => {
       toast({
@@ -737,6 +740,10 @@ function LetterDocument({
     },
     onSuccess: () => {
       toast({ title: 'Deleted', description: 'Document has been deleted.' });
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/incomes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/debts'] });
       onDelete?.();
     },
     onError: () => {

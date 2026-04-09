@@ -1462,7 +1462,7 @@ export class DatabaseStorage implements IStorage {
       [maritalAssetsRes],
       [debtsRes],
       incomesRes,
-      [expenseRes],
+      expenseRes,
       [violationsRes],
       [casesRes],
       childSupportPendingRes,
@@ -1485,7 +1485,7 @@ export class DatabaseStorage implements IStorage {
         .from(incomes)
         .where(and(eq(incomes.userId, userId), eq(incomes.environment, env))),
       currentDb
-        .select({ total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)` })
+        .select({ amount: expenses.amount, frequency: expenses.frequency, vendor: expenses.vendor, description: expenses.description })
         .from(expenses)
         .where(and(eq(expenses.userId, userId), eq(expenses.environment, env))),
       currentDb
@@ -1539,7 +1539,29 @@ export class DatabaseStorage implements IStorage {
       if (i.owner === 'you') yourIncome += normalized;
     });
 
-    const monthlyExpenses = Number(expenseRes?.total) || 0;
+    const expenseGroups: Record<string, { totalAmount: number; count: number }> = {};
+
+    expenseRes.forEach(e => {
+      const amt = Number(e.amount) || 0;
+      let normalized = amt;
+      if (e.frequency === 'weekly') normalized = (amt * 52) / 12;
+      else if (e.frequency === 'bi-weekly') normalized = (amt * 26) / 12;
+      else if (e.frequency === 'annual') normalized = amt / 12;
+      else if (e.frequency === 'yearly') normalized = amt / 12;
+
+      // Group recurring historical bills from the same vendor to find average typical obligation
+      const key = e.vendor || e.description || e.amount.toString();
+      if (!expenseGroups[key]) {
+        expenseGroups[key] = { totalAmount: 0, count: 0 };
+      }
+      expenseGroups[key].totalAmount += normalized;
+      expenseGroups[key].count += 1;
+    });
+
+    let monthlyExpenses = 0;
+    for (const key in expenseGroups) {
+      monthlyExpenses += (expenseGroups[key].totalAmount / expenseGroups[key].count);
+    }
     
     // Unaccounted defaults to remaining positive cashflow after debts and tracking
     const trackedOutflow = monthlyExpenses + monthlyDebtPayments;

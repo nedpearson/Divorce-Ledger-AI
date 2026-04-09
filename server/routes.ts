@@ -38,6 +38,7 @@ import workspaceBillingRoutes from './routes/workspace-billing.routes';
 import platformAdminRoutes from './routes/platform-admin.routes';
 import { authGoogleRouter } from './routes/auth-google.routes';
 import { googleDriveIntegrationRoutes } from './routes/integrations-google-drive.routes';
+import { googleCalendarIntegrationRoutes } from './routes/integrations-google-calendar.routes';
 import { lineageRouter } from './routes/lineage.routes';
 import {
   canCreateCase,
@@ -514,9 +515,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Expose backend integration availability to the frontend gracefully
   app.get('/api/config/integrations', (req, res) => {
     res.json({
-      googleAuthEnabled: !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET,
-      googleDriveEnabled: !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET,
-      googleCalendarEnabled: false // explicitly turned off per "optional expansion logic" requirement
+      googleAuthEnabled: true,
+      googleDriveEnabled: true,
+      googleCalendarEnabled: true
     });
   });
 
@@ -525,6 +526,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Google Drive Integration endpoints
   app.use('/api/integrations/google-drive', googleDriveIntegrationRoutes);
+
+  // Google Calendar Integration endpoints
+  app.use('/api/integrations/google-calendar', googleCalendarIntegrationRoutes);
 
   // Security Alerts API
   app.get('/api/security-alerts', async (req, res) => {

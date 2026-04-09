@@ -185,13 +185,54 @@ function GoogleIntegrations() {
     }
   };
 
+  const { data: calendarStatus, isLoading: isCalendarLoading } = useQuery<{ isConnected: boolean; externalAccountId?: string }>({
+    queryKey: ['/api/integrations/google-calendar/status'],
+  });
+
+  const disconnectCalendarMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/integrations/google-calendar/disconnect'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/integrations/google-calendar/status'] });
+      toast({
+        title: 'Disconnected',
+        description: 'Google Calendar integration has been revoked successfully.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to disconnect Google Calendar.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const connectCalendar = async () => {
+    try {
+      const res = await fetch('/api/integrations/google-calendar/auth');
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No redirect URL provided');
+      }
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to initiate Calendar connection', variant: 'destructive' });
+    }
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('success') === 'drive_connected') {
       toast({ title: 'Drive Connected', description: 'Google Drive has been successfully linked for document exports.' });
       window.history.replaceState({}, '', '/settings');
+    } else if (params.get('success') === 'calendar_connected') {
+      toast({ title: 'Calendar Connected', description: 'Google Calendar has been successfully linked for date sync.' });
+      window.history.replaceState({}, '', '/settings');
     } else if (params.get('error')) {
-      const errorMsg = params.get('error') === 'drive_denied' ? 'Authorization denied by user.' : 'Drive connection failed.';
+      const errorMsg = params.get('error') === 'drive_denied' || params.get('error') === 'calendar_denied' 
+        ? 'Authorization denied by user.' 
+        : 'Integration connection failed.';
       toast({ title: 'Connection Failed', description: errorMsg, variant: 'destructive' });
       window.history.replaceState({}, '', '/settings');
     }
@@ -293,19 +334,50 @@ function GoogleIntegrations() {
           </h4>
           
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg border p-4 opacity-70">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 bg-muted rounded">
-                  <Globe className="h-4 w-4" />
+            <div className={`rounded-lg border p-4 ${!calendarStatus?.isConnected ? '' : 'bg-muted/10'}`}>
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-500/10 text-blue-600 rounded">
+                    <Globe className="h-4 w-4" />
+                  </div>
+                  <p className="text-sm font-medium">Google Calendar</p>
                 </div>
-                <p className="text-sm font-medium">Google Calendar</p>
+                {calendarStatus?.isConnected && (
+                    <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">Active</Badge>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mb-4">
                 Sync critical dates and mediation sessions. Requires explicit separate authorization scope.
               </p>
-              <Button variant="secondary" size="sm" disabled className="w-full">
-                Locked
-              </Button>
+              
+              {calendarStatus?.isConnected ? (
+                  <div className="space-y-4 mt-2">
+                      <div className="text-sm">
+                          <span className="text-muted-foreground mr-2">Linked:</span>
+                          <span className="font-medium truncate block sm:inline">{calendarStatus.externalAccountId}</span>
+                      </div>
+                      <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          className="w-full" 
+                          onClick={() => disconnectCalendarMutation.mutate()}
+                          disabled={disconnectCalendarMutation.isPending}
+                      >
+                          <Link2Off className="h-4 w-4 mr-2" /> Revoke Access
+                      </Button>
+                  </div>
+              ) : (
+                  <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full" 
+                      onClick={connectCalendar}
+                      disabled={routeConfig && !routeConfig.googleCalendarEnabled}
+                  >
+                    <Link2 className="h-4 w-4 mr-2" />
+                    {routeConfig && !routeConfig.googleCalendarEnabled ? 'Not Configured' : 'Connect Calendar'}
+                  </Button>
+              )}
             </div>
 
             <div className={`rounded-lg border p-4 ${!driveStatus?.isConnected ? '' : 'bg-muted/10'}`}>

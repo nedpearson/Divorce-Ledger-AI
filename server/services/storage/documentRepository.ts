@@ -131,6 +131,18 @@ export class DocumentRepository {
 
   async deleteDocument(documentId: string): Promise<void> {
     const table = this.getTable();
+    const { expenses, incomes, assets, debts, transactions, documentLineItems, documentParseResults } = await import('@shared/schema');
+
+    await Promise.all([
+      db.delete(expenses).where(eq(expenses.documentId, documentId)),
+      db.delete(incomes).where(eq(incomes.documentId, documentId)),
+      db.delete(assets).where(eq(assets.documentId, documentId)),
+      db.delete(debts).where(eq(debts.documentId, documentId)),
+      db.delete(transactions).where(eq(transactions.documentId, documentId)),
+      db.delete(documentLineItems).where(eq(documentLineItems.documentId, documentId)),
+      db.delete(documentParseResults).where(eq(documentParseResults.documentId, documentId)),
+    ]);
+
     await db.delete(table).where(eq(table.id, documentId));
   }
 

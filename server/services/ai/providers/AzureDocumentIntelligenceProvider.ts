@@ -34,14 +34,7 @@ export class AzureDocumentIntelligenceProvider {
 
   async analyzeDocumentBuffer(buffer: Buffer, mimeType: string): Promise<DocumentExtractionResult> {
     if (!this.client) {
-      // Graceful local dev mocking
-      return {
-        text: "MOCK_EXTRACTION: Azure credentials not configured. Please set AZURE_DOCUMENT_INTELLIGENCE_KEY.",
-        pages: 1,
-        tables: [],
-        kvPairs: {},
-        isHandwritten: false
-      };
+      throw new Error("Azure Document Intelligence credentials missing. Cannot execute high-fidelity extraction.");
     }
 
     try {
