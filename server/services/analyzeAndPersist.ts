@@ -525,6 +525,65 @@ export async function analyzeAndPersist(
     };
   } catch (error) {
     console.error('[analyzeAndPersist] Error:', error);
+
+    // ── No-AI Fallback ──────────────────────────────────────────────────────
+    // If the primary pipeline fails (e.g. missing OpenAI key), create a minimal
+    // expense record from document metadata so it appears in Finances.
+    // The user can correct the amount manually.
+    if (options.createRecords !== false) {
+      try {
+        const docFallback = await storage.getDocument(documentId);
+        if (docFallback) {
+          const userId = docFallback.userId;
+          const environment = normalizeEnv(docFallback.environment);
+          const category = (docFallback as any).aiCategory || docFallback.category || 'utility_bill';
+          const fileName = (docFallback as any).fileName || docFallback.title || 'Document';
+
+          // Infer billing date from filename (e.g. Entergy_Sep_2025 → 2025-09-01)
+          const MONTH_MAP: Record<string, string> = {
+            jan:'01', feb:'02', mar:'03', apr:'04', may:'05', jun:'06',
+            jul:'07', aug:'08', sep:'09', oct:'10', nov:'11', dec:'12'
+          };
+          let billDate = new Date().toISOString().split('T')[0];
+          const monthMatch = fileName.toLowerCase().match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[_\s-]?(\d{4})/);
+          if (monthMatch) {
+            billDate = `${monthMatch[2]}-${MONTH_MAP[monthMatch[1]]}-01`;
+          }
+
+          // Extract vendor from filename (Entergy_Sep_2025 → "Entergy")
+          const vendor = fileName.replace(/[_\s-].*/,'').replace(/\.pdf$/i,'') || 'Unknown Vendor';
+
+          // Create a $0 placeholder expense — user will correct amount
+          const record = await storage.createExpense({
+            userId,
+            environment,
+            category: category === 'utility_bill' ? 'utilities' : 'other',
+            description: `${vendor} — imported from document (amount needs review)`,
+            amount: 0, // placeholder until AI key is configured
+            frequency: 'monthly',
+            owner: 'self',
+            vendor,
+            documentId,
+            startDate: billDate,
+          });
+          console.log(`[analyzeAndPersist] Fallback: created placeholder expense for ${fileName}`);
+          return {
+            success: false,
+            parseStatus: 'error',
+            documentId,
+            lineItemsCreated: 0,
+            financialRecordsCreated: [{ type: 'expense', record }],
+            validation: { isValid: false, errors: [(error as Error).message], warnings: ['Created placeholder record — amount requires review'] },
+            latencyMs: Date.now() - startTime,
+            error: (error as Error).message,
+          };
+        }
+      } catch (fallbackErr) {
+        console.error('[analyzeAndPersist] Fallback also failed:', fallbackErr);
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     return {
       success: false,
       parseStatus: 'error',

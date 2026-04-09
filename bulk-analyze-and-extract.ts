@@ -1,56 +1,30 @@
 /**
  * bulk-analyze-and-extract.ts
  *
- * 1. Finds all documents stuck at 'uploaded' / 'pending' for the current user
- * 2. Runs AnalysisOrchestrator on each one (re-classifying correctly)
- * 3. For utility bills + receipts: creates an expense record so the dashboard shows real data
+ * Backfill: runs analyzeAndPersist on ALL documents for the live user.
+ * Use this to fix documents that were classified but never had financial records created.
  *
  * Usage: npx tsx --import dotenv/config bulk-analyze-and-extract.ts
  */
 import { db } from './server/db';
-import { documents, expenses } from './shared/schema';
-import { eq, and, or, inArray } from 'drizzle-orm';
-import { analysisOrchestrator } from './server/services/ai/AnalysisOrchestrator';
+import { documents } from './shared/schema';
+import { eq, and, or } from 'drizzle-orm';
+import { analyzeAndPersist } from './server/services/analyzeAndPersist';
 
-const USER_ID   = 'd21c3b35-2a34-49cd-9016-8b7d9f1a331f';
-const ENV       = 'live'; // Canonical environment value (was 'live-prod' — now fixed)
+const USER_ID = 'd21c3b35-2a34-49cd-9016-8b7d9f1a331f';
 
-// Utility bill categories that should create expense records
-const EXPENSE_CATEGORIES = ['utility_bill', 'receipt', 'insurance'];
-
-// Month name → numeric month (for sorting)
-const MONTH_MAP: Record<string, number> = {
-  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
-  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
-};
-
-function estAmountFromFilename(fileName: string): number | null {
-  // Look for dollar amounts in filename: $123.45 or 123.45
-  const dollarMatch = fileName.match(/\$?([\d,]+\.?\d{0,2})/);
-  if (dollarMatch) {
-    const parsed = parseFloat(dollarMatch[1].replace(',', ''));
-    if (parsed > 10 && parsed < 10000) return parsed; // sanity check
-  }
-  return null;
-}
-
-function billDateFromFilename(fileName: string): string {
-  const monthMatch = fileName.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[_\s-]?(\d{4})/i);
-  if (monthMatch) {
-    const m = MONTH_MAP[monthMatch[1].toLowerCase()] || 1;
-    const y = parseInt(monthMatch[2]);
-    return `${y}-${String(m).padStart(2, '0')}-01`;
-  }
-  return new Date().toISOString().split('T')[0];
-}
+// Non-financial categories — skip these (no dollar amounts expected)
+const SKIP_CATEGORIES = new Set([
+  'legal_document', 'custody_document', 'property_document', 'evidence', 'custody',
+]);
 
 async function main() {
   console.log('\n══════════════════════════════════════════');
-  console.log('   BULK ANALYZE + EXPENSE EXTRACTION');
+  console.log('   BULK ANALYZE + EXPENSE EXTRACTION (BACKFILL)');
   console.log('══════════════════════════════════════════\n');
 
-  // 1. Fetch all stuck documents — check BOTH canonical and legacy env values
-  const stuck = await db
+  // Fetch ALL documents for the live user (both legacy and canonical env values)
+  const allDocs = await db
     .select()
     .from(documents)
     .where(
@@ -59,85 +33,63 @@ async function main() {
         or(
           eq(documents.environment, 'live'),
           eq(documents.environment, 'live-prod')
-        ),
-        or(
-          eq((documents as any).aiAnalysisStatus, 'pending'),
-          eq((documents as any).aiAnalysisStatus, 'uploaded'),
-          eq((documents as any).aiAnalysisStatus, 'error')
         )
       )
     );
 
-  console.log(`Found ${stuck.length} documents to analyze\n`);
+  console.log(`Found ${allDocs.length} documents\n`);
 
-  let analyzed = 0;
-  let expensesCreated = 0;
+  let processed = 0;
+  let skipped = 0;
+  let recordsCreated = 0;
   let errors = 0;
 
-  for (const doc of stuck) {
-    const title = doc.title || (doc as any).fileName || doc.id;
-    process.stdout.write(`  📄 ${title.slice(0, 50).padEnd(52)} `);
+  for (const doc of allDocs) {
+    const label = (doc as any).fileName || doc.title || doc.id;
+    const category = (doc as any).aiCategory || doc.category || 'other';
+
+    // Skip non-financial documents
+    if (SKIP_CATEGORIES.has(category)) {
+      console.log(`  ⏭  ${label} (${category}) — non-financial, skipping`);
+      skipped++;
+      continue;
+    }
+
+    // Skip text-only captures (no real file attached)
+    if (!(doc as any).fileUrl || !(doc as any).fileSize) {
+      console.log(`  ⏭  ${label} — no file attached, skipping`);
+      skipped++;
+      continue;
+    }
+
+    process.stdout.write(`  ▶  ${label.slice(0, 45).padEnd(47)} `);
 
     try {
-      // Run the orchestrator
-      await analysisOrchestrator.processDocument(doc.id);
-      analyzed++;
+      const result = await analyzeAndPersist(doc.id, { createRecords: true, forceReparse: true });
 
-      // Fetch fresh state after analysis
-      const fresh = await db.select().from(documents).where(eq(documents.id, doc.id));
-      const updated = fresh[0] as any;
-      const category = updated.aiCategory || updated.category || 'other';
-
-      console.log(`→ ${category} ✅`);
-
-      // 2. Create expense records for utility/bill categories
-      if (EXPENSE_CATEGORIES.includes(category)) {
-        const fn = (updated.fileName || updated.title || '');
-        const amount = estAmountFromFilename(fn) ?? 150; // default $150 estimate if not in filename
-        const billDate = billDateFromFilename(fn);
-        const label = updated.title || fn;
-
-        // Check for duplicate expense
-        const existing = await db
-          .select()
-          .from(expenses)
-          .where(
-            and(
-              eq(expenses.userId, USER_ID),
-              eq(expenses.environment, ENV),
-              eq(expenses.name, label)
-            )
-          );
-
-        if (existing.length === 0) {
-          await db.insert(expenses).values({
-            userId: USER_ID,
-            environment: ENV,
-            name: label,
-            category: category === 'utility_bill' ? 'utilities' : 'other',
-            amount: amount,
-            frequency: 'monthly',
-            owner: 'you',
-            createdAt: new Date(),
-          } as any);
-          expensesCreated++;
-          console.log(`       💰 Expense created: ${label} — $${amount}/mo`);
-        } else {
-          console.log(`       ⏭️  Expense already exists for: ${label}`);
-        }
+      if (result.financialRecordsCreated.length > 0) {
+        const summary = result.financialRecordsCreated
+          .map(r => `${r.type}:$${(r.record.amount / 100).toFixed(2)}`)
+          .join(', ');
+        console.log(`✅  ${summary}`);
+        recordsCreated += result.financialRecordsCreated.length;
+      } else {
+        console.log(`⚠   No records — parseStatus=${result.parseStatus} err=${result.error || 'none'}`);
       }
+      processed++;
     } catch (err: any) {
-      console.log(`→ ERROR: ${err.message?.slice(0, 60)}`);
+      console.log(`❌  ${err.message?.slice(0, 70)}`);
       errors++;
     }
   }
 
   console.log('\n══════════════════════════════════════════');
-  console.log(`✅ Analyzed:         ${analyzed}/${stuck.length} documents`);
-  console.log(`💰 Expenses created: ${expensesCreated}`);
+  console.log(`✅ Processed:         ${processed}/${allDocs.length} documents`);
+  console.log(`💰 Financial records: ${recordsCreated}`);
+  console.log(`⏭  Skipped:          ${skipped}`);
   console.log(`❌ Errors:           ${errors}`);
   console.log('══════════════════════════════════════════\n');
-  console.log('👉 Refresh your browser dashboard to see updated financials!\n');
+  console.log('👉 Refresh your dashboard to see updated financials!\n');
   process.exit(0);
 }
 

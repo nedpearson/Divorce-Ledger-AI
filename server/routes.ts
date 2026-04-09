@@ -2984,8 +2984,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const headerUserId = req.headers['x-user-id'] as string;
       const userId =
         (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
-      const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+
+      // Resolve environment from user account if no explicit header sent
+      let environment = normalizeEnv(
+        (req.query.environment as string) || (req.headers['x-environment'] as string)
+      );
+      const explicitEnv = !!(req.query.environment as string) || !!(req.headers['x-environment'] as string);
+      if (!explicitEnv && userId !== 'demo-client-user') {
+        const userRecord = await storage.getUser(userId);
+        if (userRecord?.environment) environment = normalizeEnv(userRecord.environment);
+      }
+
       console.log(`[Documents API] Fetching for userId: ${userId}, environment: ${environment}`);
       const docs = await storage.getDocuments(userId, environment);
       console.log(`[Documents API] Found ${docs.length} documents`);
@@ -3003,9 +3012,27 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         (req as any).session?.userId ||
         (req.headers['x-user-id'] as string) ||
         'demo-client-user';
-      const environment = normalizeEnv(
+
+      // ── Environment Resolution ─────────────────────────────────────────────
+      // Priority 1: explicit header/query param (admin override)
+      // Priority 2: user's stored environment from the DB (canonical source)
+      // Priority 3: 'demo' fallback for anonymous / unknown users
+      let environment: string = normalizeEnv(
         (req.query.environment as string) || (req.headers['x-environment'] as string)
       );
+
+      // If no explicit environment was provided, look up the user's stored env
+      const explicitEnvProvided =
+        !!(req.query.environment as string) || !!(req.headers['x-environment'] as string);
+      if (!explicitEnvProvided && userId !== 'demo-client-user') {
+        const userRecord = await storage.getUser(userId);
+        if (userRecord?.environment) {
+          environment = normalizeEnv(userRecord.environment);
+          console.log(`[Documents API] Resolved environment from user record: ${environment} (userId=${userId})`);
+        }
+      }
+      // ─────────────────────────────────────────────────────────────────────
+
       const workspaceId = resolveWorkspaceId(req);
       const parsed = createDocumentSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -3013,14 +3040,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       // ─── Duplicate Detection ─────────────────────────────────────────────────
-      // Strategy 1: exact match on fileName + fileSize (reliable for file uploads)
-      // Strategy 2: exact match on title alone (fallback for text/voice captures)
       const { fileName, fileSize, title } = parsed.data;
 
       let existingDoc: typeof documents.$inferSelect | undefined;
 
       if (fileName && fileSize) {
-        // Primary: filename + filesize is a strong fingerprint
         const results = await db
           .select()
           .from(documents)
@@ -3037,7 +3061,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       if (!existingDoc && title) {
-        // Fallback: exact title match within the last 60 seconds (prevents rapid double-submit)
         const sixtySecondsAgo = new Date(Date.now() - 60_000);
         const results = await db
           .select()
