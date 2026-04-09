@@ -3,10 +3,11 @@ import { assets, debts, incomes } from './shared/schema';
 import { eq, and } from 'drizzle-orm';
 
 const USER_ID = 'd21c3b35-2a34-49cd-9016-8b7d9f1a331f';
-const ENV = 'live-prod';
+// Seed both environments: 'live' (schema type) and 'live-prod' (bootstrap legacy value)
+const ENVIRONMENTS = ['live', 'live-prod'];
 
-(async () => {
-  console.log('\n=== Seeding financial data for nedpearson@gmail.com ===\n');
+async function seedForEnv(ENV: string) {
+  console.log(`\n=== Seeding for environment: ${ENV} ===`);
 
   // Clear existing
   await db.delete(assets).where(and(eq(assets.userId, USER_ID), eq(assets.environment, ENV)));
@@ -52,11 +53,19 @@ const ENV = 'live-prod';
     await db.insert(incomes).values({ userId: USER_ID, environment: ENV, source: i.source, amount: String(i.amount), frequency: i.frequency, owner: i.owner } as any);
     console.log(` + Income: ${i.source} — $${i.amount}/mo`);
   }
+}
 
-  // ─── Summary ─────────────────────────────────────────────────────────────
-  const ta = assetRows.reduce((s, a) => s + a.value, 0);
-  const td = debtRows.reduce((s, d) => s + d.amount, 0);
-  const yi = incomeRows.filter(i => i.owner === 'you').reduce((s, i) => s + i.amount, 0);
+(async () => {
+  console.log('\n=== Seeding financial data for nedpearson@gmail.com ===');
+  console.log(`=== UserID: ${USER_ID} ===\n`);
+
+  for (const env of ENVIRONMENTS) {
+    await seedForEnv(env);
+  }
+
+  const ta = 325000 + 18450 + 42800 + 187500 + 24000 + 6200;
+  const td = 218000 + 8400 + 14200 + 22500;
+  const yi = 6250 + 850;
 
   console.log('\n=== Dashboard will now show ===');
   console.log(`  Total Assets:     $${ta.toLocaleString()}`);

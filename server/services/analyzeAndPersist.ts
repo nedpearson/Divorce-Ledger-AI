@@ -2,6 +2,7 @@ import { db } from '../db';
 import { storage } from '../storage';
 import { eq, and } from 'drizzle-orm';
 import { documentLineItems, documentParseResults, expenses, incomes, debts } from '@shared/schema';
+import { normalizeEnv } from '../lib/normalizeEnv';
 import {
   parseFinancialDocument,
   validateParseResult,
@@ -70,7 +71,7 @@ export async function analyzeAndPersist(
     }
 
     const userId = doc.userId;
-    const environment = doc.environment || 'demo';
+    const environment = normalizeEnv(doc.environment);
 
     const existingResults = await db
       .select()

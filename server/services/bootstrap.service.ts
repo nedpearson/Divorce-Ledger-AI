@@ -175,7 +175,7 @@ export async function bootstrapUsers(
     email: superAdminEmail,
     password: superAdminPassword,
     fullName: 'Platform Admin',
-    environment: 'live-prod',
+    environment: 'live',
     platformRole: 'super_admin',
     forcePasswordReset: options.forcePasswordReset,
   });

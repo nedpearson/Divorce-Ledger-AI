@@ -1,5 +1,6 @@
 import { eq, and, desc, sql, inArray, isNull } from 'drizzle-orm';
 import { db, getDb } from './db';
+import { normalizeEnv } from './lib/normalizeEnv';
 import { hashPassword, isPasswordHashed } from './auth';
 import {
   workspaces,
@@ -1254,7 +1255,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAsset(asset: InsertAsset): Promise<Asset> {
-    const result = await db.insert(assets).values(asset).returning();
+    const env = normalizeEnv(asset.environment as string);
+    const currentDb = getDb(env);
+    const result = await currentDb.insert(assets).values({ ...asset, environment: env }).returning();
     return result[0];
   }
 
@@ -1275,7 +1278,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDebt(debt: InsertDebt): Promise<Debt> {
-    const result = await db.insert(debts).values(debt).returning();
+    const env = normalizeEnv(debt.environment as string);
+    const currentDb = getDb(env);
+    const result = await currentDb.insert(debts).values({ ...debt, environment: env }).returning();
     return result[0];
   }
 
@@ -1294,7 +1299,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createIncome(income: InsertIncome): Promise<Income> {
-    const result = await db.insert(incomes).values(income).returning();
+    const env = normalizeEnv(income.environment as string);
+    const currentDb = getDb(env);
+    const result = await currentDb.insert(incomes).values({ ...income, environment: env }).returning();
     return result[0];
   }
 
@@ -1315,7 +1322,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExpense(expense: InsertExpense): Promise<Expense> {
-    const result = await db.insert(expenses).values(expense).returning();
+    const env = normalizeEnv(expense.environment as string);
+    const currentDb = getDb(env);
+    const result = await currentDb.insert(expenses).values({ ...expense, environment: env }).returning();
     return result[0];
   }
 
@@ -1441,7 +1450,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDashboardStats(userId: string, environment: string): Promise<DashboardStats> {
-    const currentDb = getDb(environment);
+    // Normalize any legacy variant (e.g. 'live-prod') to canonical 'live' | 'demo'
+    const env = normalizeEnv(environment);
+    const currentDb = getDb(env);
 
     // Optimized: Execute counting/summation queries natively in PostgreSQL / Drizzle
     const [
@@ -1458,38 +1469,38 @@ export class DatabaseStorage implements IStorage {
       currentDb
         .select({ total: sql<number>`COALESCE(SUM(${assets.value}), 0)` })
         .from(assets)
-        .where(and(eq(assets.userId, userId), eq(assets.environment, environment))),
+        .where(and(eq(assets.userId, userId), eq(assets.environment, env))),
       currentDb
         .select({ total: sql<number>`COALESCE(SUM(${assets.value}), 0)` })
         .from(assets)
-        .where(and(eq(assets.userId, userId), eq(assets.environment, environment), eq(assets.ownership, 'marital'))),
+        .where(and(eq(assets.userId, userId), eq(assets.environment, env), eq(assets.ownership, 'marital'))),
       currentDb
         .select({ total: sql<number>`COALESCE(SUM(${debts.amount}), 0)`, monthly: sql<number>`COALESCE(SUM(${debts.monthlyPayment}), 0)` })
         .from(debts)
-        .where(and(eq(debts.userId, userId), eq(debts.environment, environment))),
+        .where(and(eq(debts.userId, userId), eq(debts.environment, env))),
       currentDb
         .select({ amount: incomes.amount, frequency: incomes.frequency, owner: incomes.owner })
         .from(incomes)
-        .where(and(eq(incomes.userId, userId), eq(incomes.environment, environment))),
+        .where(and(eq(incomes.userId, userId), eq(incomes.environment, env))),
       currentDb
         .select({ total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)` })
         .from(expenses)
-        .where(and(eq(expenses.userId, userId), eq(expenses.environment, environment))),
+        .where(and(eq(expenses.userId, userId), eq(expenses.environment, env))),
       currentDb
         .select({ count: sql<number>`COUNT(*)` })
         .from(violations)
-        .where(and(eq(violations.userId, userId), eq(violations.environment, environment))),
+        .where(and(eq(violations.userId, userId), eq(violations.environment, env))),
       currentDb
         .select({ count: sql<number>`COUNT(*)` })
         .from(cases)
-        .where(and(eq(cases.userId, userId), eq(cases.environment, environment))),
+        .where(and(eq(cases.userId, userId), eq(cases.environment, env))),
       currentDb
         .select({ total: sql<number>`COALESCE(SUM(${childSupportPayments.amount}), 0)`, nextDate: sql<string>`MIN(${childSupportPayments.dueDate})` })
         .from(childSupportPayments)
         .where(
           and(
             eq(childSupportPayments.userId, userId),
-            eq(childSupportPayments.environment, environment),
+            eq(childSupportPayments.environment, env),
             eq(childSupportPayments.paymentType, 'child_support'),
             eq(childSupportPayments.status, 'pending')
           )
@@ -1500,7 +1511,7 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             eq(childSupportPayments.userId, userId),
-            eq(childSupportPayments.environment, environment),
+            eq(childSupportPayments.environment, env),
             eq(childSupportPayments.paymentType, 'alimony'),
             eq(childSupportPayments.status, 'pending')
           )

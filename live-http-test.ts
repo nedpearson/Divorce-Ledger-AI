@@ -9,7 +9,7 @@ import fs from 'fs';
 const BASE = 'http://localhost:5000';
 const HEADERS = {
   'X-User-Id': 'd21c3b35-2a34-49cd-9016-8b7d9f1a331f',
-  'X-Environment': 'live-prod'
+  'X-Environment': 'live'
 };
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));

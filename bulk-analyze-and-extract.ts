@@ -13,7 +13,7 @@ import { eq, and, or, inArray } from 'drizzle-orm';
 import { analysisOrchestrator } from './server/services/ai/AnalysisOrchestrator';
 
 const USER_ID   = 'd21c3b35-2a34-49cd-9016-8b7d9f1a331f';
-const ENV       = 'live-prod';
+const ENV       = 'live'; // Canonical environment value (was 'live-prod' — now fixed)
 
 // Utility bill categories that should create expense records
 const EXPENSE_CATEGORIES = ['utility_bill', 'receipt', 'insurance'];
@@ -49,14 +49,17 @@ async function main() {
   console.log('   BULK ANALYZE + EXPENSE EXTRACTION');
   console.log('══════════════════════════════════════════\n');
 
-  // 1. Fetch all stuck documents
+  // 1. Fetch all stuck documents — check BOTH canonical and legacy env values
   const stuck = await db
     .select()
     .from(documents)
     .where(
       and(
         eq(documents.userId, USER_ID),
-        eq(documents.environment, ENV),
+        or(
+          eq(documents.environment, 'live'),
+          eq(documents.environment, 'live-prod')
+        ),
         or(
           eq((documents as any).aiAnalysisStatus, 'pending'),
           eq((documents as any).aiAnalysisStatus, 'uploaded'),

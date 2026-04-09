@@ -5,6 +5,7 @@ import { eq, or, lt, sql } from 'drizzle-orm';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import { db } from './db';
+import { normalizeEnv } from './lib/normalizeEnv';
 import { users } from '@shared/schema';
 import { storage, seedDemoData, seedTestUsers, TEST_USERS } from './storage';
 import {
@@ -744,7 +745,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const userId = (req as any).session?.userId || (req.user as any)?.id || req.headers['x-user-id'];
       if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-      const environment = req.headers['x-environment'] as string || req.cookies?.environment || 'demo';
+      const environment = normalizeEnv(req.headers['x-environment'] as string || req.cookies?.environment);
       
       const tokenStr = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes magic link
@@ -905,7 +906,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       console.log(`[AUTH] Password verification succeeded for ${email}`);
 
       // Check if 2FA is required (user has phone number and is in live environment)
-      const isLiveUser = user.environment?.startsWith('live-');
+      const isLiveUser = normalizeEnv(user.environment) === 'live';
       const has2FAEnabled = user.phoneNumber && isLiveUser;
 
       // Check if device is trusted (skip 2FA for remembered devices)
@@ -967,7 +968,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
               requires2fa: true,
               userId: user.id,
               maskedPhone: maskPhoneNumber(phoneNumber),
-              environment: user.environment || environment || 'demo',
+              environment: normalizeEnv(user.environment || environment),
               rememberMe: !!rememberMe,
             });
           }
@@ -983,8 +984,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       // Return user data (password excluded)
       const { password: _, ...userWithoutPassword } = user;
 
-      // Use the user's stored environment (important for test users who have their own sandbox)
-      const userEnvironment = user.environment || environment || 'demo';
+      // Use the user's stored environment, normalized to canonical 'live' | 'demo'
+      const userEnvironment = normalizeEnv(user.environment || environment);
 
       // Create session and device record for non-2FA login
       const userAgent = req.headers['user-agent'] || 'Unknown';
@@ -1125,7 +1126,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             const { password: _, ...userWithoutPassword } = user;
             return res.json({
               user: userWithoutPassword,
-              environment: user.environment || 'demo',
+              environment: normalizeEnv(user.environment),
             });
           }
         }
@@ -1173,8 +1174,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       // Update last login
       await storage.updateUserLastLogin(user.id);
 
-      // Use environment from user record (server-side source of truth)
-      const userEnvironment = user.environment || 'demo';
+      // Use environment from user record (server-side source of truth), normalized
+      const userEnvironment = normalizeEnv(user.environment);
 
       // Refresh the cookie with current password hash
       const newToken = generateRememberMeToken(user.id, user.password);
@@ -1261,7 +1262,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       const issuedAt = Date.now();
-      const environment = user.environment || 'demo';
+      const environment = normalizeEnv(user.environment);
       const token = encodeMobileLinkToken({
         userId: user.id,
         environment,
@@ -1371,7 +1372,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       });
 
       const { password: _pw, ...userWithoutPassword } = user;
-      const environment = user.environment || payload.environment || 'demo';
+      const environment = normalizeEnv(user.environment || payload.environment);
 
       return res.json({
         user: userWithoutPassword,
@@ -1695,7 +1696,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       res.json({
         success: true,
         user: userWithoutPassword,
-        environment: user.environment,
+        environment: normalizeEnv(user.environment),
         sessionId: session.id,
       });
     } catch (error: any) {
@@ -2472,17 +2473,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get('/api/dashboard/stats', async (req, res) => {
     try {
-      const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
-      const stats = await storage.getDashboardStats(
-        (req as any).session?.userId || 'demo-client-user',
-        environment
+      const userId =
+        (req.headers['x-user-id'] as string) ||
+        (req as any).session?.userId ||
+        'demo-client-user';
+      const environment = normalizeEnv(
+        (req.query.environment as string) || (req.headers['x-environment'] as string)
       );
+      console.log(`[Dashboard Stats] userId=${userId}, environment=${environment}`);
+      const stats = await storage.getDashboardStats(userId, environment);
       // Never cache — financial data must always be fresh
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.status(200).json(stats);
     } catch (error) {
+      console.error('[Dashboard Stats] Error:', error);
       res.status(500).json({ error: 'Failed to fetch stats' });
     }
   });
