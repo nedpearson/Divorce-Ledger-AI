@@ -80,7 +80,7 @@
     "cron": "^4.4.0",
     "date-fns": "^3.6.0",
     "dotenv": "^17.2.3",
-    "drizzle-orm": "^0.39.3",
+    "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.7.1",
     "embla-carousel-react": "^8.6.0",
     "eslint": "^9.39.3",
