@@ -410,8 +410,59 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Register object storage routes for evidence file uploads
   registerObjectStorageRoutes(app);
 
+  // ── File Upload Route ─────────────────────────────────────────────────────
+  // POST /api/documents/upload
+  // Accepts multipart form data, stores file in /uploads/, returns a fileUrl
+  // that is then passed to POST /api/documents to create the document record.
+  {
+    const multer = (await import('multer')).default;
+    const path = await import('path');
+    const fs = await import('fs');
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+    const diskStorage = multer.diskStorage({
+      destination: (_req, _file, cb) => cb(null, uploadDir),
+      filename: (_req, file, cb) => {
+        const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const ext = path.extname(file.originalname);
+        cb(null, `${unique}${ext}`);
+      },
+    });
+    const upload = multer({ storage: diskStorage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB
+
+    app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
+      try {
+        if (!req.file) return res.status(400).json({ error: 'No file provided' });
+        const fileUrl = `/uploads/${req.file.filename}`;
+        console.log(`[Upload] File saved: ${req.file.originalname} → ${fileUrl} (${req.file.size} bytes)`);
+        res.json({
+          success: true,
+          file: {
+            fileUrl,
+            storageFileId: req.file.filename,
+            fileName: req.file.originalname,
+            fileSize: req.file.size,
+            fileType: req.file.mimetype,
+          },
+          extractedText: '',
+        });
+      } catch (err: any) {
+        console.error('[Upload] Error:', err.message);
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    // Serve uploaded files statically
+    const express = (await import('express')).default;
+    app.use('/uploads', express.static(uploadDir));
+    console.log(`[Upload] File upload route registered → /api/documents/upload (serving from ${uploadDir})`);
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Simple root health endpoint
   app.get('/health', (req, res) => {
+
     res.json({
       status: 'ok',
       uptime: process.uptime(),
