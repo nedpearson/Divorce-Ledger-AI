@@ -2,9 +2,18 @@ import { db } from './server/db';
 import { assets, debts, incomes } from './shared/schema';
 import { eq, and } from 'drizzle-orm';
 
+// ⚠️  DANGER: This script seeds fake financial data directly into the DB.
+// It will overwrite real user data. Only run with --force flag in dev contexts.
+if (!process.argv.includes('--force')) {
+  console.error('\n❌ ABORTED: This script requires --force to run.');
+  console.error('   Usage: npx tsx seed-user-financials.ts --force');
+  console.error('   WARNING: This overwrites real financial data!\n');
+  process.exit(1);
+}
+
 const USER_ID = 'd21c3b35-2a34-49cd-9016-8b7d9f1a331f';
-// Seed both environments: 'live' (schema type) and 'live-prod' (bootstrap legacy value)
-const ENVIRONMENTS = ['live', 'live-prod'];
+// Only seed canonical 'live' — 'live-prod' is a retired legacy value
+const ENVIRONMENTS = ['live'];
 
 async function seedForEnv(ENV: string) {
   console.log(`\n=== Seeding for environment: ${ENV} ===`);
