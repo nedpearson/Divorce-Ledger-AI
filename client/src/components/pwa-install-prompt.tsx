@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, X, Smartphone } from 'lucide-react';
+import { Download, X, Smartphone, Share } from 'lucide-react';
 
 /**
  * PWA Install Prompt Component
@@ -14,6 +14,7 @@ export function PWAInstallPrompt() {
   const { canInstall, promptInstall, isInstalled } = usePWAInstall();
   const [dismissed, setDismissed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
@@ -23,8 +24,10 @@ export function PWAInstallPrompt() {
         const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
           navigator.userAgent
         );
+        const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
         const smallScreen = window.innerWidth < 768;
         setIsMobile(mobile || smallScreen);
+        setIsIOS(ios);
       };
 
       checkMobile();
@@ -64,13 +67,10 @@ export function PWAInstallPrompt() {
     localStorage.setItem('pwa-install-dismissed', Date.now().toString());
   };
 
-  // Don't show if:
-  // - Already installed
-  // - Can't install
-  // - User dismissed it
-  // - Not on mobile
-  // - Has error
-  if (isInstalled || !canInstall || dismissed || !isMobile || hasError) {
+  // Show if ready to install natively, OR if on iOS (since iOS doesn't support automatic prompting)
+  const shouldShow = (canInstall || isIOS) && isMobile && !isInstalled && !dismissed && !hasError;
+
+  if (!shouldShow) {
     return null;
   }
 
@@ -96,15 +96,25 @@ export function PWAInstallPrompt() {
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="flex gap-2">
-            <Button onClick={handleInstall} size="sm" className="flex-1">
-              <Download className="h-4 w-4 mr-2" />
-              Install
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleDismiss}>
-              Later
-            </Button>
-          </div>
+          {isIOS && !canInstall ? (
+            <div className="text-sm text-muted-foreground pb-2 flex flex-col gap-2">
+              <p>To install natively on iOS:</p>
+              <ol className="list-decimal list-inside space-y-1 ml-1 text-xs">
+                <li>Tap the <Share className="inline h-3 w-3 mx-0.5" /> Share button below</li>
+                <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
+              </ol>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button onClick={handleInstall} size="sm" className="flex-1">
+                <Download className="h-4 w-4 mr-2" />
+                Install
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDismiss}>
+                Later
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

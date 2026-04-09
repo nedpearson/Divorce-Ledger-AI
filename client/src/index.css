@@ -429,6 +429,8 @@ html,
 body {
   overflow-x: hidden;
   max-width: 100vw;
+  /* Disable native pull-to-refresh to make the PWA feel like a compiled mobile app */
+  overscroll-behavior-y: none;
 }
 
 /* Ensure proper keyboard handling on iOS */
