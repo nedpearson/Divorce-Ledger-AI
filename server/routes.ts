@@ -432,7 +432,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     });
     const upload = multer({ storage: diskStorage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB
 
-    app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
+    const azureCostLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 min
+      max: 20,
+      message: { error: 'Upload quota reached. To prevent Azure processing exhaustion, please wait 15 minutes before uploading more documents.' },
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
+
+    app.post('/api/documents/upload', azureCostLimiter, upload.single('file'), async (req, res) => {
       try {
         if (!req.file) return res.status(400).json({ error: 'No file provided' });
         const fileUrl = `/uploads/${req.file.filename}`;

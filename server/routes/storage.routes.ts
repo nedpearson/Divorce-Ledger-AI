@@ -5,6 +5,7 @@ import { documentRepository } from '../services/storage/documentRepository';
 import { fileAccessService } from '../services/storage/fileAccessService';
 import { fileStorageService } from '../services/storage/fileStorageService';
 import { analysisOrchestrator } from '../services/ai/AnalysisOrchestrator';
+import rateLimit from 'express-rate-limit';
 
 interface MulterRequest extends Request {
   file?: Express.Multer.File;
@@ -37,8 +38,18 @@ router.post('/setup', (req: Request, res: Response) => {
   res.json({ success: true, message: 'Storage setup completed successfully natively' });
 });
 
+// Azure Cost Control / Quota Protection
+// Limits each IP to 20 uploads per 15 minutes to prevent Cloud runaway
+const uploadRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 min
+  max: 20,
+  message: { success: false, error: 'Upload quota reached. To prevent Azure processing exhaustion, please wait 15 minutes before uploading more documents.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // 2. File Upload
-router.post('/files/upload', upload.single('file'), async (req: MulterRequest, res: Response) => {
+router.post('/files/upload', uploadRateLimiter, upload.single('file'), async (req: MulterRequest, res: Response) => {
   try {
     const { userId, error: authError } = getUserIdOrThrow(req);
     if (authError) return res.status(401).json({ error: authError });
