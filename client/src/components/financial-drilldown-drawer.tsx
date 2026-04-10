@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import {
   Sheet,
@@ -93,6 +94,7 @@ export function FinancialDrilldownDrawer({
   environment,
 }: FinancialDrilldownDrawerProps) {
   const [activeTab, setActiveTab] = useState('records');
+  const [, setLocation] = useLocation();
   const { openDrilldown } = useDrilldown();
 
   const { data, isLoading } = useQuery<{ records: FinancialRecord[] }>({
@@ -222,7 +224,7 @@ export function FinancialDrilldownDrawer({
                               </Badge>
                             )}
                           </div>
-                          <p className="text-lg font-semibold whitespace-nowrap">
+                          <p className="text-lg font-semibold whitespace-nowrap flex-shrink-0 pl-2">
                             {formatCurrency(getRecordAmount(record))}
                           </p>
                         </div>
@@ -349,7 +351,10 @@ export function FinancialDrilldownDrawer({
             <Button
               variant="outline"
               className="w-full gap-2"
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                onOpenChange(false);
+                setLocation('/finances');
+              }}
               data-testid="button-close-drilldown"
             >
               <ExternalLink className="h-4 w-4" />

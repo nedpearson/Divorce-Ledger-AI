@@ -1,4 +1,5 @@
 import { useState, useMemo, memo } from 'react';
+import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import {
   TrendingUp,
@@ -328,6 +329,7 @@ function DashboardSkeleton() {
 }
 
 export default function Dashboard() {
+  const [, setLocation] = useLocation();
   const { environment, user } = useAuth();
   const defaultMode =
     user?.role === 'admin' || user?.role === 'staff' || user?.isAdmin ? 'firm' : 'client';
@@ -597,6 +599,7 @@ export default function Dashboard() {
                     variant="ghost"
                     size="sm"
                     className="text-xs"
+                    onClick={() => setLocation('/finances')}
                     data-testid="button-view-all-transactions"
                   >
                     View All
@@ -638,6 +641,7 @@ export default function Dashboard() {
                     variant="ghost"
                     size="sm"
                     className="text-xs"
+                    onClick={() => setLocation('/violations')}
                     data-testid="button-view-all-alerts"
                   >
                     View All

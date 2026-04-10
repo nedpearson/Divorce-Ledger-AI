@@ -1,25 +1,34 @@
+import 'dotenv/config';
 import { db } from './server/db';
-import { sql } from 'drizzle-orm';
+import * as schema from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
 
-const USER_ID = 'd21c3b35-2a34-49cd-9016-8b7d9f1a331f';
+async function checkStatus() {
+  const users = await db.select().from(schema.users);
+  const liveUser = users.find(u => u.email === 'nedpearson@gmail.com');
+  const userId = liveUser!.id;
 
-(async () => {
-  // Get all live doc columns — find where the file is stored
-  const r = await db.execute(sql.raw(`
-    SELECT id, file_name, file_url, storage_path, file_hash, ai_analysis_status, ai_category, description
-    FROM documents
-    WHERE user_id = '${USER_ID}' AND environment = 'live'
-    ORDER BY created_at DESC LIMIT 5
-  `));
-  console.log('\nDoc storage details:');
-  (r as any).rows.forEach((row: any) => {
-    console.log(`\n  ${row.file_name}`);
-    console.log(`    file_url:     ${row.file_url || 'NULL'}`);
-    console.log(`    storage_path: ${row.storage_path || 'NULL'}`);
-    console.log(`    file_hash:    ${row.file_hash || 'NULL'}`);
-    console.log(`    ai_status:    ${row.ai_analysis_status}`);
-    console.log(`    ai_category:  ${row.ai_category}`);
-    console.log(`    description:  ${(row.description || '').substring(0, 80)}`);
+  const exps = await db.query.expenses.findMany({
+    where: (e, { eq, and }) => and(eq(e.userId, userId), eq(e.environment, 'live'))
   });
+  
+  console.log('--- EXPENSES ---');
+  exps.forEach(e => {
+    console.log(`Expense: ${e.description} | ${e.vendor} | $${e.amount/100} | ${e.startDate}`);
+  });
+
+  const docs = await db.query.documents.findMany({
+    where: (d, { eq, and }) => and(eq(d.userId, userId), eq(d.environment, 'live'))
+  });
+
+  console.log('--- DOCUMENTS ---');
+  docs.forEach(d => {
+    if(d.status === 'error' || d.processingStatus === 'error') {
+       console.log(`ERROR DOC: ${d.title} | ${d.processingStatus} | ${d.status}`);
+    }
+  });
+
   process.exit(0);
-})().catch(e => { console.error(e.message); process.exit(1); });
+}
+
+checkStatus().catch(console.error);
