@@ -914,20 +914,20 @@ export async function seedDemoData() {
   const existingViolations = await db
     .select({ count: sql`COUNT(*)` })
     .from(violations)
-    .where(and(eq(violations.userId, clientId), eq(violations.environment, environment)));
+    .where(and(eq(violations.userId, userId), eq(violations.environment, environment)));
 
   if (Number(existingViolations[0]?.count ?? 0) > 0) {
     console.log('[DEMO] seedDemoData: existing demo data detected, skipping reseed.');
     return;
   }
 
-  console.log('[DEMO] Seeding sample demo data for the client user...');
+  console.log('[DEMO] Seeding sample demo data for the demo user...');
 
   // Create a few sample cases
   const case1 = await db
     .insert(cases)
     .values({
-      userId: clientId,
+      userId: userId,
       environment,
       title: 'Custody & Parenting Time',
       status: 'open',
@@ -940,7 +940,7 @@ export async function seedDemoData() {
   const case2 = await db
     .insert(cases)
     .values({
-      userId: clientId,
+      userId: userId,
       environment,
       title: 'Hidden Assets & Financial Misconduct',
       status: 'open',
@@ -955,7 +955,7 @@ export async function seedDemoData() {
   // Seed a few violations tied to the primary case
   await db.insert(violations).values([
     {
-      userId: clientId,
+      userId: userId,
       environment,
       caseId: primaryCase.id,
       type: 'custody',
@@ -966,7 +966,7 @@ export async function seedDemoData() {
       isDraft: false,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       caseId: primaryCase.id,
       type: 'financial_hiding',
@@ -977,7 +977,7 @@ export async function seedDemoData() {
       isDraft: false,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       caseId: primaryCase.id,
       type: 'court_order',
@@ -993,7 +993,7 @@ export async function seedDemoData() {
   // NOTE: All monetary values stored as CENTS (e.g. $9,800 → 980000)
   await db.insert(assets).values([
     {
-      userId: clientId,
+      userId: userId,
       environment,
       name: 'Chase Joint Checking (*4421)',
       value: 2475000, // $24,750
@@ -1004,7 +1004,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       name: 'Ally High-Yield Savings (*7893)',
       value: 3860000, // $38,600
@@ -1015,7 +1015,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       name: 'Primary Residence – 2847 Oak Ridge Dr',
       value: 48500000, // $485,000
@@ -1026,7 +1026,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       name: 'Fidelity 401(k) Plan (*6012)',
       value: 14200000, // $142,000
@@ -1037,7 +1037,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       name: '2022 Honda Odyssey',
       value: 2850000, // $28,500
@@ -1048,7 +1048,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       name: 'Schwab Roth IRA (*1104)',
       value: 6720000, // $67,200
@@ -1062,7 +1062,7 @@ export async function seedDemoData() {
 
   await db.insert(debts).values([
     {
-      userId: clientId,
+      userId: userId,
       environment,
       name: 'Rocket Mortgage – Primary Residence',
       amount: 31200000, // $312,000
@@ -1073,7 +1073,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       name: 'Auto Loan – Honda Odyssey',
       amount: 1820000, // $18,200
@@ -1084,7 +1084,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       name: 'Chase Sapphire Preferred (*9283)',
       amount: 1480000, // $14,800
@@ -1095,7 +1095,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       name: 'Discover It Cash Back (*5571)',
       amount: 630000, // $6,300
@@ -1109,7 +1109,7 @@ export async function seedDemoData() {
 
   await db.insert(incomes).values([
     {
-      userId: clientId,
+      userId: userId,
       environment,
       source: 'W-2 Employment – Software Engineer',
       category: 'salary_wages',
@@ -1121,7 +1121,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       source: 'Court-Ordered Child Support',
       category: 'child_support',
@@ -1133,7 +1133,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       source: 'Fidelity Dividend Income',
       category: 'investment_income',
@@ -1147,7 +1147,7 @@ export async function seedDemoData() {
 
   await db.insert(expenses).values([
     {
-      userId: clientId,
+      userId: userId,
       environment,
       category: 'legal_professional',
       description: 'Retainer payment to family law attorney',
@@ -1158,7 +1158,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       category: 'childcare',
       description: 'After-school care, tutoring, and extracurriculars',
@@ -1169,7 +1169,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       category: 'housing',
       description: 'Rent and utilities – temporary residence',
@@ -1180,7 +1180,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       category: 'utilities',
       description: 'Internet, phone, and streaming services',
@@ -1191,7 +1191,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       category: 'transportation',
       description: 'Auto insurance and fuel',
@@ -1202,7 +1202,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       category: 'groceries',
       description: 'Groceries and household supplies',
@@ -1213,7 +1213,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       category: 'healthcare',
       description: 'Health insurance premium and copays',
@@ -1227,7 +1227,7 @@ export async function seedDemoData() {
 
   await db.insert(transactions).values([
     {
-      userId: clientId,
+      userId: userId,
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 2).toISOString().split('T')[0],
       amount: -750000, // -$7,500
@@ -1245,7 +1245,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 5).toISOString().split('T')[0],
       amount: -245000, // -$2,450
@@ -1257,7 +1257,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 1).toISOString().split('T')[0],
       amount: 490000, // $4,900 (bi-weekly net pay)
@@ -1269,7 +1269,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 3).toISOString().split('T')[0],
       amount: -15800, // -$158
@@ -1281,7 +1281,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 4).toISOString().split('T')[0],
       amount: -48500, // -$485
@@ -1293,7 +1293,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7).toISOString().split('T')[0],
       amount: -350000, // -$3,500
@@ -1311,7 +1311,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 12).toISOString().split('T')[0],
       amount: 150000, // $1,500
@@ -1323,7 +1323,7 @@ export async function seedDemoData() {
       createdAt: now,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 15).toISOString().split('T')[0],
       amount: 490000, // $4,900
@@ -1338,7 +1338,7 @@ export async function seedDemoData() {
 
   await db.insert(alerts).values([
     {
-      userId: clientId,
+      userId: userId,
       environment,
       title: 'Action Required',
       description: 'Please sign the Joint Custody Parenting Plan draft.',
@@ -1347,7 +1347,7 @@ export async function seedDemoData() {
       isRead: false,
     },
     {
-      userId: clientId,
+      userId: userId,
       environment,
       title: 'New Message',
       description: 'Demo Firm Admin sent you a secure message.',
