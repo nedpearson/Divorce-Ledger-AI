@@ -125,7 +125,7 @@ authGoogleRouter.get('/api/auth/google/callback', async (req, res) => {
       (req as any).session.userId = user.id;
     }
 
-    res.redirect('/');
+    res.redirect('/home');
   } catch (error: any) {
     console.error('Google OAuth Exchange Error:', error);
     await googleAuthService.logAudit(null, 'login', 'failure', error.message);
