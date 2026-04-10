@@ -49,6 +49,7 @@ process.on('unhandledRejection', (reason, promise) => {
 import helmet from 'helmet';
 import hpp from 'hpp';
 import xss from 'xss-clean';
+import rateLimit from 'express-rate-limit';
 
 import { loopWatchdogMiddleware } from './middleware/loopWatchdog';
 
@@ -420,8 +421,9 @@ app.use((req, res, next) => {
 
 
 
-  // Serve monitoring dashboard at /admin/monitor (moved from /dashboard to not conflict with React app)
-  app.get('/admin/monitor', (_req, res) => {
+  // Monitor dashboard — rate-limited to prevent info scraping
+  const adminMonitorLimiter = rateLimit({ windowMs: 60_000, max: 30, standardHeaders: true, legacyHeaders: false });
+  app.get('/admin/monitor', adminMonitorLimiter, (_req, res) => {
     res.sendFile('dashboard.html', { root: 'public' });
   });
 

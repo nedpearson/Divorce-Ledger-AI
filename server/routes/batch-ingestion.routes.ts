@@ -247,7 +247,7 @@ router.post('/:id/start', async (req: Request, res: Response) => {
 
     // Fire-and-forget — respond immediately, processing runs in background
     batchIngestionService.startBatchProcessing(req.params.id, userId).catch((err) => {
-      console.error(`[BatchRoutes] Background processing error for batch ${req.params.id}:`, err);
+      console.error('[BatchRoutes] Background processing error for batch', req.params.id, '—', err);
     });
 
     res.json({

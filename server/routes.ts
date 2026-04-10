@@ -1116,8 +1116,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const actualFingerprint = deviceFingerprint || `${userAgent}-${ipAddress}`.substring(0, 100);
 
       // Parse user agent for device info
-      const isMobile = /mobile|android|iphone|ipad/i.test(userAgent);
-      const browser = userAgent.match(/(Chrome|Safari|Firefox|Edge|Opera)/i)?.[1] || 'Unknown';
+      const safeUA = (userAgent || '').slice(0, 512);
+      const isMobile = /mobile|android|iphone|ipad/i.test(safeUA);
+      const browser = safeUA.match(/(Chrome|Safari|Firefox|Edge|Opera)/i)?.[1] || 'Unknown';
       const platform = isMobile ? 'Mobile' : 'Desktop';
 
       // Find or create device
@@ -1435,8 +1436,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userAgent = req.headers['user-agent'] || 'Unknown';
       const ipAddress = req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
       const uaString = typeof userAgent === 'string' ? userAgent : String(userAgent);
-      const isMobile = /mobile|android|iphone|ipad/i.test(uaString);
-      const browserMatch = uaString.match(/(Chrome|Safari|Firefox|Edge|Opera)/i);
+      const safeUaStr = (uaString || '').slice(0, 512);
+      const isMobile = /mobile|android|iphone|ipad/i.test(safeUaStr);
+      const browserMatch = safeUaStr.match(/(Chrome|Safari|Firefox|Edge|Opera)/i);
       const browser = browserMatch ? browserMatch[1] : 'Unknown';
       const platform = isMobile ? 'Mobile' : 'Desktop';
 
@@ -2144,9 +2146,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ error: 'Invalid phone number format' });
       }
 
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
+      // Validate email — safe non-backtracking pattern (max 320 chars, RFC 5321)
+      const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+      if (typeof email !== 'string' || email.length > 320 || !emailRegex.test(email)) {
         return res.status(400).json({ error: 'Invalid email format' });
       }
 
@@ -2251,8 +2253,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       if (email !== undefined) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+        if (typeof email !== 'string' || email.length > 320 || !emailRegex.test(email)) {
           return res.status(400).json({ error: 'Invalid email format' });
         }
 
@@ -2335,8 +2337,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ error: 'Email is required' });
       }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
+      const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+      if (typeof email !== 'string' || email.length > 320 || !emailRegex.test(email)) {
         return res.status(400).json({ error: 'Invalid email format' });
       }
 

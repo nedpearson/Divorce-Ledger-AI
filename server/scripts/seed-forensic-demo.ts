@@ -3,6 +3,12 @@ import { db } from '../db';
 import * as schema from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 import { hashPassword, isPasswordHashed } from '../auth';
+import { randomBytes } from 'crypto';
+
+// Cryptographically-secure random float in [0, 1)
+function secureRandom(): number {
+  return randomBytes(4).readUInt32BE(0) / 0x1_0000_0000;
+}
 
 // Utility chunk insert
 async function chunkedInsert<T extends any>(table: any, data: T[], chunkSize = 500) {
@@ -448,8 +454,8 @@ export async function seedProfile(profile: CaseProfile, hashedPass: string, env:
         fileSize: 1024 * (Math.floor(Math.random() * 5000) + 500),
         uploadedAt: new Date(new Date(v.createdAt).getTime() + 3600),
         environment: env,
-        gpsLatitude: (34.0522 + Math.random() * 0.1).toString(),
-        gpsLongitude: (-118.2437 + Math.random() * 0.1).toString(),
+        gpsLatitude: (34.0522 + secureRandom() * 0.1).toString(),
+        gpsLongitude: (-118.2437 + secureRandom() * 0.1).toString(),
       });
     }
   }

@@ -427,6 +427,12 @@ export class QuickBooksService {
           ? 'https://sandbox-quickbooks.api.intuit.com'
           : 'https://quickbooks.api.intuit.com';
 
+      // Validate realmId is a pure numeric Intuit ID (prevents SSRF path traversal)
+      if (!/^\d{1,30}$/.test(realmId)) {
+        console.error('[QB] Invalid realmId format — request blocked');
+        return null;
+      }
+
       const response = await fetch(`${baseUrl}/v3/company/${realmId}/companyinfo/${realmId}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,

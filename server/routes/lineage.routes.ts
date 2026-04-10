@@ -11,14 +11,26 @@ import { eq, and, sql, desc, inArray } from 'drizzle-orm';
 
 lineageRouter.get('/explain', requireAuth, async (req, res) => {
   try {
-    const payloadResult = drilldownRequestSchema.safeParse(req.query);
-    const layer = (parseInt(req.query.layer as string) || 1) as import('../../shared/drilldown-schema').DrilldownLayer;
-    const sourceEntity = req.query.sourceEntity as import('../../shared/drilldown-schema').DrilldownEntityType;
-    const identifier = req.query.identifier as string;
-    
+    const querySchema = z.object({
+      layer: z.coerce.number().int().min(1).max(6).default(1),
+      sourceEntity: z.enum([
+        'financial_summary', 'kpi_metric', 'data_sync_proposal',
+        'financial_category', 'financial_record', 'document',
+        'workflow_state', 'chart_segment', 'audit_log', 'violation',
+      ]),
+      identifier: z.string().max(256).regex(/^[\w\-.:@]+$/, 'Invalid identifier'),
+      type: z.enum(['income', 'expense', 'asset', 'debt', 'violation']).optional(),
+    });
+    const parsed = querySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({ message: 'Invalid query parameters', errors: parsed.error.flatten() });
+    }
+    const { layer, sourceEntity, identifier } = parsed.data;
+    const type = parsed.data.type;
+
     // Construct real lineage explaining "Proof of Value"
     const response: DrilldownResponse = {
-      layer,
+      layer: layer as import('../../shared/drilldown-schema').DrilldownLayer,
       title: `Investigating: ${identifier}`,
       lineage: {
         description: `Direct database trace for ${sourceEntity} at layer ${layer}.`,
@@ -137,7 +149,6 @@ lineageRouter.get('/explain', requireAuth, async (req, res) => {
     }
     // LAYER 4: Transaction -> Source Document / Evidence Link
     else if (sourceEntity === 'financial_record') {
-      const type = req.query.type as string; // from the query string mappings
       let tx: any = null;
 
       if (type === 'income') {

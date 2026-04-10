@@ -478,7 +478,7 @@ class BatchIngestionService {
       console.log(`[BatchIngestion] ✓ Processed ${documentId}`);
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[BatchIngestion] ✗ Failed ${documentId}:`, errMsg);
+      console.error('[BatchIngestion] ✗ Failed processing document', documentId, '—', errMsg);
 
       // Get current attempt count
       const [job] = await db
