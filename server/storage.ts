@@ -1271,6 +1271,16 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
+  async updateAsset(id: string, userId: string, environment: string, updates: Partial<InsertAsset>): Promise<Asset> {
+    const result = await db
+      .update(assets)
+      .set(updates)
+      .where(and(eq(assets.id, id), eq(assets.userId, userId), eq(assets.environment, environment)))
+      .returning();
+    if (!result[0]) throw new Error('Asset not found');
+    return result[0];
+  }
+
   async getDebts(userId: string, environment: string): Promise<Debt[]> {
     const currentDb = getDb(environment);
     return currentDb
@@ -1290,6 +1300,16 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(debts)
       .where(and(eq(debts.id, id), eq(debts.userId, userId), eq(debts.environment, environment)));
+  }
+
+  async updateDebt(id: string, userId: string, environment: string, updates: Partial<InsertDebt>): Promise<Debt> {
+    const result = await db
+      .update(debts)
+      .set(updates)
+      .where(and(eq(debts.id, id), eq(debts.userId, userId), eq(debts.environment, environment)))
+      .returning();
+    if (!result[0]) throw new Error('Debt not found');
+    return result[0];
   }
 
   async getIncomes(userId: string, environment: string): Promise<Income[]> {
@@ -1315,6 +1335,16 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
+  async updateIncome(id: string, userId: string, environment: string, updates: Partial<InsertIncome>): Promise<Income> {
+    const result = await db
+      .update(incomes)
+      .set(updates)
+      .where(and(eq(incomes.id, id), eq(incomes.userId, userId), eq(incomes.environment, environment)))
+      .returning();
+    if (!result[0]) throw new Error('Income not found');
+    return result[0];
+  }
+
   async getExpenses(userId: string, environment: string): Promise<Expense[]> {
     const currentDb = getDb(environment);
     return currentDb
@@ -1336,6 +1366,16 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(eq(expenses.id, id), eq(expenses.userId, userId), eq(expenses.environment, environment))
       );
+  }
+
+  async updateExpense(id: string, userId: string, environment: string, updates: Partial<InsertExpense>): Promise<Expense> {
+    const result = await db
+      .update(expenses)
+      .set(updates)
+      .where(and(eq(expenses.id, id), eq(expenses.userId, userId), eq(expenses.environment, environment)))
+      .returning();
+    if (!result[0]) throw new Error('Expense not found');
+    return result[0];
   }
 
   async getAlerts(userId: string, environment: string): Promise<Alert[]> {

@@ -2830,6 +2830,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  app.patch('/api/assets/:id', async (req, res) => {
+    try {
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const updated = await storage.updateAsset(req.params.id, userId, environment, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update asset' });
+    }
+  });
+
   app.get('/api/debts', async (req, res) => {
     try {
       const headerUserId = req.headers['x-user-id'] as string;
@@ -2878,6 +2891,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete debt' });
+    }
+  });
+
+  app.patch('/api/debts/:id', async (req, res) => {
+    try {
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const updated = await storage.updateDebt(req.params.id, userId, environment, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update debt' });
     }
   });
 
@@ -2932,6 +2958,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  app.patch('/api/incomes/:id', async (req, res) => {
+    try {
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const updated = await storage.updateIncome(req.params.id, userId, environment, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update income' });
+    }
+  });
+
   app.get('/api/expenses', async (req, res) => {
     try {
       const headerUserId = req.headers['x-user-id'] as string;
@@ -2980,6 +3019,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete expense' });
+    }
+  });
+
+  app.patch('/api/expenses/:id', async (req, res) => {
+    try {
+      const userId =
+        (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+      const environment =
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+      const updated = await storage.updateExpense(req.params.id, userId, environment, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update expense' });
     }
   });
 

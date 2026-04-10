@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EditRecordDialog, DeleteConfirmDialog } from '@/components/edit-record-dialog';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Plus,
@@ -91,6 +92,8 @@ interface IncomeFireflyStatus {
 
 function IncomeTab({ onRecordClick }: TabProps) {
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
+  const [deletingIncome, setDeletingIncome] = useState<Income | null>(null);
   const [syncingIncomeId, setSyncingIncomeId] = useState<string | null>(null);
   const { toast } = useToast();
   const { user, environment } = useAuth();
@@ -275,7 +278,12 @@ function IncomeTab({ onRecordClick }: TabProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingIncome(income);
+                      }}
+                    >
                       <Pencil className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
@@ -313,7 +321,10 @@ function IncomeTab({ onRecordClick }: TabProps) {
                     )}
                     <DropdownMenuItem
                       className="text-destructive"
-                      onClick={() => deleteIncome.mutate(income.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingIncome(income);
+                      }}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
@@ -443,6 +454,20 @@ function IncomeTab({ onRecordClick }: TabProps) {
           </Dialog>
         </CardContent>
       </Card>
+
+      <EditRecordDialog
+        open={!!editingIncome}
+        onOpenChange={(open) => !open && setEditingIncome(null)}
+        recordType="income"
+        record={editingIncome}
+      />
+      <DeleteConfirmDialog
+        open={!!deletingIncome}
+        onOpenChange={(open) => !open && setDeletingIncome(null)}
+        recordType="income"
+        recordId={deletingIncome?.id || ''}
+        recordName={deletingIncome?.source}
+      />
     </div>
   );
 }
@@ -463,6 +488,8 @@ interface FireflyStatus {
 
 function ExpensesTab({ onRecordClick }: TabProps) {
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
   const [syncingExpenseId, setSyncingExpenseId] = useState<string | null>(null);
   const { toast } = useToast();
   const { user, environment } = useAuth();
@@ -652,7 +679,12 @@ function ExpensesTab({ onRecordClick }: TabProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingExpense(expense);
+                      }}
+                    >
                       <Pencil className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
@@ -690,7 +722,10 @@ function ExpensesTab({ onRecordClick }: TabProps) {
                     )}
                     <DropdownMenuItem
                       className="text-destructive"
-                      onClick={() => deleteExpense.mutate(expense.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingExpense(expense);
+                      }}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
@@ -854,12 +889,28 @@ function ExpensesTab({ onRecordClick }: TabProps) {
           </Dialog>
         </CardContent>
       </Card>
+
+      <EditRecordDialog
+        open={!!editingExpense}
+        onOpenChange={(open) => !open && setEditingExpense(null)}
+        recordType="expense"
+        record={editingExpense}
+      />
+      <DeleteConfirmDialog
+        open={!!deletingExpense}
+        onOpenChange={(open) => !open && setDeletingExpense(null)}
+        recordType="expense"
+        recordId={deletingExpense?.id || ''}
+        recordName={deletingExpense?.description || deletingExpense?.category}
+      />
     </div>
   );
 }
 
 function AssetsTab({ onRecordClick }: TabProps) {
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
   const { toast } = useToast();
   const { user, environment } = useAuth();
 
@@ -998,11 +1049,27 @@ function AssetsTab({ onRecordClick }: TabProps) {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <span className="text-sm font-semibold tabular-nums">
                         {formatCurrency(asset.value)}
                       </span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} data-testid={`button-asset-menu-${asset.id}`}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingAsset(asset); }}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAsset(asset); }}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 ))}
@@ -1123,12 +1190,28 @@ function AssetsTab({ onRecordClick }: TabProps) {
           </form>
         </DialogContent>
       </Dialog>
+
+      <EditRecordDialog
+        open={!!editingAsset}
+        onOpenChange={(open) => !open && setEditingAsset(null)}
+        recordType="asset"
+        record={editingAsset}
+      />
+      <DeleteConfirmDialog
+        open={!!deletingAsset}
+        onOpenChange={(open) => !open && setDeletingAsset(null)}
+        recordType="asset"
+        recordId={deletingAsset?.id || ''}
+        recordName={deletingAsset?.name}
+      />
     </div>
   );
 }
 
 function DebtsTab({ onRecordClick }: TabProps) {
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
+  const [deletingDebt, setDeletingDebt] = useState<Debt | null>(null);
   const { toast } = useToast();
   const { user, environment } = useAuth();
 
@@ -1236,7 +1319,7 @@ function DebtsTab({ onRecordClick }: TabProps) {
                     </Badge>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <div className="text-right">
                     <p className="text-sm font-semibold tabular-nums text-red-600 dark:text-red-400">
                       {formatCurrency(debt.amount)}
@@ -1247,7 +1330,23 @@ function DebtsTab({ onRecordClick }: TabProps) {
                       </p>
                     )}
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} data-testid={`button-debt-menu-${debt.id}`}>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDebt(debt); }}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingDebt(debt); }}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             ))}
@@ -1379,6 +1478,20 @@ function DebtsTab({ onRecordClick }: TabProps) {
           </form>
         </DialogContent>
       </Dialog>
+
+      <EditRecordDialog
+        open={!!editingDebt}
+        onOpenChange={(open) => !open && setEditingDebt(null)}
+        recordType="debt"
+        record={editingDebt}
+      />
+      <DeleteConfirmDialog
+        open={!!deletingDebt}
+        onOpenChange={(open) => !open && setDeletingDebt(null)}
+        recordType="debt"
+        recordId={deletingDebt?.id || ''}
+        recordName={deletingDebt?.name}
+      />
     </div>
   );
 }
