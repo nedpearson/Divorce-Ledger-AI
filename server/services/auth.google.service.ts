@@ -6,6 +6,7 @@ import { getBaseUrl } from '../lib/baseUrl';
 
 interface GoogleTokenResponse {
   access_token: string;
+  refresh_token?: string;
   expires_in: number;
   id_token: string;
   scope: string;
@@ -47,10 +48,10 @@ export class GoogleAuthService {
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
       response_type: 'code',
-      scope: 'openid email profile',
+      scope: 'openid email profile https://www.googleapis.com/auth/calendar.readonly',
       state: state,
-      access_type: 'online', // We don't need offline access for just login
-      prompt: 'select_account'
+      access_type: 'offline', // Request refresh token for calendar sync
+      prompt: 'consent'  // Force consent screen to get refresh_token
     });
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }

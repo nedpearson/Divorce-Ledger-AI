@@ -46,25 +46,86 @@ authGoogleRouter.get('/api/auth/google/callback', async (req, res) => {
     const userInfo = await googleAuthService.getUserInfo(tokens.access_token);
     const user = await googleAuthService.linkOrAuthenticateUser(userInfo);
     
-    // Authenticate the native Express session defensively
-    if (typeof (req as any).login === 'function') {
-      (req as any).login(user, (err: any) => {
-        if (err) {
-          console.error('Passport login error during Google OAuth:', err);
-          return res.status(500).send('Internal server error during session instantiation.');
+    // Persist Google Calendar tokens for calendar sync
+    if (tokens.access_token) {
+      try {
+        const { db } = await import('../db');
+        const { integrationConnections } = await import('@shared/schema');
+        const { eq, and } = await import('drizzle-orm');
+        const crypto = await import('crypto');
+
+        const appKey = process.env.SESSION_SECRET || 'divorce-ledger-calendar-encryption-key-32b';
+        const encrypt = (text: string) => {
+          const iv = crypto.randomBytes(16);
+          const key = crypto.scryptSync(appKey, 'salt', 32);
+          const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+          let encrypted = cipher.update(text, 'utf8', 'hex');
+          encrypted += cipher.final('hex');
+          return iv.toString('hex') + ':' + encrypted;
+        };
+
+        const expiry = new Date();
+        expiry.setSeconds(expiry.getSeconds() + (tokens.expires_in || 3600));
+
+        const existing = await db.query.integrationConnections.findFirst({
+          where: and(
+            eq(integrationConnections.userId, user.id),
+            eq(integrationConnections.integrationType, 'calendar')
+          )
+        });
+
+        const payload = {
+          userId: user.id,
+          provider: 'google',
+          integrationType: 'calendar' as const,
+          externalAccountId: userInfo.email,
+          displayName: userInfo.name || userInfo.email,
+          grantedScopes: ['calendar.readonly'],
+          accessTokenEncrypted: encrypt(tokens.access_token),
+          refreshTokenEncrypted: tokens.refresh_token ? encrypt(tokens.refresh_token) : undefined,
+          tokenExpiryAt: expiry,
+          updatedAt: new Date(),
+        };
+
+        if (existing) {
+          await db.update(integrationConnections).set(payload).where(eq(integrationConnections.id, existing.id));
+        } else {
+          await db.insert(integrationConnections).values(payload as any);
         }
-        res.redirect('/');
-      });
-    } else if ((req as any).session) {
-      (req as any).session.userId = user.id;
-      if (typeof (req as any).session.save === 'function') {
-        (req as any).session.save(() => res.redirect('/'));
-      } else {
-        res.redirect('/');
+        console.log(`[Google Calendar] Token stored for ${user.id} — calendar sync enabled`);
+      } catch (calErr) {
+        console.error('[Google Calendar] Failed to store token (non-fatal):', calErr);
       }
-    } else {
-      res.redirect('/');
     }
+    
+    // Create a proper session cookie for the app
+    const { storage } = await import('../storage');
+    const crypt = await import('crypto');
+    const refreshTokenHash = crypt.randomBytes(32).toString('hex');
+    const session = await storage.createSession({
+      userId: user.id,
+      deviceId: null,
+      refreshTokenHash,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+      mfaVerified: false,
+    });
+    res.clearCookie('session_id', { path: '/' });
+    res.cookie('session_id', session.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+    res.cookie('environment', 'live', { path: '/' });
+
+    // Also set session for express-session
+    if ((req as any).session) {
+      (req as any).session.userId = user.id;
+    }
+
+    res.redirect('/');
   } catch (error: any) {
     console.error('Google OAuth Exchange Error:', error);
     await googleAuthService.logAudit(null, 'login', 'failure', error.message);

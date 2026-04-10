@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,10 @@ import {
   Edit,
   Loader2,
   Download,
+  RefreshCw,
+  Unplug,
+  ExternalLink,
+  Chrome,
 } from 'lucide-react';
 import type { CalendarEvent } from '@shared/schema';
 import {
@@ -57,12 +61,104 @@ const eventTypes = [
   { value: 'attorney_meeting', label: 'Attorney Meeting', color: 'bg-purple-500' },
   { value: 'deadline', label: 'Deadline', color: 'bg-yellow-500' },
   { value: 'deposition', label: 'Deposition', color: 'bg-pink-500' },
+  { value: 'google_calendar', label: 'Google Calendar', color: 'bg-emerald-500' },
   { value: 'other', label: 'Other', color: 'bg-gray-500' },
 ];
 
 function getEventTypeInfo(type: string) {
   return eventTypes.find((t) => t.value === type) || eventTypes[eventTypes.length - 1];
 }
+
+// ─── Google Calendar Sync Banner ──────────────────────────────────────
+
+interface GoogleCalendarStatus {
+  isConnected: boolean;
+  externalAccountId?: string;
+  displayName?: string;
+}
+
+function GoogleCalendarBanner() {
+  const { toast } = useToast();
+
+  const { data: status, isLoading } = useQuery<GoogleCalendarStatus>({
+    queryKey: ['/api/integrations/google-calendar/status'],
+    retry: false,
+    staleTime: 60_000,
+  });
+
+  const disconnectMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/integrations/google-calendar/disconnect'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/integrations/google-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/integrations/google-calendar/events'] });
+      toast({ title: 'Google Calendar disconnected' });
+    },
+  });
+
+  if (isLoading) return null;
+
+  if (status?.isConnected) {
+    return (
+      <Card className="border-emerald-500/30 bg-emerald-500/5">
+        <CardContent className="flex items-center justify-between py-3 px-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+              <CalendarIcon className="h-4 w-4 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Google Calendar Synced</p>
+              <p className="text-xs text-muted-foreground">{status.externalAccountId}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/integrations/google-calendar/events'] })}
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />
+              Refresh
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={() => disconnectMutation.mutate()}
+              disabled={disconnectMutation.isPending}
+            >
+              <Unplug className="h-3.5 w-3.5 mr-1" />
+              Disconnect
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-dashed border-muted-foreground/30">
+      <CardContent className="flex items-center justify-between py-3 px-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+            <Chrome className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">Connect Google Calendar</p>
+            <p className="text-xs text-muted-foreground">Sign in with Google to sync your calendar events</p>
+          </div>
+        </div>
+        <Button size="sm" variant="outline" asChild>
+          <a href="/api/auth/google">
+            <Chrome className="h-3.5 w-3.5 mr-1.5" />
+            Connect
+          </a>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Add Event Dialog ─────────────────────────────────────────────────
 
 function AddEventDialog({
   onSuccess,
@@ -134,7 +230,7 @@ function AddEventDialog({
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                {eventTypes.map((type) => (
+                {eventTypes.filter(t => t.value !== 'google_calendar').map((type) => (
                   <SelectItem key={type.value} value={type.value}>
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${type.color}`} />
@@ -208,9 +304,25 @@ function AddEventDialog({
   );
 }
 
-function EventCard({ event, onDelete }: { event: CalendarEvent; onDelete: () => void }) {
+// ─── Event Card ───────────────────────────────────────────────────────
+
+interface UnifiedEvent {
+  id: string;
+  title: string;
+  description?: string | null;
+  eventType: string;
+  startDate: string;
+  endDate?: string | null;
+  allDay?: boolean;
+  location?: string | null;
+  source?: 'local' | 'google';
+  htmlLink?: string;
+}
+
+function EventCard({ event, onDelete }: { event: UnifiedEvent; onDelete?: () => void }) {
   const { toast } = useToast();
   const typeInfo = getEventTypeInfo(event.eventType);
+  const isGoogle = event.source === 'google';
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -218,7 +330,7 @@ function EventCard({ event, onDelete }: { event: CalendarEvent; onDelete: () => 
     },
     onSuccess: () => {
       toast({ title: 'Deleted', description: 'Event has been removed.' });
-      onDelete();
+      onDelete?.();
     },
     onError: () => {
       toast({ title: 'Error', description: 'Failed to delete event.', variant: 'destructive' });
@@ -237,6 +349,11 @@ function EventCard({ event, onDelete }: { event: CalendarEvent; onDelete: () => 
           <Badge variant="outline" className="text-xs">
             {typeInfo.label}
           </Badge>
+          {isGoogle && (
+            <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+              Google
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1 flex-wrap">
           <span className="flex items-center gap-1">
@@ -251,33 +368,45 @@ function EventCard({ event, onDelete }: { event: CalendarEvent; onDelete: () => 
           )}
         </div>
         {event.description && (
-          <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
+          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{event.description}</p>
         )}
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button variant="ghost" size="icon" data-testid={`button-edit-event-${event.id}`}>
-          <Edit className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => deleteMutation.mutate()}
-          disabled={deleteMutation.isPending}
-          data-testid={`button-delete-event-${event.id}`}
-        >
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
+        {isGoogle && event.htmlLink ? (
+          <Button variant="ghost" size="icon" asChild>
+            <a href={event.htmlLink} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </Button>
+        ) : (
+          <>
+            <Button variant="ghost" size="icon" data-testid={`button-edit-event-${event.id}`}>
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              data-testid={`button-delete-event-${event.id}`}
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );
 }
+
+// ─── Calendar Grid ────────────────────────────────────────────────────
 
 function CalendarGrid({
   events,
   selectedDate,
   onSelectDate,
 }: {
-  events: CalendarEvent[];
+  events: UnifiedEvent[];
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
 }) {
@@ -368,33 +497,68 @@ function CalendarGrid({
   );
 }
 
+// ─── Main Calendar Page ───────────────────────────────────────────────
+
 export default function CalendarPage() {
   const { environment } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
 
+  // Local events from the app database
   const {
-    data: events,
-    isLoading,
-    refetch,
+    data: localEvents,
+    isLoading: loadingLocal,
+    refetch: refetchLocal,
   } = useQuery<CalendarEvent[]>({
     queryKey: ['/api/calendar-events'],
   });
 
-  const upcomingEvents = (events || [])
+  // Google Calendar events
+  const {
+    data: googleData,
+    isLoading: loadingGoogle,
+  } = useQuery<{ events: UnifiedEvent[]; synced: boolean }>({
+    queryKey: ['/api/integrations/google-calendar/events'],
+    retry: false,
+    staleTime: 60_000,
+  });
+
+  // Merge local + Google events into unified list
+  const allEvents: UnifiedEvent[] = useMemo(() => {
+    const local: UnifiedEvent[] = (localEvents || []).map((e) => ({
+      id: e.id,
+      title: e.title,
+      description: e.description,
+      eventType: e.eventType,
+      startDate: typeof e.startDate === 'string' ? e.startDate : new Date(e.startDate).toISOString(),
+      endDate: e.endDate ? (typeof e.endDate === 'string' ? e.endDate : new Date(e.endDate).toISOString()) : null,
+      allDay: e.allDay ?? false,
+      location: e.location,
+      source: 'local' as const,
+    }));
+
+    const google: UnifiedEvent[] = googleData?.events || [];
+
+    return [...local, ...google].sort(
+      (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    );
+  }, [localEvents, googleData]);
+
+  const isLoading = loadingLocal || loadingGoogle;
+
+  const upcomingEvents = allEvents
     .filter((event) => new Date(event.startDate) >= new Date())
-    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
     .slice(0, 5);
 
-  const selectedDayEvents = (events || []).filter((event) =>
+  const selectedDayEvents = allEvents.filter((event) =>
     isSameDay(new Date(event.startDate), selectedDate)
   );
 
   const exportData = () => {
-    if (!events || events.length === 0) return;
-    const headers = ['Title', 'Type', 'Start Date', 'Location', 'Notes', 'All Day'];
+    if (allEvents.length === 0) return;
+    const headers = ['Title', 'Type', 'Start Date', 'Location', 'Notes', 'All Day', 'Source'];
     const csvContent = [
       headers.join(','),
-      ...events.map((e) =>
+      ...allEvents.map((e) =>
         [
           `"${e.title.replace(/"/g, '""')}"`,
           getEventTypeInfo(e.eventType).label,
@@ -402,6 +566,7 @@ export default function CalendarPage() {
           `"${(e.location || '').replace(/"/g, '""')}"`,
           `"${(e.description || '').replace(/"/g, '""')}"`,
           e.allDay ? 'Yes' : 'No',
+          e.source || 'local',
         ].join(',')
       ),
     ].join('\n');
@@ -414,6 +579,8 @@ export default function CalendarPage() {
     URL.revokeObjectURL(url);
   };
 
+  const googleEventCount = googleData?.events?.length || 0;
+
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6" data-testid="page-calendar">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -423,10 +590,15 @@ export default function CalendarPage() {
           </h1>
           <p className="text-sm text-muted-foreground">
             Track court dates, custody schedules, and important deadlines.
+            {googleEventCount > 0 && (
+              <span className="text-emerald-400 ml-1">
+                · {googleEventCount} Google event{googleEventCount !== 1 ? 's' : ''} synced
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportData} disabled={!events?.length}>
+          <Button variant="outline" size="sm" onClick={exportData} disabled={allEvents.length === 0}>
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
@@ -437,6 +609,9 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      {/* Google Calendar Integration Banner */}
+      <GoogleCalendarBanner />
+
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -445,7 +620,7 @@ export default function CalendarPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <CalendarGrid
-              events={events || []}
+              events={allEvents}
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
             />
@@ -471,7 +646,11 @@ export default function CalendarPage() {
                   </p>
                 ) : (
                   selectedDayEvents.map((event) => (
-                    <EventCard key={event.id} event={event} onDelete={() => refetch()} />
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      onDelete={event.source === 'local' ? () => refetchLocal() : undefined}
+                    />
                   ))
                 )}
               </CardContent>
@@ -492,7 +671,11 @@ export default function CalendarPage() {
                   </p>
                 ) : (
                   upcomingEvents.map((event) => (
-                    <EventCard key={event.id} event={event} onDelete={() => refetch()} />
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      onDelete={event.source === 'local' ? () => refetchLocal() : undefined}
+                    />
                   ))
                 )}
               </CardContent>
