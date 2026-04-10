@@ -7,6 +7,31 @@ import crypto from 'crypto';
 
 export const googleDriveIntegrationRoutes = Router();
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const appKey = () => process.env.SESSION_SECRET || 'divorce-ledger-calendar-encryption-key-32b';
+
+/**
+ * Sign a state object with HMAC-SHA256 so we don't need req.session for CSRF
+ * protection across Railway's stateless/multi-replica environment.
+ */
+function signState(userId: string, nonce: string): string {
+  const payload = `${userId}:${nonce}`;
+  const sig = crypto.createHmac('sha256', appKey()).update(payload).digest('hex');
+  return Buffer.from(JSON.stringify({ userId, nonce, sig })).toString('base64url');
+}
+
+function verifyState(token: string): { userId: string } | null {
+  try {
+    const { userId, nonce, sig } = JSON.parse(Buffer.from(token, 'base64url').toString('utf8'));
+    const expected = crypto.createHmac('sha256', appKey()).update(`${userId}:${nonce}`).digest('hex');
+    if (sig !== expected) return null;
+    return { userId };
+  } catch {
+    return null;
+  }
+}
+
 // Middleware to ensure authentication
 const requireAuth = (req: any, res: any, next: any) => {
     const userId = (req as any).session?.userId || (req.user as any)?.id || req.headers['x-user-id'];
@@ -19,16 +44,16 @@ const requireAuth = (req: any, res: any, next: any) => {
     next();
 };
 
+// ─── Routes ──────────────────────────────────────────────────────────────────
+
 googleDriveIntegrationRoutes.get('/auth', requireAuth, (req, res) => {
     if (!googleDriveService.isConfigured()) {
         return res.status(503).json({ error: 'GOOGLE_DRIVE_NOT_CONFIGURED' });
     }
-    // Generate an anti-CSRF state token securely
-    const customState = crypto.randomBytes(16).toString('hex');
-    (req as any).session.driveAuthState = customState;
-    
-    // Pass customState as state to oauth flow
-    const authUrl = googleDriveService.generateAuthUrl(customState);
+    const userId = (req.user as any).id;
+    const nonce = crypto.randomBytes(16).toString('hex');
+    const state = signState(userId, nonce);
+    const authUrl = googleDriveService.generateAuthUrl(state);
     res.json({ url: authUrl });
 });
 
@@ -36,28 +61,26 @@ googleDriveIntegrationRoutes.get('/callback', async (req, res) => {
     const { code, state, error } = req.query;
 
     if (error) {
-        return res.redirect('/settings/integrations?error=drive_denied');
+        return res.redirect('/settings?error=drive_denied');
     }
 
-    if (!code || typeof code !== 'string') {
-        return res.redirect('/settings/integrations?error=invalid_request');
+    if (!code || typeof code !== 'string' || !state || typeof state !== 'string') {
+        return res.redirect('/settings?error=invalid_request');
     }
 
-    if (state !== (req as any).session.driveAuthState) {
-        return res.redirect('/settings/integrations?error=invalid_state_csrf');
-    }
-
-    if (!req.user || !(req.user as any).id) {
-        return res.redirect('/login'); // Session lost mid-flow
+    // Verify HMAC-signed state (stateless, no session needed)
+    const verified = verifyState(state);
+    if (!verified) {
+        console.error('[Google Drive] State verification failed');
+        return res.redirect('/settings?error=invalid_state');
     }
 
     try {
-        await googleDriveService.connectIntegration((req.user as any).id, code as string);
-        delete (req as any).session.driveAuthState;
-        res.redirect('/settings/integrations?success=drive_connected');
+        await googleDriveService.connectIntegration(verified.userId, code);
+        res.redirect('/settings?success=drive_connected');
     } catch (err: any) {
         console.error('Drive Integration Error:', err.message);
-        res.redirect('/settings/integrations?error=connection_failed');
+        res.redirect('/settings?error=connection_failed');
     }
 });
 
