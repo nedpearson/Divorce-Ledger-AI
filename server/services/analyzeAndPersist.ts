@@ -228,17 +228,10 @@ export async function analyzeAndPersist(
       ...(imageMimeType && imageMimeType.startsWith('image/') ? { imageBase64, imageMimeType } : {})
     });
 
-    if (parseResult.document.parse_status === 'no_data') {
-      return {
-        success: false,
-        parseStatus: 'error',
-        documentId,
-        lineItemsCreated: 0,
-        financialRecordsCreated: [],
-        validation: { isValid: false, errors: ['No readable text or financial data could be extracted.'], warnings: [] },
-        latencyMs: Date.now() - startTime,
-        error: 'No Data Found'
-      };
+    if (parseResult.document.parse_status !== 'success') {
+      // Throwing an error forces execution into the catch block, which executes
+      // the No-AI Fallback behavior (creating an empty placeholder expense).
+      throw new Error(`Parse failed with status: ${parseResult.document.parse_status}`);
     }
 
     const validation = validateParseResult(parseResult.document);
