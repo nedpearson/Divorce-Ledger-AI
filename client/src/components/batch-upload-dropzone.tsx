@@ -72,6 +72,15 @@ interface BatchStatus {
     needsReview: number;
     duplicates: number;
   };
+  // Full detail endpoint also returns documents
+  documents?: Array<{
+    id: string;
+    processingStatus: string | null;
+    reviewStatus: string | null;
+    isDuplicate: boolean | null;
+    errorCode: string | null;
+    errorMessage?: string | null;
+  }>;
 }
 
 interface BatchUploadDropzoneProps {
@@ -141,22 +150,64 @@ export function BatchUploadDropzone({ onBatchComplete, className }: BatchUploadD
   const [isProcessing, setIsProcessing] = useState(false);
   const [batchComplete, setBatchComplete] = useState(false);
 
-  // Poll for batch status while processing
+  // Poll for batch status + per-file sync while processing
   const [pollEnabled, setPollEnabled] = useState(false);
   const { data: batchStatusData } = useQuery<BatchStatus>({
-    queryKey: ['/api/batches', batchId, 'status'],
+    queryKey: ['/api/batches', batchId, 'detail'],
     queryFn: async () => {
-      const res = await fetch(`/api/batches/${batchId}/status`, { credentials: 'include' });
+      // Use the full detail endpoint so we get per-document statuses
+      const res = await fetch(`/api/batches/${batchId}`, { credentials: 'include' });
       if (!res.ok) throw new Error('Status poll failed');
-      return res.json();
+      const data = await res.json();
+      // Reshape to match BatchStatus interface
+      return {
+        batchId: data.batch?.id ?? batchId,
+        status: data.batch?.status ?? 'processing',
+        summary: data.summary ?? {},
+        documents: data.documents ?? [],
+      } as BatchStatus;
     },
     enabled: !!batchId && pollEnabled,
-    refetchInterval: 2500,
+    refetchInterval: 3000,
   });
 
-  // When all processing is done, stop polling
+  // When poll returns — sync per-file statuses into local queue, then check if done
   useEffect(() => {
     if (!batchStatusData) return;
+
+    // Sync individual file statuses from server back to local queue
+    if (batchStatusData.documents && batchStatusData.documents.length > 0) {
+      setQueue((prev) => prev.map((qf) => {
+        if (!qf.documentId) return qf;
+        const serverDoc = batchStatusData.documents?.find((d) => d.id === qf.documentId);
+        if (!serverDoc) return qf;
+
+        const serverStatus = serverDoc.processingStatus as string | null;
+        if (!serverStatus) return qf;
+
+        // Map server statuses to local queue statuses
+        let newStatus: FileStatus = qf.status;
+        if (serverDoc.isDuplicate) {
+          newStatus = 'duplicate';
+        } else if (serverStatus === 'completed' || serverStatus === 'needs_review') {
+          newStatus = 'completed';
+        } else if (serverStatus === 'failed') {
+          newStatus = 'failed';
+        } else if (['processing', 'ocr_in_progress', 'extracting', 'classifying'].includes(serverStatus)) {
+          newStatus = 'processing';
+        }
+
+        if (newStatus === qf.status) return qf;
+        return {
+          ...qf,
+          status: newStatus,
+          progress: newStatus === 'completed' ? 100 : newStatus === 'failed' ? 0 : qf.progress,
+          error: newStatus === 'failed' ? (serverDoc.errorCode || serverDoc.errorMessage || 'Processing failed') : qf.error,
+        };
+      }));
+    }
+
+    // Stop polling when batch is fully done
     const s = batchStatusData.status;
     if (s === 'completed' || s === 'partial_failure' || s === 'failed') {
       setPollEnabled(false);
@@ -454,10 +505,27 @@ export function BatchUploadDropzone({ onBatchComplete, className }: BatchUploadD
                       {fileStatusBadge(qf.status, qf.isDuplicate)}
                     </div>
                     {(qf.status === 'uploading' || qf.status === 'processing') && (
-                      <Progress
-                        value={qf.status === 'processing' ? 60 : qf.progress}
-                        className="h-1 mt-1"
-                      />
+                      <div className="mt-1 space-y-0.5">
+                        {qf.status === 'uploading' && (
+                          <div className="flex items-center gap-2">
+                            <Progress value={qf.progress} className="h-1.5 flex-1" />
+                            <span className="text-[10px] text-muted-foreground tabular-nums w-7 text-right">{qf.progress}%</span>
+                          </div>
+                        )}
+                        {qf.status === 'processing' && (
+                          <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div className="absolute inset-y-0 left-0 w-1/3 rounded-full bg-purple-500 animate-[slide_1.5s_ease-in-out_infinite]"
+                              style={{ animation: 'slide 1.5s ease-in-out infinite' }} />
+                            <style>{`@keyframes slide { 0% { left: -33%; } 100% { left: 100%; } }`}</style>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {qf.status === 'completed' && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <Progress value={100} className="h-1.5 flex-1" />
+                        <span className="text-[10px] text-green-400 tabular-nums w-7 text-right">100%</span>
+                      </div>
                     )}
                     {qf.error && (
                       <p className="text-[11px] text-destructive mt-0.5 truncate">{qf.error}</p>

@@ -76,6 +76,7 @@ export interface BatchStatus_Detail {
     isDuplicate: boolean | null;
     aiConfidence: number | null;
     aiCategory: string | null;
+    errorCode: string | null;
     createdAt: Date;
   }>;
   summary: {
@@ -584,6 +585,7 @@ class BatchIngestionService {
         isDuplicate: documents.isDuplicate,
         aiConfidence: documents.aiConfidence,
         aiCategory: documents.aiCategory,
+        errorCode: documents.errorCode,
         createdAt: documents.createdAt,
       })
       .from(documents)
