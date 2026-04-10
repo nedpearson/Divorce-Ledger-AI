@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import path from 'path';
 import { registerRoutes } from './routes';
 import { validateEnv, isLiveMode, isDemoMode, getAppMode } from './config';
 
@@ -427,6 +428,8 @@ app.use((req, res, next) => {
     res.sendFile('dashboard.html', { root: 'public' });
   });
 
+  // Serve user-uploaded documents
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   app.use(globalErrorHandler);
 
