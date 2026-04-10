@@ -34,6 +34,7 @@ import analyticsDashboardRoutes from './routes/analytics-dashboard.routes';
 import governanceRoutes from './routes/governance.routes';
 import fireflyRoutes from './routes/firefly';
 import storageRoutes from './routes/storage.routes';
+import batchIngestionRoutes from './routes/batch-ingestion.routes';
 import workspaceBillingRoutes from './routes/workspace-billing.routes';
 import platformAdminRoutes from './routes/platform-admin.routes';
 import { authGoogleRouter } from './routes/auth-google.routes';
@@ -699,8 +700,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   
   // ALIAS: Route legacy frontend calls that still use /api/appwrite to the new storage endpoints
   app.use('/api/appwrite', storageRoutes);
+
+  // BATCH INGESTION SYSTEM — multi-document upload sessions
+  app.use('/api/batches', batchIngestionRoutes);
   
   console.log('📦 Core Document Storage & Canonical Routes Loaded');
+  console.log('   + Batch Document Ingestion System enabled at /api/batches');
 
   // ---------------------------------------------------------------------------
   // OPTIONAL INTEGRATIONS & PIPELINES

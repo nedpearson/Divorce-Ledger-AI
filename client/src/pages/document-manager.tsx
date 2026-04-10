@@ -46,9 +46,12 @@ import {
   Edit2,
   Wifi,
   WifiOff,
+  Layers,
 } from 'lucide-react';
 import { ReviewQueue } from '@/components/documents/review-queue';
 import { DocumentUpload } from '@/components/document-upload';
+import { BatchUploadDropzone } from '@/components/batch-upload-dropzone';
+import { BatchHistoryPanel } from '@/components/batch-history-panel';
 import { EmptyState } from '@/components/ui/empty-state';
 
 interface StoredFile {
@@ -692,8 +695,11 @@ export default function DocumentManager() {
         )}
       </div>
 
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+      <Tabs defaultValue="batch" className="w-full">
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="batch" data-testid="tab-batch-upload" className="gap-1">
+            <Layers className="h-3.5 w-3.5" />Batch
+          </TabsTrigger>
           <TabsTrigger value="all" data-testid="tab-all-files">
             All ({files.length})
           </TabsTrigger>
@@ -701,26 +707,46 @@ export default function DocumentManager() {
             Pending ({uploadedFiles.length + processingFiles.length})
           </TabsTrigger>
           <TabsTrigger value="review" data-testid="tab-review-files">
-            Upload Review ({pendingFiles.length})
+            Review ({pendingFiles.length})
           </TabsTrigger>
           <TabsTrigger value="routing" data-testid="tab-routing">
-            Data Routing
+            Routing
           </TabsTrigger>
           <TabsTrigger value="complete" data-testid="tab-complete-files">
-            Complete ({completedFiles.length})
+            Done ({completedFiles.length})
           </TabsTrigger>
           <TabsTrigger value="errors" data-testid="tab-error-files">
             Errors ({errorFiles.length})
           </TabsTrigger>
         </TabsList>
 
-        <ScrollArea className="h-[500px] mt-4">
+        <ScrollArea className="h-[580px] mt-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
             <>
+              {/* ── NEW: Batch Upload Tab ── */}
+              <TabsContent value="batch" className="mt-0 space-y-4">
+                <div className="px-1">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Drag and drop multiple documents at once for AI-powered batch processing.
+                    Each file is processed independently — duplicates are flagged automatically.
+                  </p>
+                  <BatchUploadDropzone
+                    onBatchComplete={() => {
+                      queryClient.invalidateQueries({ queryKey: ['/api/storage/files'] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/batches'] });
+                    }}
+                  />
+                </div>
+                <div className="border-t pt-4 px-1">
+                  <h3 className="text-sm font-semibold mb-3">Batch History</h3>
+                  <BatchHistoryPanel />
+                </div>
+              </TabsContent>
+
               <TabsContent value="all" className="mt-0">
                 {renderFileList(files, 'No documents uploaded yet')}
               </TabsContent>

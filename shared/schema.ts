@@ -965,6 +965,21 @@ export const documents = pgTable('documents', {
   aiAnalyzedAt: timestamp('ai_analyzed_at'),
   mobileUploaded: boolean('mobile_uploaded').default(false),
   aiExtractedText: text('ai_extracted_text'),
+  // ── Batch Ingestion Extension (added 2026-04-10, backward-compatible) ──
+  batchId: varchar('batch_id'),                                // FK → upload_batches.id
+  originalFilename: text('original_filename'),                 // raw name from user's filesystem
+  sanitizedFilename: text('sanitized_filename'),               // safe server-side name
+  fileHash: text('file_hash'),                                 // SHA-256 for dedup
+  processingStatus: text('processing_status').default('queued'), // queued | uploading | uploaded | processing | ocr_in_progress | extracting | classifying | completed | failed | needs_review | duplicate_skipped
+  reviewStatus: text('review_status').default('unreviewed'),   // unreviewed | ai_processed | needs_review | user_corrected | approved | rejected
+  isDuplicate: boolean('is_duplicate').default(false),
+  duplicateOfDocumentId: varchar('duplicate_of_document_id'),  // FK → documents.id
+  caseId: varchar('case_id'),                                  // optional case link
+  storageKey: text('storage_key'),                             // filesystem path or cloud key
+  pageCount: integer('page_count'),
+  mimeType: text('mime_type'),                                 // canonical MIME from multer
+  processedAt: timestamp('processed_at'),
+  errorCode: text('error_code'),
 });
 
 export const insertDocumentSchema = createInsertSchema(documents).omit({
@@ -975,6 +990,32 @@ export const insertDocumentSchema = createInsertSchema(documents).omit({
 });
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type Document = typeof documents.$inferSelect;
+
+// ── Processing status and review status enums (shared constants) ──────────────
+export const DOCUMENT_PROCESSING_STATUSES = [
+  'queued',
+  'uploading',
+  'uploaded',
+  'processing',
+  'ocr_in_progress',
+  'extracting',
+  'classifying',
+  'completed',
+  'failed',
+  'needs_review',
+  'duplicate_skipped',
+] as const;
+export type DocumentProcessingStatus = (typeof DOCUMENT_PROCESSING_STATUSES)[number];
+
+export const DOCUMENT_REVIEW_STATUSES = [
+  'unreviewed',
+  'ai_processed',
+  'needs_review',
+  'user_corrected',
+  'approved',
+  'rejected',
+] as const;
+export type DocumentReviewStatus = (typeof DOCUMENT_REVIEW_STATUSES)[number];
 
 // Canonical document types for forensic parsing
 export const CANONICAL_DOC_TYPES = [
@@ -2203,3 +2244,98 @@ export const insertDriveTransferAuditSchema = createInsertSchema(driveTransferAu
 });
 export type InsertDriveTransferAudit = z.infer<typeof insertDriveTransferAuditSchema>;
 export type DriveTransferAudit = typeof driveTransferAudits.$inferSelect;
+
+// ============================================================
+// BATCH INGESTION SYSTEM (added 2026-04-10)
+// ============================================================
+
+// ── upload_batches ─────────────────────────────────────────────────────────────
+// Groups a set of documents uploaded in the same session.
+export const uploadBatches = pgTable('upload_batches', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull(),
+  caseId: varchar('case_id'),                               // optional pre-assigned case
+  batchName: text('batch_name'),
+  sourceType: text('source_type').notNull().default('web_upload'), // web_upload | mobile | api
+  environment: text('environment').notNull().default('live'),
+  totalFiles: integer('total_files').notNull().default(0),
+  totalCompleted: integer('total_completed').notNull().default(0),
+  totalFailed: integer('total_failed').notNull().default(0),
+  totalProcessing: integer('total_processing').notNull().default(0),
+  status: text('status').notNull().default('created'),      // created | uploading | processing | completed | partial_failure | failed
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const insertUploadBatchSchema = createInsertSchema(uploadBatches).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertUploadBatch = z.infer<typeof insertUploadBatchSchema>;
+export type UploadBatch = typeof uploadBatches.$inferSelect;
+
+export const BATCH_STATUSES = [
+  'created',
+  'uploading',
+  'processing',
+  'completed',
+  'partial_failure',
+  'failed',
+] as const;
+export type BatchStatus = (typeof BATCH_STATUSES)[number];
+
+// ── document_processing_jobs ───────────────────────────────────────────────────
+// One row per pipeline execution attempt. Enables retry, deduplication, and
+// independent failure tracking within a batch.
+export const documentProcessingJobs = pgTable('document_processing_jobs', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar('document_id').notNull(),              // FK → documents.id
+  batchId: varchar('batch_id'),                              // FK → upload_batches.id
+  jobType: text('job_type').notNull().default('full_pipeline'), // full_pipeline | ocr_only | classify_only | extract_only | retry
+  status: text('status').notNull().default('queued'),        // queued | running | completed | failed | skipped
+  attemptCount: integer('attempt_count').notNull().default(0),
+  maxAttempts: integer('max_attempts').notNull().default(3),
+  workerId: text('worker_id'),
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  errorCode: text('error_code'),
+  errorMessage: text('error_message'),
+  metadata: jsonb('metadata').default({}),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const insertDocumentProcessingJobSchema = createInsertSchema(documentProcessingJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDocumentProcessingJob = z.infer<typeof insertDocumentProcessingJobSchema>;
+export type DocumentProcessingJob = typeof documentProcessingJobs.$inferSelect;
+
+// ── document_audit_log ─────────────────────────────────────────────────────────
+// Immutable, append-only chain-of-custody log for every document event.
+// Never delete rows from this table.
+export const documentAuditLog = pgTable('document_audit_log', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar('document_id').notNull(),              // FK → documents.id
+  batchId: varchar('batch_id'),                              // FK → upload_batches.id
+  actorType: text('actor_type').notNull().default('system'), // system | user | ai
+  actorId: text('actor_id'),                                 // user_id when actor = user
+  eventType: text('event_type').notNull(),                   // uploaded | processing_started | processing_completed | processing_failed | review_submitted | approved | rejected | retry_queued | duplicate_flagged | case_assigned | deleted | reclassified
+  oldValue: jsonb('old_value'),
+  newValue: jsonb('new_value'),
+  notes: text('notes'),
+  ipAddress: text('ip_address'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const insertDocumentAuditLogSchema = createInsertSchema(documentAuditLog).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertDocumentAuditLog = z.infer<typeof insertDocumentAuditLogSchema>;
+export type DocumentAuditLog = typeof documentAuditLog.$inferSelect;
