@@ -2179,7 +2179,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       // Determine the correct environment
       // For live signups, generate a unique live environment ID (live-xxxx format)
       // Demo users get the shared "demo" environment
-      let userEnvironment = environment || 'demo';
+      let userEnvironment = environment || 'live';
       if (userEnvironment === 'live') {
         // Generate unique live environment ID for data isolation
         userEnvironment = `live-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
@@ -2620,7 +2620,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get('/api/patterns', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
 
       // Check tier for AI pattern detection access
       const user = await storage.getUser((req as any).session?.userId || 'demo-client-user');
@@ -2741,7 +2741,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       console.log(`[API] /transactions/recent -> userId: ${userId}, environment: ${environment}`);
       const transactions = await storage.getRecentTransactions(userId, environment, 7);
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -2757,7 +2757,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const transactions = await storage.getTransactions(userId, environment);
       res.json(transactions);
     } catch (error) {
@@ -2770,7 +2770,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const parsed = createTransactionSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
@@ -2792,7 +2792,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       console.log(`[Assets API] Fetching for userId: ${userId}, environment: ${environment}`);
       const assets = await storage.getAssets(userId, environment);
       console.log(`[Assets API] Found ${assets.length} assets`);
@@ -2808,7 +2808,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const parsed = createAssetSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
@@ -2829,7 +2829,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       await storage.deleteAsset(req.params.id, userId, environment);
       res.json({ success: true });
     } catch (error) {
@@ -2842,7 +2842,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const updated = await storage.updateAsset(req.params.id, userId, environment, req.body);
       res.json(updated);
     } catch (error) {
@@ -2856,7 +2856,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       console.log(`[Debts API] Fetching for userId: ${userId}, environment: ${environment}`);
       const debts = await storage.getDebts(userId, environment);
       console.log(`[Debts API] Found ${debts.length} debts`);
@@ -2872,7 +2872,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const parsed = createDebtSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
@@ -2893,7 +2893,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       await storage.deleteDebt(req.params.id, userId, environment);
       res.json({ success: true });
     } catch (error) {
@@ -2906,7 +2906,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const updated = await storage.updateDebt(req.params.id, userId, environment, req.body);
       res.json(updated);
     } catch (error) {
@@ -2920,7 +2920,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       console.log(`[Incomes API] Fetching for userId: ${userId}, environment: ${environment}`);
       const incomes = await storage.getIncomes(userId, environment);
       console.log(`[Incomes API] Found ${incomes.length} incomes`);
@@ -2936,7 +2936,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const parsed = createIncomeSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
@@ -2957,7 +2957,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       await storage.deleteIncome(req.params.id, userId, environment);
       res.json({ success: true });
     } catch (error) {
@@ -2970,7 +2970,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const updated = await storage.updateIncome(req.params.id, userId, environment, req.body);
       res.json(updated);
     } catch (error) {
@@ -2984,7 +2984,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       console.log(`[Expenses API] Fetching for userId: ${userId}, environment: ${environment}`);
       const expenses = await storage.getExpenses(userId, environment);
       console.log(`[Expenses API] Found ${expenses.length} expenses`);
@@ -3000,7 +3000,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const parsed = createExpenseSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
@@ -3021,7 +3021,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       await storage.deleteExpense(req.params.id, userId, environment);
       res.json({ success: true });
     } catch (error) {
@@ -3034,7 +3034,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const updated = await storage.updateExpense(req.params.id, userId, environment, req.body);
       res.json(updated);
     } catch (error) {
@@ -3089,7 +3089,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get('/api/alerts', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const alerts = await storage.getAlerts(userId, environment);
@@ -3102,7 +3102,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post('/api/alerts', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const parsed = createAlertSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
@@ -3426,7 +3426,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const workspaceId = resolveWorkspaceId(req);
 
       let rawText = '';
@@ -3615,7 +3615,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (headerUserId && headerUserId.trim()) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
 
       // Merge overrides with intake result
       const finalCategory = overrides?.category || mapDocTypeToCategory(intakeResult.doc_type);
@@ -3859,7 +3859,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userId =
         (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const force = req.query.force === 'true' || req.body?.force === true;
       const allDocs = await storage.getDocuments(userId, environment);
 
@@ -3976,7 +3976,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       let analysis;
       const userId = doc.userId || 'demo-client-user';
-      const environment = doc.environment || 'demo';
+      const environment = doc.environment || 'live';
       const workspaceId = resolveWorkspaceId(req);
 
       // If we have a fileUrl that's an objectPath (starts with /objects/), fetch from object storage
@@ -4152,7 +4152,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      const environment = (req.query.environment as string) || doc.environment || 'demo';
+      const environment = (req.query.environment as string) || doc.environment || 'live';
       const provider = (req.query.provider as 'openai' | 'gemini') || 'openai';
       const createRecords = req.query.create_records !== 'false';
 
@@ -4407,7 +4407,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get('/api/calendar-events', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const events = await storage.getCalendarEvents(
         (req as any).session?.userId || 'demo-client-user',
         environment
@@ -4421,7 +4421,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post('/api/calendar-events', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const parsed = createCalendarEventSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
@@ -4442,7 +4442,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.delete('/api/calendar-events/:id', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       await storage.deleteCalendarEvent(
         req.params.id,
         (req as any).session?.userId || 'demo-client-user',
@@ -4458,7 +4458,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get('/api/legal-documents', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const docs = await storage.getLegalDocuments(
         (req as any).session?.userId || 'demo-client-user',
         environment
@@ -4472,7 +4472,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post('/api/legal-documents', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const parsed = createLegalDocumentSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
@@ -4491,7 +4491,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.delete('/api/legal-documents/:id', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       await storage.deleteLegalDocument(
         req.params.id,
         (req as any).session?.userId || 'demo-client-user',
@@ -4507,7 +4507,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get('/api/child-support-payments', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const payments = await storage.getChildSupportPayments(
         (req as any).session?.userId || 'demo-client-user',
         environment
@@ -4521,7 +4521,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post('/api/child-support-payments', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const parsed = createChildSupportPaymentSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
@@ -4542,7 +4542,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.patch('/api/child-support-payments/:id', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const parsed = updateChildSupportPaymentSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
@@ -4568,7 +4568,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.delete('/api/child-support-payments/:id', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       await storage.deleteChildSupportPayment(
         req.params.id,
         (req as any).session?.userId || 'demo-client-user',
@@ -4594,7 +4594,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get('/api/violations', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const user = await storage.getUser((req as any).session?.userId || 'demo-client-user');
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
@@ -4610,7 +4610,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post('/api/violations', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
 
       // Validate input using Zod schema
       const parsed = createViolationSchema.safeParse(req.body);
@@ -4730,7 +4730,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.patch('/api/violations/:id/status', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const { status } = req.body;
 
       if (!status || !validViolationStatuses.includes(status)) {
@@ -4757,7 +4757,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.delete('/api/violations/:id', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       await storage.deleteViolation(
         req.params.id,
         (req as any).session?.userId || 'demo-client-user',
@@ -4772,7 +4772,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get('/api/filings/export', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const userId = 'demo-client-user';
 
       const violations = await storage.getViolations(userId, environment);
@@ -4811,7 +4811,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get('/api/messages', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const messagesList = await storage.getMessages(environment);
       res.json(messagesList);
     } catch (error) {
@@ -4824,7 +4824,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post('/api/messages', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
 
       const parsed = createMessageSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -4857,7 +4857,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get('/api/suggestions', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const violations = await storage.getViolations(
         (req as any).session?.userId || 'demo-client-user',
         environment
@@ -4920,7 +4920,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post('/api/evidence', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const userId = 'demo-client-user';
       const {
         violationId,
@@ -5004,7 +5004,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get('/api/violations/:id/evidence', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const evidenceFiles = await storage.getEvidenceFiles(
         req.params.id,
         (req as any).session?.userId || 'demo-client-user',
@@ -5020,7 +5020,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get('/api/evidence/:id/custody', async (req, res) => {
     try {
       const environment =
-        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+        (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
       const custody = await storage.getChainOfCustody(req.params.id, environment);
       res.json(custody);
     } catch (error) {
@@ -5052,7 +5052,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // User-accessible demo data reset (no admin secret required, but only works in demo mode)
   app.post('/api/demo/reset', async (req, res) => {
     try {
-      const environment = (req.headers['x-environment'] as string) || 'demo';
+      const environment = (req.headers['x-environment'] as string) || 'live';
 
       if (environment !== 'demo') {
         return res.status(403).json({ error: 'Demo reset only available in demo mode' });
@@ -5070,7 +5070,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Works for both main demo and test user environments
   app.post('/api/demo/erase', async (req, res) => {
     try {
-      const environment = (req.headers['x-environment'] as string) || 'demo';
+      const environment = (req.headers['x-environment'] as string) || 'live';
 
       // Allow erase for main demo or any test environment
       if (environment !== 'demo' && !isTestEnvironment(environment)) {
@@ -5169,7 +5169,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Get all cases
   app.get('/api/cases', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || 'demo';
+      const environment = (req.query.environment as string) || 'live';
       const userCases = await storage.getCases(
         (req as any).session?.userId || 'demo-client-user',
         environment
@@ -5183,7 +5183,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Create a new case (tier-gated)
   app.post('/api/cases', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || 'demo';
+      const environment = (req.query.environment as string) || 'live';
       const user = await storage.getUser((req as any).session?.userId || 'demo-client-user');
 
       if (!user) {
@@ -5230,7 +5230,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Delete a case
   app.delete('/api/cases/:id', async (req, res) => {
     try {
-      const environment = (req.query.environment as string) || 'demo';
+      const environment = (req.query.environment as string) || 'live';
       await storage.deleteCase(
         req.params.id,
         (req as any).session?.userId || 'demo-client-user',
@@ -5779,7 +5779,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post('/api/users/:userId/log-usage', async (req: Request, res: Response) => {
     try {
       const userId = req.params.userId;
-      const environment = req.body.environment || 'demo';
+      const environment = req.body.environment || 'live';
       await tierEnforcementService.logUsageMetrics(userId, environment);
 
       res.json({ success: true, message: 'Usage metrics logged successfully' });
@@ -6211,7 +6211,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           (req as any).session?.userId ||
           (req.headers['x-user-id'] as string) ||
           'demo-client-user';
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         const documents = await storage.getDocuments(userId, environment);
 
@@ -6232,7 +6232,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           (req.headers['x-user-id'] as string) ||
           'demo-client-user';
         const environment =
-          (req.headers['x-environment'] as string) || req.body.environment || 'demo';
+          (req.headers['x-environment'] as string) || req.body.environment || 'live';
         const workspaceId = resolveWorkspaceId(req);
         const { title, fileName, fileType, fileUrl, fileSize, description } = req.body;
 
@@ -6346,7 +6346,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           (req as any).session?.userId ||
           (req.headers['x-user-id'] as string) ||
           'demo-client-user';
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         const mobileReports = await storage.getMobileViolationReports(userId, environment);
 
@@ -6526,7 +6526,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           (req as any).session?.userId ||
           (req.headers['x-user-id'] as string) ||
           'demo-client-user';
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         const reimbursementsList = await storage.getReimbursements(userId, environment);
         res.json(reimbursementsList);
@@ -6544,7 +6544,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           (req as any).session?.userId ||
           (req.headers['x-user-id'] as string) ||
           'demo-client-user';
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
         const {
           category,
           description,
@@ -6636,7 +6636,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     app.get('/api/mobile/w2-records', async (req: Request, res: Response) => {
       try {
         const userId = (req as any).session?.userId || 'demo-client-user';
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         const records = await storage.getW2Records(userId, environment);
         res.json(records);
@@ -6773,7 +6773,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     app.get('/api/mobile/financial-summary', async (req: Request, res: Response) => {
       try {
         const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string);
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         if (!userId) {
           return res.status(401).json({ success: false, error: 'Authentication required' });
@@ -6792,7 +6792,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     app.get('/api/mobile/assets', async (req: Request, res: Response) => {
       try {
         const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string);
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         if (!userId) {
           return res.status(401).json({ success: false, error: 'Authentication required' });
@@ -6811,7 +6811,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     app.get('/api/mobile/debts', async (req: Request, res: Response) => {
       try {
         const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string);
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         if (!userId) {
           return res.status(401).json({ success: false, error: 'Authentication required' });
@@ -6830,7 +6830,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     app.get('/api/mobile/incomes', async (req: Request, res: Response) => {
       try {
         const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string);
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         if (!userId) {
           return res.status(401).json({ success: false, error: 'Authentication required' });
@@ -6849,7 +6849,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     app.get('/api/mobile/expenses', async (req: Request, res: Response) => {
       try {
         const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string);
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         if (!userId) {
           return res.status(401).json({ success: false, error: 'Authentication required' });
@@ -6868,7 +6868,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     app.get('/api/mobile/child-support', async (req: Request, res: Response) => {
       try {
         const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string);
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         if (!userId) {
           return res.status(401).json({ success: false, error: 'Authentication required' });
@@ -6938,7 +6938,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     // GET /api/recommendations - Get user's own recommendations (with optional status filter)
     app.get('/api/recommendations', async (req: Request, res: Response) => {
       try {
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
         const status = req.query.status as string | undefined;
 
         const recommendations = await storage.getImprovementRecommendations(environment, status);
@@ -6991,7 +6991,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       try {
         const userId = (req.headers['x-user-id'] as string) || (req as any).user?.id || 'anonymous';
         const userEmail = (req.headers['x-user-email'] as string) || (req as any).user?.email;
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         const parsed = createRecommendationSchema.safeParse(req.body);
         if (!parsed.success) {
@@ -7220,7 +7220,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           (req as any).session?.userId ||
           (req.headers['x-user-id'] as string) ||
           'demo-client-user';
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         const entries = await storage.getJournalEntries(userId, environment);
         res.json(entries);
@@ -7261,7 +7261,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           (req as any).session?.userId ||
           (req.headers['x-user-id'] as string) ||
           'demo-client-user';
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         const entry = await storage.createJournalEntry({
           ...req.body,
@@ -7375,7 +7375,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           (req as any).session?.userId ||
           (req.headers['x-user-id'] as string) ||
           'demo-client-user';
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         const convos = await storage.getConversations(userId, environment);
 
@@ -7437,7 +7437,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           'demo-client-user';
         const userEmail = (req.headers['x-user-email'] as string) || 'demo@divorceledger.live';
         const userName = (req.headers['x-user-name'] as string) || 'Demo User';
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         const { title, type, participants } = req.body;
 
@@ -7617,7 +7617,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           (req as any).session?.userId ||
           (req.headers['x-user-id'] as string) ||
           'demo-client-user';
-        const environment = (req.headers['x-environment'] as string) || 'demo';
+        const environment = (req.headers['x-environment'] as string) || 'live';
 
         // Authorization check - verify user is participant
         const participants = await storage.getConversationParticipants(id);
@@ -8442,7 +8442,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           (req.headers['x-user-id'] as string) ||
           'demo-client-user';
         const environment =
-          (req.query.environment as string) || (req.headers['x-environment'] as string) || 'demo';
+          (req.query.environment as string) || (req.headers['x-environment'] as string) || 'live';
 
         const allExpenses = await storage.getExpenses(userId, environment);
         const allIncomes = await storage.getIncomes(userId, environment);

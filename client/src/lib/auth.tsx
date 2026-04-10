@@ -71,8 +71,8 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function getInitialEnvironment(): Environment {
-  if (typeof window === 'undefined') return 'demo';
-  return (localStorage.getItem('environment') as Environment) || 'demo';
+  if (typeof window === 'undefined') return 'live';
+  return (localStorage.getItem('environment') as Environment) || 'live';
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

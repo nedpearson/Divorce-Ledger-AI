@@ -125,7 +125,7 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
   async ({ queryKey }) => {
     const segments = queryKey as unknown[];
     const url = segments.filter((s): s is string => typeof s === 'string').join('/');
-    const environment = localStorage.getItem('environment') || 'demo';
+    const environment = localStorage.getItem('environment') || 'live';
     const authHeaders = {
       ...getAuthHeaders(),
       'X-Environment': environment,

@@ -22,7 +22,7 @@ export type CanonicalEnv = 'live' | 'demo';
  * @returns `'live'` if the value starts with `'live'`, otherwise `'demo'`.
  */
 export function normalizeEnv(raw: string | undefined | null): CanonicalEnv {
-  if (!raw) return 'demo';
+  if (!raw) return 'live';
   const trimmed = raw.trim().toLowerCase();
   return trimmed.startsWith('live') ? 'live' : 'demo';
 }
