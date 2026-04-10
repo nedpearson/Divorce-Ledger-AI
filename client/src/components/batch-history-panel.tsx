@@ -41,6 +41,7 @@ import {
   File,
   Image,
   FileSpreadsheet,
+  Zap,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -234,6 +235,32 @@ function BatchDetailRow({ batch, onDeleted }: { batch: UploadBatch; onDeleted: (
     },
   });
 
+  const reExtractMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/batches/${batch.id}/documents/bulk`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify({ action: 're-extract' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Re-extraction failed');
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Expenses extracted! ✓',
+        description: `${data.extractedCount || 0} documents processed. Check your dashboard.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/batches', batch.id, 'detail'] });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Re-extraction failed', description: err.message, variant: 'destructive' });
+    },
+  });
+
   const totalActive = batch.totalFiles;
   const done = batch.totalCompleted;
   const failed = batch.totalFailed;
@@ -284,6 +311,23 @@ function BatchDetailRow({ batch, onDeleted }: { batch: UploadBatch; onDeleted: (
 
           {/* ── Actions ── */}
           <div className="flex items-center gap-1 shrink-0">
+            {/* Re-extract expenses button — always visible on completed batches */}
+            {(batch.status === 'completed' || batch.status === 'partial_failure') && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-blue-500 hover:text-blue-400"
+                title="Re-extract financial data to dashboard"
+                onClick={(e) => { e.stopPropagation(); reExtractMutation.mutate(); }}
+                disabled={reExtractMutation.isPending}
+                data-testid={`batch-reextract-${batch.id}`}
+              >
+                {reExtractMutation.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <Zap className="h-3.5 w-3.5" />}
+              </Button>
+            )}
+
             {failed > 0 && (
               <Button
                 variant="ghost"

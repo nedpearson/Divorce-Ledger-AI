@@ -306,6 +306,45 @@ router.post('/:id/documents/bulk', async (req: Request, res: Response) => {
         }
         return res.json({ success: true, message: `${retried} failed documents queued for retry`, retriedCount: retried });
       }
+      case 're-extract': {
+        // Re-run analyzeAndPersist on all completed documents to (re)create financial records.
+        // Safe to call multiple times — it clears existing parse results first.
+        const { db } = await import('../db');
+        const { documents: docsTable } = await import('@shared/schema');
+        const { eq, and, inArray } = await import('drizzle-orm');
+        const { analyzeAndPersist } = await import('../services/analyzeAndPersist');
+
+        // Target all docs in this batch (completed and failed) to regenerate records
+        const allDocs = await db
+          .select({ id: docsTable.id, processingStatus: docsTable.processingStatus, isDuplicate: docsTable.isDuplicate })
+          .from(docsTable)
+          .where(and(eq(docsTable.batchId!, batchId), eq(docsTable.userId, userId)));
+
+        const eligibleDocs = allDocs.filter(d =>
+          !d.isDuplicate &&
+          d.processingStatus !== 'duplicate_skipped'
+        );
+
+        let extracted = 0;
+        let errors = 0;
+        for (const d of eligibleDocs) {
+          try {
+            const result = await analyzeAndPersist(d.id, { createRecords: true, forceReparse: true });
+            if (result.financialRecordsCreated.length > 0 || result.parseStatus === 'already_parsed') {
+              extracted++;
+            }
+          } catch (err) {
+            console.error(`[BatchRoutes] re-extract failed for doc ${d.id}:`, err);
+            errors++;
+          }
+        }
+        return res.json({
+          success: true,
+          message: `Re-extracted financial data from ${extracted} documents (${errors} errors)`,
+          extractedCount: extracted,
+          errorCount: errors,
+        });
+      }
       default:
         return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
     }
