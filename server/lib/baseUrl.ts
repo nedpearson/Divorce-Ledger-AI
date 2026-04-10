@@ -3,8 +3,12 @@ function trimTrailingSlash(value: string): string {
 }
 
 export function getBaseUrl(): string {
-  const envUrl = process.env.BASE_URL || process.env.PUBLIC_BASE_URL;
+  let envUrl = process.env.BASE_URL || process.env.PUBLIC_BASE_URL;
   if (envUrl) {
+    // Ensure protocol is present (e.g., 'divorce.sisifoai.com' → 'https://divorce.sisifoai.com')
+    if (!envUrl.startsWith('http://') && !envUrl.startsWith('https://')) {
+      envUrl = `https://${envUrl}`;
+    }
     return trimTrailingSlash(envUrl);
   }
 
