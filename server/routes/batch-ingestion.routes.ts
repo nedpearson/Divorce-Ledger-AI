@@ -152,6 +152,26 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 3b. DELETE BATCH
+// DELETE /api/batches/:id
+// Deletes the batch + all its documents (including financial records)
+// ═══════════════════════════════════════════════════════════════════════════════
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return unauthorized(res);
+
+    await batchIngestionService.deleteBatch(req.params.id, userId);
+    res.json({ success: true, message: 'Batch deleted successfully' });
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error('[BatchRoutes] Delete batch error:', errMsg);
+    res.status(500).json({ success: false, error: errMsg });
+  }
+});
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // 4. LIGHTWEIGHT STATUS POLL (for frontend polling during processing)
 // GET /api/batches/:id/status
 // ═══════════════════════════════════════════════════════════════════════════════

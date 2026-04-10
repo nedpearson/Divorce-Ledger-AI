@@ -701,6 +701,39 @@ class BatchIngestionService {
       .where(eq(documentAuditLog.documentId, documentId))
       .orderBy(sqll`${documentAuditLog.createdAt} ASC`);
   }
+  /**
+   * Delete a batch and all associated documents (including financial records).
+   */
+  async deleteBatch(batchId: string, userId: string): Promise<void> {
+    const [batch] = await db
+      .select({ id: uploadBatches.id })
+      .from(uploadBatches)
+      .where(and(eq(uploadBatches.id, batchId), eq(uploadBatches.userId, userId)))
+      .limit(1);
+
+    if (!batch) throw new Error('Batch not found or access denied');
+
+    // Get all documents in this batch
+    const batchDocs = await db
+      .select({ id: documents.id })
+      .from(documents)
+      .where(eq(documents.batchId!, batchId));
+
+    // Delete each document's financial records + the document itself
+    const { documentRepository } = await import('./storage/documentRepository');
+    await Promise.allSettled(batchDocs.map((d) => documentRepository.deleteDocument(d.id)));
+
+    // Delete processing jobs
+    await db.delete(documentProcessingJobs).where(eq(documentProcessingJobs.batchId!, batchId));
+
+    // Delete audit logs
+    await db.delete(documentAuditLog).where(eq(documentAuditLog.batchId, batchId));
+
+    // Delete batch record itself
+    await db.delete(uploadBatches).where(eq(uploadBatches.id, batchId));
+
+    console.log(`[BatchIngestion] Deleted batch ${batchId} and ${batchDocs.length} documents`);
+  }
 }
 
 export const batchIngestionService = new BatchIngestionService();
