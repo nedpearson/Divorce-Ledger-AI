@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
+import session from 'express-session';
 import { registerRoutes } from './routes';
 import { validateEnv, isLiveMode, isDemoMode, getAppMode } from './config';
 
@@ -170,6 +171,21 @@ app.use(
 // Apply basic body parsing for all routes early
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 app.use(cookieParser());
+
+// Session middleware — required for Google OAuth CSRF state tokens
+app.use(session({
+  secret: process.env.SESSION_SECRET || process.env.DATABASE_URL?.slice(-32) || 'divorce-ledger-session-fallback',
+  resave: false,
+  saveUninitialized: false,
+  name: 'dl.sid',
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 10 * 60 * 1000, // 10 minutes — only needed for OAuth flow
+    sameSite: 'lax',
+  },
+}));
+
 app.use(demoResetMiddleware);
 app.use(adminDemoRouter);
 

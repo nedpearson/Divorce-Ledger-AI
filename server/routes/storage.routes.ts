@@ -9,7 +9,6 @@ import rateLimit from 'express-rate-limit';
 
 interface MulterRequest extends Request {
   file?: Express.Multer.File;
-  session?: any;
 }
 
 const router = Router();
@@ -19,7 +18,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 
 // Matches the auth pattern used by the rest of the app (requireAuth middleware).
 function getUserIdOrThrow(req: MulterRequest): { userId: string; error?: string } {
   // 1. Express-session (if ever configured)
-  const sessionUserId = req.session?.userId;
+  const sessionUserId = (req.session as any)?.userId;
   if (sessionUserId) return { userId: sessionUserId };
 
   // 2. req.user (populated by session-resolution middleware via session_id cookie)
