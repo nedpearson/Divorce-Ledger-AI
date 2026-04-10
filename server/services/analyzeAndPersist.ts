@@ -174,19 +174,18 @@ export async function analyzeAndPersist(
             } else if (isPdfType) {
               console.log(`[analyzeAndPersist] Attempting text extraction from PDF using pdf-parse...`);
               try {
-                const { PDFParse } = await import('pdf-parse');
-                const pdfBuffer = new Uint8Array(Buffer.from(imageBase64, 'base64'));
+                const pdfParseModule = await import('pdf-parse');
+                const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+                const pdfBuffer = Buffer.from(imageBase64, 'base64');
                 
                 const userObj = await db.query.users.findFirst({ where: eq(users.id, doc.userId) });
-                const pdfOptions: any = { data: pdfBuffer };
+                const pdfOptions: any = {};
                 if (userObj?.email === 'nedpearson@gmail.com') {
                   pdfOptions.password = '70809';
                   console.log(`[analyzeAndPersist] Automatically applying PDF passport bypass for nedpearson@gmail.com`);
                 }
                 
-                const p = new PDFParse(pdfOptions);
-                await p.load();
-                const pdfData = await p.getText();
+                const pdfData = await pdfParse(pdfBuffer, pdfOptions);
                 ocrExtractedText = pdfData.text || '';
                 console.log(
                   `[analyzeAndPersist] PDF extraction got ${ocrExtractedText.length} characters`

@@ -28,6 +28,8 @@ export interface DocumentMetadata {
   description?: string;
   errorMessage?: string;
   finalizedCategory?: string;
+  fileUrl?: string;
+  aiAnalysisStatus?: string;
   createdAt: string;
 }
 

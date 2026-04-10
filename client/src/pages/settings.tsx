@@ -123,7 +123,7 @@ interface GoogleConnection {
 function GoogleIntegrations() {
   const { toast } = useToast();
   
-  const { data: routeConfig } = useQuery<{ googleAuthEnabled: boolean, googleDriveEnabled: boolean }>({
+  const { data: routeConfig } = useQuery<{ googleAuthEnabled: boolean, googleDriveEnabled: boolean, googleCalendarEnabled: boolean }>({
     queryKey: ['/api/config/integrations'],
   });
 

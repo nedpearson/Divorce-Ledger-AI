@@ -620,11 +620,15 @@ function ExpensesTab({ onRecordClick }: TabProps) {
                         <span>{expense.startDate}</span>
                       </div>
                     )}
-                    {expense.documentId && (
+                    {expense.documentId ? (
                       <div className="flex items-center gap-1 text-primary">
                         <FileText className="h-3 w-3" />
-                        <span>PDF attached</span>
+                        <span>AI Parsed</span>
                       </div>
+                    ) : (
+                      <Badge variant="outline" className="text-xs py-0 px-1.5 text-muted-foreground">
+                        Manual
+                      </Badge>
                     )}
                     {fireflyStatus?.connected && getSyncStatus(expense.id) && (
                       <Badge variant="outline" className="text-xs py-0 px-1.5 gap-1">

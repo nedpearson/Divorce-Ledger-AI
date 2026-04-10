@@ -641,8 +641,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // ---------------------------------------------------------------------------
   // SESSION RESOLUTION MIDDLEWARE
   // Resolves session_id cookie → req.user for ALL subsequent /api routes.
-  // This ensures storage routes and other handlers can access the authenticated user.
+  // Uses an in-memory cache (60s TTL) to avoid DB queries on every request.
   // ---------------------------------------------------------------------------
+  const SESSION_CACHE = new Map<string, { user: Express.User; expiresAt: number }>();
+  const SESSION_CACHE_TTL_MS = 60_000; // 60 seconds
+  const SESSION_CACHE_MAX = 500;
+
   app.use('/api', async (req, res, next) => {
     // Skip if req.user is already set (e.g., by passport or upstream middleware)
     if (req.user) return next();
@@ -650,15 +654,34 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const sessionId = req.cookies?.session_id;
       if (sessionId) {
+        // Check cache first
+        const cached = SESSION_CACHE.get(sessionId);
+        if (cached && cached.expiresAt > Date.now()) {
+          req.user = cached.user;
+          return next();
+        }
+
+        // Cache miss — resolve from DB
         const session = await storage.getSession(sessionId);
         if (session && session.revokedAt === null && new Date(session.expiresAt) > new Date()) {
           const user = await storage.getUser(session.userId);
           if (user && user.status === 'active') {
-            req.user = {
+            const resolvedUser: Express.User = {
               id: user.id,
               isAdmin: user.isAdmin,
               environment: user.environment,
             };
+            req.user = resolvedUser;
+
+            // Evict oldest entries if cache is full
+            if (SESSION_CACHE.size >= SESSION_CACHE_MAX) {
+              const firstKey = SESSION_CACHE.keys().next().value;
+              if (firstKey) SESSION_CACHE.delete(firstKey);
+            }
+            SESSION_CACHE.set(sessionId, {
+              user: resolvedUser,
+              expiresAt: Date.now() + SESSION_CACHE_TTL_MS,
+            });
           }
         }
       }
