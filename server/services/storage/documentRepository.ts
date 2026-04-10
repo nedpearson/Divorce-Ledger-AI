@@ -177,13 +177,20 @@ export class DocumentRepository {
     const createdAt = dbRow.createdAt ? new Date(dbRow.createdAt).toISOString() : new Date().toISOString();
     const updatedAt = dbRow.updatedAt ? new Date(dbRow.updatedAt).toISOString() : createdAt;
 
+    // Resolve the actual storage file reference from the fileUrl
+    // e.g. fileUrl = '/uploads/abc-123.pdf' → storageFileId = 'abc-123.pdf'
+    // Falls back to docId for legacy records that predate local storage
+    const resolvedStorageId = dbRow.fileUrl
+      ? dbRow.fileUrl.split('/').pop() || docId
+      : docId;
+
     return {
       id: docId,
       $id: docId,          // Appwrite-style alias — frontend StoredFile uses file.$id
       $createdAt: createdAt,
       $updatedAt: updatedAt,
       userId: dbRow.userId,
-      storageFileId: docId,
+      storageFileId: resolvedStorageId,
       fileName: dbRow.fileName || dbRow.title || 'Unknown',
       fileType: dbRow.fileType || 'application/pdf',
       fileSize: dbRow.fileSize || 0,
