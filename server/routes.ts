@@ -639,6 +639,37 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   console.log('   GET /api/health/firefly (Firefly III status)');
 
   // ---------------------------------------------------------------------------
+  // SESSION RESOLUTION MIDDLEWARE
+  // Resolves session_id cookie → req.user for ALL subsequent /api routes.
+  // This ensures storage routes and other handlers can access the authenticated user.
+  // ---------------------------------------------------------------------------
+  app.use('/api', async (req, res, next) => {
+    // Skip if req.user is already set (e.g., by passport or upstream middleware)
+    if (req.user) return next();
+
+    try {
+      const sessionId = req.cookies?.session_id;
+      if (sessionId) {
+        const session = await storage.getSession(sessionId);
+        if (session && session.revokedAt === null && new Date(session.expiresAt) > new Date()) {
+          const user = await storage.getUser(session.userId);
+          if (user && user.status === 'active') {
+            req.user = {
+              id: user.id,
+              isAdmin: user.isAdmin,
+              environment: user.environment,
+            };
+          }
+        }
+      }
+    } catch (err) {
+      // Non-critical — fall through to route-level auth checks
+      console.error('[SESSION RESOLVE] Error resolving session:', err);
+    }
+    next();
+  });
+
+  // ---------------------------------------------------------------------------
   // CORE STORAGE ARCHITECTURE (Replaces legacy cloud integration)
   // ---------------------------------------------------------------------------
   app.use('/api/storage', storageRoutes);

@@ -449,7 +449,7 @@ export default function Home() {
     }
   };
 
-  const { data: documentStats } = useQuery<any[]>({
+  const { data: documentStats } = useQuery<{ files?: any[]; total?: number }>({
     queryKey: ['/api/storage/files'],
   });
 
@@ -458,7 +458,7 @@ export default function Home() {
   const quickStats = [
     {
       label: 'Document Library',
-      value: documentStats?.length || 0,
+      value: documentStats?.total ?? documentStats?.files?.length ?? recentDocs?.length ?? 0,
       icon: Layers,
       color: 'text-blue-400',
       bg: 'bg-blue-500/20',

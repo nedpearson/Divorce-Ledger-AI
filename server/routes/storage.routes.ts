@@ -15,14 +15,23 @@ interface MulterRequest extends Request {
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
-// Helper to reliably extract the userId out of session or headers based on env
+// Helper to reliably extract the userId out of session, req.user, or headers.
+// Matches the auth pattern used by the rest of the app (requireAuth middleware).
 function getUserIdOrThrow(req: MulterRequest): { userId: string; error?: string } {
+  // 1. Express-session (if ever configured)
   const sessionUserId = req.session?.userId;
   if (sessionUserId) return { userId: sessionUserId };
 
+  // 2. req.user (populated by session-resolution middleware via session_id cookie)
+  const reqUserId = (req as any).user?.id;
+  if (reqUserId) return { userId: reqUserId };
+
+  // 3. X-User-Id header (used by frontend apiRequest and FormData uploads)
+  const headerUserId = req.headers['x-user-id'] as string;
+  if (headerUserId?.trim()) return { userId: headerUserId.trim() };
+
+  // 4. Dev/demo fallback
   if (process.env.NODE_ENV === 'development' || process.env.APP_MODE === 'demo') {
-    const headerUserId = req.headers['x-user-id'] as string;
-    if (headerUserId) return { userId: headerUserId };
     return { userId: 'a538fa83-3e26-4421-ac27-4c9271ad5848' }; // Default demo fallback
   }
 
