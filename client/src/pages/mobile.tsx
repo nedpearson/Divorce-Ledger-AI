@@ -2740,7 +2740,7 @@ function CreateW2Dialog({
   const [federalWithheld, setFederalWithheld] = useState('');
   const [otherCompensation, setOtherCompensation] = useState('');
   const [notes, setNotes] = useState('');
-  const [documentId, setDocumentId] = useState('');
+  const [documentId, setDocumentId] = useState('none');
 
   useEffect(() => {
     if (isOpen) {
@@ -2755,7 +2755,7 @@ function CreateW2Dialog({
         editingRecord?.otherCompensation ? (editingRecord.otherCompensation / 100).toString() : ''
       );
       setNotes(editingRecord?.notes || '');
-      setDocumentId(editingRecord?.documentId || '');
+      setDocumentId(editingRecord?.documentId || 'none');
     }
   }, [isOpen, editingRecord]);
 
@@ -2768,7 +2768,7 @@ function CreateW2Dialog({
       federalWithheld: federalWithheld ? parseFloat(federalWithheld) : undefined,
       otherCompensation: otherCompensation ? parseFloat(otherCompensation) : 0,
       notes: notes || undefined,
-      documentId: documentId || undefined,
+      documentId: documentId && documentId !== 'none' ? documentId : undefined,
     });
   };
 
@@ -2868,7 +2868,7 @@ function CreateW2Dialog({
                 <SelectValue placeholder="Select uploaded W-2 document" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No document</SelectItem>
+                <SelectItem value="none">No document</SelectItem>
                 {taxDocs.map((doc) => (
                   <SelectItem key={doc.id} value={doc.id}>
                     {doc.title}

@@ -17,7 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -135,7 +135,7 @@ export function BatchUploadDropzone({ onBatchComplete, className }: BatchUploadD
 
   const [batchId, setBatchId] = useState<string | null>(null);
   const [batchName, setBatchName] = useState('');
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('');
+  const [selectedCaseId, setSelectedCaseId] = useState<string>('none');
   const [queue, setQueue] = useState<QueuedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -266,7 +266,7 @@ export function BatchUploadDropzone({ onBatchComplete, className }: BatchUploadD
           headers: { 'Content-Type': 'application/json', ...getUserHeaders() },
           body: JSON.stringify({
             batchName: batchName || `Batch ${new Date().toLocaleString()}`,
-            caseId: selectedCaseId || undefined,
+            caseId: selectedCaseId && selectedCaseId !== 'none' ? selectedCaseId : undefined,
           }),
         });
         const createData = await createRes.json();
@@ -506,7 +506,7 @@ export function BatchUploadDropzone({ onBatchComplete, className }: BatchUploadD
                     <SelectValue placeholder="Select case..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No case assigned</SelectItem>
+                    <SelectItem value="none">No case assigned</SelectItem>
                     {casesData?.cases?.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
                     ))}
@@ -608,14 +608,3 @@ export function BatchUploadDropzone({ onBatchComplete, className }: BatchUploadD
   );
 }
 
-// Helper for getUserHeaders outside of component (reused in action callbacks)
-function getUserHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {};
-  try {
-    const u = JSON.parse(localStorage.getItem('user') || 'null');
-    if (u?.id) headers['X-User-Id'] = u.id;
-    const env = localStorage.getItem('environment');
-    if (env) headers['X-Environment'] = env;
-  } catch { /* ignore */ }
-  return headers;
-}
