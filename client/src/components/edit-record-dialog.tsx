@@ -42,12 +42,11 @@ export function DeleteConfirmDialog({ open, onOpenChange, recordType, recordId, 
   const { toast } = useToast();
 
   const deleteMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest('DELETE', `${ENDPOINT_MAP[recordType]}/${recordId}`);
+    mutationFn: async (idToDelete: string) => {
+      return apiRequest('DELETE', `${ENDPOINT_MAP[recordType]}/${idToDelete}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api', `${recordType}s`] });
-      queryClient.invalidateQueries({ queryKey: ['/api', recordType === 'income' ? 'incomes' : recordType === 'expense' ? 'expenses' : recordType === 'asset' ? 'assets' : 'debts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       toast({ title: `${recordType.charAt(0).toUpperCase() + recordType.slice(1)} deleted` });
       onOpenChange(false);
@@ -56,6 +55,13 @@ export function DeleteConfirmDialog({ open, onOpenChange, recordType, recordId, 
       toast({ title: 'Delete failed', variant: 'destructive' });
     },
   });
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent AlertDialogAction from auto-closing
+    if (recordId) {
+      deleteMutation.mutate(recordId);
+    }
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -72,7 +78,7 @@ export function DeleteConfirmDialog({ open, onOpenChange, recordType, recordId, 
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            onClick={() => deleteMutation.mutate()}
+            onClick={handleDelete}
             disabled={deleteMutation.isPending}
           >
             {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -133,8 +139,8 @@ export function EditRecordDialog({ open, onOpenChange, recordType, record }: Edi
   }, [record, open, recordType]);
 
   const updateMutation = useMutation({
-    mutationFn: async (data: Record<string, any>) => {
-      return apiRequest('PATCH', `${ENDPOINT_MAP[recordType]}/${record.id}`, data);
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
+      return apiRequest('PATCH', `${ENDPOINT_MAP[recordType]}/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api'] });
@@ -178,7 +184,7 @@ export function EditRecordDialog({ open, onOpenChange, recordType, record }: Edi
       if (formData.vendor) payload.vendor = formData.vendor;
     }
 
-    updateMutation.mutate(payload);
+    updateMutation.mutate({ id: record.id, data: payload });
   };
 
   const set = (key: string, value: string) => setFormData((prev) => ({ ...prev, [key]: value }));
