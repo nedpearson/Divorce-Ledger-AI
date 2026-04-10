@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { apiRequest, queryClient, getQueryFn } from '@/lib/queryClient';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -129,6 +129,7 @@ function GoogleIntegrations() {
 
   const { data: connections, isLoading } = useQuery<GoogleConnection[]>({
     queryKey: ['/api/auth/google/connections'],
+    queryFn: getQueryFn({ on401: 'returnNull' }),
   });
 
   const disconnectMutation = useMutation({
@@ -151,6 +152,7 @@ function GoogleIntegrations() {
 
   const { data: driveStatus, isLoading: isDriveLoading } = useQuery<{ isConnected: boolean; externalAccountId?: string }>({
     queryKey: ['/api/integrations/google-drive/status'],
+    queryFn: getQueryFn({ on401: 'returnNull' }),
   });
 
   const disconnectDriveMutation = useMutation({
@@ -187,6 +189,7 @@ function GoogleIntegrations() {
 
   const { data: calendarStatus, isLoading: isCalendarLoading } = useQuery<{ isConnected: boolean; externalAccountId?: string }>({
     queryKey: ['/api/integrations/google-calendar/status'],
+    queryFn: getQueryFn({ on401: 'returnNull' }),
   });
 
   const disconnectCalendarMutation = useMutation({
@@ -460,6 +463,14 @@ function QuickBooksIntegration() {
 
   const { data: status, isLoading } = useQuery<QuickBooksStatus>({
     queryKey: ['/api/quickbooks/status'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/quickbooks/status', { credentials: 'include' });
+        if (!res.ok) return null;
+        return res.json();
+      } catch { return null; }
+    },
+    retry: false,
   });
 
   const disconnectMutation = useMutation({
@@ -677,6 +688,14 @@ function FireflyIntegration() {
 
   const { data: status, isLoading } = useQuery<FireflyStatus>({
     queryKey: ['/api/firefly/status'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/firefly/status', { credentials: 'include' });
+        if (!res.ok) return null;
+        return res.json();
+      } catch { return null; }
+    },
+    retry: false,
   });
 
   const form = useForm<FireflyFormValues>({
