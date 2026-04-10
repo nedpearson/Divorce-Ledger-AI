@@ -2,6 +2,7 @@ import { db } from '../db';
 import { users, userOauthConnections, authAuditLogs, type User } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
+import { getBaseUrl } from '../lib/baseUrl';
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -22,12 +23,15 @@ interface GoogleUserInfo {
 export class GoogleAuthService {
   private readonly clientId: string;
   private readonly clientSecret: string;
-  private readonly redirectUri: string;
 
   constructor() {
     this.clientId = process.env.GOOGLE_CLIENT_ID || '';
     this.clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
-    this.redirectUri = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
+  }
+
+  /** Dynamically resolve the redirect URI from the runtime environment */
+  private get redirectUri(): string {
+    return process.env.GOOGLE_CALLBACK_URL || `${getBaseUrl()}/api/auth/google/callback`;
   }
 
   isConfigured(): boolean {
