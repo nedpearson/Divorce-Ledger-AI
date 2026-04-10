@@ -990,25 +990,72 @@ export async function seedDemoData() {
   ] as any);
 
   // Seed a couple of financial items so dashboards are not empty
+  // NOTE: All monetary values stored as CENTS (e.g. $9,800 → 980000)
   await db.insert(assets).values([
     {
       userId: clientId,
       environment,
-      name: 'Joint Checking Account',
-      value: 12500,
+      name: 'Chase Joint Checking (*4421)',
+      value: 2475000, // $24,750
       category: 'bank_account',
       ownership: 'joint',
+      vendor: 'JPMorgan Chase',
       verified: true,
       createdAt: now,
     },
     {
       userId: clientId,
       environment,
-      name: 'Primary Residence',
-      value: 425000,
+      name: 'Ally High-Yield Savings (*7893)',
+      value: 3860000, // $38,600
+      category: 'bank_account',
+      ownership: 'you',
+      vendor: 'Ally Bank',
+      verified: true,
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      name: 'Primary Residence – 2847 Oak Ridge Dr',
+      value: 48500000, // $485,000
       category: 'real_property',
-      ownership: 'marital',
+      ownership: 'joint',
+      vendor: 'County Assessor',
       verified: false,
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      name: 'Fidelity 401(k) Plan (*6012)',
+      value: 14200000, // $142,000
+      category: 'investment_account',
+      ownership: 'you',
+      vendor: 'Fidelity Investments',
+      verified: true,
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      name: '2022 Honda Odyssey',
+      value: 2850000, // $28,500
+      category: 'vehicle',
+      ownership: 'you',
+      vendor: 'DMV',
+      verified: true,
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      name: 'Schwab Roth IRA (*1104)',
+      value: 6720000, // $67,200
+      category: 'investment_account',
+      ownership: 'you',
+      vendor: 'Charles Schwab',
+      verified: true,
       createdAt: now,
     },
   ] as any);
@@ -1017,21 +1064,45 @@ export async function seedDemoData() {
     {
       userId: clientId,
       environment,
-      name: 'Mortgage – Primary Residence',
-      amount: 315000,
+      name: 'Rocket Mortgage – Primary Residence',
+      amount: 31200000, // $312,000
       category: 'mortgage',
-      ownership: 'marital',
-      monthlyPayment: 2450,
+      ownership: 'joint',
+      monthlyPayment: 245000, // $2,450
+      vendor: 'Rocket Mortgage',
       createdAt: now,
     },
     {
       userId: clientId,
       environment,
-      name: 'Joint Credit Card',
-      amount: 8400,
+      name: 'Auto Loan – Honda Odyssey',
+      amount: 1820000, // $18,200
+      category: 'auto_loan',
+      ownership: 'you',
+      monthlyPayment: 48500, // $485
+      vendor: 'Capital One Auto',
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      name: 'Chase Sapphire Preferred (*9283)',
+      amount: 1480000, // $14,800
       category: 'credit_card',
       ownership: 'joint',
-      monthlyPayment: 250,
+      monthlyPayment: 42000, // $420
+      vendor: 'JPMorgan Chase',
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      name: 'Discover It Cash Back (*5571)',
+      amount: 630000, // $6,300
+      category: 'credit_card',
+      ownership: 'you',
+      monthlyPayment: 18000, // $180
+      vendor: 'Discover',
       createdAt: now,
     },
   ] as any);
@@ -1041,18 +1112,35 @@ export async function seedDemoData() {
       userId: clientId,
       environment,
       source: 'W-2 Employment – Software Engineer',
-      amount: 9800,
+      category: 'salary_wages',
+      amount: 980000, // $9,800/month
       frequency: 'monthly',
       owner: 'you',
+      verified: true,
+      startDate: '2021-03-15',
       createdAt: now,
     },
     {
       userId: clientId,
       environment,
-      source: 'Child Support Received',
-      amount: 1200,
+      source: 'Court-Ordered Child Support',
+      category: 'child_support',
+      amount: 150000, // $1,500/month
       frequency: 'monthly',
       owner: 'you',
+      verified: true,
+      startDate: '2025-08-01',
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      source: 'Fidelity Dividend Income',
+      category: 'investment_income',
+      amount: 32000, // $320/month
+      frequency: 'monthly',
+      owner: 'you',
+      verified: true,
       createdAt: now,
     },
   ] as any);
@@ -1063,19 +1151,76 @@ export async function seedDemoData() {
       environment,
       category: 'legal_professional',
       description: 'Retainer payment to family law attorney',
-      amount: 3500,
+      amount: 750000, // $7,500 one-time
       frequency: 'one_time',
       owner: 'you',
+      vendor: 'Anderson & Associates',
       createdAt: now,
     },
     {
       userId: clientId,
       environment,
       category: 'childcare',
-      description: 'After-school care and activities',
-      amount: 600,
+      description: 'After-school care, tutoring, and extracurriculars',
+      amount: 120000, // $1,200/month
       frequency: 'monthly',
       owner: 'you',
+      vendor: 'Bright Horizons',
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      category: 'housing',
+      description: 'Rent and utilities – temporary residence',
+      amount: 280000, // $2,800/month
+      frequency: 'monthly',
+      owner: 'you',
+      vendor: 'Greystar Property',
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      category: 'utilities',
+      description: 'Internet, phone, and streaming services',
+      amount: 28500, // $285/month
+      frequency: 'monthly',
+      owner: 'you',
+      vendor: 'AT&T / Xfinity',
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      category: 'transportation',
+      description: 'Auto insurance and fuel',
+      amount: 48500, // $485/month
+      frequency: 'monthly',
+      owner: 'you',
+      vendor: 'State Farm / Shell',
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      category: 'groceries',
+      description: 'Groceries and household supplies',
+      amount: 95000, // $950/month
+      frequency: 'monthly',
+      owner: 'you',
+      vendor: 'Kroger / Costco',
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      category: 'healthcare',
+      description: 'Health insurance premium and copays',
+      amount: 62000, // $620/month
+      frequency: 'monthly',
+      owner: 'you',
+      vendor: 'Blue Cross Blue Shield',
       createdAt: now,
     },
   ] as any);
@@ -1085,10 +1230,11 @@ export async function seedDemoData() {
       userId: clientId,
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 2).toISOString().split('T')[0],
-      amount: -7500,
-      description: 'Online Transfer to xxx4421',
+      amount: -750000, // -$7,500
+      description: 'Online Transfer to xxx4421 – Unknown Ally Account',
       category: 'transfer',
       type: 'expense',
+      vendor: 'Wire Transfer',
       isReviewed: false,
       aiAnalysis: {
         suggestedCategory: 'transfer',
@@ -1102,21 +1248,89 @@ export async function seedDemoData() {
       userId: clientId,
       environment,
       date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 5).toISOString().split('T')[0],
-      amount: -2450,
-      description: 'Chase Mortgage Servicing',
+      amount: -245000, // -$2,450
+      description: 'Rocket Mortgage Auto-Pay – Loan #RM-98231',
       category: 'mortgage',
       type: 'expense',
+      vendor: 'Rocket Mortgage',
       isReviewed: true,
       createdAt: now,
     },
     {
       userId: clientId,
       environment,
-      date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 10).toISOString().split('T')[0],
-      amount: 4900,
-      description: 'Acme Corp Payroll',
+      date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 1).toISOString().split('T')[0],
+      amount: 490000, // $4,900 (bi-weekly net pay)
+      description: 'Acme Software Corp – Direct Deposit Payroll',
       category: 'income',
       type: 'income',
+      vendor: 'Acme Software Corp',
+      isReviewed: true,
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 3).toISOString().split('T')[0],
+      amount: -15800, // -$158
+      description: 'Costco Wholesale – Groceries & Supplies',
+      category: 'groceries',
+      type: 'expense',
+      vendor: 'Costco',
+      isReviewed: true,
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 4).toISOString().split('T')[0],
+      amount: -48500, // -$485
+      description: 'Capital One Auto Finance – Monthly Payment',
+      category: 'auto_loan',
+      type: 'expense',
+      vendor: 'Capital One',
+      isReviewed: true,
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7).toISOString().split('T')[0],
+      amount: -350000, // -$3,500
+      description: 'Coinbase – Crypto Purchase (Suspicious)',
+      category: 'needs_review',
+      type: 'expense',
+      vendor: 'Coinbase',
+      isReviewed: false,
+      aiAnalysis: {
+        suggestedCategory: 'investment',
+        confidence: 0.82,
+        flagForReview: true,
+        reason: 'Crypto purchase from joint funds during pending divorce proceedings',
+      },
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 12).toISOString().split('T')[0],
+      amount: 150000, // $1,500
+      description: 'Court-Ordered Child Support Payment Received',
+      category: 'child_support',
+      type: 'income',
+      vendor: 'State Disbursement Unit',
+      isReviewed: true,
+      createdAt: now,
+    },
+    {
+      userId: clientId,
+      environment,
+      date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 15).toISOString().split('T')[0],
+      amount: 490000, // $4,900
+      description: 'Acme Software Corp – Direct Deposit Payroll',
+      category: 'income',
+      type: 'income',
+      vendor: 'Acme Software Corp',
       isReviewed: true,
       createdAt: now,
     },
