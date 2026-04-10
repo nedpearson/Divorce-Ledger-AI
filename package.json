@@ -182,7 +182,11 @@
       "@esbuild-kit/esm-loader": "npm:tsx@^4.20.4"
     },
     "cookie": "^0.7.2",
-    "@tootallnate/once": "^3.0.1"
+    "@tootallnate/once": "^3.0.1",
+    "minimatch": ">=9.0.5",
+    "brace-expansion": ">=2.0.2",
+    "flatted": ">=3.3.3",
+    "picomatch": ">=4.0.3"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
