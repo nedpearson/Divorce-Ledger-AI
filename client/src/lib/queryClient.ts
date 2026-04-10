@@ -3,10 +3,17 @@ import { QueryClient, QueryFunction } from '@tanstack/react-query';
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     if (res.status === 401) {
-      // Clear local auth state and redirect to login
-      localStorage.removeItem('user');
-      if (window.location.pathname !== '/') {
-        window.location.href = '/';
+      // Only force-redirect for core auth endpoints, NOT integration status checks
+      const url = res.url || '';
+      const isAuthEndpoint = url.includes('/api/auth/') && !url.includes('/connections');
+      if (isAuthEndpoint) {
+        localStorage.removeItem('user');
+        // Debounce: only redirect once per 3 seconds to prevent flash loops
+        const lastRedirect = parseInt(sessionStorage.getItem('last401Redirect') || '0');
+        if (Date.now() - lastRedirect > 3000 && window.location.pathname !== '/') {
+          sessionStorage.setItem('last401Redirect', Date.now().toString());
+          window.location.href = '/';
+        }
       }
     }
     const text = (await res.text()) || res.statusText;
