@@ -32,7 +32,9 @@ export class GoogleAuthService {
 
   /** Dynamically resolve the redirect URI from the runtime environment */
   private get redirectUri(): string {
-    return process.env.GOOGLE_CALLBACK_URL || `${getBaseUrl()}/api/auth/google/callback`;
+    const uri = process.env.GOOGLE_CALLBACK_URL || `${getBaseUrl()}/api/auth/google/callback`;
+    console.log(`[Google OAuth] redirect_uri resolved to: ${uri}`);
+    return uri;
   }
 
   isConfigured(): boolean {

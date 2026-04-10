@@ -2,20 +2,25 @@ function trimTrailingSlash(value: string): string {
   return value.endsWith('/') ? value.slice(0, -1) : value;
 }
 
+/** Ensure the URL always has a protocol prefix */
+function ensureProtocol(url: string): string {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  return `https://${url}`;
+}
+
 export function getBaseUrl(): string {
-  let envUrl = process.env.BASE_URL || process.env.PUBLIC_BASE_URL;
+  // 1. Explicit override
+  const envUrl = process.env.BASE_URL || process.env.PUBLIC_BASE_URL;
   if (envUrl) {
-    // Ensure protocol is present (e.g., 'divorce.sisifoai.com' → 'https://divorce.sisifoai.com')
-    if (!envUrl.startsWith('http://') && !envUrl.startsWith('https://')) {
-      envUrl = `https://${envUrl}`;
-    }
-    return trimTrailingSlash(envUrl);
+    return trimTrailingSlash(ensureProtocol(envUrl));
   }
 
-  // Railway environment detection
+  // 2. Railway environment detection
   const railwayStaticUrl = process.env.RAILWAY_STATIC_URL;
   if (railwayStaticUrl) {
-    return trimTrailingSlash(railwayStaticUrl);
+    return trimTrailingSlash(ensureProtocol(railwayStaticUrl));
   }
 
   const railwayPublicDomain = process.env.RAILWAY_PUBLIC_DOMAIN;
@@ -23,7 +28,7 @@ export function getBaseUrl(): string {
     return `https://${railwayPublicDomain}`;
   }
 
-  // Replit environment detection
+  // 3. Replit environment detection
   const replitDomain = process.env.REPLIT_DOMAINS?.split(',')[0]?.trim();
   if (replitDomain) {
     return `https://${replitDomain}`;
@@ -34,6 +39,7 @@ export function getBaseUrl(): string {
     return `https://${replitDevDomain}`;
   }
 
+  // 4. Fallbacks
   const isProduction = process.env.NODE_ENV === 'production';
   const isLiveMode = process.env.APP_MODE === 'live';
   if (isProduction || isLiveMode) {
