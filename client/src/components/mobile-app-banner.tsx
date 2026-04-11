@@ -13,11 +13,11 @@ const LOCAL_HOSTNAMES = ['localhost', '127.0.0.1', '0.0.0.0', '::1'];
 
 function getMobileUrl(): string {
   const envUrl = import.meta.env.VITE_PUBLIC_URL || import.meta.env.VITE_SUPABASE_URL;
-  if (envUrl) return `${envUrl.replace(/\/$/, '')}/mobile`;
+  if (envUrl) return `${envUrl.replace(/\/$/, '')}/api/mobile/pair`;
 
   const { protocol, hostname, port } = window.location;
   const portPart = port ? `:${port}` : '';
-  return `${protocol}//${hostname}${portPart}/api/mobile/pair`; // Change from /mobile directly, logic appends token later
+  return `${protocol}//${hostname}${portPart}/api/mobile/pair`;
 }
 
 function isLocalhost(): boolean {
