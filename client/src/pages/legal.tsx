@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
+import { BatchUploadDropzone } from '@/components/batch-upload-dropzone';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -62,36 +63,7 @@ const statusOptions = [
 ];
 
 function AddLegalDocumentDialog({ onSuccess }: { onSuccess: () => void }) {
-  const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [documentType, setDocumentType] = useState('');
-  const [description, setDescription] = useState('');
-  const [courtCase, setCourtCase] = useState('');
-  const [status, setStatus] = useState('draft');
-
-  const createMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest('POST', '/api/legal-documents', data);
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: 'Document Added',
-        description: 'Legal document has been added successfully.',
-      });
-      setOpen(false);
-      setTitle('');
-      setDocumentType('');
-      setDescription('');
-      setCourtCase('');
-      setStatus('draft');
-      onSuccess();
-    },
-    onError: () => {
-      toast({ title: 'Error', description: 'Failed to add document.', variant: 'destructive' });
-    },
-  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -101,88 +73,18 @@ function AddLegalDocumentDialog({ onSuccess }: { onSuccess: () => void }) {
           Add Document
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Legal Document</DialogTitle>
-          <DialogDescription>Add a court filing, agreement, or legal document.</DialogDescription>
+          <DialogTitle>Upload Legal Documents</DialogTitle>
+          <DialogDescription>Drag and drop court filings, judgments, and legal settlements to securely extract AI obligations and records.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Document Title</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Final Divorce Decree"
-              data-testid="input-legal-title"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="documentType">Document Type</Label>
-            <Select value={documentType} onValueChange={setDocumentType}>
-              <SelectTrigger data-testid="select-legal-type">
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                {documentTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger data-testid="select-legal-status">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="courtCase">Case Number</Label>
-            <Input
-              id="courtCase"
-              value={courtCase}
-              onChange={(e) => setCourtCase(e.target.value)}
-              placeholder="e.g., 2024-DR-12345"
-              data-testid="input-court-case"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief summary of the document..."
-              className="resize-none"
-              data-testid="input-legal-description"
-            />
-          </div>
-        </div>
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={() =>
-              createMutation.mutate({ title, documentType, description, courtCase, status })
-            }
-            disabled={!title || !documentType || createMutation.isPending}
-            data-testid="button-save-legal"
-          >
-            {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Save Document
-          </Button>
+        <div className="py-4">
+           <BatchUploadDropzone onBatchComplete={() => {
+              setTimeout(() => {
+                setOpen(false);
+                onSuccess();
+              }, 1500)
+           }} />
         </div>
       </DialogContent>
     </Dialog>

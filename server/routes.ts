@@ -41,6 +41,7 @@ import { authGoogleRouter } from './routes/auth-google.routes';
 import { googleDriveIntegrationRoutes } from './routes/integrations-google-drive.routes';
 import { googleCalendarIntegrationRoutes } from './routes/integrations-google-calendar.routes';
 import { lineageRouter } from './routes/lineage.routes';
+import { obligationsRouter } from './routes/obligations.routes';
 import {
   canCreateCase,
   canAddViolation,
@@ -520,6 +521,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Lineage Drill-Down API
   app.use('/api/lineage', lineageRouter);
+  app.use('/api/obligations', obligationsRouter);
 
   // Expose backend integration availability to the frontend gracefully
   app.get('/api/config/integrations', (req, res) => {

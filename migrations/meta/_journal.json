@@ -15,6 +15,13 @@
       "when": 1774384996216,
       "tag": "0001_pale_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775930831020,
+      "tag": "0002_naive_iron_monger",
+      "breakpoints": true
     }
   ]
 }

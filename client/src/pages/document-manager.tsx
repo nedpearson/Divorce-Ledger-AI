@@ -710,7 +710,7 @@ export default function DocumentManager() {
             Review ({pendingFiles.length})
           </TabsTrigger>
           <TabsTrigger value="routing" data-testid="tab-routing">
-            Routing
+            Obligations
           </TabsTrigger>
           <TabsTrigger value="complete" data-testid="tab-complete-files">
             Done ({completedFiles.length})

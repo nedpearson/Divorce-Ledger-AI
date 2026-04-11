@@ -1,7 +1,7 @@
 import { db } from '../db';
 import { storage } from '../storage';
 import { eq, and } from 'drizzle-orm';
-import { documentLineItems, documentParseResults, expenses, incomes, debts, users } from '@shared/schema';
+import { documentLineItems, documentParseResults, expenses, incomes, debts, users, obligationRules, obligationInstances } from '@shared/schema';
 import { normalizeEnv } from '../lib/normalizeEnv';
 import {
   parseFinancialDocument,
@@ -288,6 +288,49 @@ export async function analyzeAndPersist(
         })
         .returning();
       createdLineItems.push(lineItem[0]);
+    }
+
+    const createdLegalObligations: any[] = [];
+    if (parseResult.document.legal_obligations && parseResult.document.legal_obligations.length > 0) {
+      console.log(`[analyzeAndPersist] Found ${parseResult.document.legal_obligations.length} legal obligations to persist.`);
+      
+      for (const obs of parseResult.document.legal_obligations) {
+        // If this looks like an overarching rule (e.g. from a Court Order), generate a rule.
+        // Even for bills, we create an instance, but optionally attach it to a rule if provided.
+        // For now, we will create an instance representing this specific calculation.
+        
+        let amountGross = parseResult.document.total_amount_due ? Math.round(parseResult.document.total_amount_due * 100) : 0;
+        if (obs.fixed_amount) {
+           amountGross = Math.round(obs.fixed_amount * 100);
+        }
+
+        // Calculate owed amounts based on percentages
+        let partyAOwed = null;
+        let partyBOwed = null;
+        if (obs.party_a_percentage && amountGross > 0) {
+           partyAOwed = Math.round(amountGross * (obs.party_a_percentage / 100));
+        }
+        if (obs.party_b_percentage && amountGross > 0) {
+           partyBOwed = Math.round(amountGross * (obs.party_b_percentage / 100));
+        }
+
+        const instance = await db.insert(obligationInstances).values({
+           caseId: 'pending-assignment', // Could be inferred from doc.caseId if available
+           documentId: doc.id,
+           category: obs.category || mapDocTypeToFinanceCategory(parseResult.document.doc_type),
+           vendor: parseResult.document.vendor_name || null,
+           amountGross: amountGross,
+           partyAOwed: partyAOwed,
+           partyBOwed: partyBOwed,
+           dueDate: parseResult.document.due_date,
+           isAiComputed: true,
+           confidenceScore: parseResult.classification.confidence, // approximate
+           reviewStatus: 'needs_review',
+           environment
+        }).returning();
+        
+        createdLegalObligations.push(instance[0]);
+      }
     }
 
     const createdFinancialRecords: Array<{ type: string; record: any }> = [];

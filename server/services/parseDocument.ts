@@ -39,6 +39,20 @@ export const LineItemSchema = z.object({
 });
 export type LineItem = z.infer<typeof LineItemSchema>;
 
+export const LegalObligationSchema = z.object({
+  rule_type: z.enum(['percentage_split', 'fixed_amount', 'event_trigger', 'unknown']),
+  category: z.string().nullable(),
+  party_a_role: z.string().nullable(),
+  party_b_role: z.string().nullable(),
+  party_a_percentage: z.number().nullable(),
+  party_b_percentage: z.number().nullable(),
+  fixed_amount: z.number().nullable(),
+  effective_start_date: z.string().nullable(),
+  effective_end_date: z.string().nullable(),
+  explanation: z.string().nullable(),
+});
+export type LegalObligation = z.infer<typeof LegalObligationSchema>;
+
 export const ExpenseDocumentSchema = z.object({
   parse_status: ParseStatus,
   language: Language,
@@ -56,6 +70,7 @@ export const ExpenseDocumentSchema = z.object({
   service_address: z.string().nullable(),
   mailing_address: z.string().nullable(),
   line_items: z.array(LineItemSchema),
+  legal_obligations: z.array(LegalObligationSchema).optional().default([]),
   notes: z.array(z.string()),
 });
 export type ExpenseDocument = z.infer<typeof ExpenseDocumentSchema>;
@@ -100,7 +115,8 @@ CRITICAL RULES:
 2. All amounts must be numeric (no currency symbols in the number field)
 3. Store original amount text in amount_text (e.g., "$1,234.56" or "1.234,56 €")
 4. If you cannot confidently extract data, set parse_status to "low_confidence" or "no_data"
-5. For European/Spanish number formats (1.234,56), convert to standard numeric (1234.56)`;
+5. For European/Spanish number formats (1.234,56), convert to standard numeric (1234.56)
+6. If the document is a court order, agreement, or contains language explicitly splitting responsibility (e.g. "Husband pays 50%"), fill out the \`legal_obligations\` array with precise splits and effective dates.`;
 
 const getSchemaForPrompt = () => `
 type ExpenseDocument = {
@@ -143,6 +159,19 @@ type ExpenseDocument = {
     is_recurring_guess: boolean;         // True if likely a recurring charge
     page_number: number | null;          // Which page this was found on
     surrounding_text_snippet: string | null; // ~50 chars around the number for audit
+  }[];
+
+  legal_obligations: {
+    rule_type: 'percentage_split' | 'fixed_amount' | 'event_trigger' | 'unknown';
+    category: string | null;             // e.g., 'uninsured_medical', 'extracurricular' 
+    party_a_role: string | null;         // e.g., 'Husband', 'Plaintiff'
+    party_b_role: string | null;         // e.g., 'Wife', 'Defendant'
+    party_a_percentage: number | null;   // e.g. 60
+    party_b_percentage: number | null;   // e.g. 40
+    fixed_amount: number | null;         // if not a percentage
+    effective_start_date: string | null; // YYYY-MM-DD
+    effective_end_date: string | null;   // YYYY-MM-DD
+    explanation: string | null;          // AI reasoning
   }[];
 
   notes: string[];                       // Brief comments or caveats for human reviewer
