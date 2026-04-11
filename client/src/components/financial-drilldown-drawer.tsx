@@ -97,7 +97,7 @@ export function FinancialDrilldownDrawer({
   const [, setLocation] = useLocation();
   const { openDrilldown } = useDrilldown();
 
-  const { data, isLoading } = useQuery<{ records: FinancialRecord[] }>({
+  const { data, isLoading, error } = useQuery<{ records: FinancialRecord[] }>({
     queryKey: [`/api/finances/${type}?env=${environment}`],
     enabled: open,
   });
@@ -205,7 +205,16 @@ export function FinancialDrilldownDrawer({
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : records.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">No records found</div>
+                  <div className="text-center py-8 text-muted-foreground flex flex-col items-center gap-4">
+                    <p>No records found</p>
+                    <div className="text-xs text-left bg-zinc-900 text-zinc-300 p-4 rounded-md overflow-auto w-full max-w-sm">
+                      <p><strong>Debug Info:</strong></p>
+                      <p>queryKey: {`/api/finances/${type}?env=${environment}`}</p>
+                      <p>isLoading: {String(isLoading)}</p>
+                      <p>data: {JSON.stringify(data)}</p>
+                      <p>error: {error ? JSON.stringify(error) : String(error)}</p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     {records.map((record) => (
