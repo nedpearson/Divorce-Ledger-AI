@@ -1436,11 +1436,38 @@ export class DatabaseStorage implements IStorage {
 
   async getTransactions(userId: string, environment: string): Promise<Transaction[]> {
     const currentDb = getDb(environment);
-    return currentDb
+    const txsContent = await currentDb
       .select()
       .from(transactions)
       .where(and(eq(transactions.userId, userId), eq(transactions.environment, environment)))
       .orderBy(desc(transactions.date));
+
+    const expensesContent = await currentDb
+      .select()
+      .from(expenses)
+      .where(and(eq(expenses.userId, userId), eq(expenses.environment, environment)))
+      .orderBy(desc(expenses.startDate));
+
+    // Map expenses cleanly into the Transaction format for the dashboard view
+    const mappedExpenses: Transaction[] = expensesContent.map((e) => ({
+      id: e.id,
+      userId: e.userId,
+      date: e.startDate || new Date().toISOString().split('T')[0],
+      description: e.description,
+      amount: e.amount,
+      category: e.category,
+      type: 'expense',
+      vendor: e.vendor,
+      documentId: e.documentId,
+      environment: e.environment,
+    }));
+
+    // Merge and sort newest first
+    const combined = [...txsContent, ...mappedExpenses].sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+
+    return combined;
   }
 
   async getRecentTransactions(
