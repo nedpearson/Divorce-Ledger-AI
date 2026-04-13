@@ -222,6 +222,43 @@ EXAMPLE OUTPUT for a utility bill:
     }
   ],
   "notes": ["Bill appears to be a standard monthly utility statement"]
+}
+
+EXAMPLE OUTPUT for a legal document:
+{
+  "parse_status": "success",
+  "language": "en",
+  "doc_type": "LEGAL_DOCUMENT",
+  "vendor_name": null,
+  "account_number": null,
+  "billing_period_start": null,
+  "billing_period_end": null,
+  "statement_date": "2025-01-10",
+  "due_date": null,
+  "currency": "USD",
+  "total_amount_due": null,
+  "total_amount_text": null,
+  "customer_name": "Jane Doe",
+  "service_address": null,
+  "mailing_address": null,
+  "line_items": [],
+  "legal_obligations": [
+    {
+      "rule_type": "percentage_split",
+      "category": "child_support",
+      "party_a_role": "payor",
+      "party_b_role": "payee",
+      "party_a_percentage": 60.0,
+      "party_b_percentage": 40.0,
+      "fixed_amount": 500.00,
+      "effective_start_date": "2025-01-10",
+      "effective_end_date": null,
+      "explanation": "Spouse A is responsible for 60% of child support, fixed value $500."
+    }
+  ],
+  "notes": [
+    "Consent judgment regarding child support allocation."
+  ]
 }`;
 
 // ============================================================================
