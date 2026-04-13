@@ -424,8 +424,9 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
     }
 
     // 2. Generate Scheduled programmatic recurrences if `dueDate` or `isRecurring` is provided
-    if (inserted && amountCents && (dueDate || isRecurring)) {
-       console.log(`[Obligations] Generating recurring schedule items for rule ${inserted.id}`);
+    if (inserted && (dueDate || isRecurring)) {
+       const baseAmount = amountCents || 0;
+       console.log(`[Obligations] Generating recurring schedule items for rule ${inserted.id} w/ base = ${baseAmount}`);
        const inserts = [];
 
        if (isRecurring && historicalStartDate && historicalEndDate) {
@@ -436,18 +437,18 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
            let partyAOwed = null;
            let partyBOwed = null;
            if (inserted.ruleType === 'percentage_split') {
-             if (inserted.partyAPercentage) partyAOwed = Math.round(amountCents * (inserted.partyAPercentage / 100));
-             if (inserted.partyBPercentage) partyBOwed = Math.round(amountCents * (inserted.partyBPercentage / 100));
+             if (inserted.partyAPercentage) partyAOwed = Math.round(baseAmount * (inserted.partyAPercentage / 100));
+             if (inserted.partyBPercentage) partyBOwed = Math.round(baseAmount * (inserted.partyBPercentage / 100));
            }
 
            inserts.push({
              caseId: 'pending-assignment',
              ruleId: inserted.id,
              category: inserted.category,
-             amountGross: amountCents,
+             amountGross: baseAmount,
              partyAOwed,
              partyBOwed,
-             remainingBalance: amountCents,
+             remainingBalance: baseAmount,
              direction: 'due_from_spouse', // Default for these rules
              dueDate: currentDate.toISOString().split('T')[0],
              isRecurring: !!isRecurring,
@@ -467,18 +468,18 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
          let partyAOwed = null;
          let partyBOwed = null;
          if (inserted.ruleType === 'percentage_split') {
-           if (inserted.partyAPercentage) partyAOwed = Math.round(amountCents * (inserted.partyAPercentage / 100));
-           if (inserted.partyBPercentage) partyBOwed = Math.round(amountCents * (inserted.partyBPercentage / 100));
+           if (inserted.partyAPercentage) partyAOwed = Math.round(baseAmount * (inserted.partyAPercentage / 100));
+           if (inserted.partyBPercentage) partyBOwed = Math.round(baseAmount * (inserted.partyBPercentage / 100));
          }
 
          inserts.push({
            caseId: 'pending-assignment',
            ruleId: inserted.id,
            category: inserted.category,
-           amountGross: amountCents,
+           amountGross: baseAmount,
            partyAOwed,
            partyBOwed,
-           remainingBalance: amountCents,
+           remainingBalance: baseAmount,
            direction: 'due_from_spouse',
            dueDate,
            isRecurring: !!isRecurring,
