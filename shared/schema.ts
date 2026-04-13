@@ -11,6 +11,7 @@ import {
   real,
   jsonb,
   numeric,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
@@ -2558,6 +2559,10 @@ export const recurringBillCycles = pgTable('recurring_bill_cycles', {
   impactFlagsJson: jsonb('impact_flags_json'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    cycleUniqueIndex: uniqueIndex('cycle_template_month_year_unq').on(table.recurringBillTemplateId, table.cycleMonth, table.cycleYear),
+  };
 });
 
 export const insertRecurringBillCycleSchema = createInsertSchema(recurringBillCycles).omit({ id: true, createdAt: true, updatedAt: true });

@@ -146,8 +146,28 @@ obligationsRouter.get('/summary', requireAuth, async (req, res) => {
       pendingReimbursements: 0,
       
       openCount: 0,
-      overdueCount: 0
+      overdueCount: 0,
+      
+      hasMissingBills: false,
+      missingBillsCount: 0
     };
+
+    // Check for missing bills to flag incomplete states
+    const environment = (req.headers['x-environment'] || 'demo') as string;
+    const userId = (req.user as any).id;
+    const missingCyclesCountResult = await db.select({ count: sql`COUNT(*)` })
+      .from(schema.recurringBillCycles)
+      .innerJoin(schema.recurringBillTemplates, eq(schema.recurringBillCycles.recurringBillTemplateId, schema.recurringBillTemplates.id))
+      .where(and(
+        eq(schema.recurringBillTemplates.userId, userId),
+        eq(schema.recurringBillTemplates.environment, environment),
+        eq(schema.recurringBillCycles.missingFlag, true)
+      ));
+    
+    if (missingCyclesCountResult[0] && Number(missingCyclesCountResult[0].count) > 0) {
+      totals.hasMissingBills = true;
+      totals.missingBillsCount = Number(missingCyclesCountResult[0].count);
+    }
 
     const now = new Date();
 

@@ -55,6 +55,7 @@ const StatCard = memo(function StatCard({
   icon: Icon,
   onClick,
   drilldownType,
+  incompleteCount,
 }: {
   title: string;
   value: string;
@@ -65,6 +66,7 @@ const StatCard = memo(function StatCard({
   icon: React.ElementType;
   onClick?: () => void;
   drilldownType?: DrilldownType;
+  incompleteCount?: number;
 }) {
   const { openDrilldown } = useDrilldown();
 
@@ -128,6 +130,12 @@ const StatCard = memo(function StatCard({
                 subtitleValue
               )}
             </span>
+          </div>
+        )}
+        {incompleteCount !== undefined && incompleteCount > 0 && (
+          <div className="flex items-center gap-1 mt-2 text-[10px] font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded-sm max-w-fit" title="Incomplete due to missing monthly bills">
+            <AlertTriangle className="h-3 w-3" />
+            <span>Missing {incompleteCount} Expected {incompleteCount === 1 ? 'Bill' : 'Bills'}</span>
           </div>
         )}
       </CardContent>
@@ -562,6 +570,7 @@ export default function Dashboard() {
               trend={obligationsSummary?.totals?.netPosition >= 0 ? 'up' : 'down'}
               trendValue="Ledger"
               onClick={() => setLocation('/obligations')}
+              incompleteCount={obligationsSummary?.totals?.hasMissingBills ? obligationsSummary?.totals?.missingBillsCount : undefined}
             />
             <StatCard
               title="Due From Spouse"
@@ -571,6 +580,7 @@ export default function Dashboard() {
               icon={TrendingUp}
               trend="up"
               onClick={() => setLocation('/obligations')}
+              incompleteCount={obligationsSummary?.totals?.hasMissingBills ? obligationsSummary?.totals?.missingBillsCount : undefined}
             />
             <StatCard
               title="Due To Spouse"

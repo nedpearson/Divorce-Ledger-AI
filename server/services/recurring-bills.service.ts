@@ -64,7 +64,7 @@ export class RecurringBillsService {
           dueDate,
           status: 'pending',
           missingFlag: false,
-        });
+        }).onConflictDoNothing().catch(e => console.error('[generateMonthlyCycles] Insert error:', e.message));
       }
     }
   }

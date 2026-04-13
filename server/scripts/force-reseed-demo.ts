@@ -24,7 +24,7 @@ import {
   w2Records,
   childSupportPayments,
 } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 
 async function main() {
   console.log('[FORCE RESEED] Starting...');
@@ -61,6 +61,8 @@ async function main() {
     await db.delete(reimbursements).where(and(eq(reimbursements.userId, uid), eq(reimbursements.environment, 'demo')));
     await db.delete(w2Records).where(and(eq(w2Records.userId, uid), eq(w2Records.environment, 'demo')));
     await db.delete(childSupportPayments).where(and(eq(childSupportPayments.userId, uid), eq(childSupportPayments.environment, 'demo')));
+    await db.execute(sql`DELETE FROM recurring_bill_cycles WHERE recurring_bill_template_id IN (SELECT id FROM recurring_bill_templates WHERE user_id = ${uid} AND environment = 'demo')`);
+    await db.execute(sql`DELETE FROM recurring_bill_templates WHERE user_id = ${uid} AND environment = 'demo'`);
     console.log(`[FORCE RESEED] Cleared all data for user: ${uid}`);
   }
   

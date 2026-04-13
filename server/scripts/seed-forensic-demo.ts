@@ -510,6 +510,48 @@ export async function seedProfile(profile: CaseProfile, hashedPass: string, env:
     });
   }
   if (alerts.length) await chunkedInsert(schema.alerts, alerts);
+
+  // --- RECURRING BILLS DEMO DATA ---
+  const templates = [];
+  const cycles = [];
+  for (let i = 0; i < (profile.businessFocus ? 4 : 2); i++) {
+    const isMissingScenario = Math.random() > 0.5;
+    const vend = pick(EXPENSE_CATEGORIES.find(c => c.c === 'utilities')!.v);
+    templates.push({
+      caseId: 'demo-case-id', // Placeholder, we don't have explicit caseId here mapped properly except the created case
+      userId: clientId,
+      environment: env,
+      vendorName: vend,
+      billName: `${vend} Home Utility`,
+      category: 'utilities',
+      expectedFrequency: 'monthly',
+      expectedDayOfMonth: 15,
+      dueDayOfMonth: 20,
+      active: true
+    });
+  }
+  const insertedTemplates = templates.length ? await chunkedInsert(schema.recurringBillTemplates, templates) : [];
+  
+  const nowCycles = new Date();
+  const cycleMonth = nowCycles.getMonth() + 1;
+  const cycleYear = nowCycles.getFullYear();
+  
+  for (const t of insertedTemplates) {
+    const isMissingScenario = Math.random() > 0.3; // Make missing bills common for demo
+    cycles.push({
+      recurringBillTemplateId: t.id,
+      cycleMonth,
+      cycleYear,
+      expectedStartDate: new Date(cycleYear, cycleMonth - 1, 1),
+      expectedEndDate: new Date(cycleYear, cycleMonth, 0),
+      dueDate: new Date(cycleYear, cycleMonth - 1, t.dueDayOfMonth || 20),
+      status: isMissingScenario ? 'missing' : 'pending',
+      missingFlag: isMissingScenario,
+      createdAt: randomDate(ninetyDaysAgo, today),
+      updatedAt: today
+    });
+  }
+  if (cycles.length) await chunkedInsert(schema.recurringBillCycles, cycles);
 }
 
 export async function runSeeder() {
@@ -532,6 +574,10 @@ export async function runSeeder() {
   await db.delete(schema.w2Records).where(eq(schema.w2Records.environment, env));
   await db.delete(schema.reimbursements).where(eq(schema.reimbursements.environment, env));
   await db.delete(schema.childSupportPayments).where(eq(schema.childSupportPayments.environment, env));
+  
+  // Wipe recurring bills
+  await db.execute(sql`DELETE FROM recurring_bill_cycles WHERE recurring_bill_template_id IN (SELECT id FROM recurring_bill_templates WHERE environment = ${env})`);
+  await db.delete(schema.recurringBillTemplates).where(eq(schema.recurringBillTemplates.environment, env));
   
   // Clean up Multi-Tenant structures for the demo env
   await db.execute(sql`DELETE FROM matter_members WHERE matter_id IN (SELECT id FROM matters WHERE workspace_id IN (SELECT id FROM workspaces WHERE owner_id IN (SELECT id FROM users WHERE environment = ${env})))`);

@@ -548,6 +548,12 @@ export default function ObligationsPage() {
                     <p className="text-4xl font-bold text-primary tabular-nums">
                        {formatCurrency(totals?.netPosition || 0)}
                     </p>
+                    {totals?.hasMissingBills && (
+                      <div className="flex items-center gap-1 mt-2 text-xs font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded-md max-w-fit" title="Incomplete due to missing monthly bills">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        <span>Incomplete: {totals.missingBillsCount} expected bills missing</span>
+                      </div>
+                    )}
                   </div>
                   <div className="p-3 bg-primary/20 rounded-xl">
                       <Landmark className="h-6 w-6 text-primary" />

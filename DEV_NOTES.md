@@ -70,3 +70,12 @@ Use `/api/health` to verify the backend is running properly. A successful respon
 - The session semantics are intentional: 401 means "authenticate first"
 - The version polling enables hot reload detection
 - All health endpoints are unauthenticated for monitoring access
+
+## [2026-04-13] Missing Monthly Bills Feature Hardening
+- **Schema**: Added an explicit unique constraint \cycle_template_month_year_unq\ on \ecurring_bill_cycles\ to prevent duplicate cycles if multiple users hit the dashboard simultaneously or if cron runs overlapping cycles.
+- **Cycle Generation**: Replaced standard insert with an \.onConflictDoNothing()\ pattern within \ecurring-bills.service.ts\ to leverage Postgres uniqueness, ensuring race-condition safety.
+- **Detection Logic**: Validated exact conditions for marking a cycle \missing\ (pending status, not waived, upload window elapsed). Confirmed alerts trigger correctly on state transition.
+- **Financial Propagation**: Exposed \hasMissingBills\ flag via \/api/obligations/summary\. Added a contextual visual warning token onto both the main dashboard's StatCard (Net Position & Due From Spouse) and the Obligations page. This ensures incomplete variables are explicitly flagged and stops missing inputs from being silently treated as $0.
+- **UX Check**: Verified the widget rendering logic natively integrates.
+- **Notes for future**: Add an option for users to manually waive historical months via UI, and enhance multi-document to single-cycle matching if multiple installments occur.
+
