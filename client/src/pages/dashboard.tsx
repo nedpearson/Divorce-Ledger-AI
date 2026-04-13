@@ -552,6 +552,7 @@ export default function Dashboard() {
               icon={Wallet}
               trend={obligationsSummary?.totals?.netPosition >= 0 ? 'up' : 'down'}
               trendValue="Ledger"
+              onClick={() => setLocation('/obligations')}
             />
             <StatCard
               title="Due From Spouse"
@@ -560,6 +561,7 @@ export default function Dashboard() {
               subtitleValue={formatCurrency(obligationsSummary?.totals?.upcomingObligations ?? 0)}
               icon={TrendingUp}
               trend="up"
+              onClick={() => setLocation('/obligations')}
             />
             <StatCard
               title="Due To Spouse"
@@ -568,6 +570,7 @@ export default function Dashboard() {
               subtitleValue="Obligation"
               icon={TrendingDown}
               trend="down"
+              onClick={() => setLocation('/obligations')}
             />
             <StatCard
               title="Child Support Due"
@@ -575,6 +578,7 @@ export default function Dashboard() {
               subtitle="Overdue Arrears"
               subtitleValue={formatCurrency(obligationsSummary?.totals?.childSupportArrears ?? 0)}
               icon={Users}
+              onClick={() => setLocation('/obligations')}
             />
             <StatCard
               title="Needs Review"
@@ -590,6 +594,7 @@ export default function Dashboard() {
               subtitle="Past Due Items"
               subtitleValue={obligationsSummary?.totals?.overdueCount?.toString() || '0'}
               icon={AlertTriangle}
+              onClick={() => setLocation('/obligations')}
             />
             <StatCard
               title="Pending Reimbursements"
@@ -597,6 +602,7 @@ export default function Dashboard() {
               subtitle="Awaiting Payout"
               subtitleValue="Requested"
               icon={DollarSign}
+              onClick={() => setLocation('/obligations')}
             />
           </div>
 

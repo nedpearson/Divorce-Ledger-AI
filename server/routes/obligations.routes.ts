@@ -175,7 +175,7 @@ obligationsRouter.get('/summary', requireAuth, async (req, res) => {
       }
 
       // 2. Child Support Explicit Math
-      if (isChildSupport && record.direction === 'due_from_spouse') {
+      if (isChildSupport) {
         totals.childSupportDue += amount;
         if (isOverdue) totals.childSupportOverdue += amount;
         if (record.isArrearage) totals.childSupportArrears += amount;
@@ -373,34 +373,41 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
       console.log(`[Obligations] Processing historical documents since ${inserted.effectiveStartDate} for rule ${inserted.id}`);
       const keywordList = inserted.keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean);
       
+      const overrideEnv = (req.headers['x-environment'] as string) || 'demo';
+      const requestUserId = (req.headers['x-user-id'] as string) || (req as any).session?.userId || (req as any).user?.id || 'demo-client-user';
+
       const pastResults = await db.select({
-        documentId: schema.documents.id,
-        vendorName: sql<string>`'Retroactive Match'`,
-        totalAmountDue: sql<number>`0`, 
-        statementDate: sql<string>`''`,
-        dueDate: sql<string>`''`,
-        docDate: schema.documents.createdAt,
-        aiExtractedText: schema.documents.aiExtractedText,
-        fileName: schema.documents.fileName
+        expenseId: schema.expenses.id,
+        documentId: schema.expenses.documentId,
+        vendorName: schema.expenses.vendor,
+        amount: schema.expenses.amount, 
+        startDate: schema.expenses.startDate,
+        description: schema.expenses.description
       })
-      .from(schema.documents);
+      .from(schema.expenses)
+      .where(
+        and(
+          eq(schema.expenses.environment, overrideEnv),
+          eq(schema.expenses.userId, requestUserId)
+        )
+      );
 
       const matches = pastResults.filter(pr => {
-         const docDateStr = pr.statementDate || pr.dueDate || pr.docDate?.toISOString() || '';
+         const docDateStr = pr.startDate || '';
          if (!docDateStr) return false;
          
          const isAfterStart = new Date(docDateStr) >= new Date(inserted.effectiveStartDate!);
          if (!isAfterStart) return false;
 
-         const textToSearch = `${pr.vendorName || ''} ${pr.fileName || ''} ${pr.aiExtractedText || ''}`.toLowerCase();
+         const textToSearch = `${pr.vendorName || ''} ${pr.description || ''}`.toLowerCase();
          return keywordList.some(kw => textToSearch.includes(kw));
       });
 
       console.log(`[Obligations] Found ${matches.length} historical matches for rule ${inserted.id}`);
       
       for (const match of matches) {
-         if (!match.documentId) continue;
-         const baseAmount = match.totalAmountDue ? Math.round(match.totalAmountDue * 100) : 0;
+         if (!match.expenseId) continue;
+         const baseAmount = match.amount ? Number(match.amount) : 0; // already in cents
          const amountGross = inserted.ruleType === 'fixed_amount' && inserted.fixedAmount ? inserted.fixedAmount : baseAmount;
          
          if (amountGross > 0) {
@@ -413,21 +420,21 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
             try {
               await db.insert(schema.obligationInstances).values({
                  caseId: 'pending-assignment',
-                 documentId: match.documentId,
+                 documentId: match.documentId || match.expenseId,
                  ruleId: inserted.id,
                  category: inserted.category,
                  vendor: match.vendorName || 'Auto-Matched Vendor',
                  amountGross,
                  partyAOwed,
                  partyBOwed,
-                 dueDate: match.dueDate || match.statementDate,
+                 dueDate: match.startDate,
                  isAiComputed: false,
                  confidenceScore: 0.9,
-                 reviewStatus: 'needs_review',
-                 environment: (req.headers['x-environment'] || 'demo') as string
+                 reviewStatus: 'approved',
+                 environment: overrideEnv
               });
             } catch (err) {
-              console.error(`Failed retroactive insert for document ${match.documentId}:`, err);
+              console.error(`Failed retroactive insert for expense ${match.expenseId}:`, err);
             }
          }
       }
