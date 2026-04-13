@@ -127,6 +127,7 @@ obligationsRouter.get('/due-from-spouse', requireAuth, async (req, res) => {
       rule: {
         id: schema.obligationRules.id,
         partyBPercentage: schema.obligationRules.partyBPercentage,
+        partyAPercentage: schema.obligationRules.partyAPercentage,
         effectiveStartDate: schema.obligationRules.effectiveStartDate
       },
       citation: {
@@ -147,6 +148,8 @@ obligationsRouter.get('/due-from-spouse', requireAuth, async (req, res) => {
       pastDue: 0,
       pendingReimbursement: 0,
       upcomingDue: 0,
+      dueToSpouse: 0,
+      netPosition: 0,
       openCount: 0,
       overdueCount: 0,
       disputedCount: 0
@@ -155,10 +158,15 @@ obligationsRouter.get('/due-from-spouse', requireAuth, async (req, res) => {
     const now = new Date();
 
     instances.forEach(record => {
-      // Assuming Spouse is Party B. Fallback to extracting from Gross if percentage but no parsed PartyB
+      // Assuming Spouse is Party B handling obligations.
       let spouseAmount = record.partyBOwed || 0; 
+      let clientAmount = record.partyAOwed || 0;
+
       if (spouseAmount === 0 && record.amountGross && record.rule?.partyBPercentage) {
         spouseAmount = Math.round(record.amountGross * (record.rule.partyBPercentage / 100));
+      }
+      if (clientAmount === 0 && record.amountGross && record.rule?.partyAPercentage) {
+        clientAmount = Math.round(record.amountGross * (record.rule.partyAPercentage / 100));
       }
 
       if (spouseAmount > 0) {
@@ -177,7 +185,13 @@ obligationsRouter.get('/due-from-spouse', requireAuth, async (req, res) => {
           totals.disputedCount++;
         }
       }
+
+      if (clientAmount > 0 && record.status === 'pending') {
+        totals.dueToSpouse += clientAmount;
+      }
     });
+
+    totals.netPosition = totals.outstanding - totals.dueToSpouse;
 
     res.json({ totals, records: instances });
 
