@@ -2378,6 +2378,7 @@ export const obligationRules = pgTable('obligation_rules', {
   partyAPercentage: integer('party_a_percentage'), // e.g. 60
   partyBPercentage: integer('party_b_percentage'), // e.g. 40
   fixedAmount: integer('fixed_amount'), // if not a percentage
+  keywords: text('keywords'), // comma-separated matchers
   effectiveStartDate: text('effective_start_date'),
   effectiveEndDate: text('effective_end_date'),
   isActive: boolean('is_active').notNull().default(true),

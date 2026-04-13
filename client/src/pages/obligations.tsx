@@ -56,52 +56,81 @@ function formatCurrency(cents: number): string {
 function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<'manual' | 'rule'>('manual');
+  
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('child_support');
+  const [notes, setNotes] = useState('');
+  
   const [amount, setAmount] = useState('');
   const [direction, setDirection] = useState('due_from_spouse');
   const [dueDate, setDueDate] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceFrequency, setRecurrenceFrequency] = useState('monthly');
-  const [notes, setNotes] = useState('');
   const [generateHistorical, setGenerateHistorical] = useState(false);
   const [historicalStartDate, setHistoricalStartDate] = useState('');
   const [historicalEndDate, setHistoricalEndDate] = useState('');
 
+  const [ruleType, setRuleType] = useState('percentage_split');
+  const [keywords, setKeywords] = useState('');
+  const [myPercentage, setMyPercentage] = useState('50');
+  const [spousePercentage, setSpousePercentage] = useState('50');
+
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest('POST', '/api/obligations', data);
+      const endpoint = mode === 'manual' ? '/api/obligations' : '/api/obligations/rules';
+      const res = await apiRequest('POST', endpoint, data);
+      if (!res.ok) throw new Error('Failed to create');
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: 'Obligation Created', description: 'The formal obligation has been saved.' });
+      toast({ title: mode === 'manual' ? 'Obligation Created' : 'Rule Created', description: 'Saved successfully.' });
       setOpen(false);
+      setMode('manual');
       setCategory('child_support');
       setTitle('');
       setAmount('');
       setDueDate('');
       setNotes('');
+      setKeywords('');
       onSuccess();
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to record obligation.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to record entry.', variant: 'destructive' });
     },
   });
 
   const handleSubmit = () => {
-    createMutation.mutate({
-      title,
-      category,
-      amountGross: amount,
-      direction,
-      dueDate,
-      isRecurring,
-      recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
-      notes,
-      historicalStartDate: generateHistorical ? historicalStartDate : null,
-      historicalEndDate: generateHistorical ? historicalEndDate : null,
-    });
+    if (mode === 'manual') {
+      createMutation.mutate({
+        title,
+        category,
+        amountGross: amount,
+        direction,
+        dueDate,
+        isRecurring,
+        recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
+        notes,
+        historicalStartDate: generateHistorical ? historicalStartDate : null,
+        historicalEndDate: generateHistorical ? historicalEndDate : null,
+      });
+    } else {
+      createMutation.mutate({
+        title,
+        category,
+        ruleType,
+        partyAPercentage: ruleType === 'percentage_split' ? parseInt(myPercentage) : undefined,
+        partyBPercentage: ruleType === 'percentage_split' ? parseInt(spousePercentage) : undefined,
+        fixedAmount: ruleType === 'fixed_amount' ? amount : undefined,
+        keywords,
+        notes
+      });
+    }
   };
+
+  const isSubmitDisabled = mode === 'manual' 
+    ? (!amount || !dueDate || !title || createMutation.isPending)
+    : (!title || !keywords || createMutation.isPending);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -111,24 +140,30 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
           Create Obligation
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New Financial Obligation</DialogTitle>
-          <DialogDescription>Define a structured financial responsibility.</DialogDescription>
+          <DialogTitle>New Financial Configuration</DialogTitle>
+          <DialogDescription>Define a specific ledger bill or an automated parsing rule.</DialogDescription>
         </DialogHeader>
+
         <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Obligation Source Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Monthly Child Support" />
+          <Tabs value={mode} onValueChange={(v: any) => setMode(v)}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="manual">Manual Bill</TabsTrigger>
+              <TabsTrigger value="rule">Automated Rule</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="space-y-2 pt-2">
+            <Label>{mode === 'rule' ? 'Rule Alias / Title' : 'Obligation Source Title'}</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={mode === 'rule' ? "e.g. 50% Private School Split" : "e.g. Monthly Child Support"} />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Category</Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="child_support">Child Support</SelectItem>
                   <SelectItem value="medical">Uninsured Medical</SelectItem>
@@ -140,96 +175,124 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <Label>Who Pays?</Label>
-              <Select value={direction} onValueChange={setDirection}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Direction" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="due_from_spouse">Spouse pays User</SelectItem>
-                  <SelectItem value="due_to_spouse">User pays Spouse</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Gross Obligation Amount</Label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="number"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                className="pl-9"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>First Due Date</Label>
-            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-          </div>
-
-          <div className="flex items-center space-x-2 mt-4 pt-2 border-t">
-            <Checkbox id="recurring" checked={isRecurring} onCheckedChange={(val) => setIsRecurring(!!val)} />
-            <div className="grid gap-1.5 leading-none">
-              <label htmlFor="recurring" className="text-sm font-medium leading-none cursor-pointer">
-                Recurring Schedule
-              </label>
-              <p className="text-sm text-muted-foreground">Will automatically duplicate on the frequency below.</p>
-            </div>
-          </div>
-
-          {isRecurring && (
-            <div className="space-y-4 pl-6">
+            {mode === 'manual' ? (
               <div className="space-y-2">
-                <Label>Frequency</Label>
-                <Select value={recurrenceFrequency} onValueChange={setRecurrenceFrequency}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Frequency" />
-                  </SelectTrigger>
+                <Label>Who Pays?</Label>
+                <Select value={direction} onValueChange={setDirection}>
+                  <SelectTrigger><SelectValue placeholder="Direction" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                    <SelectItem value="due_from_spouse">Spouse pays User</SelectItem>
+                    <SelectItem value="due_to_spouse">User pays Spouse</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="flex items-center space-x-2 border-t pt-2 mt-2">
-                <Checkbox id="historical" checked={generateHistorical} onCheckedChange={(val) => setGenerateHistorical(!!val)} />
-                <label htmlFor="historical" className="text-sm font-medium leading-none cursor-pointer">Generate Historical Past Due</label>
+            ) : (
+              <div className="space-y-2">
+                <Label>Rule Logic</Label>
+                <Select value={ruleType} onValueChange={setRuleType}>
+                  <SelectTrigger><SelectValue/></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage_split">Percentage Split</SelectItem>
+                    <SelectItem value="fixed_amount">Fixed Contribution</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              
-              {generateHistorical && (
-                <div className="grid grid-cols-2 gap-4">
+            )}
+          </div>
+
+          {mode === 'rule' && (
+             <div className="space-y-2">
+               <Label>Match Keywords (comma separated)</Label>
+               <Input value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="e.g. school, tuition, books" />
+               <p className="text-xs text-muted-foreground">Invoices mapping to these keywords will automatically use this rule to build a ledger item.</p>
+             </div>
+          )}
+
+          {mode === 'rule' && ruleType === 'percentage_split' && (
+             <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                <div className="space-y-2">
+                  <Label>My Responsibility (%)</Label>
+                  <Input type="number" value={myPercentage} onChange={(e) => setMyPercentage(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Spouse Responsibility (%)</Label>
+                  <Input type="number" value={spousePercentage} onChange={(e) => setSpousePercentage(e.target.value)} />
+                </div>
+             </div>
+          )}
+
+          {(mode === 'manual' || (mode === 'rule' && ruleType === 'fixed_amount')) && (
+            <div className="space-y-2">
+              <Label>{mode === 'rule' ? 'Fixed Liability (Gross Contribution)' : 'Gross Obligation Amount'}</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="pl-9" />
+              </div>
+            </div>
+          )}
+
+          {mode === 'manual' && (
+             <>
+              <div className="space-y-2">
+                <Label>First Due Date</Label>
+                <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              </div>
+
+              <div className="flex items-center space-x-2 mt-4 pt-4 border-t">
+                <Checkbox id="recurring" checked={isRecurring} onCheckedChange={(val) => setIsRecurring(!!val)} />
+                <div className="grid gap-1.5 leading-none">
+                  <label htmlFor="recurring" className="text-sm font-medium leading-none cursor-pointer">
+                    Recurring Schedule
+                  </label>
+                  <p className="text-xs text-muted-foreground">Will automatically duplicate on the frequency below.</p>
+                </div>
+              </div>
+
+              {isRecurring && (
+                <div className="space-y-4 pl-6">
                   <div className="space-y-2">
-                    <Label>Start Date</Label>
-                    <Input type="date" value={historicalStartDate} onChange={(e) => setHistoricalStartDate(e.target.value)} />
+                    <Label>Frequency</Label>
+                    <Select value={recurrenceFrequency} onValueChange={setRecurrenceFrequency}>
+                      <SelectTrigger><SelectValue placeholder="Frequency" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>End Date</Label>
-                    <Input type="date" value={historicalEndDate} onChange={(e) => setHistoricalEndDate(e.target.value)} />
+                  <div className="flex items-center space-x-2 border-t pt-2 mt-2">
+                    <Checkbox id="historical" checked={generateHistorical} onCheckedChange={(val) => setGenerateHistorical(!!val)} />
+                    <label htmlFor="historical" className="text-sm font-medium leading-none cursor-pointer">Generate Historical Past Due</label>
                   </div>
+                  {generateHistorical && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Start Date</Label>
+                        <Input type="date" value={historicalStartDate} onChange={(e) => setHistoricalStartDate(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>End Date</Label>
+                        <Input type="date" value={historicalEndDate} onChange={(e) => setHistoricalEndDate(e.target.value)} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
+             </>
           )}
 
           <div className="space-y-2 pt-2 border-t">
             <Label>Notes</Label>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Court order details..." />
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={mode === 'rule' ? "Rule configuration details..." : "Court order details..."} />
           </div>
         </div>
+
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!amount || !dueDate || !title || createMutation.isPending}>
+          <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
             {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Save Obligation
+            {mode === 'rule' ? 'Save Automation Rule' : 'Save Obligation'}
           </Button>
         </div>
       </DialogContent>

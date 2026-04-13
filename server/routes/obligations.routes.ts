@@ -328,23 +328,28 @@ obligationsRouter.get('/rules', requireAuth, async (req, res) => {
 // Create obligation rule
 obligationsRouter.post('/rules', requireAuth, async (req, res) => {
   try {
-    const { category, partyAPercentage, partyBPercentage, effectiveStartDate, notes } = req.body;
+    const { ruleType, category, partyAPercentage, partyBPercentage, fixedAmount, keywords, effectiveStartDate, notes, title } = req.body;
     
-    // Auto-update any existing rule for this category to inactive?
-    if (category) {
+    // Auto-update any existing rule for this category to inactive ONLY if it's a general category rule without keywords
+    // To support multiple keyword rules per category, we only disable if keywords are empty and category matches
+    if (category && (!keywords || keywords.trim() === '')) {
        await db.update(schema.obligationRules)
          .set({ isActive: false })
          .where(eq(schema.obligationRules.category, category));
     }
 
+    const amountCents = fixedAmount ? Math.round(parseFloat(fixedAmount) * 100) : null;
+
     const [inserted] = await db.insert(schema.obligationRules).values({
       caseId: 'pending-assignment',
-      ruleType: 'percentage_split',
+      ruleType: ruleType || 'percentage_split',
       category,
       partyAPercentage,
       partyBPercentage,
+      fixedAmount: amountCents,
+      keywords,
       effectiveStartDate,
-      notes,
+      notes: notes || title,
       isActive: true
     }).returning();
 
