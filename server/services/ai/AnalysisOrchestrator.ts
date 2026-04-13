@@ -23,6 +23,9 @@ const FINANCIAL_CATEGORIES = new Set([
   'tax_return',
   'mortgage',
   'loan',
+  'legal_document',
+  'custody_document',
+  'property_document'
 ]);
 
 // ─── Local fallback classifier (no AI keys needed) ──────────────────────────
