@@ -23,13 +23,13 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { FinancialBreakdownWidget } from '@/components/financial-breakdown-widget';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import type { DashboardStats, Transaction, Alert as AlertType } from '@shared/schema';
 import { useAuth } from '@/lib/auth';
 import { FeedbackCTA } from '@/components/feedback-cta';
 import { DrillDownValue } from '@/components/ui/drilldown-value';
-import { SpouseObligationsWidget } from '@/components/spouse-obligations-widget';
 import { DrilldownType } from '@/components/financial-drilldown-drawer';
 import { useDrilldown } from '@/lib/drilldown-context';
 import { RecordDetailDrawer } from '@/components/record-detail-drawer';
@@ -341,6 +341,14 @@ export default function Dashboard() {
     queryKey: ['/api/dashboard/stats'],
   });
 
+  const { data: obligationsSummary, isLoading: obligationsSummaryLoading } = useQuery<any>({
+    queryKey: ['/api/obligations/summary'],
+  });
+
+  const { data: pendingObligations, isLoading: pendingObligationsLoading } = useQuery<any[]>({
+    queryKey: ['/api/obligations/pending'],
+  });
+
   const { data: transactions, isLoading: transactionsLoading } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions/recent'],
   });
@@ -349,7 +357,7 @@ export default function Dashboard() {
     queryKey: ['/api/alerts'],
   });
 
-  const isLoading = statsLoading || transactionsLoading || alertsLoading;
+  const isLoading = statsLoading || transactionsLoading || alertsLoading || obligationsSummaryLoading || pendingObligationsLoading;
 
   const totalAssets = useMemo(() => stats?.totalAssets || 0, [stats]);
   const maritalAssets = useMemo(() => stats?.maritalAssets || 0, [stats]);
@@ -537,59 +545,81 @@ export default function Dashboard() {
         <div className="space-y-6 mt-6 animate-in fade-in duration-300">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
-              title="Total Assets"
-              value={formatCurrency(totalAssets)}
-              subtitleValue={formatCurrency(maritalAssets)}
+              title="Net Position"
+              value={formatCurrency(obligationsSummary?.totals?.netPosition ?? 0)}
+              subtitle="Asset Offset"
+              subtitleValue={formatCurrency(obligationsSummary?.totals?.netPosition ?? 0)}
               icon={Wallet}
-              drilldownType="assets"
+              trend={obligationsSummary?.totals?.netPosition >= 0 ? 'up' : 'down'}
+              trendValue="Ledger"
             />
             <StatCard
-              title="Total Debts"
-              value={formatCurrency(totalDebts)}
-              subtitle="Monthly Payment"
-              subtitleValue={formatCurrency(stats?.monthlyDebtPayments ?? 0)}
-              icon={CreditCard}
-              drilldownType="debts"
+              title="Due From Spouse"
+              value={formatCurrency(obligationsSummary?.totals?.dueFromSpouse ?? 0)}
+              subtitle="Upcoming"
+              subtitleValue={formatCurrency(obligationsSummary?.totals?.upcomingObligations ?? 0)}
+              icon={TrendingUp}
+              trend="up"
             />
             <StatCard
-              title="Monthly Income"
-              value={formatCurrency(monthlyIncome)}
-              subtitle="Your Portion"
-              subtitleValue={formatCurrency(stats?.yourIncome ?? 0)}
+              title="Due To Spouse"
+              value={formatCurrency(obligationsSummary?.totals?.dueToSpouse ?? 0)}
+              subtitle="Owed"
+              subtitleValue="Obligation"
+              icon={TrendingDown}
+              trend="down"
+            />
+            <StatCard
+              title="Child Support Due"
+              value={formatCurrency(obligationsSummary?.totals?.childSupportDue ?? 0)}
+              subtitle="Overdue Arrears"
+              subtitleValue={formatCurrency(obligationsSummary?.totals?.childSupportArrears ?? 0)}
+              icon={Users}
+            />
+            <StatCard
+              title="Needs Review"
+              value={pendingObligations?.length?.toString() || '0'}
+              subtitle="Pending AI Scans"
+              subtitleValue="Action Required"
+              icon={AlertCircle}
+              onClick={() => setLocation('/obligations')}
+            />
+            <StatCard
+              title="Overdue Obligations"
+              value={formatCurrency(obligationsSummary?.totals?.overdueObligations ?? 0)}
+              subtitle="Past Due Items"
+              subtitleValue={obligationsSummary?.totals?.overdueCount?.toString() || '0'}
+              icon={AlertTriangle}
+            />
+            <StatCard
+              title="Pending Reimbursements"
+              value={formatCurrency(obligationsSummary?.totals?.pendingReimbursements ?? 0)}
+              subtitle="Awaiting Payout"
+              subtitleValue="Requested"
               icon={DollarSign}
-              drilldownType="income"
-            />
-            <StatCard
-              title="Monthly Expenses"
-              value={formatCurrency(monthlyExpenses)}
-              subtitle="Unaccounted"
-              subtitleValue={formatCurrency(stats?.unaccountedExpenses ?? 0)}
-              icon={Home}
-              drilldownType="expenses"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <PaymentCard
               title="Child Support"
-              amount={stats?.childSupportOwed ?? 0}
-              dueDate={stats?.childSupportDate || 'No pending'}
-              isPaid={stats?.childSupportOwed === 0}
+              amount={obligationsSummary?.totals?.childSupportDue ?? 0}
+              dueDate="View Schedule"
+              isPaid={false}
               icon={Users}
-              drilldownType="child_support"
             />
             <PaymentCard
-              title="Alimony"
-              amount={stats?.alimonyOwed ?? 0}
-              dueDate={stats?.alimonyDate || 'No pending'}
-              isPaid={stats?.alimonyOwed === 0}
-              icon={Heart}
-              drilldownType="alimony"
+              title="Total Assets"
+              amount={stats?.totalAssets ?? 0}
+              dueDate="Current Valuation"
+              isPaid={true}
+              icon={Landmark}
+              drilldownType="assets"
             />
           </div>
 
           <div className="mt-8 mb-4">
-            <SpouseObligationsWidget />
+            <FinancialBreakdownWidget />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

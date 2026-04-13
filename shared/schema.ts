@@ -2400,16 +2400,26 @@ export type ObligationRule = typeof obligationRules.$inferSelect;
 export const obligationInstances = pgTable('obligation_instances', {
   id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
   caseId: varchar('case_id').notNull(),
-  documentId: varchar('document_id').notNull(), // invoice or bill document
+  documentId: varchar('document_id'), // Made optional for manual entry (e.g. child support without a specific monthly receipt)
   ruleId: varchar('rule_id'), // optional link to the general rule applied
-  category: text('category').notNull(),
+  title: text('title'), // E.g. "January Child Support"
+  description: text('description'), // E.g. Notes
+  category: text('category').notNull(), // child_support, uninsured_medical
   vendor: text('vendor'),
   amountGross: integer('amount_gross').notNull(), // total amount
   insuranceCoveredAmount: integer('insurance_covered_amount').default(0),
   partyAOwed: integer('party_a_owed'), // calculated split amount in cents
   partyBOwed: integer('party_b_owed'),
+  direction: text('direction').notNull().default('due_from_spouse'), // 'due_from_spouse', 'due_to_spouse', 'split'
+  payorId: varchar('payor_id'), // explicitly mapping who pays
+  payeeId: varchar('payee_id'), // explicitly mapping who receives
   dueDate: text('due_date'),
-  status: text('status').notNull().default('pending'), // 'pending', 'paid', 'disputed'
+  remainingBalance: integer('remaining_balance'), // Cents remaining
+  status: text('status').notNull().default('pending'), // 'pending', 'paid', 'partially_paid', 'overdue', 'suspended', 'disputed'
+  isRecurring: boolean('is_recurring').default(false),
+  recurrenceFrequency: text('recurrence_frequency'), // 'monthly', 'weekly', 'biweekly'
+  effectiveEndDate: text('effective_end_date'),
+  isArrearage: boolean('is_arrearage').default(false),
   isAiComputed: boolean('is_ai_computed').default(true),
   confidenceScore: real('confidence_score'),
   reviewStatus: text('review_status').default('needs_review'), // 'needs_review', 'approved', 'corrected'
@@ -2425,6 +2435,30 @@ export const insertObligationInstanceSchema = createInsertSchema(obligationInsta
 });
 export type InsertObligationInstance = z.infer<typeof insertObligationInstanceSchema>;
 export type ObligationInstance = typeof obligationInstances.$inferSelect;
+
+// ── obligation_payments ───────────────────────────────────────────
+// Tracking discrete payments against a single obligation
+export const obligationPayments = pgTable('obligation_payments', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  obligationId: varchar('obligation_id').notNull(),
+  userId: varchar('user_id').notNull(),
+  amountCents: integer('amount_cents').notNull(),
+  paymentDate: text('payment_date').notNull(),
+  paymentMethod: text('payment_method'), // 'bank_transfer', 'cash', 'zelle', 'other'
+  notes: text('notes'),
+  status: text('status').notNull().default('completed'), // 'completed', 'pending'
+  environment: text('environment').notNull().default('demo'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const insertObligationPaymentSchema = createInsertSchema(obligationPayments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertObligationPayment = z.infer<typeof insertObligationPaymentSchema>;
+export type ObligationPayment = typeof obligationPayments.$inferSelect;
 
 // ── source_citations ───────────────────────────────────────────────
 // Traceability mappings (which page/text block proves this number)

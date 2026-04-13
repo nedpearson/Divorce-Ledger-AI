@@ -66,7 +66,7 @@ const legalMenuItems = [
   { title: 'Case Builder', url: '/case-builder', icon: Briefcase },
   { title: 'Case Timeline', url: '/timeline', icon: History },
   { title: 'Legal', url: '/legal', icon: Scale },
-  { title: 'Child Support', url: '/child-support', icon: Users },
+  { title: 'Obligations', url: '/obligations', icon: Users },
   { title: 'Property Settlement', url: '/property', icon: Home },
 ];
 

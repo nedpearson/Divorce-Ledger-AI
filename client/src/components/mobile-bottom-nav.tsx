@@ -35,7 +35,7 @@ export function MobileBottomNav({ onCaptureClick }: MobileBottomNavProps) {
     { label: 'Case Builder', path: '/case-builder' },
     { label: 'Calendar', path: '/calendar' },
     { label: 'Legal', path: '/legal' },
-    { label: 'Child Support', path: '/child-support' },
+    { label: 'Obligations', path: '/obligations' },
     { label: 'Property', path: '/property' },
     { label: 'AI Coach', path: '/ai-coach' },
     { label: 'Settings', path: '/settings' },

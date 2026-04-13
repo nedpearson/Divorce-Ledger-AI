@@ -54,7 +54,7 @@ const WorkspaceSetup = lazy(() => import('@/pages/workspace-setup'));
 const WorkspaceSettings = lazy(() => import('@/pages/workspace-settings'));
 const Calendar = lazy(() => import('@/pages/calendar'));
 const Legal = lazy(() => import('@/pages/legal'));
-const ChildSupport = lazy(() => import('@/pages/child-support'));
+const Obligations = lazy(() => import('@/pages/obligations'));
 const Property = lazy(() => import('@/pages/property'));
 const AICoach = lazy(() => import('@/pages/ai-coach'));
 const AnalyticsDashboard = lazy(() => import('@/pages/analytics-dashboard'));
@@ -287,10 +287,10 @@ function Router() {
           </AuthLayout>
         </RequireAuth>
       </Route>
-      <Route path="/child-support">
+      <Route path="/obligations">
         <RequireAuth>
           <AuthLayout>
-            <ChildSupport />
+            <Obligations />
           </AuthLayout>
         </RequireAuth>
       </Route>
