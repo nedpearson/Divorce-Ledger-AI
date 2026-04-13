@@ -21,6 +21,8 @@ export const DocType = z.enum([
   'PROPERTY_TAX',
   'INSURANCE_POLICY',
   'NON_FINANCIAL',
+  'LEGAL_DOCUMENT',
+  'COURT_ORDER',
 ]);
 export type DocType = z.infer<typeof DocType>;
 
@@ -133,7 +135,9 @@ type ExpenseDocument = {
     | 'PAY_STUB'
     | 'PROPERTY_TAX'
     | 'INSURANCE_POLICY'
-    | 'NON_FINANCIAL';
+    | 'NON_FINANCIAL'
+    | 'LEGAL_DOCUMENT'
+    | 'COURT_ORDER';
 
   vendor_name: string | null;        // Company name (e.g., "Pacific Gas & Electric")
   account_number: string | null;     // Account or customer number

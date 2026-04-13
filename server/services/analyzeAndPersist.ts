@@ -660,6 +660,32 @@ export async function analyzeAndPersist(
             documentId,
             startDate: billDate,
           });
+          
+          let createdObligations = 0;
+          const isLegal = category === 'legal_document' || category === 'custody_document' || 
+                         fileName.toLowerCase().includes('order') || 
+                         fileName.toLowerCase().includes('consent') ||
+                         fileName.toLowerCase().includes('decree');
+
+          if (isLegal) {
+             console.log(`[analyzeAndPersist] Fallback: creating placeholder obligation for legal document: ${fileName}`);
+             await db.insert(obligationInstances).values({
+               caseId: 'pending-assignment',
+               documentId: documentId,
+               category: 'child_support',
+               vendor: vendor,
+               amountGross: 0, // Placeholder
+               partyAOwed: 0,
+               partyBOwed: 0,
+               dueDate: billDate,
+               isAiComputed: false,
+               confidenceScore: 0.1,
+               reviewStatus: 'needs_review',
+               environment
+             });
+             createdObligations = 1;
+          }
+
           console.log(`[analyzeAndPersist] Fallback: created placeholder expense for ${fileName}`);
           return {
             success: false,
