@@ -99,12 +99,12 @@ export function ReviewQueue() {
                     <FileText className="h-4 w-4 text-blue-400" />
                     Source Evidence Artifact
                   </div>
-                  <div className="text-xs text-zinc-500 mb-4 truncate" title={obligation.document.fileName}>
-                    {obligation.document.fileName}
+                  <div className="text-xs text-zinc-500 mb-4 truncate" title={obligation.document?.fileName}>
+                    {obligation.document?.fileName || "Orphaned or Deleted Source Document"}
                   </div>
                   <div className="flex-1 bg-zinc-950 rounded-lg border border-white/5 flex items-center justify-center p-2 min-h-[160px] relative overflow-hidden group">
-                    {obligation.document.mimeType?.includes('image') ? (
-                      <img src={obligation.document.fileUrl} alt="Document Extract" className="max-h-full max-w-full object-contain opacity-80 group-hover:opacity-100 transition-opacity cursor-pointer z-10" onClick={() => openDrilldown({ layer: 5, sourceEntity: 'document', identifier: obligation.documentId })} />
+                    {obligation.document?.mimeType?.includes('image') ? (
+                      <img src={obligation.document?.fileUrl} alt="Document Extract" className="max-h-full max-w-full object-contain opacity-80 group-hover:opacity-100 transition-opacity cursor-pointer z-10" onClick={() => openDrilldown({ layer: 5, sourceEntity: 'document', identifier: obligation.documentId })} />
                     ) : (
                       <div className="text-center p-4 cursor-pointer hover:bg-zinc-800/50 rounded-lg transition-colors z-10" onClick={() => openDrilldown({ layer: 5, sourceEntity: 'document', identifier: obligation.documentId })}>
                         <FileText className="h-8 w-8 text-zinc-700 mx-auto mb-2" />

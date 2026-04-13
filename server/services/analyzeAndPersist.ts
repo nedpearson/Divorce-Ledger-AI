@@ -159,6 +159,7 @@ export async function analyzeAndPersist(
         if (imageBase64 && imageMimeType) {
           const isImageType = imageMimeType.startsWith('image/');
           const isPdfType = imageMimeType === 'application/pdf';
+          const isDocxType = doc.fileName?.toLowerCase().endsWith('.docx') || imageMimeType.includes('wordprocessingml.document');
 
           try {
             if (isImageType) {
@@ -208,6 +209,18 @@ export async function analyzeAndPersist(
                 console.warn(
                   `[analyzeAndPersist] PDF extraction failed, will rely on parsing: ${pdfErr}`
                 );
+              }
+              }
+            } else if (isDocxType) {
+              console.log(`[analyzeAndPersist] Attempting text extraction from DOCX using mammoth...`);
+              try {
+                const mammoth = (await import('mammoth')).default || await import('mammoth');
+                const docxBuffer = Buffer.from(imageBase64, 'base64');
+                const result = await mammoth.extractRawText({ buffer: docxBuffer });
+                ocrExtractedText = result.value || '';
+                console.log(`[analyzeAndPersist] mammoth extracted ${ocrExtractedText.length} characters`);
+              } catch (docxErr: any) {
+                console.warn(`[analyzeAndPersist] mammoth failed, will rely on parsing: ${docxErr.message}`);
               }
             }
 
