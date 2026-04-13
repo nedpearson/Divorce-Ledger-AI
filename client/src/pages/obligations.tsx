@@ -75,6 +75,7 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
   const [keywords, setKeywords] = useState('');
   const [myPercentage, setMyPercentage] = useState('50');
   const [spousePercentage, setSpousePercentage] = useState('50');
+  const [ruleStartDate, setRuleStartDate] = useState('');
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -93,6 +94,7 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
       setDueDate('');
       setNotes('');
       setKeywords('');
+      setRuleStartDate('');
       onSuccess();
     },
     onError: () => {
@@ -123,6 +125,7 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
         partyBPercentage: ruleType === 'percentage_split' ? parseInt(spousePercentage) : undefined,
         fixedAmount: ruleType === 'fixed_amount' ? amount : undefined,
         keywords,
+        effectiveStartDate: ruleStartDate || undefined,
         notes
       });
     }
@@ -218,6 +221,14 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
                   <Label>Spouse Responsibility (%)</Label>
                   <Input type="number" value={spousePercentage} onChange={(e) => setSpousePercentage(e.target.value)} />
                 </div>
+             </div>
+          )}
+
+          {mode === 'rule' && (
+             <div className="space-y-2 pt-2">
+                <Label>Retroactive Start Date (Optional)</Label>
+                <Input type="date" value={ruleStartDate} onChange={(e) => setRuleStartDate(e.target.value)} />
+                <p className="text-xs text-muted-foreground">If set, any previously uploaded bills since this date matching the keywords will automatically be converted to ledger obligations.</p>
              </div>
           )}
 

@@ -353,6 +353,72 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
       isActive: true
     }).returning();
 
+    // Generate Retroactive Obligations if a start date and keywords are provided
+    if (inserted && inserted.keywords && inserted.effectiveStartDate) {
+      console.log(`[Obligations] Processing historical documents since ${inserted.effectiveStartDate} for rule ${inserted.id}`);
+      const keywordList = inserted.keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean);
+      
+      const pastResults = await db.select({
+        documentId: schema.documentParseResults.documentId,
+        vendorName: schema.documentParseResults.vendorName,
+        totalAmountDue: schema.documentParseResults.totalAmountDue,
+        statementDate: schema.documentParseResults.statementDate,
+        dueDate: schema.documentParseResults.dueDate,
+        docDate: schema.documents.createdAt,
+        aiExtractedText: schema.documents.aiExtractedText,
+        fileName: schema.documents.fileName
+      })
+      .from(schema.documentParseResults)
+      .leftJoin(schema.documents, eq(schema.documentParseResults.documentId, schema.documents.id));
+
+      const matches = pastResults.filter(pr => {
+         const docDateStr = pr.statementDate || pr.dueDate || pr.docDate?.toISOString() || '';
+         if (!docDateStr) return false;
+         
+         const isAfterStart = new Date(docDateStr) >= new Date(inserted.effectiveStartDate!);
+         if (!isAfterStart) return false;
+
+         const textToSearch = `${pr.vendorName || ''} ${pr.fileName || ''} ${pr.aiExtractedText || ''}`.toLowerCase();
+         return keywordList.some(kw => textToSearch.includes(kw));
+      });
+
+      console.log(`[Obligations] Found ${matches.length} historical matches for rule ${inserted.id}`);
+      
+      for (const match of matches) {
+         if (!match.documentId) continue;
+         const baseAmount = match.totalAmountDue ? Math.round(match.totalAmountDue * 100) : 0;
+         const amountGross = inserted.ruleType === 'fixed_amount' && inserted.fixedAmount ? inserted.fixedAmount : baseAmount;
+         
+         if (amountGross > 0) {
+            let partyAOwed = null;
+            let partyBOwed = null;
+            if (inserted.ruleType === 'percentage_split') {
+              if (inserted.partyAPercentage) partyAOwed = Math.round(amountGross * (inserted.partyAPercentage / 100));
+              if (inserted.partyBPercentage) partyBOwed = Math.round(amountGross * (inserted.partyBPercentage / 100));
+            }
+            try {
+              await db.insert(schema.obligationInstances).values({
+                 caseId: 'pending-assignment',
+                 documentId: match.documentId,
+                 ruleId: inserted.id,
+                 category: inserted.category,
+                 vendor: match.vendorName || 'Auto-Matched Vendor',
+                 amountGross,
+                 partyAOwed,
+                 partyBOwed,
+                 dueDate: match.dueDate || match.statementDate,
+                 isAiComputed: false,
+                 confidenceScore: 0.9,
+                 reviewStatus: 'needs_review',
+                 environment: (req.headers['x-environment'] || 'demo') as string
+              });
+            } catch (err) {
+              console.error(`Failed retroactive insert for document ${match.documentId}:`, err);
+            }
+         }
+      }
+    }
+
     res.json(inserted);
   } catch (error) {
     console.error('[Obligations Create Rule Error]', error);

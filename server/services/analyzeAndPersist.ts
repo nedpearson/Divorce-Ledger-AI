@@ -361,6 +361,50 @@ export async function analyzeAndPersist(
       }
     }
 
+    // Evaluate against active Automated Rules (keywords)
+    try {
+       const activeRules = await db.select().from(obligationRules).where(eq(obligationRules.isActive, true));
+       for (const rule of activeRules) {
+          if (rule.keywords) {
+             const keywordList = rule.keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean);
+             const searchSpace = `${parseResult.document.vendor_name || ''} ${doc.fileName || ''} ${ocrExtractedText || ''}`.toLowerCase();
+             
+             if (keywordList.some((kw: string) => searchSpace.includes(kw))) {
+                 console.log(`[analyzeAndPersist] MATCHED RULE: Generating obligation instance for rule ${rule.id}`);
+                 const baseAmount = parseResult.document.total_amount_due ? Math.round(parseResult.document.total_amount_due * 100) : 0;
+                 const amountGross = rule.ruleType === 'fixed_amount' && rule.fixedAmount ? rule.fixedAmount : baseAmount;
+
+                 if (amountGross > 0) {
+                    let partyAOwed = null;
+                    let partyBOwed = null;
+                    if (rule.ruleType === 'percentage_split') {
+                       if (rule.partyAPercentage) partyAOwed = Math.round(amountGross * (rule.partyAPercentage / 100));
+                       if (rule.partyBPercentage) partyBOwed = Math.round(amountGross * (rule.partyBPercentage / 100));
+                    }
+
+                    await db.insert(obligationInstances).values({
+                       caseId: 'pending-assignment',
+                       documentId: doc.id,
+                       ruleId: rule.id,
+                       category: rule.category,
+                       vendor: parseResult.document.vendor_name || 'Auto-Matched Vendor',
+                       amountGross,
+                       partyAOwed,
+                       partyBOwed,
+                       dueDate: parseResult.document.due_date || parseResult.document.statement_date || new Date().toISOString().split('T')[0],
+                       isAiComputed: false,
+                       confidenceScore: 0.9,
+                       reviewStatus: 'needs_review',
+                       environment
+                    });
+                 }
+             }
+          }
+       }
+    } catch (err) {
+       console.error('[analyzeAndPersist] Failed evaluating automated rules:', err);
+    }
+
     const createdFinancialRecords: Array<{ type: string; record: any }> = [];
 
     console.log('[analyzeAndPersist] Checking conditions for financial record creation:', {
