@@ -575,7 +575,7 @@ export default function Dashboard() {
               dueDate={stats?.childSupportDate || 'No pending'}
               isPaid={stats?.childSupportOwed === 0}
               icon={Users}
-              drilldownType="transactions"
+              drilldownType="child_support"
             />
             <PaymentCard
               title="Alimony"
@@ -583,7 +583,7 @@ export default function Dashboard() {
               dueDate={stats?.alimonyDate || 'No pending'}
               isPaid={stats?.alimonyOwed === 0}
               icon={Heart}
-              drilldownType="expenses"
+              drilldownType="alimony"
             />
           </div>
 

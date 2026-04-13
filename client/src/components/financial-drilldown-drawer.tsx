@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { useDrilldown } from '@/lib/drilldown-context';
 
-export type DrilldownType = 'assets' | 'debts' | 'income' | 'expenses' | 'transactions';
+export type DrilldownType = 'assets' | 'debts' | 'income' | 'expenses' | 'transactions' | 'child_support' | 'alimony';
 
 interface FinancialRecord {
   id: string;

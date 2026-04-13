@@ -3078,6 +3078,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         case 'transactions':
           records = await storage.getTransactions(userId, environment);
           break;
+        case 'child_support':
+          records = (await storage.getChildSupportPayments(userId, environment)).filter(p => p.paymentType === 'child_support');
+          break;
+        case 'alimony':
+          records = (await storage.getChildSupportPayments(userId, environment)).filter(p => p.paymentType === 'alimony');
+          break;
         default:
           return res.status(400).json({ error: 'Invalid financial type' });
       }
