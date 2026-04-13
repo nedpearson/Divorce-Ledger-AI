@@ -41,7 +41,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import type { LegalDocument } from '@shared/schema';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 const documentTypes = [
   { value: 'court_order', label: 'Court Order', icon: Gavel },
@@ -127,7 +127,7 @@ function LegalDocumentCard({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-medium">{document.title}</h3>
+              <h3 className="font-medium">{document.title || 'Untitled Document'}</h3>
               <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -136,7 +136,7 @@ function LegalDocumentCard({
             <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
               <span>{typeInfo.label}</span>
               {document.courtCase && <span>Case: {document.courtCase}</span>}
-              <span>{format(new Date(document.createdAt), 'MMM d, yyyy')}</span>
+              <span>{document.createdAt && isValid(new Date(document.createdAt)) ? format(new Date(document.createdAt), 'MMM d, yyyy') : 'Unknown Date'}</span>
             </div>
           </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
