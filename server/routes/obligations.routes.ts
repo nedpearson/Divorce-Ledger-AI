@@ -325,6 +325,17 @@ obligationsRouter.get('/rules', requireAuth, async (req, res) => {
   }
 });
 
+// Delete obligation rule
+obligationsRouter.delete('/rules/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.delete(schema.obligationRules).where(eq(schema.obligationRules.id, id));
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Obligations Delete Rule error]', error);
+    res.status(500).json({ error: 'Failed to delete rule' });
+  }
+});
 // Create obligation rule
 obligationsRouter.post('/rules', requireAuth, async (req, res) => {
   try {

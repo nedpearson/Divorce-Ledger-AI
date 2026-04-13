@@ -435,6 +435,25 @@ export default function ObligationsPage() {
     queryKey: ['/api/obligations/summary'],
   });
 
+  const { data: activeRules = [], refetch: refetchRules } = useQuery<any>({
+    queryKey: ['/api/obligations/rules'],
+  });
+
+  const deleteRuleMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest('DELETE', `/api/obligations/rules/${id}`);
+      if (!res.ok) throw new Error('Failed to delete rule');
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Rule Removed', description: 'Automated rule engine logic detached.' });
+      refetchRules();
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to delete automation rule.', variant: 'destructive' });
+    }
+  });
+
   const payMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await apiRequest('POST', `/api/obligations/${id}/pay`);
@@ -483,7 +502,7 @@ export default function ObligationsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <AddObligationDialog onSuccess={() => refetch()} />
+          <AddObligationDialog onSuccess={() => {refetch(); refetchRules();}} />
         </div>
       </div>
 
@@ -674,12 +693,49 @@ export default function ObligationsPage() {
              <CardHeader>
                <CardTitle>Category Percentage Allocation Rules</CardTitle>
                <CardDescription>Automatically route unstructured parsed expenses.</CardDescription>
-               <Button size="sm" variant="outline" className="w-fit" onClick={() => alert('WIP: Rule Engine configuration modal')}>Add New Rule</Button>
+               <Button size="sm" variant="outline" className="w-fit" onClick={() => document.querySelector<HTMLButtonElement>('[data-testid="button-add-obligation"]')?.click()}>Add New Rule</Button>
              </CardHeader>
              <CardContent>
-                 <div className="p-8 text-center text-muted-foreground mt-4 border border-dashed rounded-lg">
-                    Rules engine actively binds to parsed documents. Navigate to Document Uploads to preview matching.
-                 </div>
+                 {activeRules.length === 0 ? (
+                   <div className="p-8 text-center text-muted-foreground mt-4 border border-dashed rounded-lg">
+                      Rules engine actively binds to parsed documents. Navigate to Document Uploads to preview matching.
+                   </div>
+                 ) : (
+                   <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Rule Alias / Notes</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Logic</TableHead>
+                          <TableHead>Keywords</TableHead>
+                          <TableHead>Start Date</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {activeRules.map((rule: any) => (
+                           <TableRow key={rule.id}>
+                             <TableCell className="font-medium">{rule.notes}</TableCell>
+                             <TableCell className="capitalize">{rule.category?.replace('_', ' ')}</TableCell>
+                             <TableCell>
+                               {rule.ruleType === 'percentage_split' 
+                                 ? `${rule.partyAPercentage || 0}% / ${rule.partyBPercentage || 0}%` 
+                                 : `Fixed ${formatCurrency(rule.fixedAmount || 0)}`}
+                             </TableCell>
+                             <TableCell><span className="text-xs text-muted-foreground">{rule.keywords || 'N/A'}</span></TableCell>
+                             <TableCell>{rule.effectiveStartDate ? format(new Date(rule.effectiveStartDate), 'MMM d, yy') : '-'}</TableCell>
+                             <TableCell className="text-right">
+                               <div className="flex justify-end gap-2">
+                                  <Button size="icon" variant="outline" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => deleteRuleMutation.mutate(rule.id)} disabled={deleteRuleMutation.isPending} title="Delete">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                               </div>
+                             </TableCell>
+                           </TableRow>
+                        ))}
+                      </TableBody>
+                   </Table>
+                 )}
              </CardContent>
            </Card>
         </TabsContent>
