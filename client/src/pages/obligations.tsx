@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +44,7 @@ import {
   Landmark,
   Trash2,
   CheckSquare,
+  Pencil,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -236,8 +237,124 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
+function EditObligationDialog({ obligation, open, onOpenChange, onSuccess }: { obligation: any, open: boolean, onOpenChange: (open: boolean) => void, onSuccess: () => void }) {
+  const { toast } = useToast();
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('');
+  const [amount, setAmount] = useState('');
+  const [direction, setDirection] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (obligation && open) {
+      setTitle(obligation.title || obligation.vendor || '');
+      setCategory(obligation.category || 'child_support');
+      setAmount(String((obligation.amountGross || 0) / 100));
+      setDirection(obligation.direction || 'due_from_spouse');
+      setDueDate(obligation.dueDate ? new Date(obligation.dueDate).toISOString().split('T')[0] : '');
+      setNotes(obligation.description || '');
+    }
+  }, [obligation, open]);
+
+  const editMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest('PATCH', `/api/obligations/${obligation.id}`, data);
+      if (!res.ok) throw new Error('Failed to update');
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Obligation Updated', description: 'Changes have been saved successfully.' });
+      onOpenChange(false);
+      onSuccess();
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to update obligation.', variant: 'destructive' });
+    },
+  });
+
+  const handleSubmit = () => {
+    editMutation.mutate({
+      title,
+      category,
+      amountGross: amount,
+      direction,
+      dueDate,
+      description: notes,
+    });
+  };
+
+  if (!obligation) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Financial Obligation</DialogTitle>
+          <DialogDescription>Update the details below.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Obligation Source Title</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="child_support">Child Support</SelectItem>
+                  <SelectItem value="medical">Uninsured Medical</SelectItem>
+                  <SelectItem value="tuition">Tuition</SelectItem>
+                  <SelectItem value="extracurricular">Extracurricular</SelectItem>
+                  <SelectItem value="reimbursement">Reimbursement</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Who Pays?</Label>
+              <Select value={direction} onValueChange={setDirection}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="due_from_spouse">Spouse pays User</SelectItem>
+                  <SelectItem value="due_to_spouse">User pays Spouse</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Gross Obligation Amount</Label>
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="pl-9" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Due Date</Label>
+            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </div>
+          <div className="space-y-2 pt-2 border-t">
+            <Label>Notes</Label>
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={editMutation.isPending}>
+            {editMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Save Changes
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function ObligationsPage() {
   const { toast } = useToast();
+  const [editingObligation, setEditingObligation] = useState<any>(null);
   const { data: summary, isLoading, refetch } = useQuery<any>({
     queryKey: ['/api/obligations/summary'],
   });
@@ -401,6 +518,9 @@ export default function ObligationsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button size="icon" variant="outline" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => setEditingObligation(record)} title="Edit">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button size="icon" variant="outline" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => payMutation.mutate(record.id)} disabled={payMutation.isPending || deleteMutation.isPending} title="Mark as Paid">
                             <CheckSquare className="h-4 w-4" />
                           </Button>
@@ -455,6 +575,9 @@ export default function ObligationsPage() {
                               <TableCell className="font-semibold">{formatCurrency(record.remainingBalance)}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
+                                  <Button size="icon" variant="outline" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => setEditingObligation(record)} title="Edit">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
                                   <Button size="icon" variant="outline" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => payMutation.mutate(record.id)} disabled={payMutation.isPending || deleteMutation.isPending} title="Mark as Paid">
                                     <CheckSquare className="h-4 w-4" />
                                   </Button>
@@ -485,6 +608,12 @@ export default function ObligationsPage() {
            </Card>
         </TabsContent>
       </Tabs>
+      <EditObligationDialog 
+        obligation={editingObligation} 
+        open={!!editingObligation} 
+        onOpenChange={(open) => !open && setEditingObligation(null)} 
+        onSuccess={() => refetch()} 
+      />
     </div>
   );
 }

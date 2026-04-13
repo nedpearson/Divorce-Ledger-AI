@@ -255,6 +255,38 @@ obligationsRouter.post('/', requireAuth, async (req, res) => {
   }
 });
 
+// Edit existing obligation
+obligationsRouter.patch('/:id', requireAuth, async (req, res) => {
+  try {
+    const { title, category, amountGross, direction, dueDate, description } = req.body;
+    const amountCents = amountGross ? Math.round(parseFloat(amountGross) * 100) : undefined;
+    
+    const updates: any = {};
+    if (title !== undefined) updates.title = title;
+    if (category !== undefined) updates.category = category;
+    if (direction !== undefined) updates.direction = direction;
+    if (dueDate !== undefined) updates.dueDate = dueDate;
+    if (description !== undefined) updates.description = description;
+    
+    if (amountCents !== undefined) {
+       updates.amountGross = amountCents;
+       updates.remainingBalance = amountCents; // resetting balance on edit
+    }
+
+    const [updated] = await db.update(schema.obligationInstances)
+      .set(updates)
+      .where(eq(schema.obligationInstances.id, req.params.id))
+      .returning();
+
+    if (!updated) return res.status(404).json({ error: 'Instance not found' });
+    res.json(updated);
+  } catch (error) {
+    console.error('[Obligations Edit Error]', error);
+    res.status(500).json({ error: 'Failed to edit obligation' });
+  }
+});
+
+
 // Mark obligation as paid
 obligationsRouter.post('/:id/pay', requireAuth, async (req, res) => {
   try {
