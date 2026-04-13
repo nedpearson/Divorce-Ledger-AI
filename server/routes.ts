@@ -22,6 +22,7 @@ import { billingService, BillingService } from './services/billing-service';
 import { tierMigrationService } from './services/tier-migration-service';
 import { quotaResetService } from './services/quota-reset-service';
 import { analyticsService } from './services/analytics-service';
+import { recurringBillsService } from './services/recurring-bills.service';
 import { registerObjectStorageRoutes } from './replit_integrations/object_storage';
 import analyticsRoutes from './routes/analytics.routes';
 import healthRoutes from './routes/health.routes';
@@ -40,6 +41,7 @@ import platformAdminRoutes from './routes/platform-admin.routes';
 import { authGoogleRouter } from './routes/auth-google.routes';
 import { googleDriveIntegrationRoutes } from './routes/integrations-google-drive.routes';
 import { googleCalendarIntegrationRoutes } from './routes/integrations-google-calendar.routes';
+import recurringBillsRoutes from './routes/recurring-bills.routes';
 import { lineageRouter } from './routes/lineage.routes';
 import { obligationsRouter } from './routes/obligations.routes';
 import {
@@ -535,6 +537,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Lineage Drill-Down API
   app.use('/api/lineage', lineageRouter);
   app.use('/api/obligations', obligationsRouter);
+  app.use('/api/recurring-bills', recurringBillsRoutes);
 
   // Expose backend integration availability to the frontend gracefully
   app.get('/api/config/integrations', (req, res) => {
@@ -3989,6 +3992,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
               openedDate: date || null,
             });
           }
+          if (type === 'expense' || type === 'income') {
+            const docDate = date ? new Date(date) : new Date();
+            await recurringBillsService.matchDocumentToCycle(userId, docId, vendor || '', docDate, doc.category || 'other').catch(e => console.error('Matching Error:', e));
+          }
+
         } catch (createError) {
           console.error('Failed to create financial record:', createError);
         }

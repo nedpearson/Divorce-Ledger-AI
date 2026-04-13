@@ -10,6 +10,7 @@ import {
   date,
   real,
   jsonb,
+  numeric,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
@@ -2504,3 +2505,111 @@ export const insertAiExtractionRunSchema = createInsertSchema(aiExtractionRuns).
 });
 export type InsertAiExtractionRun = z.infer<typeof insertAiExtractionRunSchema>;
 export type AiExtractionRun = typeof aiExtractionRuns.$inferSelect;
+
+
+// ============================================
+// PHASE 1: RECURRING BILLS / MISSING UPLOADS
+// ============================================
+
+export const recurringBillTemplates = pgTable('recurring_bill_templates', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar('case_id').notNull(),
+  userId: varchar('user_id').notNull(),
+  environment: text('environment').notNull().default('demo'),
+  vendorName: text('vendor_name').notNull(),
+  billName: text('bill_name').notNull(),
+  category: text('category').notNull(),
+  subcategory: text('subcategory'),
+  expectedFrequency: text('expected_frequency').notNull().default('monthly'), // 'monthly', 'quarterly', 'yearly'
+  expectedDayOfMonth: integer('expected_day_of_month'),
+  dueDayOfMonth: integer('due_day_of_month'), // When it's usually due
+  uploadWindowStartOffset: integer('upload_window_start_offset').default(-14), // Days before expected
+  uploadWindowEndOffset: integer('upload_window_end_offset').default(14), // Days after expected
+  splitType: text('split_type').notNull().default('custom'), // 'custom', 'pro_rata', 'equal'
+  splitPercentageSpouse: numeric('split_percentage_spouse').notNull().default('0'),
+  linkedObligationType: text('linked_obligation_type'),
+  courtOrderRelated: boolean('court_order_related').notNull().default(false),
+  requiredForReporting: boolean('required_for_reporting').notNull().default(false),
+  active: boolean('active').notNull().default(true),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const insertRecurringBillTemplateSchema = createInsertSchema(recurringBillTemplates).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertRecurringBillTemplate = z.infer<typeof insertRecurringBillTemplateSchema>;
+export type RecurringBillTemplate = typeof recurringBillTemplates.$inferSelect;
+
+
+export const recurringBillCycles = pgTable('recurring_bill_cycles', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  recurringBillTemplateId: varchar('recurring_bill_template_id').notNull().references(() => recurringBillTemplates.id, { onDelete: 'cascade' }),
+  cycleMonth: integer('cycle_month').notNull(),
+  cycleYear: integer('cycle_year').notNull(),
+  expectedStartDate: timestamp('expected_start_date').notNull(),
+  expectedEndDate: timestamp('expected_end_date').notNull(),
+  dueDate: timestamp('due_date'),
+  status: text('status').notNull().default('pending'), // 'uploaded', 'pending', 'missing', 'waived', 'overdue'
+  matchedDocumentId: varchar('matched_document_id'),
+  matchConfidence: numeric('match_confidence'),
+  missingFlag: boolean('missing_flag').notNull().default(false),
+  waivedFlag: boolean('waived_flag').notNull().default(false),
+  snoozedUntil: timestamp('snoozed_until'),
+  impactFlagsJson: jsonb('impact_flags_json'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const insertRecurringBillCycleSchema = createInsertSchema(recurringBillCycles).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertRecurringBillCycle = z.infer<typeof insertRecurringBillCycleSchema>;
+export type RecurringBillCycle = typeof recurringBillCycles.$inferSelect;
+
+
+export const recurringBillNotifications = pgTable('recurring_bill_notifications', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  recurringBillCycleId: varchar('recurring_bill_cycle_id').notNull().references(() => recurringBillCycles.id, { onDelete: 'cascade' }),
+  userId: varchar('user_id').notNull(),
+  notificationType: text('notification_type').notNull(), // 'missing', 'overdue', 'auto_matched'
+  severity: text('severity').notNull().default('info'), // 'info', 'warning', 'critical'
+  status: text('status').notNull().default('unread'), // 'unread', 'read', 'archived'
+  sentAt: timestamp('sent_at').notNull().defaultNow(),
+  readAt: timestamp('read_at'),
+  snoozedUntil: timestamp('snoozed_until'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const insertRecurringBillNotificationSchema = createInsertSchema(recurringBillNotifications).omit({ id: true, createdAt: true });
+export type InsertRecurringBillNotification = z.infer<typeof insertRecurringBillNotificationSchema>;
+export type RecurringBillNotification = typeof recurringBillNotifications.$inferSelect;
+
+
+export const notificationPreferences = pgTable('notification_preferences', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar('user_id').notNull().unique(), // ensure 1 per user
+  enableInApp: boolean('enable_in_app').notNull().default(true),
+  enableEmailFutureReady: boolean('enable_email_future_ready').notNull().default(false),
+  defaultPreDueDays: integer('default_pre_due_days').notNull().default(3),
+  defaultOnDue: boolean('default_on_due').notNull().default(true),
+  defaultPostDueDays: integer('default_post_due_days').notNull().default(1),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const insertNotificationPreferenceSchema = createInsertSchema(notificationPreferences).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertNotificationPreference = z.infer<typeof insertNotificationPreferenceSchema>;
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+
+
+export const recurringBillMatchEvents = pgTable('recurring_bill_match_events', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  recurringBillCycleId: varchar('recurring_bill_cycle_id').notNull().references(() => recurringBillCycles.id, { onDelete: 'cascade' }),
+  documentId: varchar('document_id').notNull(),
+  matchReason: text('match_reason').notNull(), // e.g. "Vendor & Date match"
+  confidenceScore: numeric('confidence_score').notNull(),
+  wasAutoApplied: boolean('was_auto_applied').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const insertRecurringBillMatchEventSchema = createInsertSchema(recurringBillMatchEvents).omit({ id: true, createdAt: true });
+export type InsertRecurringBillMatchEvent = z.infer<typeof insertRecurringBillMatchEventSchema>;
+export type RecurringBillMatchEvent = typeof recurringBillMatchEvents.$inferSelect;

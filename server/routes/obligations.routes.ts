@@ -422,7 +422,7 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
                  caseId: 'pending-assignment',
                  documentId: match.documentId || match.expenseId,
                  ruleId: inserted.id,
-                 category: inserted.category,
+                 category: inserted.category || 'other',
                  vendor: match.vendorName || 'Auto-Matched Vendor',
                  amountGross,
                  partyAOwed,
@@ -463,7 +463,7 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
            inserts.push({
              caseId: 'pending-assignment',
              ruleId: inserted.id,
-             category: inserted.category,
+             category: inserted.category || 'other',
              amountGross: baseAmount,
              partyAOwed,
              partyBOwed,
@@ -495,7 +495,7 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
          inserts.push({
            caseId: 'pending-assignment',
            ruleId: inserted.id,
-           category: inserted.category,
+           category: inserted.category || 'other',
            amountGross: baseAmount,
            partyAOwed,
            partyBOwed,

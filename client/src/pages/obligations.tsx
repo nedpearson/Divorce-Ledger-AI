@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RecurringBillsManager } from '@/components/recurring-bills/RecurringBillsManager';
 
 function formatCurrency(cents: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
@@ -567,6 +568,9 @@ export default function ObligationsPage() {
           <TabsTrigger value="rules" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-3 pt-2 px-6">
              Percentage Rules
           </TabsTrigger>
+          <TabsTrigger value="missing_bills" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent pb-3 pt-2 px-6">
+             Expected Bills
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="ledger" className="pt-4">
           <Card>
@@ -738,6 +742,9 @@ export default function ObligationsPage() {
                  )}
              </CardContent>
            </Card>
+        </TabsContent>
+        <TabsContent value="missing_bills" className="pt-4">
+          <RecurringBillsManager />
         </TabsContent>
       </Tabs>
       <EditObligationDialog 

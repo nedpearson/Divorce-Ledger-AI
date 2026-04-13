@@ -386,7 +386,7 @@ export async function analyzeAndPersist(
                        caseId: 'pending-assignment',
                        documentId: doc.id,
                        ruleId: rule.id,
-                       category: rule.category,
+                       category: rule.category || 'other',
                        vendor: parseResult.document.vendor_name || 'Auto-Matched Vendor',
                        amountGross,
                        partyAOwed,

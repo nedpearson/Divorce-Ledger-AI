@@ -34,6 +34,7 @@ import { DrilldownType } from '@/components/financial-drilldown-drawer';
 import { useDrilldown } from '@/lib/drilldown-context';
 import { RecordDetailDrawer } from '@/components/record-detail-drawer';
 import { EmptyState } from '@/components/ui/empty-state';
+import { MissingBillsWidget } from '@/components/recurring-bills/MissingBillsWidget';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -550,6 +551,7 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="space-y-6 mt-6 animate-in fade-in duration-300">
+          <MissingBillsWidget />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               title="Net Position"
