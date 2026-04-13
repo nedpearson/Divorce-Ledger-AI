@@ -7,6 +7,8 @@ import {
   type InsertRecurringBillTemplate,
   type RecurringBillTemplate,
   type RecurringBillCycle,
+  obligationInstances,
+  cases,
 } from '@shared/schema';
 
 export class RecurringBillsService {
@@ -220,6 +222,79 @@ export class RecurringBillsService {
       totalOverdue,
       cycles: allCycles
     };
+  }
+  /**
+   * Evaluates all pending or missing cycles and tries to match them against existing processed documents.
+   * Useful when a template is added AFTER documents are already uploaded.
+   */
+  async retroactiveMatchAllPendings(userId: string, environment: string = 'demo') {
+    // Find all pending/missing cycles
+    const cycles = await db.select({
+      cycle: recurringBillCycles,
+      template: recurringBillTemplates
+    }).from(recurringBillCycles)
+      .innerJoin(recurringBillTemplates, eq(recurringBillCycles.recurringBillTemplateId, recurringBillTemplates.id))
+      .where(and(
+        eq(recurringBillTemplates.userId, userId),
+        or(eq(recurringBillCycles.status, 'pending'), eq(recurringBillCycles.status, 'missing'))
+      ));
+
+    if (cycles.length === 0) return;
+
+    // Fetch cases for user to map to obligation instances
+    const userCases = await db.query.cases.findMany({
+      where: eq(cases.userId, userId)
+    });
+    const caseIds = userCases.map(c => c.id);
+    
+    if (caseIds.length === 0) return;
+
+    // Fetch all obligation instances with documents to use as candidates
+    const obligations = await db.query.obligationInstances.findMany({
+      where: or(...caseIds.map(id => eq(obligationInstances.caseId, id))),
+      with: {
+        document: true
+      }
+    });
+
+    for (const ob of obligations) {
+      if (!ob.documentId || !ob.vendor || !ob.dueDate) continue;
+
+      const docDate = new Date(ob.dueDate);
+      const docVendor = ob.vendor.toLowerCase();
+      
+      const cycleMonth = docDate.getMonth() + 1;
+      const cycleYear = docDate.getFullYear();
+
+      for (const { cycle, template } of cycles) {
+        if (cycle.status === 'uploaded') continue; // already matched in this loop iteration optionally
+
+        if (cycle.cycleMonth === cycleMonth && cycle.cycleYear === cycleYear) {
+          const vendorSafe = template.vendorName.toLowerCase();
+          
+          if (docVendor.includes(vendorSafe) || vendorSafe.includes(docVendor)) {
+            await db.update(recurringBillCycles)
+              .set({ 
+                status: 'uploaded', 
+                matchedDocumentId: ob.documentId, 
+                matchConfidence: '0.90',
+                missingFlag: false,
+                updatedAt: new Date()
+              })
+              .where(eq(recurringBillCycles.id, cycle.id));
+              
+            await db.update(recurringBillNotifications)
+              .set({ status: 'read' })
+              .where(and(
+                 eq(recurringBillNotifications.recurringBillCycleId, cycle.id),
+                 eq(recurringBillNotifications.status, 'unread')
+              ));
+              
+            cycle.status = 'uploaded'; // prevent matching twice
+          }
+        }
+      }
+    }
   }
 }
 

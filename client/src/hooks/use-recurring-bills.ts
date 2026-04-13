@@ -39,6 +39,19 @@ export function useRecurringBills() {
     },
   });
 
+  // Delete a template
+  const deleteTemplate = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest('DELETE', `/api/recurring-bills/templates/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/recurring-bills/templates'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/recurring-bills/dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/obligations/summary'] }); // Need to invalidate summary too
+    },
+  });
+
   return {
     templates,
     isLoadingTemplates,
@@ -46,5 +59,6 @@ export function useRecurringBills() {
     isLoadingStats,
     createTemplate,
     updateTemplate,
+    deleteTemplate,
   };
 }

@@ -45,6 +45,9 @@ router.post('/templates', async (req, res) => {
     // Automatically generate cycles immediately
     await recurringBillsService.generateMonthlyCycles(userId, environment);
     
+    // Retroactively match newly created pending cycles against past uploaded documents
+    await recurringBillsService.retroactiveMatchAllPendings(userId, environment);
+    
     res.json(inserted);
   } catch (error: any) {
     console.error('Failed to create template:', error);
@@ -69,6 +72,24 @@ router.patch('/templates/:id', async (req, res) => {
     res.json(updated);
   } catch (error: any) {
     console.error('Failed to update template:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE template
+ */
+router.delete('/templates/:id', async (req, res) => {
+  try {
+    const userId = (req.user as any).id;
+    const { id } = req.params;
+    
+    await db.delete(recurringBillTemplates)
+      .where(and(eq(recurringBillTemplates.id, id), eq(recurringBillTemplates.userId, userId)));
+      
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Failed to delete template:', error);
     res.status(400).json({ error: error.message });
   }
 });

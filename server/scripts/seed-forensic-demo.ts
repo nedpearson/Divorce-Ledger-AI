@@ -536,7 +536,7 @@ export async function seedProfile(profile: CaseProfile, hashedPass: string, env:
   const cycleMonth = nowCycles.getMonth() + 1;
   const cycleYear = nowCycles.getFullYear();
   
-  for (const t of insertedTemplates) {
+  for (const t of insertedTemplates as any[]) {
     const isMissingScenario = Math.random() > 0.3; // Make missing bills common for demo
     cycles.push({
       recurringBillTemplateId: t.id,

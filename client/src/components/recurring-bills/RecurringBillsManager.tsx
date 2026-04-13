@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, PlusIcon, SettingsIcon, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, PlusIcon, SettingsIcon, AlertTriangle, Trash2, Pencil } from 'lucide-react';
 import { useRecurringBills } from '@/hooks/use-recurring-bills';
 import {
   Dialog,
@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/dialog";
 
 export function RecurringBillsManager() {
-  const { templates, isLoadingTemplates, createTemplate } = useRecurringBills();
+  const { templates, isLoadingTemplates, createTemplate, updateTemplate, deleteTemplate } = useRecurringBills();
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   
   // Basic form state
   const [vendorName, setVendorName] = useState('');
@@ -33,15 +34,53 @@ export function RecurringBillsManager() {
       splitType: 'custom',
       splitPercentageSpouse: '50'
     }, {
-      onSuccess: () => setIsAddOpen(false)
+      onSuccess: () => {
+        setIsAddOpen(false);
+        resetForm();
+      }
     });
+  };
+
+  const handleEdit = (id: string) => {
+    updateTemplate.mutate({
+      id,
+      payload: {
+        vendorName,
+        billName,
+        category,
+        expectedDayOfMonth: parseInt(expectedDayOfMonth),
+      }
+    }, {
+      onSuccess: () => {
+        setEditingTemplateId(null);
+        resetForm();
+      }
+    });
+  };
+
+  const openEdit = (t: any) => {
+    setVendorName(t.vendorName);
+    setBillName(t.billName);
+    setCategory(t.category);
+    setExpectedDayOfMonth(t.expectedDayOfMonth?.toString() || '1');
+    setEditingTemplateId(t.id);
+  };
+
+  const resetForm = () => {
+    setVendorName('');
+    setBillName('');
+    setCategory('Utilities');
+    setExpectedDayOfMonth('1');
   };
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Expected Monthly Bills</CardTitle>
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <Dialog open={isAddOpen} onOpenChange={(open) => {
+          setIsAddOpen(open);
+          if (!open) resetForm();
+        }}>
           <DialogTrigger asChild>
             <Button size="sm">
               <PlusIcon className="w-4 h-4 mr-2" />
@@ -84,18 +123,57 @@ export function RecurringBillsManager() {
         ) : (
           <div className="space-y-3">
             {templates.map(t => (
-              <div key={t.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                <div>
-                  <div className="font-semibold">{t.billName}</div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-2">
-                    {t.vendorName} • {t.category} 
+              <Dialog key={t.id} open={editingTemplateId === t.id} onOpenChange={(open) => {
+                if(!open) setEditingTemplateId(null);
+              }}>
+                <div className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div>
+                    <div className="font-semibold">{t.billName}</div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                      {t.vendorName} • {t.category} 
+                    </div>
+                  </div>
+                  <div className="text-right flex items-center gap-4">
+                    <div>
+                      <div className="text-sm font-medium">Due ~Day {t.expectedDayOfMonth}</div>
+                      <Badge variant="outline" className="mt-1">Active</Badge>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(t)} className="h-8 w-8 text-muted-foreground hover:text-primary">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <Button variant="ghost" size="icon" onClick={() => deleteTemplate.mutate(t.id)} disabled={deleteTemplate.isPending} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium">Due ~Day {t.expectedDayOfMonth}</div>
-                  <Badge variant="outline" className="mt-1">Active</Badge>
-                </div>
-              </div>
+
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Expected Monthly Bill</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Vendor Name</label>
+                      <Input value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="e.g. PG&E" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Bill Name (Alias)</label>
+                      <Input value={billName} onChange={e => setBillName(e.target.value)} placeholder="e.g. Home Electric" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Expected Day of Month</label>
+                      <Input type="number" min="1" max="31" value={expectedDayOfMonth} onChange={e => setExpectedDayOfMonth(e.target.value)} />
+                    </div>
+                    <Button onClick={() => handleEdit(t.id)} disabled={updateTemplate.isPending} className="w-full">
+                      {updateTemplate.isPending ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             ))}
           </div>
         )}
