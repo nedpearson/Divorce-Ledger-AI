@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,7 +18,29 @@ import {
   CreditCard,
   Wallet,
   Download,
+  Plus,
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useState } from 'react';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import type { Asset, Debt } from '@shared/schema';
 
 function formatCurrency(cents: number): string {
@@ -109,6 +131,220 @@ function DebtCard({ debt }: { debt: Debt }) {
   );
 }
 
+function AddAssetDialog({ onSuccess }: { onSuccess: () => void }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const addAsset = useMutation({
+    mutationFn: async (data: Partial<Asset>) => {
+      return apiRequest('POST', '/api/assets', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assets'] });
+      setOpen(false);
+      toast({ title: 'Asset added successfully' });
+      onSuccess();
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="w-fit" data-testid="button-add-asset">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Asset
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Asset</DialogTitle>
+          <DialogDescription>Add a new asset to track your net worth.</DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            addAsset.mutate({
+              name: formData.get('name') as string,
+              category: formData.get('category') as string,
+              value: parseInt(formData.get('value') as string) * 100, // convert to cents
+              ownership: formData.get('ownership') as string,
+              vendor: formData.get('vendor') as string,
+              acquiredDate: formData.get('acquiredDate') as string,
+              verified: false,
+              userId: 'demo-user',
+            });
+          }}
+        >
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Asset Name</Label>
+              <Input id="name" name="name" placeholder="e.g., Primary Residence" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select name="category" defaultValue="Real Estate">
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Real Estate">Real Estate</SelectItem>
+                  <SelectItem value="Vehicles">Vehicles</SelectItem>
+                  <SelectItem value="Bank Accounts">Bank Accounts</SelectItem>
+                  <SelectItem value="Investments">Investments</SelectItem>
+                  <SelectItem value="Retirement">Retirement</SelectItem>
+                  <SelectItem value="Personal Property">Personal Property</SelectItem>
+                  <SelectItem value="Business">Business</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="value">Value ($)</Label>
+              <Input id="value" name="value" type="number" placeholder="0" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ownership">Ownership</Label>
+              <Select name="ownership" defaultValue="joint">
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="joint">Joint</SelectItem>
+                  <SelectItem value="you">You</SelectItem>
+                  <SelectItem value="spouse">Spouse</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vendor">Institution/Location</Label>
+              <Input id="vendor" name="vendor" placeholder="e.g., First National Bank" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="acquiredDate">Acquired Date</Label>
+              <Input id="acquiredDate" name="acquiredDate" type="date" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={addAsset.isPending}>
+              {addAsset.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Asset
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddDebtDialog({ onSuccess }: { onSuccess: () => void }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const addDebt = useMutation({
+    mutationFn: async (data: Partial<Debt>) => {
+      return apiRequest('POST', '/api/debts', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/debts'] });
+      setOpen(false);
+      toast({ title: 'Debt added successfully' });
+      onSuccess();
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="w-fit" data-testid="button-add-debt">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Debt
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Debt</DialogTitle>
+          <DialogDescription>Add a new debt to track your liabilities.</DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            addDebt.mutate({
+              name: formData.get('name') as string,
+              category: formData.get('category') as string,
+              amount: parseInt(formData.get('amount') as string) * 100, // convert to cents
+              monthlyPayment: parseInt(formData.get('monthlyPayment') as string) * 100 || 0,
+              ownership: formData.get('ownership') as string,
+              vendor: formData.get('vendor') as string,
+              openedDate: formData.get('openedDate') as string,
+              userId: 'demo-user',
+            });
+          }}
+        >
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Debt Name</Label>
+              <Input id="name" name="name" placeholder="e.g., Home Mortgage" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select name="category" defaultValue="Mortgage">
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Mortgage">Mortgage</SelectItem>
+                  <SelectItem value="Auto Loan">Auto Loan</SelectItem>
+                  <SelectItem value="Credit Card">Credit Card</SelectItem>
+                  <SelectItem value="Student Loan">Student Loan</SelectItem>
+                  <SelectItem value="Personal Loan">Personal Loan</SelectItem>
+                  <SelectItem value="Medical Debt">Medical Debt</SelectItem>
+                  <SelectItem value="Tax Debt">Tax Debt</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="amount">Total Balance ($)</Label>
+                <Input id="amount" name="amount" type="number" placeholder="0" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="monthlyPayment">Monthly Payment ($)</Label>
+                <Input id="monthlyPayment" name="monthlyPayment" type="number" placeholder="0" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ownership">Ownership</Label>
+              <Select name="ownership" defaultValue="joint">
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="joint">Joint</SelectItem>
+                  <SelectItem value="you">You</SelectItem>
+                  <SelectItem value="spouse">Spouse</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vendor">Lender/Creditor</Label>
+              <Input id="vendor" name="vendor" placeholder="e.g., First National Bank" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="openedDate">Date Opened</Label>
+              <Input id="openedDate" name="openedDate" type="date" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={addDebt.isPending}>
+              {addDebt.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Debt
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function PropertyPage() {
   const { environment } = useAuth();
 
@@ -195,6 +431,8 @@ export default function PropertyPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <AddAssetDialog onSuccess={() => {}} />
+          <AddDebtDialog onSuccess={() => {}} />
           <Button
             variant="outline"
             size="sm"
@@ -388,8 +626,9 @@ export default function PropertyPage() {
             <TabsContent value="assets" className="space-y-3">
               {allAssets.length === 0 ? (
                 <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    No assets recorded. Add assets in the Finances section.
+                  <CardContent className="py-8 flex flex-col items-center justify-center text-center">
+                    <p className="text-muted-foreground mb-4">No assets recorded</p>
+                    <AddAssetDialog onSuccess={() => {}} />
                   </CardContent>
                 </Card>
               ) : (
@@ -399,8 +638,9 @@ export default function PropertyPage() {
             <TabsContent value="debts" className="space-y-3">
               {allDebts.length === 0 ? (
                 <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    No debts recorded. Add debts in the Finances section.
+                  <CardContent className="py-8 flex flex-col items-center justify-center text-center">
+                    <p className="text-muted-foreground mb-4">No debts recorded</p>
+                    <AddDebtDialog onSuccess={() => {}} />
                   </CardContent>
                 </Card>
               ) : (
