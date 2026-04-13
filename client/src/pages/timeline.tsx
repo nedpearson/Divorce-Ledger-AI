@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 import type { Violation, Transaction } from '@shared/schema';
@@ -118,8 +118,8 @@ export default function Timeline() {
         id: `violation-${v.id}`,
         type: 'violation',
         date: new Date(v.timestamp),
-        title: v.type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-        description: v.description,
+        title: (v.type || 'Unknown').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+        description: v.description || 'No description provided',
         status: v.status,
         location: v.location || undefined,
       });
@@ -132,9 +132,9 @@ export default function Timeline() {
         id: `transaction-${t.id}`,
         type: 'transaction',
         date: new Date(t.date),
-        title: t.description,
-        description: t.category,
-        category: t.type,
+        title: t.description || 'Unknown Transaction',
+        description: t.category || '',
+        category: t.type || '',
         amount: t.amount,
       });
     });
@@ -290,7 +290,7 @@ export default function Timeline() {
                     {pattern.occurrences.slice(0, 2).map((o, i) => (
                       <span key={i}>
                         {i > 0 && ', '}
-                        {format(new Date(o.date), 'MMM d')}
+                        {isValid(new Date(o.date)) ? format(new Date(o.date), 'MMM d') : 'Unknown Date'}
                       </span>
                     ))}
                     {pattern.occurrences.length > 2 && ` +${pattern.occurrences.length - 2} more`}
@@ -362,7 +362,7 @@ export default function Timeline() {
                       <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {format(event.date, 'MMM d, yyyy')}
+                          {isValid(event.date) ? format(event.date, 'MMM d, yyyy') : 'Unknown Date'}
                         </span>
                         {event.location && (
                           <span className="flex items-center gap-1">
