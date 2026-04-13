@@ -422,6 +422,7 @@ export async function analyzeAndPersist(
     const isFinancial = parseResult.document.doc_type !== 'NON_FINANCIAL';
     const hasData =
       (parseResult.document.total_amount_due !== null &&
+       parseResult.document.total_amount_due !== undefined &&
         parseResult.document.total_amount_due > 0) ||
       (parseResult.document.line_items && parseResult.document.line_items.length > 0);
 

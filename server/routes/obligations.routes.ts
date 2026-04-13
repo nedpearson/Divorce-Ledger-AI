@@ -374,17 +374,16 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
       const keywordList = inserted.keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean);
       
       const pastResults = await db.select({
-        documentId: schema.documentParseResults.documentId,
-        vendorName: schema.documentParseResults.vendorName,
-        totalAmountDue: schema.documentParseResults.totalAmountDue,
-        statementDate: schema.documentParseResults.statementDate,
-        dueDate: schema.documentParseResults.dueDate,
+        documentId: schema.documents.id,
+        vendorName: sql<string>`'Retroactive Match'`,
+        totalAmountDue: sql<number>`0`, 
+        statementDate: sql<string>`''`,
+        dueDate: sql<string>`''`,
         docDate: schema.documents.createdAt,
         aiExtractedText: schema.documents.aiExtractedText,
         fileName: schema.documents.fileName
       })
-      .from(schema.documentParseResults)
-      .leftJoin(schema.documents, eq(schema.documentParseResults.documentId, schema.documents.id));
+      .from(schema.documents);
 
       const matches = pastResults.filter(pr => {
          const docDateStr = pr.statementDate || pr.dueDate || pr.docDate?.toISOString() || '';
@@ -475,7 +474,8 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
            else if (recurrenceFrequency === 'biweekly') currentDate.setDate(currentDate.getDate() + 14);
            else break;
          }
-       } else if (dueDate) {
+       } else if (dueDate || isRecurring) {
+         const fallbackDate = dueDate || new Date().toISOString().split('T')[0];
          let partyAOwed = null;
          let partyBOwed = null;
          if (inserted.ruleType === 'percentage_split') {
@@ -492,7 +492,7 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
            partyBOwed,
            remainingBalance: baseAmount,
            direction: 'due_from_spouse',
-           dueDate,
+           dueDate: fallbackDate,
            isRecurring: !!isRecurring,
            recurrenceFrequency,
            description: inserted.notes,

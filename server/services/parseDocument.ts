@@ -674,7 +674,7 @@ export function validateParseResult(doc: ExpenseDocument): {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  if (doc.total_amount_due !== null && doc.total_amount_due < 0) {
+  if (doc.total_amount_due !== null && doc.total_amount_due !== undefined && doc.total_amount_due < 0) {
     warnings.push('Total amount is negative - verify if this is a refund');
   }
 
@@ -721,6 +721,8 @@ export function mapDocTypeToFinanceCategory(docType: DocType): string {
     PROPERTY_TAX: 'tax_return',
     INSURANCE_POLICY: 'insurance_document',
     NON_FINANCIAL: 'other',
+    LEGAL_DOCUMENT: 'legal_document',
+    COURT_ORDER: 'court_order',
   };
   return mapping[docType] || 'other';
 }
