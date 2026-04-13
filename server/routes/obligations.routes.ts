@@ -427,6 +427,8 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
                  amountGross,
                  partyAOwed,
                  partyBOwed,
+                 remainingBalance: partyBOwed !== null ? partyBOwed : amountGross,
+                 direction: 'due_from_spouse',
                  dueDate: match.startDate,
                  isAiComputed: false,
                  confidenceScore: 0.9,
