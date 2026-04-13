@@ -210,7 +210,6 @@ export async function analyzeAndPersist(
                   `[analyzeAndPersist] PDF extraction failed, will rely on parsing: ${pdfErr}`
                 );
               }
-              }
             } else if (isDocxType) {
               console.log(`[analyzeAndPersist] Attempting text extraction from DOCX using mammoth...`);
               try {

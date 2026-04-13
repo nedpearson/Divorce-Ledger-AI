@@ -422,8 +422,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       res.status(500).json({ error: e.message });
     }
   });
-    console.error('Failed to seed demo/test data:', err.message);
-  }
 
   // Register object storage routes for evidence file uploads
   registerObjectStorageRoutes(app);
