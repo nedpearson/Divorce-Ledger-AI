@@ -231,6 +231,8 @@ const PaymentCard = memo(function PaymentCard({
   isPaid,
   icon: Icon,
   drilldownType,
+  suffix,
+  action,
 }: {
   title: string;
   amount: number;
@@ -238,6 +240,8 @@ const PaymentCard = memo(function PaymentCard({
   isPaid: boolean;
   icon: React.ElementType;
   drilldownType?: DrilldownType;
+  suffix?: string;
+  action?: React.ReactNode;
 }) {
   const { openDrilldown } = useDrilldown();
 
@@ -277,26 +281,29 @@ const PaymentCard = memo(function PaymentCard({
             <DrillDownValue
               type={drilldownType}
               title={title}
-              value={`${formatCurrency(amount)}/mo`}
+              value={suffix !== undefined ? `${formatCurrency(amount)}${suffix}` : `${formatCurrency(amount)}/mo`}
             />
           ) : (
-            `${formatCurrency(amount)}/mo`
+            suffix !== undefined ? `${formatCurrency(amount)}${suffix}` : `${formatCurrency(amount)}/mo`
           )}
         </p>
         <p className="text-xs text-muted-foreground mt-1">
           {isPaid ? `Paid: ${dueDate}` : `Due: ${dueDate}`}
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full mt-3 text-xs"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleCardClick();
-          }}
-        >
-          {isPaid ? 'View Details' : 'Payment Plan'}
-        </Button>
+        <div className="flex gap-2 mt-3 text-xs w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCardClick();
+            }}
+          >
+            {isPaid ? 'View Details' : 'Payment Plan'}
+          </Button>
+          {action}
+        </div>
       </CardContent>
     </Card>
   );
@@ -621,6 +628,16 @@ export default function Dashboard() {
               isPaid={true}
               icon={Landmark}
               drilldownType="assets"
+              suffix=""
+              action={
+                <Button 
+                  variant="default" 
+                  className="flex-1 text-xs h-8 shadow-sm"
+                  onClick={() => setLocation('/finances')}
+                >
+                  Add Asset
+                </Button>
+              }
             />
           </div>
 
