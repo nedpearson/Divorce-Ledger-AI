@@ -29,6 +29,7 @@ import type { DashboardStats, Transaction, Alert as AlertType } from '@shared/sc
 import { useAuth } from '@/lib/auth';
 import { FeedbackCTA } from '@/components/feedback-cta';
 import { DrillDownValue } from '@/components/ui/drilldown-value';
+import { SpouseObligationsWidget } from '@/components/spouse-obligations-widget';
 import { DrilldownType } from '@/components/financial-drilldown-drawer';
 import { useDrilldown } from '@/lib/drilldown-context';
 import { RecordDetailDrawer } from '@/components/record-detail-drawer';
@@ -585,6 +586,10 @@ export default function Dashboard() {
               icon={Heart}
               drilldownType="alimony"
             />
+          </div>
+
+          <div className="mt-8 mb-4">
+            <SpouseObligationsWidget />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

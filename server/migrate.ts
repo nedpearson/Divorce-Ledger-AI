@@ -4,39 +4,20 @@ import 'dotenv/config';
 const { Pool } = pg;
 
 async function main() {
-  console.log('Running raw table creation...');
   const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    console.error('DATABASE_URL is missing in environment variables');
-    process.exit(1);
-  }
-  
   const pool = new Pool({
       connectionString: connectionString,
-      connectionTimeoutMillis: 30000,
-      idleTimeoutMillis: 30000,
-      max: 1,
       ssl: connectionString.includes('supabase') ? { rejectUnauthorized: false } : undefined,
   });
 
   const client = await pool.connect();
-  
   try {
-    const query = `
-      CREATE TABLE IF NOT EXISTS "mobile_pairing_tokens" (
-        "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-        "user_id" varchar NOT NULL,
-        "token" varchar NOT NULL,
-        "expires_at" timestamp NOT NULL,
-        "used" boolean DEFAULT false NOT NULL,
-        "environment" varchar DEFAULT 'demo' NOT NULL,
-        CONSTRAINT "mobile_pairing_tokens_token_unique" UNIQUE("token")
-      );
-    `;
-    await client.query(query);
-    console.log('Mobile pairing token table verified/created successfully.');
+    await client.query(`ALTER TABLE obligation_instances ADD COLUMN IF NOT EXISTS rule_id VARCHAR;`);
+    await client.query(`ALTER TABLE obligation_instances ADD COLUMN IF NOT EXISTS insurance_covered_amount INTEGER DEFAULT 0;`);
+
+    console.log('Successfully patched final missing columns natively!');
   } catch (err) {
-    console.error('Failed to execute query:', err);
+    console.error('Error:', err);
   } finally {
     client.release();
     pool.end();

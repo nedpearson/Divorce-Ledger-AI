@@ -104,3 +104,85 @@ obligationsRouter.post('/:id/resolve', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to resolve obligation instance' });
   }
 });
+
+// Get detailed Due From Spouse dashboard data
+obligationsRouter.get('/due-from-spouse', requireAuth, async (req, res) => {
+  try {
+    const instances = await db.select({
+      id: schema.obligationInstances.id,
+      category: schema.obligationInstances.category,
+      vendor: schema.obligationInstances.vendor,
+      amountGross: schema.obligationInstances.amountGross,
+      partyAOwed: schema.obligationInstances.partyAOwed,
+      partyBOwed: schema.obligationInstances.partyBOwed,
+      dueDate: schema.obligationInstances.dueDate,
+      status: schema.obligationInstances.status,
+      reviewStatus: schema.obligationInstances.reviewStatus,
+      createdAt: schema.obligationInstances.createdAt,
+      document: {
+        id: schema.documents.id,
+        fileName: schema.documents.fileName,
+        fileUrl: schema.documents.fileUrl
+      },
+      rule: {
+        id: schema.obligationRules.id,
+        partyBPercentage: schema.obligationRules.partyBPercentage,
+        effectiveStartDate: schema.obligationRules.effectiveStartDate
+      },
+      citation: {
+        pageNumber: schema.sourceCitations.pageNumber,
+        snippet: schema.sourceCitations.snippet,
+        explanation: schema.sourceCitations.explanation
+      }
+    })
+    .from(schema.obligationInstances)
+    .leftJoin(schema.documents, eq(schema.obligationInstances.documentId, schema.documents.id))
+    .leftJoin(schema.obligationRules, eq(schema.obligationInstances.ruleId, schema.obligationRules.id))
+    .leftJoin(schema.sourceCitations, eq(schema.obligationInstances.id, schema.sourceCitations.targetId))
+    .where(eq(schema.obligationInstances.reviewStatus, 'approved'))
+    .orderBy(desc(schema.obligationInstances.createdAt));
+
+    const totals = {
+      outstanding: 0,
+      pastDue: 0,
+      pendingReimbursement: 0,
+      upcomingDue: 0,
+      openCount: 0,
+      overdueCount: 0,
+      disputedCount: 0
+    };
+
+    const now = new Date();
+
+    instances.forEach(record => {
+      // Assuming Spouse is Party B. Fallback to extracting from Gross if percentage but no parsed PartyB
+      let spouseAmount = record.partyBOwed || 0; 
+      if (spouseAmount === 0 && record.amountGross && record.rule?.partyBPercentage) {
+        spouseAmount = Math.round(record.amountGross * (record.rule.partyBPercentage / 100));
+      }
+
+      if (spouseAmount > 0) {
+        if (record.status === 'pending') {
+          totals.outstanding += spouseAmount;
+          totals.openCount++;
+
+          if (record.dueDate && new Date(record.dueDate) < now) {
+            totals.pastDue += spouseAmount;
+            totals.overdueCount++;
+          } else {
+            totals.upcomingDue += spouseAmount;
+          }
+        }
+        if (record.status === 'disputed') {
+          totals.disputedCount++;
+        }
+      }
+    });
+
+    res.json({ totals, records: instances });
+
+  } catch (error) {
+    console.error('[Spouse Obligations Error]', error);
+    res.status(500).json({ error: 'Failed to fetch spouse obligations' });
+  }
+});
