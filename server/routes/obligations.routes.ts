@@ -328,7 +328,11 @@ obligationsRouter.get('/rules', requireAuth, async (req, res) => {
 // Create obligation rule
 obligationsRouter.post('/rules', requireAuth, async (req, res) => {
   try {
-    const { ruleType, category, partyAPercentage, partyBPercentage, fixedAmount, keywords, effectiveStartDate, notes, title } = req.body;
+    const { 
+      ruleType, category, partyAPercentage, partyBPercentage, fixedAmount, 
+      keywords, effectiveStartDate, notes, title,
+      dueDate, isRecurring, recurrenceFrequency, historicalStartDate, historicalEndDate 
+    } = req.body;
     
     // Auto-update any existing rule for this category to inactive ONLY if it's a general category rule without keywords
     // To support multiple keyword rules per category, we only disable if keywords are empty and category matches
@@ -417,6 +421,79 @@ obligationsRouter.post('/rules', requireAuth, async (req, res) => {
             }
          }
       }
+    }
+
+    // 2. Generate Scheduled programmatic recurrences if `dueDate` or `isRecurring` is provided
+    if (inserted && amountCents && (dueDate || isRecurring)) {
+       console.log(`[Obligations] Generating recurring schedule items for rule ${inserted.id}`);
+       const inserts = [];
+
+       if (isRecurring && historicalStartDate && historicalEndDate) {
+         let currentDate = new Date(historicalStartDate);
+         const end = new Date(historicalEndDate);
+         
+         while (currentDate <= end) {
+           let partyAOwed = null;
+           let partyBOwed = null;
+           if (inserted.ruleType === 'percentage_split') {
+             if (inserted.partyAPercentage) partyAOwed = Math.round(amountCents * (inserted.partyAPercentage / 100));
+             if (inserted.partyBPercentage) partyBOwed = Math.round(amountCents * (inserted.partyBPercentage / 100));
+           }
+
+           inserts.push({
+             caseId: 'pending-assignment',
+             ruleId: inserted.id,
+             category: inserted.category,
+             amountGross: amountCents,
+             partyAOwed,
+             partyBOwed,
+             remainingBalance: amountCents,
+             direction: 'due_from_spouse', // Default for these rules
+             dueDate: currentDate.toISOString().split('T')[0],
+             isRecurring: !!isRecurring,
+             recurrenceFrequency,
+             description: inserted.notes,
+             reviewStatus: 'approved', // If explicitly scheduled, auto-approve
+             status: 'pending',
+             environment: (req.headers['x-environment'] || 'demo') as string
+           });
+           
+           if (recurrenceFrequency === 'monthly') currentDate.setMonth(currentDate.getMonth() + 1);
+           else if (recurrenceFrequency === 'weekly') currentDate.setDate(currentDate.getDate() + 7);
+           else if (recurrenceFrequency === 'biweekly') currentDate.setDate(currentDate.getDate() + 14);
+           else break;
+         }
+       } else if (dueDate) {
+         let partyAOwed = null;
+         let partyBOwed = null;
+         if (inserted.ruleType === 'percentage_split') {
+           if (inserted.partyAPercentage) partyAOwed = Math.round(amountCents * (inserted.partyAPercentage / 100));
+           if (inserted.partyBPercentage) partyBOwed = Math.round(amountCents * (inserted.partyBPercentage / 100));
+         }
+
+         inserts.push({
+           caseId: 'pending-assignment',
+           ruleId: inserted.id,
+           category: inserted.category,
+           amountGross: amountCents,
+           partyAOwed,
+           partyBOwed,
+           remainingBalance: amountCents,
+           direction: 'due_from_spouse',
+           dueDate,
+           isRecurring: !!isRecurring,
+           recurrenceFrequency,
+           description: inserted.notes,
+           reviewStatus: 'approved',
+           status: 'pending',
+           environment: (req.headers['x-environment'] || 'demo') as string
+         });
+       }
+
+       if (inserts.length > 0) {
+         await db.insert(schema.obligationInstances).values(inserts);
+         console.log(`[Obligations] Inserted ${inserts.length} scheduled occurrences for rule ${inserted.id}`);
+       }
     }
 
     res.json(inserted);

@@ -126,7 +126,12 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
         fixedAmount: ruleType === 'fixed_amount' ? amount : undefined,
         keywords,
         effectiveStartDate: ruleStartDate || undefined,
-        notes
+        notes,
+        dueDate,
+        isRecurring,
+        recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
+        historicalStartDate: generateHistorical ? historicalStartDate : null,
+        historicalEndDate: generateHistorical ? historicalEndDate : null,
       });
     }
   };
@@ -242,22 +247,20 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
             </div>
           )}
 
-          {mode === 'manual' && (
-             <>
-              <div className="space-y-2">
-                <Label>First Due Date</Label>
-                <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-              </div>
+          <div className="space-y-2">
+            <Label>First Due Date</Label>
+            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </div>
 
-              <div className="flex items-center space-x-2 mt-4 pt-4 border-t">
-                <Checkbox id="recurring" checked={isRecurring} onCheckedChange={(val) => setIsRecurring(!!val)} />
-                <div className="grid gap-1.5 leading-none">
-                  <label htmlFor="recurring" className="text-sm font-medium leading-none cursor-pointer">
-                    Recurring Schedule
-                  </label>
-                  <p className="text-xs text-muted-foreground">Will automatically duplicate on the frequency below.</p>
-                </div>
-              </div>
+          <div className="flex items-center space-x-2 mt-4 pt-4 border-t">
+            <Checkbox id="recurring" checked={isRecurring} onCheckedChange={(val) => setIsRecurring(!!val)} />
+            <div className="grid gap-1.5 leading-none">
+              <label htmlFor="recurring" className="text-sm font-medium leading-none cursor-pointer">
+                Recurring Schedule
+              </label>
+              <p className="text-xs text-muted-foreground">Will automatically duplicate on the frequency below.</p>
+            </div>
+          </div>
 
               {isRecurring && (
                 <div className="space-y-4 pl-6">
@@ -290,8 +293,7 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
                   )}
                 </div>
               )}
-             </>
-          )}
+
 
           <div className="space-y-2 pt-2 border-t">
             <Label>Notes</Label>
