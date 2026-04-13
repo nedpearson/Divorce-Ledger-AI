@@ -1,7 +1,7 @@
 import { db } from '../db';
 import { storage } from '../storage';
 import { eq, and } from 'drizzle-orm';
-import { documentLineItems, documentParseResults, expenses, incomes, debts, users, obligationRules, obligationInstances } from '@shared/schema';
+import { documentLineItems, documentParseResults, expenses, incomes, debts, users, obligationRules, obligationInstances, legalDocuments } from '@shared/schema';
 import { normalizeEnv } from '../lib/normalizeEnv';
 import {
   parseFinancialDocument,
@@ -293,6 +293,21 @@ export async function analyzeAndPersist(
     const createdLegalObligations: any[] = [];
     if (parseResult.document.legal_obligations && parseResult.document.legal_obligations.length > 0) {
       console.log(`[analyzeAndPersist] Found ${parseResult.document.legal_obligations.length} legal obligations to persist.`);
+      
+      // Auto-populate the user's explicit Legal Documents view so they don't lose track of it structurally
+      await db.insert(legalDocuments)
+        .values({
+           userId,
+           title: doc.fileName || 'Consent Judgment Extraction',
+           documentType: 'court_order',
+           status: 'pending',
+           description: 'Auto-ingested via AI Financial Extraction pipeline',
+           fileUrl: doc.fileUrl,
+           fileName: doc.fileName,
+           fileSize: doc.fileSize,
+           environment
+        });
+
       
       for (const obs of parseResult.document.legal_obligations) {
         // If this looks like an overarching rule (e.g. from a Court Order), generate a rule.
