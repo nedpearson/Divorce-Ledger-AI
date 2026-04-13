@@ -19,6 +19,7 @@ interface AnalyzeAndPersistOptions {
   provider?: 'openai' | 'gemini';
   createRecords?: boolean;
   forceReparse?: boolean;
+  preExtractedText?: string;
   fireflyAccountIds?: {
     sourceAccountId: string;
     destinationAccountId: string;
@@ -105,7 +106,7 @@ export async function analyzeAndPersist(
       await db.delete(documentParseResults).where(eq(documentParseResults.documentId, documentId));
     }
 
-    let extractedText = doc.description || '';
+    let extractedText = options.preExtractedText || doc.aiExtractedText || doc.description || '';
     if (doc.title) {
       extractedText = `Title: ${doc.title}\n\n${extractedText}`;
     }
@@ -114,7 +115,7 @@ export async function analyzeAndPersist(
 
     // Fetch file from object storage or URL
     let ocrExtractedText = '';
-    if (doc.fileUrl && doc.fileType) {
+    if (!options.preExtractedText && doc.fileUrl && doc.fileType) {
       try {
         console.log(`[analyzeAndPersist] Fetching file: ${doc.fileUrl}, type: ${doc.fileType}`);
 

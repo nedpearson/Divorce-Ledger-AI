@@ -137,13 +137,14 @@ export class AnalysisOrchestrator {
       }
 
       // 4. Try full AI pipeline for real file uploads
+      let extractionRaw: any;
       try {
-        let extractionRaw;
+        const fileId = (doc as any).storageKey || doc.storageFileId || doc.fileName;
         if (doc.fileType && doc.fileType.includes('image') && !doc.fileType.includes('pdf')) {
-          const visionText = await visionReasoningProvider.processVisualEvidence(doc.storageFileId, doc.fileType);
+          const visionText = await visionReasoningProvider.processVisualEvidence(fileId, doc.fileType);
           extractionRaw = { text: visionText, pages: 1, tables: [], kvPairs: {}, isHandwritten: false };
         } else {
-          const buffer = await fileStorageService.getFileBuffer(doc.storageFileId);
+          const buffer = await fileStorageService.getFileBuffer(fileId);
           extractionRaw = await azureDocumentIntelligenceProvider.analyzeDocumentBuffer(buffer, doc.fileType || 'application/pdf');
         }
 
@@ -185,7 +186,10 @@ export class AnalysisOrchestrator {
         logger.info(`Financial category detected (${classifiedCategory}) — running analyzeAndPersist for ${documentId}`);
         try {
           const { analyzeAndPersist } = await import('../analyzeAndPersist');
-          const result = await analyzeAndPersist(documentId, { createRecords: true });
+          const result = await analyzeAndPersist(documentId, { 
+            createRecords: true,
+            preExtractedText: extractionRaw?.text
+          });
 
           // Treat "parse failed but placeholder expense created" as soft success
           // (happens when AI keys are not configured — fallback creates $0 placeholder)

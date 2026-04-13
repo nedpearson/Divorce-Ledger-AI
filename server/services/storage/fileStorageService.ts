@@ -96,7 +96,8 @@ export class FileStorageService {
     }
 
     // Local filesystem fallback
-    const filePath = path.join(this.localUploadDir, storageId);
+    const cleanStorageId = storageId.replace(/^uploads[\\\/]/i, '');
+    const filePath = path.join(this.localUploadDir, cleanStorageId);
     try {
       if (fs.existsSync(filePath)) {
          return await fs.promises.readFile(filePath);
