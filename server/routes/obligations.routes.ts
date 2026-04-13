@@ -80,9 +80,22 @@ obligationsRouter.post('/:id/resolve', requireAuth, async (req, res) => {
 
     // If approved, create corresponding financial records.
     if (finalStatus === 'approved') {
-       // Currently, analyzeAndPersist already created the line items/base records for utility bills.
-       // The new obligation instances track split responsibilities.
-       // We can sync this logic in the future.
+       const mappedType = ['child_support', 'alimony'].includes(updated.category || '') 
+                            ? updated.category 
+                            : 'child_support'; // fallback if not explicitly alimony
+
+       const userId = (req as any).session?.userId || (req.headers['x-user-id'] as string) || 'demo-client-user';
+
+       await db.insert(schema.childSupportPayments).values({
+         userId: userId,
+         paymentType: mappedType as string,
+         amount: updated.amountGross,
+         dueDate: updated.dueDate ? new Date(updated.dueDate) : new Date(),
+         status: 'pending',
+         courtOrderId: updated.documentId,
+         environment: updated.environment
+       });
+       console.log(`[Obligation API] Successfully pushed verified AI obligation directly to Ledger for category [${mappedType}].`);
     }
 
     res.json(updated);
