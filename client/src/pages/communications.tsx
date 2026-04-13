@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
+
+const safeFormat = (dateValue: any, formatStr: string) => {
+  if (!dateValue) return '';
+  const date = new Date(dateValue);
+  return isValid(date) ? format(date, formatStr) : '';
+};
+
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -244,7 +251,7 @@ export default function CommunicationsPage() {
         'POST',
         `/api/conversations/${selectedConversation?.id}/reports`,
         {
-          title: `Communication Analysis - ${format(new Date(), 'MMM d, yyyy')}`,
+          title: `Communication Analysis - ${safeFormat(new Date(), 'MMM d, yyyy')}`,
         }
       );
       return response.json();
@@ -347,8 +354,8 @@ export default function CommunicationsPage() {
           (p: any) => p.email === msg.senderEmail
         );
         return [
-          format(new Date(msg.createdAt), 'yyyy-MM-dd'),
-          format(new Date(msg.createdAt), 'HH:mm:ss'),
+          safeFormat(msg.createdAt, 'yyyy-MM-dd'),
+          safeFormat(msg.createdAt, 'HH:mm:ss'),
           `"${msg.senderName.replace(/"/g, '""')}"`,
           participant?.role || 'Unknown',
           `"${msg.content.replace(/"/g, '""')}"`,
@@ -465,7 +472,7 @@ export default function CommunicationsPage() {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {format(new Date(conv.updatedAt), 'MMM d, h:mm a')}
+                    {safeFormat(conv.updatedAt, 'MMM d, h:mm a')}
                   </p>
                 </div>
               ))}
@@ -726,7 +733,7 @@ export default function CommunicationsPage() {
                             )}
                             <span className="text-xs text-muted-foreground">{msg.senderName}</span>
                             <span className="text-xs text-muted-foreground">
-                              {format(new Date(msg.createdAt), 'h:mm a')}
+                              {safeFormat(msg.createdAt, 'h:mm a')}
                             </span>
                             {getSentimentBadge(msg)}
                           </div>
