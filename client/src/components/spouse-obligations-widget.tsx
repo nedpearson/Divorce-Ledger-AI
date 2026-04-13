@@ -122,7 +122,7 @@ export function SpouseObligationsWidget() {
     records: []
   };
 
-  const insights = calculateInsights(data!);
+  const insights = data ? calculateInsights(data) : [];
 
   const exportReport = () => {
     // Generate simple CSV
