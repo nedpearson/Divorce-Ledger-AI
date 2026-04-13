@@ -34,6 +34,16 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   handleRetry = () => {
+    // If this was a Vite chunk load error (deployment happened while user had tab open)
+    const errorMsg = this.state.error?.message || '';
+    if (
+      errorMsg.includes('Failed to fetch dynamically imported module') || 
+      errorMsg.includes('Importing a module script failed') || 
+      errorMsg.includes('fetch')
+    ) {
+      window.location.reload();
+      return;
+    }
     this.setState({ hasError: false, error: undefined, errorId: undefined });
   };
 

@@ -47,7 +47,8 @@ function formatCurrency(cents: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 }
 
-function getAssetIcon(category: string) {
+function getAssetIcon(category?: string | null) {
+  if (!category) return <Wallet className="h-5 w-5" />;
   switch (category.toLowerCase()) {
     case 'real_estate':
     case 'home':
