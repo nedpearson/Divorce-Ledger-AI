@@ -407,6 +407,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     await seedDemoData();
     await seedTestUsers();
   } catch (err: any) {
+    console.error('Failed to seed initial data:', err.message);
+  }
+
+  app.get('/api/diagnostics/last-text', async (req, res) => {
+    try {
+      const { desc } = await import('drizzle-orm');
+      const docs = await db.query.documents.findMany({
+        orderBy: desc(documents.createdAt),
+        limit: 1
+      });
+      res.json(docs[0] || { empty: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
     console.error('Failed to seed demo/test data:', err.message);
   }
 
