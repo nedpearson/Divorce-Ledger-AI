@@ -198,32 +198,89 @@ obligationsRouter.get('/summary', requireAuth, async (req, res) => {
 // Create manual obligation (Child Support, Direct Expense)
 obligationsRouter.post('/', requireAuth, async (req, res) => {
   try {
-    const { title, category, amountGross, direction, dueDate, isRecurring, recurrenceFrequency, notes } = req.body;
+    const { title, category, amountGross, direction, dueDate, isRecurring, recurrenceFrequency, notes, historicalStartDate, historicalEndDate } = req.body;
     
     // Convert float input to cents internally
     const amountCents = Math.round(parseFloat(amountGross) * 100);
+    const inserts = [];
 
-    const [inserted] = await db.insert(schema.obligationInstances).values({
-      caseId: 'pending-assignment',
-      title,
-      category,
-      amountGross: amountCents,
-      remainingBalance: amountCents,
-      direction: direction || 'due_from_spouse',
-      dueDate,
-      isRecurring: !!isRecurring,
-      recurrenceFrequency,
-      description: notes,
-      reviewStatus: 'approved',
-      status: 'pending'
-    }).returning();
+    if (isRecurring && historicalStartDate && historicalEndDate) {
+      let currentDate = new Date(historicalStartDate);
+      const end = new Date(historicalEndDate);
+      
+      while (currentDate <= end) {
+        inserts.push({
+          caseId: 'pending-assignment',
+          title,
+          category,
+          amountGross: amountCents,
+          remainingBalance: amountCents,
+          direction: direction || 'due_from_spouse',
+          dueDate: currentDate.toISOString().split('T')[0],
+          isRecurring: !!isRecurring,
+          recurrenceFrequency,
+          description: notes,
+          reviewStatus: 'approved',
+          status: 'pending'
+        });
+        
+        // Increment date based on frequency
+        if (recurrenceFrequency === 'monthly') currentDate.setMonth(currentDate.getMonth() + 1);
+        else if (recurrenceFrequency === 'weekly') currentDate.setDate(currentDate.getDate() + 7);
+        else if (recurrenceFrequency === 'biweekly') currentDate.setDate(currentDate.getDate() + 14);
+        else break;
+      }
+    } else {
+      inserts.push({
+        caseId: 'pending-assignment',
+        title,
+        category,
+        amountGross: amountCents,
+        remainingBalance: amountCents,
+        direction: direction || 'due_from_spouse',
+        dueDate,
+        isRecurring: !!isRecurring,
+        recurrenceFrequency,
+        description: notes,
+        reviewStatus: 'approved',
+        status: 'pending'
+      });
+    }
 
+    const inserted = await db.insert(schema.obligationInstances).values(inserts).returning();
     res.json(inserted);
   } catch (error) {
     console.error('[Obligations Create Error]', error);
     res.status(500).json({ error: 'Failed to create obligation' });
   }
 });
+
+// Mark obligation as paid
+obligationsRouter.post('/:id/pay', requireAuth, async (req, res) => {
+  try {
+    const [updated] = await db.update(schema.obligationInstances)
+      .set({ status: 'paid', remainingBalance: 0 })
+      .where(eq(schema.obligationInstances.id, req.params.id))
+      .returning();
+    if (!updated) return res.status(404).json({ error: 'Instance not found' });
+    res.json(updated);
+  } catch (error) {
+    console.error('[Obligations Pay Error]', error);
+    res.status(500).json({ error: 'Failed to mark obligation as paid' });
+  }
+});
+
+// Delete obligation
+obligationsRouter.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    await db.delete(schema.obligationInstances).where(eq(schema.obligationInstances.id, req.params.id));
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Obligations Delete Error]', error);
+    res.status(500).json({ error: 'Failed to delete obligation' });
+  }
+});
+
 
 // Get obligation rules (category percentages)
 obligationsRouter.get('/rules', requireAuth, async (req, res) => {

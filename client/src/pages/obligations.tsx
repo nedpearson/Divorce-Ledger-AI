@@ -42,6 +42,8 @@ import {
   TrendingDown,
   TrendingUp,
   Landmark,
+  Trash2,
+  CheckSquare,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -61,6 +63,9 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceFrequency, setRecurrenceFrequency] = useState('monthly');
   const [notes, setNotes] = useState('');
+  const [generateHistorical, setGenerateHistorical] = useState(false);
+  const [historicalStartDate, setHistoricalStartDate] = useState('');
+  const [historicalEndDate, setHistoricalEndDate] = useState('');
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -92,6 +97,8 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
       isRecurring,
       recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
       notes,
+      historicalStartDate: generateHistorical ? historicalStartDate : null,
+      historicalEndDate: generateHistorical ? historicalEndDate : null,
     });
   };
 
@@ -177,18 +184,38 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
           </div>
 
           {isRecurring && (
-            <div className="space-y-2 pl-6">
-              <Label>Frequency</Label>
-              <Select value={recurrenceFrequency} onValueChange={setRecurrenceFrequency}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Frequency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-4 pl-6">
+              <div className="space-y-2">
+                <Label>Frequency</Label>
+                <Select value={recurrenceFrequency} onValueChange={setRecurrenceFrequency}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2 border-t pt-2 mt-2">
+                <Checkbox id="historical" checked={generateHistorical} onCheckedChange={(val) => setGenerateHistorical(!!val)} />
+                <label htmlFor="historical" className="text-sm font-medium leading-none cursor-pointer">Generate Historical Past Due</label>
+              </div>
+              
+              {generateHistorical && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Start Date</Label>
+                    <Input type="date" value={historicalStartDate} onChange={(e) => setHistoricalStartDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>End Date</Label>
+                    <Input type="date" value={historicalEndDate} onChange={(e) => setHistoricalEndDate(e.target.value)} />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -210,8 +237,39 @@ function AddObligationDialog({ onSuccess }: { onSuccess: () => void }) {
 }
 
 export default function ObligationsPage() {
+  const { toast } = useToast();
   const { data: summary, isLoading, refetch } = useQuery<any>({
     queryKey: ['/api/obligations/summary'],
+  });
+
+  const payMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest('POST', `/api/obligations/${id}/pay`);
+      if (!res.ok) throw new Error('Failed to pay');
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Payment Marked', description: 'Obligation has been marked as fully paid.' });
+      refetch();
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to update payment status.', variant: 'destructive' });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest('DELETE', `/api/obligations/${id}`);
+      if (!res.ok) throw new Error('Failed to delete');
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Deleted', description: 'Obligation removed from the ledger.' });
+      refetch();
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to delete obligation.', variant: 'destructive' });
+    }
   });
 
   if (isLoading) {
@@ -318,6 +376,7 @@ export default function ObligationsPage() {
                     <TableHead>Balance Owed</TableHead>
                     <TableHead>Due Date</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -339,6 +398,16 @@ export default function ObligationsPage() {
                       <TableCell>{record.dueDate ? format(new Date(record.dueDate), 'MMM d, yy') : '-'}</TableCell>
                       <TableCell>
                          {record.status === 'overdue' ? <Badge variant="destructive">Overdue</Badge> : <Badge variant="secondary">Pending</Badge>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button size="icon" variant="outline" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => payMutation.mutate(record.id)} disabled={payMutation.isPending || deleteMutation.isPending} title="Mark as Paid">
+                            <CheckSquare className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="outline" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => deleteMutation.mutate(record.id)} disabled={payMutation.isPending || deleteMutation.isPending} title="Delete">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -374,6 +443,7 @@ export default function ObligationsPage() {
                          <TableHead>Interval</TableHead>
                          <TableHead>Gross</TableHead>
                          <TableHead>Owed</TableHead>
+                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -383,6 +453,16 @@ export default function ObligationsPage() {
                               <TableCell>{record.isRecurring ? record.recurrenceFrequency : 'One-time'}</TableCell>
                               <TableCell>{formatCurrency(record.amountGross)}</TableCell>
                               <TableCell className="font-semibold">{formatCurrency(record.remainingBalance)}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button size="icon" variant="outline" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => payMutation.mutate(record.id)} disabled={payMutation.isPending || deleteMutation.isPending} title="Mark as Paid">
+                                    <CheckSquare className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="icon" variant="outline" className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => deleteMutation.mutate(record.id)} disabled={payMutation.isPending || deleteMutation.isPending} title="Delete">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
                            </TableRow>
                        ))}
                     </TableBody>
