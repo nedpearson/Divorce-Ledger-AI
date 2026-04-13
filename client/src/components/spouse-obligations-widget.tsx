@@ -33,6 +33,7 @@ import {
   ArrowRight,
   ShieldCheck
 } from 'lucide-react';
+import { DrillDownValue } from '@/components/ui/drilldown-value';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -183,9 +184,12 @@ export function SpouseObligationsWidget() {
               <span className="text-sm font-semibold tracking-wider text-emerald-400 uppercase">
                 Total Outstanding Balance
               </span>
-              <p className="text-6xl font-black text-white tracking-tighter">
-                {formatCurrency((totals.outstanding || 0) / 100)}
-              </p>
+              <DrillDownValue
+                type="child_support"
+                title="Outstanding Due From Spouse"
+                className="text-6xl font-black text-white tracking-tighter cursor-pointer hover:text-emerald-300"
+                value={formatCurrency((totals.outstanding || 0) / 100)}
+              />
               <div className="flex items-center gap-2 mt-4 text-slate-300 text-sm">
                 <ShieldCheck className="h-4 w-4 text-blue-400" />
                 <span>Legally Traceable Ledger</span>
@@ -198,7 +202,7 @@ export function SpouseObligationsWidget() {
                 <span className="text-xs font-semibold text-rose-400 flex items-center gap-1.5 uppercase tracking-wider">
                   <AlertTriangle className="h-3.5 w-3.5" /> Past Due
                 </span>
-                <p className="text-2xl font-bold text-white">{formatCurrency((totals.pastDue || 0) / 100)}</p>
+                <DrillDownValue type="child_support" title="Past Due Overdue" className="text-2xl font-bold text-white hover:text-rose-300" value={formatCurrency((totals.pastDue || 0) / 100)} />
                 <p className="text-xs text-slate-400 font-medium">{totals.overdueCount} Overdue Items</p>
               </div>
 
@@ -206,7 +210,7 @@ export function SpouseObligationsWidget() {
                 <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider">
                   <Calendar className="h-3.5 w-3.5" /> Upcoming
                 </span>
-                <p className="text-2xl font-bold text-white">{formatCurrency((totals.upcomingDue || 0) / 100)}</p>
+                <DrillDownValue type="child_support" title="Upcoming Obligations" className="text-2xl font-bold text-white hover:text-emerald-300" value={formatCurrency((totals.upcomingDue || 0) / 100)} />
                 <p className="text-xs text-slate-400 font-medium">Inside Grace Period</p>
               </div>
 
@@ -214,7 +218,7 @@ export function SpouseObligationsWidget() {
                 <span className="text-xs font-semibold text-orange-400 flex items-center gap-1.5 uppercase tracking-wider">
                   <MessageSquare className="h-3.5 w-3.5" /> Disputed
                 </span>
-                <p className="text-2xl font-bold text-white">{formatCurrency((totals.pendingReimbursement || 0) / 100)}</p>
+                <DrillDownValue type="child_support" title="Disputed or Flagged" className="text-2xl font-bold text-white hover:text-orange-300" value={formatCurrency((totals.pendingReimbursement || 0) / 100)} />
                 <p className="text-xs text-slate-400 font-medium">{totals.disputedCount} Flagged Items</p>
               </div>
               
@@ -222,7 +226,7 @@ export function SpouseObligationsWidget() {
                 <span className="text-xs font-semibold text-blue-300 flex items-center gap-1.5 uppercase tracking-wider">
                   <Scale className="h-3.5 w-3.5" /> Net Position
                 </span>
-                <p className="text-2xl font-bold text-white">{formatCurrency((totals.netPosition || 0) / 100)}</p>
+                <DrillDownValue type="alimony" title="Global Net Position" className="text-2xl font-bold text-white hover:text-blue-300" value={formatCurrency((totals.netPosition || 0) / 100)} />
                 <p className="text-xs text-blue-200/50 font-medium">After ${formatCurrency((totals.dueToSpouse||0)/100)} owed</p>
               </div>
             </div>

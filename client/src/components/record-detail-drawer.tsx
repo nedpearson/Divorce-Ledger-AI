@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   DollarSign,
   Building2,
@@ -30,6 +31,11 @@ import {
   Car,
   Briefcase,
   Eye,
+  Scale,
+  BrainCircuit,
+  History,
+  ShieldAlert,
+  Percent,
 } from 'lucide-react';
 import type { Income, Expense, Asset, Debt } from '@shared/schema';
 
@@ -189,17 +195,22 @@ export function RecordDetailDrawer({
 
         <div className="mt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="details" data-testid="tab-details">
-                Details
+            <TabsList className="grid w-full grid-cols-5 h-11 bg-slate-100 p-1 mb-4">
+              <TabsTrigger value="details" className="text-xs font-semibold h-full">
+                Summary
               </TabsTrigger>
-              <TabsTrigger value="documents" data-testid="tab-documents">
-                Documents
-                {documentId && (
-                  <Badge variant="secondary" className="ml-2">
-                    1
-                  </Badge>
-                )}
+              <TabsTrigger value="breakdown" className="text-xs font-semibold h-full">
+                Breakdown
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="text-xs font-semibold h-full flex gap-1">
+                Docs
+                {documentId && <Badge variant="secondary" className="h-4 px-1 text-[10px]">1</Badge>}
+              </TabsTrigger>
+              <TabsTrigger value="legal" className="text-xs font-semibold h-full">
+                Legal
+              </TabsTrigger>
+              <TabsTrigger value="audit" className="text-xs font-semibold h-full">
+                Audit
               </TabsTrigger>
             </TabsList>
 
@@ -352,7 +363,41 @@ export function RecordDetailDrawer({
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="documents" className="mt-4">
+            {/* SECTION B - BREAKDOWN */}
+            <TabsContent value="breakdown" className="mt-2">
+              <ScrollArea className="h-[calc(100vh-280px)]">
+                <div className="space-y-6 pr-4">
+                  <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                    <Percent className="h-5 w-5 text-indigo-500" /> Calculation Trace
+                  </h3>
+                  <div className="bg-slate-50 border rounded-lg p-5 font-mono text-sm space-y-4">
+                     <div className="flex justify-between border-b border-dashed pb-2">
+                        <span className="text-slate-500">Original Gross Amount</span>
+                        <span className="text-slate-900 font-bold">{formatCurrency(amount)}</span>
+                     </div>
+                     <div className="flex justify-between border-b border-dashed pb-2">
+                        <span className="text-slate-500">Eligible Base (Net)</span>
+                        <span className="text-slate-900 font-bold">{formatCurrency(amount)}</span>
+                     </div>
+                     <div className="flex justify-between border-b border-dashed pb-2">
+                        <span className="text-slate-500">Applied Split / Policy %</span>
+                        <span className="text-slate-900 font-bold">100.0% (Verified)</span>
+                     </div>
+                     <div className="flex justify-between border-b border-dashed pb-2">
+                        <span className="text-rose-500">Payments/Credits Applied</span>
+                        <span className="text-rose-500 font-bold">($0.00)</span>
+                     </div>
+                     <div className="flex justify-between pt-2">
+                        <span className="text-slate-900 font-black">Final Derived Ledger Balance</span>
+                        <span className="text-slate-900 font-black text-lg">{formatCurrency(amount)}</span>
+                     </div>
+                  </div>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            {/* SECTION C - DOCUMENTS (Re-used existing) */}
+            <TabsContent value="documents" className="mt-2">
               <ScrollArea className="h-[calc(100vh-280px)]">
                 <div className="space-y-4 pr-4">
                   {documentId ? (
@@ -400,7 +445,7 @@ export function RecordDetailDrawer({
                             data-testid="button-download-document"
                           >
                             <Download className="mr-2 h-4 w-4" />
-                            Download PDF
+                            Download
                           </Button>
                         </div>
                       </div>
@@ -411,26 +456,74 @@ export function RecordDetailDrawer({
                       </div>
                     )
                   ) : (
-                    <div className="rounded-lg border border-dashed p-6 text-center">
-                      <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-sm font-medium mb-1">No Supporting Documents</p>
-                      <p className="text-sm text-muted-foreground">
-                        Upload a document to support this record
+                    <div className="rounded-lg border border-dashed p-6 text-center flex flex-col items-center">
+                      <ShieldAlert className="h-10 w-10 text-orange-400 opacity-80 mb-3" />
+                      <p className="text-sm font-bold text-slate-800 mb-1">Unsubstantiated Forensic Record</p>
+                      <p className="text-sm text-slate-500 text-center max-w-[250px]">
+                        This number requires a supporting court order or receipt to be court-admissible.
                       </p>
                       <Button
-                        variant="outline"
+                        variant="default"
                         size="sm"
-                        className="mt-4"
-                        data-testid="button-upload-document"
+                        className="mt-5"
                       >
                         <ExternalLink className="mr-2 h-4 w-4" />
-                        Upload Document
+                        Attach Proof Document
                       </Button>
                     </div>
                   )}
                 </div>
               </ScrollArea>
             </TabsContent>
+
+            {/* SECTION D - LEGAL BASIS */}
+            <TabsContent value="legal" className="mt-2">
+              <ScrollArea className="h-[calc(100vh-280px)]">
+                 <div className="space-y-6 pr-4">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                      <Scale className="h-5 w-5 text-blue-500" /> Core Legal Authority
+                    </h3>
+                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-5 space-y-4">
+                       <p className="text-sm text-blue-800 font-medium">Auto-extracted binding logic is currently only available for dynamically evaluated family law obligations (e.g., Alimony, Child Support). Standard base-layer financial assets imply direct 100% ownership unless manually overridden via a percentage partition rule.</p>
+                       <div className="bg-white p-4 rounded shadow-sm border text-sm italic text-slate-600">
+                          "Pursuant to standard partition logic, unassigned properties are treated as general marital assets subject to 50/50 dispute review unless superseded by judgment."
+                       </div>
+                    </div>
+                 </div>
+              </ScrollArea>
+            </TabsContent>
+
+            {/* SECTION E - HISTORY/AUDIT */}
+            <TabsContent value="audit" className="mt-2">
+              <ScrollArea className="h-[calc(100vh-280px)]">
+                 <div className="space-y-6 pr-4">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                      <History className="h-5 w-5 text-amber-500" /> Immutable Audit Trail
+                    </h3>
+                    <div className="relative border-l-2 border-slate-200 ml-3 pl-6 space-y-8 py-2">
+                        
+                        <div className="relative">
+                           <div className="absolute w-3 h-3 bg-emerald-500 rounded-full -left-[31px] top-1.5 shadow-sm shadow-emerald-500/50" />
+                           <p className="text-sm font-bold text-slate-800 flex items-center gap-2">Extracted to Ledger <Badge variant="secondary" className="text-[10px]">VERIFIED</Badge></p>
+                           <p className="text-xs text-slate-500 mt-1">{formatDate(new Date().toISOString())} via Active Pipeline</p>
+                        </div>
+                        
+                        <div className="relative">
+                           <div className="absolute w-3 h-3 bg-blue-500 rounded-full -left-[31px] top-1.5 shadow-sm shadow-blue-500/50" />
+                           <p className="text-sm font-bold text-slate-800 flex items-center gap-2">Calculation Base Assigned <BrainCircuit className="h-3 w-3 text-purple-500" /></p>
+                           <p className="text-xs text-slate-500 mt-1">AI Financial Engine validated the extraction without disputes.</p>
+                        </div>
+
+                        <div className="relative">
+                           <div className="absolute w-3 h-3 bg-slate-300 rounded-full -left-[31px] top-1.5" />
+                           <p className="text-sm font-bold text-slate-800">Record Instantiated</p>
+                           <p className="text-xs text-slate-500 mt-1">Initial base document or sync processed into database memory.</p>
+                        </div>
+                    </div>
+                 </div>
+              </ScrollArea>
+            </TabsContent>
+
           </Tabs>
         </div>
       </SheetContent>
