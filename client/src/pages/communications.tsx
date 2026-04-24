@@ -137,9 +137,11 @@ const roleColors: Record<string, string> = {
 };
 
 import { useDrilldown } from '@/lib/drilldown-context';
+import { useAuth } from '@/lib/auth';
 
 export default function CommunicationsPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { openDrilldown } = useDrilldown();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [isNewConvoOpen, setIsNewConvoOpen] = useState(false);
@@ -713,7 +715,7 @@ export default function CommunicationsPage() {
               ) : (
                 <div className="space-y-4">
                   {conversationDetails?.messages?.map((msg) => {
-                    const isCurrentUser = msg.senderId === 'demo-user'; // Simplified check
+                    const isCurrentUser = msg.senderId === user?.id;
                     return (
                       <div
                         key={msg.id}

@@ -21,7 +21,10 @@ export default function MobileInstallPage() {
   const { data: pairingData, isLoading } = useQuery({
     queryKey: ['mobile-pairing-token', 'full-page'],
     queryFn: async () => {
-      const res = await fetch('/api/mobile/pairing-token', { method: 'POST' });
+      const res = await fetch('/api/mobile/pairing-token', {
+        method: 'POST',
+        credentials: 'include',
+      });
       if (!res.ok) throw new Error('Failed to generate pairing token');
       return res.json();
     },

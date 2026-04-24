@@ -1380,29 +1380,34 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
   const { environment, user } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
   const { data: documents = [], isLoading } = useQuery<Document[]>({
     queryKey: ['/api/mobile/documents'],
     enabled: !isDemoMode,
+    refetchInterval: 5000,
   });
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('title', file.name);
       formData.append('type', file.type);
       formData.append('size', file.size.toString());
       formData.append('environment', environment || 'live');
+      
+      // The platform's file upload API automatically analyzes with AI
       formData.append('analyzeWithAI', 'true');
 
-      // Use Supabase deployment URL
+      // Use Supabase deployment URL if provided
       const SUPABASE_API =
         import.meta.env.VITE_PUBLIC_URL || import.meta.env.VITE_SUPABASE_URL || '';
       const apiUrl = (endpoint: string) => (SUPABASE_API ? `${SUPABASE_API}${endpoint}` : endpoint);
 
-      const response = await fetch(apiUrl('/api/mobile/documents'), {
+      const response = await fetch(apiUrl('/api/storage/files/upload'), {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -1413,7 +1418,7 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
         let errorMsg = 'Upload failed';
         try {
           const error = await response.json();
-          errorMsg = error.message || errorMsg;
+          errorMsg = error.error || error.message || errorMsg;
         } catch (e) {
           // fallback
         }
@@ -1435,8 +1440,18 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
     if (file) {
       uploadMutation.mutate(file);
     }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    if (e.target) {
+      e.target.value = '';
+    }
+  };
+
+  const handleCameraChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadMutation.mutate(file);
+    }
+    if (e.target) {
+      e.target.value = '';
     }
   };
 
@@ -1491,12 +1506,22 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
+        {/* File picker — opens gallery/documents */}
         <input
           ref={fileInputRef}
           type="file"
           className="hidden"
           onChange={handleFileChange}
           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+        />
+        {/* Camera input — opens native camera on mobile */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleCameraChange}
+          accept="image/*"
+          capture="environment"
         />
         <div className="flex gap-2">
           <Button
@@ -1515,7 +1540,9 @@ function DocumentsTab({ isDemoMode }: { isDemoMode: boolean }) {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={uploadMutation.isPending}
+            title="Take photo with camera"
             data-testid="button-camera-upload"
           >
             <Camera className="h-4 w-4" />

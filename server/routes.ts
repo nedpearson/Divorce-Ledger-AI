@@ -109,7 +109,7 @@ function resolveWorkspaceId(req: Request): string | undefined {
 // In development/demo mode, the limiter is bypassed entirely
 const loginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, // effectively unlimited; real guard is the skip function below
+  max: 10, // 10 attempts per window — real brute-force protection in production
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -412,7 +412,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     console.error('Failed to seed initial data:', err.message);
   }
 
-  app.get('/api/diagnostics/last-text', async (req, res) => {
+  app.get('/api/diagnostics/last-text', requireAdmin, async (req, res) => {
     try {
       const { desc } = await import('drizzle-orm');
       const docs = await db.query.documents.findMany({
@@ -581,8 +581,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const [alert] = await db
         .update(securityAlerts)
         .set({ isResolved: true, resolvedAt: new Date() })
-        .where(eq(securityAlerts.id, req.params.id))
+        // SECURITY: Scope update to the authenticated user's alerts only (prevents IDOR)
+        .where(and(eq(securityAlerts.id, req.params.id), eq(securityAlerts.userId, userId)))
         .returning();
+      if (!alert) return res.status(404).json({ error: 'Alert not found' });
       res.json(alert);
     } catch (e) {
       console.error(e);

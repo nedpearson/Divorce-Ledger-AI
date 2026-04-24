@@ -54,14 +54,11 @@ export class ImpersonationService {
     }
 
     // Create impersonation session with secure randomness
-    let randomPart: string;
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      randomPart = crypto.randomUUID();
-    } else if (typeof crypto !== 'undefined' && crypto.randomBytes) {
-      randomPart = crypto.randomBytes(16).toString('hex');
-    } else {
-      randomPart = Math.floor(Math.random() * 1e18).toString();
-    }
+    // crypto.randomBytes is always available in Node.js — no Math.random() fallback needed
+    const { randomBytes, randomUUID } = await import('crypto');
+    const randomPart: string = typeof randomUUID === 'function'
+      ? randomUUID()
+      : randomBytes(16).toString('hex');
     const sessionId = `imp_${Date.now()}_${randomPart}`;
 
     this.activeImpersonations.set(sessionId, {
