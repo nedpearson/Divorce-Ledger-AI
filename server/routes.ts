@@ -2445,7 +2445,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Admin middleware - checks if user is admin
-  const requireAdmin = async (req: any, res: any, next: any) => {
+  const requireLocalAdmin = async (req: any, res: any, next: any) => {
     const userId = req.headers['x-user-id'] as string;
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -2467,7 +2467,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   };
 
   // Admin: Get all users (metadata only, no documents)
-  app.get('/api/admin/users', requireAdmin, async (req, res) => {
+  app.get('/api/admin/users', requireLocalAdmin, async (req, res) => {
     try {
       const allUsers = await storage.getAllUsers();
 
@@ -2498,7 +2498,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Admin: Update user status (active/suspended)
-  app.patch('/api/admin/users/:userId/status', requireAdmin, async (req, res) => {
+  app.patch('/api/admin/users/:userId/status', requireLocalAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
       const { status } = req.body;
@@ -2524,7 +2524,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Admin: Update user subscription tier
-  app.patch('/api/admin/users/:userId/tier', requireAdmin, async (req, res) => {
+  app.patch('/api/admin/users/:userId/tier', requireLocalAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
       const { tier } = req.body;
@@ -2549,7 +2549,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Admin: Update user role/admin status
-  app.patch('/api/admin/users/:userId/role', requireAdmin, async (req, res) => {
+  app.patch('/api/admin/users/:userId/role', requireLocalAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
       const { isAdmin } = req.body;
@@ -2573,7 +2573,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Admin: Get user usage statistics (aggregated, no document content)
-  app.get('/api/admin/users/:userId/usage', requireAdmin, async (req, res) => {
+  app.get('/api/admin/users/:userId/usage', requireLocalAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
       const user = await storage.getUser(userId);
@@ -2601,7 +2601,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Admin: Reset user monthly usage counts
-  app.post('/api/admin/users/:userId/reset-usage', requireAdmin, async (req, res) => {
+  app.post('/api/admin/users/:userId/reset-usage', requireLocalAdmin, async (req, res) => {
     try {
       const { userId } = req.params;
 

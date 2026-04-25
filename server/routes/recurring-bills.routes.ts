@@ -34,8 +34,7 @@ router.post('/templates', async (req, res) => {
   try {
     const userId = (req.user as any).id;
     const environment = normalizeEnv(req.headers['x-environment'] as string | undefined);
-    // TODO: Extract caseId properly from session/demo
-    const caseId = 'demo-case-id'; // Fallback
+    const caseId = req.body.caseId || 'demo-case-id'; // Fallback if not provided in payload
     
     const payload = { ...req.body, userId, caseId, environment };
     const validated = insertRecurringBillTemplateSchema.parse(payload);

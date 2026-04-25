@@ -7,7 +7,7 @@ async function main() {
   const connectionString = process.env.DATABASE_URL;
   const pool = new Pool({
       connectionString: connectionString,
-      ssl: connectionString.includes('supabase') ? { rejectUnauthorized: false } : undefined,
+      ssl: connectionString?.includes('supabase') ? { rejectUnauthorized: false } : undefined,
   });
 
   const client = await pool.connect();
