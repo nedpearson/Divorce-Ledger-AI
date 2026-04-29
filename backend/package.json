@@ -30,7 +30,7 @@
     "@supabase/supabase-js": "^2.97.0",
     "csurf": "^1.11.0",
     "dotenv": "^16.3.1",
-    "fastify": "^5.7.4",
+    "fastify": "^5.8.5",
     "glob": "^13.0.6",
     "minimatch": "^10.2.2",
     "pino": "^8.17.2",
