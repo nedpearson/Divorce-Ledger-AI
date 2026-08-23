@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
+import YAML from 'js-yaml';
 import path from 'path';
 import fs from 'fs';
 
@@ -24,13 +24,13 @@ function loadSwaggerDocument() {
   const yamlPath = path.join(docsDir, '../openapi/openapi.yaml');
 
   if (fs.existsSync(yamlPath)) {
-    swaggerDocument = YAML.load(yamlPath);
+    swaggerDocument = YAML.load(fs.readFileSync(yamlPath, 'utf8'));
     return swaggerDocument;
   }
 
   const altPath = path.join(process.cwd(), 'server/openapi/openapi.yaml');
   if (fs.existsSync(altPath)) {
-    swaggerDocument = YAML.load(altPath);
+    swaggerDocument = YAML.load(fs.readFileSync(altPath, 'utf8'));
     return swaggerDocument;
   }
 
