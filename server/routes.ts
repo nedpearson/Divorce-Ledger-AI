@@ -44,6 +44,7 @@ import { googleCalendarIntegrationRoutes } from './routes/integrations-google-ca
 import recurringBillsRoutes from './routes/recurring-bills.routes';
 import { lineageRouter } from './routes/lineage.routes';
 import { obligationsRouter } from './routes/obligations.routes';
+import { portalRouter } from './routes/portal.routes';
 import {
   canCreateCase,
   canAddViolation,
@@ -537,6 +538,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Lineage Drill-Down API
   app.use('/api/lineage', lineageRouter);
   app.use('/api/obligations', obligationsRouter);
+  app.use('/api/portal', portalRouter);
   app.use('/api/recurring-bills', recurringBillsRoutes);
 
   // Expose backend integration availability to the frontend gracefully

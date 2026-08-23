@@ -1,4 +1,5 @@
 export * from './drilldown-schema';
+export * from './portal-schema';
 import { sql } from 'drizzle-orm';
 import {
   pgTable,
