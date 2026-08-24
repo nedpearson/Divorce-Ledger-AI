@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { etlPipeline } from '../etl/pipeline';
 import { etlScheduler } from '../etl/scheduler';
 import { aggregationService } from '../etl/aggregation';
@@ -9,7 +9,7 @@ const router = Router();
 const ETL_DISABLED = true;
 const ETL_DISABLED_MESSAGE = 'ETL module temporarily disabled - pending schema migration';
 
-function checkEtlDisabled(req: Request, res: Response, next: Function) {
+function checkEtlDisabled(req: Request, res: Response, next: NextFunction) {
   if (ETL_DISABLED) {
     return res.status(503).json({
       error: ETL_DISABLED_MESSAGE,
@@ -19,7 +19,7 @@ function checkEtlDisabled(req: Request, res: Response, next: Function) {
   next();
 }
 
-function requireAdminSecret(req: Request, res: Response, next: Function) {
+function requireAdminSecret(req: Request, res: Response, next: NextFunction) {
   const adminSecret = req.headers['x-admin-secret'];
   if (adminSecret !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ error: 'Unauthorized - admin secret required' });

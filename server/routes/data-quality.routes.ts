@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { dataQualityService } from '../data-quality/service';
 import { dqAlertService } from '../data-quality/alerts';
 import { reconciliationService } from '../data-quality/reconciliation';
@@ -6,7 +6,7 @@ import { handleRouteError } from '../lib/errorHandler';
 
 const router = Router();
 
-function requireAdminSecret(req: Request, res: Response, next: Function) {
+function requireAdminSecret(req: Request, res: Response, next: NextFunction) {
   const adminSecret = req.headers['x-admin-secret'];
   if (adminSecret !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ error: 'Unauthorized - admin secret required' });

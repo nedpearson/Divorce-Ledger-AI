@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '../db';
 import * as schema from '@shared/schema';
 import type { PortalRole } from '@shared/portal-schema';

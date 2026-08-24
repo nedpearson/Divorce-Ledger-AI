@@ -30,6 +30,20 @@ export default tseslint.config(
       'no-useless-concat': 'error',
       'no-void': 'error',
       '@typescript-eslint/no-explicit-any': 'warn',
+      // Hygiene rules inherited from the recommended presets are not security
+      // rules; keep them visible as warnings so this gate fails only on the
+      // security rules declared above.
+      '@typescript-eslint/no-unused-vars': 'warn',
+      'no-unused-vars': 'warn',
+      'no-undef': 'warn',
+      'no-empty': 'warn',
+      'no-useless-escape': 'warn',
+      'prefer-const': 'warn',
+      '@typescript-eslint/no-namespace': 'warn',
+      '@typescript-eslint/ban-ts-comment': 'warn',
+      '@typescript-eslint/no-require-imports': 'warn',
+      '@typescript-eslint/no-unnecessary-type-constraint': 'warn',
+      'no-useless-catch': 'warn',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',

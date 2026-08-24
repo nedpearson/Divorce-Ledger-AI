@@ -75,16 +75,16 @@ export function useLoopWatchdog(options?: LoopWatchdogOptions) {
 
       // 2) Optionally send to backend (non-blocking, fire-and-forget)
       if (config.reportUrl) {
-        try {
-          void fetch(config.reportUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            keepalive: true,
-          });
-        } catch {
+        // Fire-and-forget: a sync try/catch cannot catch an async rejection,
+        // so the failure is swallowed on the promise itself.
+        fetch(config.reportUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        }).catch(() => {
           // swallow; logging is best-effort
-        }
+        });
       }
     }
   });

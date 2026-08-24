@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { eventProducer, EventTopics } from '../events/producer';
 import {
   startAnalyticsProcessor,
@@ -16,7 +16,7 @@ const EVENTS_DISABLED = true;
 const EVENTS_DISABLED_MESSAGE =
   'Event streaming module temporarily disabled - pending schema migration';
 
-function checkEventsDisabled(req: Request, res: Response, next: Function) {
+function checkEventsDisabled(req: Request, res: Response, next: NextFunction) {
   if (EVENTS_DISABLED) {
     return res.status(503).json({
       error: EVENTS_DISABLED_MESSAGE,
@@ -26,7 +26,7 @@ function checkEventsDisabled(req: Request, res: Response, next: Function) {
   next();
 }
 
-function requireAdminSecret(req: Request, res: Response, next: Function) {
+function requireAdminSecret(req: Request, res: Response, next: NextFunction) {
   const adminSecret = req.headers['x-admin-secret'];
   if (adminSecret !== process.env.ADMIN_SECRET) {
     return res.status(401).json({ error: 'Unauthorized - admin secret required' });
