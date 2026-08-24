@@ -123,7 +123,7 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",
     "socket.io": "^4.8.3",
-    "stripe": "^20.0.0",
+    "stripe": "20.0.0",
     "stripe-replit-sync": "^1.0.0",
     "swagger-ui-express": "^5.0.1",
     "tailwind-merge": "^2.6.0",
